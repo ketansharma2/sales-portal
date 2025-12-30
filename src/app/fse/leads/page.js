@@ -14,6 +14,7 @@ export default function LeadsList() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [viewAll, setViewAll] = useState(false);
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -46,11 +47,23 @@ export default function LeadsList() {
     }
   }, [mounted]);
 
-  const fetchLeads = async () => {
+  const fetchLeads = async (all = false) => {
     try {
       setLoading(true);
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/fse/clients', {
+
+      // Check if any filters are applied
+      const hasFilters = filters.company || filters.category || filters.state || filters.status || filters.location || filters.projection;
+
+      let url = '/api/fse/clients';
+      if (!hasFilters && !all) {
+        // Default to current and last month
+        const now = new Date();
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
+        url += `?limit=100&date_from=${lastMonthStart}`;
+      }
+
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -59,6 +72,7 @@ export default function LeadsList() {
 
       if (data.success) {
         setLeads(data.data);
+        if (all) setViewAll(true);
       } else {
         // setError(data.error);
       }
@@ -99,6 +113,7 @@ export default function LeadsList() {
       const data = await response.json();
 
       if (data.success) {
+        alert('Successfully added new client');
         if (isEdit) {
           setLeads(prev => prev.map(lead =>
             lead.client_id === selectedLead.client_id ? data.data : lead
@@ -109,9 +124,11 @@ export default function LeadsList() {
         setIsModalOpen(false);
         setSelectedLead(null);
       } else {
+        alert('Failed to save lead: ' + (data.error || 'Unknown error'));
         setError(data.error || 'Failed to save lead');
       }
     } catch (err) {
+      alert('Network error while saving lead');
       setError('Network error while saving lead');
       console.error('Save error:', err);
     } finally {
@@ -193,7 +210,7 @@ export default function LeadsList() {
   const filteredLeads = getFilteredLeads();
 
   return (
-<div className="w-full h-screen flex flex-col overflow-hidden font-['Calibri'] p-2 bg-[#f8fafc]">
+<div className="w-full h-screen flex flex-col overflow-auto font-['Calibri'] p-2 bg-[#f8fafc]">
       {/* 8. HEADER SECTION */}
 <div className="flex justify-between items-center mb-5 shrink-0">        
   <div>
@@ -241,117 +258,130 @@ export default function LeadsList() {
               <span className="ml-2 text-gray-600">Loading leads...</span>
             </div>
           ) : (
-            <table className="min-w-[3200px] text-[11px] border-collapse">
+            <>
+              <table className="min-w-[3200px] text-[11px] border-collapse">
 
-              {/* ===== TABLE HEADER ===== */}
-              <thead className="sticky top-0 z-30 bg-[#103c7f] border-b border-[#103c7f]">
-                <tr className="uppercase text-white font-black tracking-widest">
-                  {[
-                    "Sourcing Date","Company","Category","State","Location",
-                    "Employee Count","Contact Person","Contact No.","Email",
-                    "Call / Visit","Latest Mode",
-                    "Date of Call / Visit","Latest Date",
-                    "Remarks","Reference","Next Followup",
-                    "Status","Sub Status","Projection","Action"
-                  ].map(h => (
-                    <th key={h} className="px-3 py-3 text-left whitespace-nowrap">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-
-              {/* ===== TABLE BODY ===== */}
-              <tbody>
-                {filteredLeads.length === 0 ? (
-                  <tr>
-                    <td colSpan={20} className="text-center py-10 text-gray-400 font-bold">
-                      No records found
-                    </td>
+                {/* ===== TABLE HEADER ===== */}
+                <thead className="sticky top-0 z-30 bg-[#103c7f] border-b border-[#103c7f]">
+                  <tr className="uppercase text-white font-black tracking-widest">
+                    {[
+                      "Sourcing Date","Company","Category","State","Location",
+                      "Employee Count","Contact Person","Contact No.","Email",
+                      "Call / Visit","Latest Mode",
+                      "Date of Call / Visit","Latest Date",
+                      "Remarks","Reference","Next Followup",
+                      "Status","Sub Status","Projection","Action"
+                    ].map(h => (
+                      <th key={h} className="px-3 py-3 text-left whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
                   </tr>
-                ) : (
-                  filteredLeads.map((lead, index) => (
-                    <tr
-                      key={lead.client_id || lead.id}
-                      className={`
-                        border-b
-                        ${index % 2 === 0 ? "bg-white" : "bg-[#103c7f]/5"}
-                        hover:bg-[#a1db40]/20 transition
-                      `}
-                    >
-                      <td className="px-3 py-2">{lead.sourcing_date}</td>
-                      
-                      {/* COMPANY WITH STAR LOGIC */}
-                      <td className="px-3 py-2">
-                          <div className="flex items-center gap-1.5">
-                             <span className="font-bold text-[#103c7f]">{lead.company}</span>
-                             {lead.client_type === 'Premium' ? (
-                               <Star size={10} className="fill-yellow-400 text-yellow-500" />
-                             ) : (
-                               <Star size={10} className="fill-[#103c7f] text-[#103c7f]" />
-                             )}
-                          </div>
-                      </td>
+                </thead>
 
-                      <td className="px-3 py-2">{lead.category}</td>
-                      <td className="px-3 py-2">{lead.state}</td>
-                      <td className="px-3 py-2">{lead.location}</td>
-                      
-                      {/* Removed Client Type Data Column Here */}
-
-                      <td className="px-3 py-2">{lead.employee_count}</td>
-                      <td className="px-3 py-2">{lead.contact_person}</td>
-                      <td className="px-3 py-2">{lead.contact_no}</td>
-                      <td className="px-3 py-2 text-blue-700 underline">
-                        {lead.email}
-                      </td>
-                      <td className="px-3 py-2">{lead.contact_mode}</td>
-                      <td className="px-3 py-2">{lead.latest_contact_mode}</td>
-                      <td className="px-3 py-2">{lead.contact_date}</td>
-                      <td className="px-3 py-2">{lead.latest_contact_date}</td>
-                      <td className="px-3 py-2 max-w-[200px] truncate">
-                        {lead.remarks}
-                      </td>
-                      <td className="px-3 py-2">{lead.reference}</td>
-                      <td className="px-3 py-2 font-bold text-gray-800">
-                        {lead.next_follow_up}
-                      </td>
-
-                      {/* ===== STATUS BADGE ===== */}
-                      <td className="px-3 py-2">
-                        <span className="px-2 py-1 rounded-full text-[10px] font-black bg-[#a1db40]/20 text-[#103c7f]">
-                          {lead.status}
-                        </span>
-                      </td>
-
-                      <td className="px-3 py-2">{lead.sub_status}</td>
-                      <td className="px-3 py-2 font-bold">{lead.projection}</td>
-
-                      {/* ===== ACTION COLUMN ===== */}
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => openViewModal(lead)}
-                            className="p-1.5 bg-blue-50 text-[#103c7f] rounded-lg hover:bg-blue-100 border border-blue-100 transition-all shadow-sm"
-                            title="View Full Details"
-                          >
-                            <Eye size={14} strokeWidth={2.5} />
-                          </button>
-                          <button
-                            onClick={() => openEditModal(lead)}
-                            className="p-1.5 bg-[#103c7f] text-white rounded-lg hover:bg-[#a1db40] hover:text-[#103c7f] transition-all shadow-sm"
-                            title="Edit Record"
-                          >
-                            <Pencil size={14} />
-                          </button>
-                        </div>
+                {/* ===== TABLE BODY ===== */}
+                <tbody>
+                  {filteredLeads.length === 0 ? (
+                    <tr>
+                      <td colSpan={20} className="text-center py-10 text-gray-400 font-bold">
+                        No records found
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
+                  ) : (
+                    filteredLeads.map((lead, index) => (
+                      <tr
+                        key={lead.client_id || lead.id}
+                        className={`
+                          border-b
+                          ${index % 2 === 0 ? "bg-white" : "bg-[#103c7f]/5"}
+                          hover:bg-[#a1db40]/20 transition
+                        `}
+                      >
+                        <td className="px-3 py-2">{lead.sourcing_date}</td>
 
-            </table>
+                        {/* COMPANY WITH STAR LOGIC */}
+                        <td className="px-3 py-2">
+                            <div className="flex items-center gap-1.5">
+                               <span className="font-bold text-[#103c7f]">{lead.company}</span>
+                               {lead.client_type === 'Premium' && (
+                                 <Star size={10} className="fill-[#103c7f] text-[#103c7f]" />
+                               )}
+                            </div>
+                        </td>
+
+                        <td className="px-3 py-2">{lead.category}</td>
+                        <td className="px-3 py-2">{lead.state}</td>
+                        <td className="px-3 py-2">{lead.location}</td>
+
+                        {/* Removed Client Type Data Column Here */}
+
+                        <td className="px-3 py-2">{lead.employee_count}</td>
+                        <td className="px-3 py-2">{lead.contact_person}</td>
+                        <td className="px-3 py-2">{lead.contact_no}</td>
+                        <td className="px-3 py-2 text-blue-700 underline">
+                          {lead.email}
+                        </td>
+                        <td className="px-3 py-2">{lead.contact_mode}</td>
+                        <td className="px-3 py-2">{lead.latest_contact_mode}</td>
+                        <td className="px-3 py-2">{lead.contact_date}</td>
+                        <td className="px-3 py-2">{lead.latest_contact_date}</td>
+                        <td className="px-3 py-2 max-w-[200px] truncate">
+                          {lead.remarks}
+                        </td>
+                        <td className="px-3 py-2">{lead.reference}</td>
+                        <td className="px-3 py-2 font-bold text-gray-800">
+                          {lead.next_follow_up}
+                        </td>
+
+                        {/* ===== STATUS BADGE ===== */}
+                        <td className="px-3 py-2">
+                          <span className="px-2 py-1 rounded-full text-[10px] font-black bg-[#a1db40]/20 text-[#103c7f]">
+                            {lead.status}
+                          </span>
+                        </td>
+
+                        <td className="px-3 py-2">{lead.sub_status}</td>
+                        <td className="px-3 py-2 font-bold">{lead.projection}</td>
+
+                        {/* ===== ACTION COLUMN ===== */}
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => openViewModal(lead)}
+                              className="p-1.5 bg-blue-50 text-[#103c7f] rounded-lg hover:bg-blue-100 border border-blue-100 transition-all shadow-sm"
+                              title="View Full Details"
+                            >
+                              <Eye size={14} strokeWidth={2.5} />
+                            </button>
+                            <button
+                              onClick={() => openEditModal(lead)}
+                              className="p-1.5 bg-[#103c7f] text-white rounded-lg hover:bg-[#a1db40] hover:text-[#103c7f] transition-all shadow-sm"
+                              title="Edit Record"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+
+              </table>
+
+              {/* VIEW MORE BUTTON */}
+              {!viewAll && (
+                <div className="flex justify-end mt-4">
+                  <button
+                    onClick={() => fetchLeads(true)}
+                    disabled={saving || loading}
+                    className="bg-blue-500 text-white px-6 py-2.5 rounded-xl font-black flex items-center gap-2 hover:scale-105 transition-all shadow-lg uppercase italic text-[11px] disabled:opacity-50"
+                  >
+                    VIEW MORE
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
         </div>
@@ -379,9 +409,9 @@ export default function LeadsList() {
 // Separate Modal Component
 function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
   const [formData, setFormData] = useState({
-    sourcing_date: lead?.sourcing_date || '',
+    sourcing_date: lead?.sourcing_date || new Date().toISOString().split('T')[0],
     company: lead?.company || '',
-    client_type: lead?.client_type || 'Standard',
+    client_type: lead?.client_type || '',
     category: lead?.category || '',
     state: lead?.state || '',
     location: lead?.location || '',
@@ -391,13 +421,13 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
     email: lead?.email || '',
     contact_mode: lead?.contact_mode || 'Call',
     latest_contact_mode: lead?.latest_contact_mode || 'Call',
-    contact_date: lead?.contact_date || '',
-    latest_contact_date: lead?.latest_contact_date || '',
+    contact_date: lead?.contact_date || new Date().toISOString().split('T')[0],
+    latest_contact_date: lead?.latest_contact_date || new Date().toISOString().split('T')[0],
     reference: lead?.reference || '',
     next_follow_up: lead?.next_follow_up || '',
-    status: lead?.status || 'Interested',
+    status: lead?.status || '',
     sub_status: lead?.sub_status || '',
-    projection: lead?.projection || '',
+    projection: lead?.projection || 'Not Projected',
     remarks: lead?.remarks || ''
   });
 
@@ -495,6 +525,7 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-black uppercase tracking-wide text-gray-500 ml-1">Client Type</label>
             <select value={formData.client_type} onChange={(e) => updateField('client_type', e.target.value)} className={inputClass} required>
+              <option value="">Select Client Type</option>
               {lists.clientTypeList.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
@@ -582,6 +613,7 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-black uppercase tracking-wide text-gray-500 ml-1">Status</label>
             <select value={formData.status} onChange={(e) => updateField('status', e.target.value)} className={inputClass} required>
+              <option value="">Select status</option>
               {lists.statusList.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
@@ -589,6 +621,7 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-black uppercase tracking-wide text-gray-500 ml-1">Sub Status</label>
             <select value={formData.sub_status} onChange={(e) => updateField('sub_status', e.target.value)} className={inputClass}>
+              <option value="">Select Sub status</option>
               {lists.subStatusList.map(ss => <option key={ss} value={ss}>{ss}</option>)}
             </select>
           </div>
@@ -596,6 +629,7 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-black uppercase tracking-wide text-gray-500 ml-1">Projection</label>
             <select value={formData.projection} onChange={(e) => updateField('projection', e.target.value)} className={inputClass}>
+              <option value="">Select Projection</option>
               {lists.projectionList.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>

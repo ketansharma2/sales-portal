@@ -174,7 +174,7 @@ export async function POST(request) {
         totalVisits: monthlyTotalVisits,
         individualVisits: monthlyIndividualVisits,
         totalOnboarded: monthlyOnboarded,
-        mtdMp: monthlyTotalVisits > 0 ? `${monthlyOnboarded}/${monthlyTotalVisits}` : '0/0',
+        mtdMp: `${monthlyOnboarded}/12`,
         avg: monthlyTotalVisits > 0 ? (monthlyOnboarded / monthlyTotalVisits * 10).toFixed(1) : '0.0'
       },
       latestActivity: {

@@ -37,6 +37,7 @@ export async function POST(request) {
       user_id: user.id,
       sourcing_date: body.sourcing_date,
       company: body.company,
+      client_type: body.client_type || 'Standard',
       category: body.category,
       state: body.state,
       location: body.location,
@@ -107,18 +108,26 @@ export async function GET(request) {
     const category = searchParams.get('category')
     const state = searchParams.get('state')
     const status = searchParams.get('status')
+    const limit = searchParams.get('limit')
+    const date_from = searchParams.get('date_from')
 
     // Build query
     let query = supabaseServer
       .from('clients')
       .select('*')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+      .order('sourcing_date', { ascending: false })
+
+    // Apply date filter if provided
+    if (date_from) query = query.gte('sourcing_date', date_from)
 
     // Apply filters
     if (category) query = query.eq('category', category)
     if (state) query = query.eq('state', state)
     if (status) query = query.eq('status', status)
+
+    // Apply limit if provided
+    if (limit) query = query.limit(parseInt(limit))
 
     const { data, error } = await query
 
@@ -245,8 +254,11 @@ export async function PUT(request) {
       }, { status: 500 })
     }
 
-    // Update DWR after updating client
-    await updateDwrForUser(user.id)
+    // Update DWR only if latest_contact_date is set to today
+    const today = new Date().toISOString().split('T')[0]
+    if (changedFields.includes('latest_contact_date') && newValues.latest_contact_date === today) {
+      await updateDwrForUser(user.id)
+    }
 
     return NextResponse.json({
       success: true,

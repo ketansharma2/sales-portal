@@ -127,30 +127,14 @@ export default function FSEDashboard() {
           <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-2"> 
           {/* CARD 1: Total Visit (Ab Goal Bhi Dikhega) */}
             {/* CARD 1: Total Visit (Target Always Visible) */}
-            <CompactMonthCard 
-                label="Total Visit" 
-                value={stats.monthly.visitTarget} 
+            <CompactMonthCard
+                label="Total Visit"
+                value={stats.monthly.visitTarget}
                 icon={<TrendingUp size={16} />}
-                
-                // 👇 CHANGE: Agar '/Target' nahi mila, tab bhi "0" dikhao (Goal kabhi gayab nahi hoga)
-                target={(() => {
-                    if (!stats.monthly.visitTarget) return "0"; // Default 0
-                    const parts = stats.monthly.visitTarget.toString().split('/');
-                    // Agar slash ke baad value hai toh wo lo, nahi toh "0" dikhao
-                    return parts[1] ? parts[1] : "0"; 
-                })()}
-
-                // Progress Bar Logic (Safe Check)
-                progress={(() => {
-                    if (!stats.monthly.visitTarget) return 0;
-                    const parts = stats.monthly.visitTarget.toString().split('/');
-                    const curr = Number(parts[0]);
-                    const total = parts[1] ? Number(parts[1]) : 0; // Agar total nahi hai to 0
-                    return total ? (curr / total) * 100 : 0;
-                })()}
-                
-                trend="-1%" 
-            />    
+                target="216"
+                progress={stats.monthly.visitTarget ? (parseInt(stats.monthly.visitTarget) / 216) * 100 : 0}
+                trend="-1%"
+            />
           {/* CARD 2: Individual Visits */}
             <CompactMonthCard 
                 label="Individual Visit" 
@@ -160,18 +144,15 @@ export default function FSEDashboard() {
             />
 
             {/* CARD 3: Onboard (String data "12/20") */}
-            <CompactMonthCard 
-                label="Onboard (MTD)" 
+            <CompactMonthCard
+                label="Onboard (MTD)"
                 value={stats.monthly.onboardMtd} // e.g., "12/20"
-                icon={<CheckCircle size={16} />} 
-                // Logic: Split "12/20"
-                target={(() => {
-                    const parts = stats.monthly.onboardMtd.toString().split('/');
-                    return parts[1] ? parts[1] : null; 
-                })()}
+                icon={<CheckCircle size={16} />}
+                target="12"
                 progress={(() => {
-                    const [curr, total] = stats.monthly.onboardMtd.toString().split('/').map(Number);
-                    return total ? (curr / total) * 100 : 0;
+                    const parts = stats.monthly.onboardMtd.toString().split('/');
+                    const curr = Number(parts[0]) || 0;
+                    return (curr / 12) * 100;
                 })()}
                 trend="+5%" // Dummy trend
             />
