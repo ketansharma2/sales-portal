@@ -110,6 +110,7 @@ export async function GET(request) {
     const status = searchParams.get('status')
     const limit = searchParams.get('limit')
     const date_from = searchParams.get('date_from')
+    const date_op = searchParams.get('date_op') || 'eq'
 
     // Build query
     let query = supabaseServer
@@ -118,8 +119,14 @@ export async function GET(request) {
       .eq('user_id', user.id)
       .order('sourcing_date', { ascending: false })
 
-    // Apply date filter if provided
-    if (date_from) query = query.gte('sourcing_date', date_from)
+    // Apply date filter if provided (filter by latest_contact_date)
+    if (date_from) {
+      if (date_op === 'gte') {
+        query = query.gte('latest_contact_date', date_from)
+      } else {
+        query = query.eq('latest_contact_date', date_from)
+      }
+    }
 
     // Apply filters
     if (category) query = query.eq('category', category)

@@ -23,7 +23,8 @@ export default function LeadsList() {
     state: '',
     status: '',
     location: '',
-    projection: ''
+    projection: '',
+    date: ''
   });
 
   // 1. HYDRATION FIX
@@ -47,20 +48,30 @@ export default function LeadsList() {
     }
   }, [mounted]);
 
+  // 4. REFETCH WHEN FILTERS CHANGE
+  useEffect(() => {
+    if (mounted) {
+      fetchLeads();
+    }
+  }, [filters, mounted]);
+
   const fetchLeads = async (all = false) => {
     try {
       setLoading(true);
       const session = JSON.parse(localStorage.getItem('session') || '{}');
 
       // Check if any filters are applied
-      const hasFilters = filters.company || filters.category || filters.state || filters.status || filters.location || filters.projection;
+      const hasFilters = filters.company || filters.category || filters.state || filters.status || filters.location || filters.projection || filters.date;
 
       let url = '/api/fse/clients';
       if (!hasFilters && !all) {
         // Default to current and last month
         const now = new Date();
         const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
-        url += `?limit=100&date_from=${lastMonthStart}`;
+        url += `?limit=100&date_from=${lastMonthStart}&date_op=gte`;
+      } else if (filters.date) {
+        // If date filter is set, add it to the query
+        url += `${url.includes('?') ? '&' : '?'}date_from=${filters.date}&date_op=eq`;
       }
 
       const response = await fetch(url, {
@@ -234,7 +245,7 @@ export default function LeadsList() {
           <input type="text" placeholder="COMPANY..." value={filters.company} onChange={(e) => updateFilter('company', e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold text-[#103c7f] outline-none placeholder:text-gray-300" />
           <select value={filters.category} onChange={(e) => updateFilter('category', e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold text-[#103c7f] outline-none cursor-pointer appearance-none"><option value="">CATEGORY</option>{dropdowns.categoryList.map(c => <option key={c} value={c}>{c}</option>)}</select>
           <select value={filters.state} onChange={(e) => updateFilter('state', e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold text-[#103c7f] outline-none cursor-pointer appearance-none"><option value="">STATE</option>{dropdowns.statesList.map(s => <option key={s} value={s}>{s}</option>)}</select>
-          <input type="date" className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold text-[#103c7f] outline-none" />
+          <input type="date" value={filters.date} onChange={(e) => updateFilter('date', e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold text-[#103c7f] outline-none" />
           <select value={filters.status} onChange={(e) => updateFilter('status', e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold text-[#103c7f] outline-none cursor-pointer appearance-none"><option value="">STATUS</option>{dropdowns.statusList.map(st => <option key={st} value={st}>{st}</option>)}</select>
           <input type="text" placeholder="LOCATION..." value={filters.location} onChange={(e) => updateFilter('location', e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold text-[#103c7f] outline-none placeholder:text-gray-300" />
           <select value={filters.projection} onChange={(e) => updateFilter('projection', e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold text-[#103c7f] outline-none cursor-pointer appearance-none"><option value="">PROJECTION</option>{dropdowns.projectionList.map(p => <option key={p} value={p}>{p}</option>)}</select>
