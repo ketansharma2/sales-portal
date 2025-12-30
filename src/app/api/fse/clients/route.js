@@ -349,6 +349,6 @@ async function updateDwrForUser(userId) {
         .insert(dwrData)
     }
   } catch (error) {
-    console.error('DWR update error:', error)
+    console.error('DWR update error:', )
   }
 }
