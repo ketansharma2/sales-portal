@@ -1,102 +1,173 @@
 "use client";
 import { useState } from "react";
-import { Check, X, Eye, ShieldCheck, UserCircle, Search, Filter, Download } from "lucide-react";
+import { 
+  Check, X, ShieldCheck, UserCircle, Search, Download, 
+  Clock, FileText, CheckCircle, ArrowRightCircle, Building2 
+} from "lucide-react";
 
 export default function HODApprovals() {
-  // Mock Pending Data
+  
+  // 👇 DATA: HOD approves Manager Claims -> Sends to HR
   const [approvals] = useState([
-    { id: 1, name: "Amit Sharma", role: "Sales Manager", type: "Travel Reimbursement", amount: "4,500", date: "22-12-2025", status: "Manager Approved" },
-    { id: 2, name: "Rahul Verma", role: "Field Executive", type: "Client Stay", amount: "12,200", date: "21-12-2025", status: "Manager Approved" }
+    { 
+      id: 1, name: "Anil Kapoor", role: "Sales Manager (North)", category: "Flight", 
+      notes: "Urgent Client Meeting - Mumbai", amount: "12,400", date: "24-12-2025", 
+      status: "Sent to HR", img: "bg-blue-100 text-blue-600" 
+    },
+    { 
+      id: 2, name: "Sonia Mehra", role: "Sales Manager (South)", category: "Team Lunch", 
+      notes: "Quarterly Review Lunch with 15 FSEs", amount: "8,500", date: "24-12-2025", 
+      status: "Pending Review", img: "bg-purple-100 text-purple-600" 
+    },
+    { 
+      id: 3, name: "Vikram Rathore", role: "Sales Manager (East)", category: "Hotel Stay", 
+      notes: "Taj Vivanta (2 Nights) - Vendor Meet", amount: "14,200", date: "23-12-2025", 
+      status: "Pending Review", img: "bg-green-100 text-green-600" 
+    },
+    { 
+      id: 4, name: "Rahul Roy", role: "Sales Manager (West)", category: "Misc", 
+      notes: "Diwali Gifts for Key Clients", amount: "25,000", date: "22-12-2025", 
+      status: "Clarification Req", img: "bg-orange-100 text-orange-600" 
+    },
+    
+    // 👇 APPROVED ROW
+    { 
+      id: 11, name: "Pooja Hegde", role: "Sales Manager (Central)", category: "Fuel", 
+      notes: "Monthly Fuel Reimbursement (Car)", amount: "5,200", date: "25-12-2025", 
+      status: "Sent to HR", img: "bg-emerald-100 text-emerald-600" 
+    },
+
+    { 
+      id: 6, name: "Amitabh Bachan", role: "Sr. Sales Manager", category: "Client Dinner", 
+      notes: "Hosting CEO of TechCorp", amount: "6,500", date: "21-12-2025", 
+      status: "Pending Review", img: "bg-teal-100 text-teal-600" 
+    },
   ]);
 
   return (
-    /* FIXED: Margin/Padding removed as RootLayout handles the shell.
-       w-full ensures the table expands to cover all available Figma-style space.
-    */
-    <div className="min-h-screen bg-[#f3f4f6] pb-12 w-full font-['Calibri']">
-      
-      {/* --- APPROVALS HEADER SECTION --- */}
-      <div className="bg-white rounded-[24px] p-8 mb-6 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex items-center gap-5">
-          <div className="bg-[#103c7f] p-4 rounded-[20px] shadow-lg shadow-[#103c7f]/20">
-            <ShieldCheck size={28} className="text-[#a1db40]" strokeWidth={2.5}/>
+    <div className="h-[calc(100vh-4rem)] bg-[#f8fafc] w-full font-['Calibri'] p-2 flex flex-col overflow-hidden">      
+      {/* HEADER SECTION */}
+      <div className="bg-white rounded-[16px] p-4 mb-4 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="bg-[#103c7f] p-3 rounded-[14px] shadow-lg shadow-[#103c7f]/20">
+            <ShieldCheck size={24} className="text-[#a1db40]" strokeWidth={2.5}/>
           </div>
           <div>
-            <h1 className="text-3xl font-black text-[#103c7f] tracking-tight uppercase italic leading-none">Pending Sign-offs</h1>
-            <p className="text-gray-400 text-[10px] font-bold tracking-[0.2em] mt-2 uppercase flex items-center gap-2">
-               <span className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></span>
-               Dept. Finance Clearance
+            <h1 className="text-2xl font-black text-[#103c7f] tracking-tight uppercase italic leading-none">
+              HOD Approval Console
+            </h1>
+            <p className="text-gray-400 text-[10px] font-bold tracking-[0.2em] mt-1.5 uppercase flex items-center gap-2">
+               <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></span>
+               Manager Claims Queue
             </p>
           </div>
         </div>
-
-        {/* Global Search & Action Pill */}
-        <div className="flex items-center gap-3 bg-gray-50 p-2 rounded-[20px] border border-gray-100">
-           <div className="flex items-center px-4 gap-3 border-r border-gray-200">
-             <Search size={18} className="text-gray-300"/>
-             <input type="text" placeholder="Search by name..." className="bg-transparent text-[11px] font-bold text-[#103c7f] outline-none w-40" />
+        <div className="flex items-center gap-3 bg-gray-50 p-1.5 rounded-[14px] border border-gray-100">
+           <div className="flex items-center px-3 gap-2 border-r border-gray-200">
+             <Search size={16} className="text-gray-300"/>
+             <input type="text" placeholder="Search Manager..." className="bg-transparent text-[10px] font-bold text-[#103c7f] outline-none w-28" />
            </div>
-           <button className="bg-[#103c7f] text-[#a1db40] px-6 py-2.5 rounded-[14px] font-black text-[10px] uppercase tracking-widest shadow-md flex items-center gap-2">
-             <Download size={14} /> EXPORT LIST
+           <button className="bg-[#103c7f] text-[#a1db40] px-4 py-2 rounded-[10px] font-black text-[9px] uppercase tracking-widest shadow-md flex items-center gap-2 hover:bg-[#0d316a] transition-all">
+             <Download size={12} /> Report
            </button>
         </div>
       </div>
 
-      {/* --- APPROVALS DATA TABLE --- */}
-      <div className="bg-white shadow-xl shadow-gray-200/50 rounded-[32px] border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50/50 border-b text-[10px] uppercase font-black text-gray-400 tracking-[0.2em]">
+      {/* CLAIMS TABLE */}
+      <div className="bg-white shadow-md rounded-xl border border-gray-100 overflow-hidden flex-1 flex flex-col min-h-0">
+        <div className="overflow-y-auto flex-1 custom-scrollbar">
+          <table className="w-full text-left border-collapse relative">
+            <thead className="sticky top-0 bg-[#103c7f] text-white z-10 text-[10px] uppercase font-black tracking-[0.1em]">
               <tr>
-                <th className="p-8">Employee & Designation</th>
-                <th className="p-8">Expense Category</th>
-                <th className="p-8">Amount Claimed</th>
-                <th className="p-8">Submit Date</th>
-                <th className="p-8 text-center">Status Badge</th>
-                <th className="p-8 text-center">Final Approval</th>
+                <th className="px-5 py-3.5">Sales Manager</th>
+                <th className="px-5 py-3.5">Expense Category & Notes</th>
+                <th className="px-5 py-3.5 text-center">Amount</th>
+                <th className="px-5 py-3.5 text-center">Date</th>
+                <th className="px-5 py-3.5 text-center">Status</th>
+                <th className="px-5 py-3.5 text-center">Action</th>
               </tr>
             </thead>
+            
             <tbody className="text-sm">
               {approvals.map((item) => (
-                <tr key={item.id} className="border-b border-gray-50 hover:bg-blue-50/20 transition-all group">
-                  <td className="p-8">
-                    <div className="flex items-center gap-4">
-                      <div className="w-11 h-11 bg-gray-50 rounded-full flex items-center justify-center text-[#103c7f] group-hover:bg-[#103c7f] group-hover:text-white transition-colors">
-                        <UserCircle size={28} strokeWidth={1.5} />
+                <tr key={item.id} className="border-b border-gray-50 hover:bg-purple-50 transition-all group">
+                  
+                  {/* Name Column */}
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${item.img}`}>
+                        <UserCircle size={22} strokeWidth={1.5} />
                       </div>
                       <div>
-                        <p className="font-black text-[#103c7f] text-base leading-none tracking-tight">{item.name}</p>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase mt-1.5">{item.role}</p>
+                        <p className="font-black text-[#103c7f] text-sm leading-none tracking-tight">{item.name}</p>
+                        <p className="text-[9px] font-bold text-gray-400 uppercase mt-1 flex items-center gap-1">
+                          <span className="w-1 h-1 rounded-full bg-[#a1db40]"></span> {item.role}
+                        </p>
                       </div>
                     </div>
                   </td>
-                  <td className="p-8 font-bold text-gray-600 italic uppercase tracking-tighter">
-                    {item.type}
+                  
+                  {/* Details Column */}
+                  <td className="px-5 py-3">
+                    <div className="flex flex-col">
+                        <span className="font-black text-gray-700 uppercase tracking-tight text-[11px] mb-0.5">{item.category}</span>
+                        <span className="text-[11px] font-bold text-gray-400 italic">"{item.notes}"</span>
+                    </div>
                   </td>
-                  <td className="p-8">
-                    <p className="text-xl font-black text-[#103c7f] italic leading-none">₹{item.amount}</p>
-                    <p className="text-[8px] font-bold text-gray-300 mt-1 uppercase">Tax Inclusive</p>
+                  
+                  {/* Amount Column */}
+                  <td className="px-5 py-3 text-center">
+                    <p className="text-lg font-black text-[#103c7f] italic leading-none">₹{item.amount}</p>
                   </td>
-                  <td className="p-8 font-black text-gray-400 tabular-nums">
+                  
+                  {/* Date Column */}
+                  <td className="px-5 py-3 text-center font-black text-gray-400 text-[11px]">
                     {item.date}
                   </td>
-                  <td className="p-8 text-center">
-                    <span className="bg-orange-50 text-orange-600 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-orange-100 italic">
+                  
+                  {/* Status Column (UPDATED: "Sent to HR" is Indigo/Blue) */}
+                  <td className="px-5 py-3 text-center">
+                    <span className={`px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border italic flex items-center justify-center gap-1.5 w-fit mx-auto
+                      ${item.status === 'Sent to HR' 
+                        ? 'bg-indigo-50 text-indigo-600 border-indigo-100' // Consistent HR Color
+                        : item.status === 'Clarification Req' 
+                          ? 'bg-yellow-50 text-yellow-600 border-yellow-100' 
+                          : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
+                      
+                      {item.status === 'Pending Review' && <Clock size={10} />}
+                      {/* Using Building Icon for HR */}
+                      {item.status === 'Sent to HR' && <Building2 size={10} />} 
                       {item.status}
                     </span>
                   </td>
-                  <td className="p-8">
-                    <div className="flex justify-center gap-3">
-                      <button className="bg-green-50 text-green-600 p-3.5 rounded-2xl hover:bg-green-600 hover:text-white hover:scale-110 transition-all shadow-sm" title="Final Approve">
-                        <Check size={20} strokeWidth={3}/>
-                      </button>
-                      <button className="bg-red-50 text-red-600 p-3.5 rounded-2xl hover:bg-red-600 hover:text-white hover:scale-110 transition-all shadow-sm" title="Reject Claim">
-                        <X size={20} strokeWidth={3}/>
-                      </button>
-                      <button className="bg-gray-100 text-[#103c7f] p-3.5 rounded-2xl hover:bg-[#103c7f] hover:text-white transition-all shadow-sm" title="View Bill">
-                        <Eye size={20} strokeWidth={2}/>
-                      </button>
-                    </div>
+                  
+                  {/* Action Column (Shows HOD -> HR Flow) */}
+                  <td className="px-5 py-3 text-center">
+                    {item.status === "Sent to HR" ? (
+                      // Locked State - Shows Process Flow
+                      <div className="flex justify-center items-center gap-1 opacity-60">
+                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                           HOD
+                         </span>
+                         <ArrowRightCircle size={10} className="text-indigo-600" />
+                         <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">
+                           HR Dept
+                         </span>
+                      </div>
+                    ) : (
+                      // Active Buttons
+                      <div className="flex justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                        <button className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Approve & Forward to HR">
+                          <Check size={16} strokeWidth={3}/>
+                        </button>
+                        <button className="bg-red-50 text-red-600 p-2 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Reject">
+                          <X size={16} strokeWidth={3}/>
+                        </button>
+                        <button className="bg-gray-100 text-[#103c7f] p-2 rounded-lg hover:bg-[#103c7f] hover:text-white transition-all shadow-sm" title="View Bill Proof">
+                          <FileText size={16} strokeWidth={2}/> 
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -104,10 +175,16 @@ export default function HODApprovals() {
           </table>
         </div>
         
-        {/* Table Footer Activity */}
-        <div className="bg-[#103c7f] p-5 flex justify-between items-center text-white">
-           <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Last Sync: 23 Dec 2025</p>
-           <p className="text-[10px] font-black uppercase tracking-widest text-[#a1db40]">Total Pending Value: ₹16,700</p>
+        {/* Footer */}
+        <div className="bg-gray-50 p-3 border-t border-gray-100 flex justify-between items-center text-[#103c7f] shrink-0">
+           <div className="flex items-center gap-4">
+             <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">My Team: 5 Managers</p>
+             <div className="h-3 w-px bg-gray-300"></div>
+             <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">
+               Action Req: {approvals.filter(a => a.status !== 'Sent to HR').length} Claims
+             </p>
+           </div>
+           <p className="text-[10px] font-black uppercase tracking-widest">Total Pending Value: <span className="text-lg italic">₹71,800</span></p>
         </div>
       </div>
     </div>

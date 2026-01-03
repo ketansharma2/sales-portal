@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   Users, Wallet, LayoutGrid, ShieldCheck, 
-  BarChart3, Settings, FileText 
+  BarChart3, Settings, FileText ,Target
 } from "lucide-react";
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
@@ -27,8 +27,9 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   else if (isHOD) {
     menuItems = [
       { name: "Dept. Overview", href: "/hod", icon: <LayoutGrid size={20} /> },
+      { name: "Team Targets", href: "/hod/targets", icon: <Target size={20} /> }, // 👈 New Page
       { name: "My Expenses", href: "/hod/expenses", icon: <Wallet size={20} /> },
-      { name: "Team Approvals", href: "/hod/approvals", icon: <BarChart3 size={20} /> },
+      { name: "Expense Approval", href: "/hod/approvals", icon: <FileText size={20} /> },
     ];
   } 
   else if (isManager) {
