@@ -116,7 +116,7 @@ export async function POST(request) {
       .from('clients')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .eq('contact_mode', 'VISIT')
+      .ilike('contact_mode', 'visit')
 
     if (visitsError) {
       console.error('Total visits count error:', visitsError)
