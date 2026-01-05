@@ -59,6 +59,12 @@ export default function ManagerHome() {
   const [todayActivity, setTodayActivity] = useState([]);
   const [activityLoading, setActivityLoading] = useState(true);
 
+  // --- AVG VISITS DATA ---
+  const [avgVisits, setAvgVisits] = useState("-");
+
+  // --- PENDING ACTIONS COUNT ---
+  const [pendingCount, setPendingCount] = useState(0);
+
   // Fetch FSE team on mount
   useEffect(() => {
     fetchFseTeam();
@@ -70,7 +76,15 @@ export default function ManagerHome() {
     fetchWeeklyProjections();
     fetchMonthlyProjections();
     fetchTodayActivity();
+    fetchAvgVisits();
   }, [filters.selectedFse, filters.fromDate, filters.toDate]);
+
+  // Fetch pending count on mount and periodically
+  useEffect(() => {
+    fetchPendingCount();
+    const interval = setInterval(fetchPendingCount, 10000); // Refresh every 10 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchFseTeam = async () => {
     try {
@@ -241,6 +255,55 @@ export default function ManagerHome() {
     }
   };
 
+  const fetchAvgVisits = async () => {
+    if (filters.selectedFse === "All") {
+      setAvgVisits("-")
+      return
+    }
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}')
+      let params = `fse_id=${filters.selectedFse}`
+      if (filters.fromDate) params += `&from_date=${filters.fromDate}`
+      if (filters.toDate) params += `&to_date=${filters.toDate}`
+      const response = await fetch(`/api/manager/avg-visits?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+      const data = await response.json()
+      if (data.success) {
+        setAvgVisits(parseFloat(data.data).toFixed(2))
+      } else {
+        setAvgVisits("0.00")
+      }
+    } catch (error) {
+      console.error('Failed to fetch avg visits:', error)
+      setAvgVisits("0.00")
+    }
+  }
+
+  const fetchPendingCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}')
+      const now = new Date()
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      const fromDate = startOfMonth.toISOString().split('T')[0]
+      const toDate = endOfMonth.toISOString().split('T')[0]
+      const response = await fetch(`/api/manager/pending-expenses?from_date=${fromDate}&to_date=${toDate}&status=pending`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+      const data = await response.json()
+      if (data.success) {
+        setPendingCount(data.data.length)
+      }
+    } catch (error) {
+      console.error('Failed to fetch pending count:', error)
+    }
+  }
+
   // --- LOGIC FOR TARGET WIDGET ---
   const targetPerFse = 12;
   const teamSize = fseTeam.length || 15; // Default to 15 if not loaded
@@ -260,7 +323,7 @@ export default function ManagerHome() {
     },
     {
       title: `Avg. Visits (${periodLabel})`,
-      value: "4.2",
+      value: avgVisits,
       subtext: "Per FSE / Day",
       icon: <MapPin size={24}/>,
       color: "bg-blue-50 text-[#103c7f]",
@@ -293,10 +356,7 @@ export default function ManagerHome() {
   // 2. TEAM PERFORMANCE TABLE - now using todayActivity
 
   // 3. PENDING ACTIONS
-  const [pendingActions] = useState([
-    { id: 1, user: "Sneha Gupta", type: "Expense", desc: "Travel to Noida", time: "10m ago" },
-    { id: 2, user: "Amit Verma", type: "Lead", desc: "Big Ticket Client", time: "1h ago" },
-  ]);
+  const [pendingActions] = useState([]);
 
   return (
     <div className="h-[calc(100vh-2rem)] bg-[#f8fafc] w-full font-['Calibri'] p-6 flex flex-col overflow-hidden">
@@ -350,7 +410,7 @@ export default function ManagerHome() {
         <div className="flex-1 bg-white rounded-[24px] border border-gray-100 shadow-sm flex flex-col overflow-hidden">
            <div className="p-5 border-b border-gray-50 flex justify-between items-center shrink-0">
               <h2 className="text-lg font-black text-[#103c7f] uppercase italic tracking-tight">Today's Field Activity</h2>
-              <button className="text-[10px] font-black text-[#103c7f] uppercase bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-[#103c7f] hover:text-white transition-all">View Full Report</button>
+              <button onClick={() => { const today = new Date().toISOString().split('T')[0]; router.push(`/manager/team-leads?from_date=${today}&to_date=${today}`); }} className="text-[10px] font-black text-[#103c7f] uppercase bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-[#103c7f] hover:text-white transition-all">View Full Report</button>
            </div>
            <div className="overflow-y-auto flex-1 custom-scrollbar p-2">
               <table className="w-full text-left border-collapse">
@@ -384,7 +444,7 @@ export default function ManagerHome() {
                              <td className="px-4 py-3 text-center"><span className="font-black text-gray-700 bg-gray-100 px-2 py-1 rounded text-xs">{member.visitsToday}</span></td>
                              <td className="px-4 py-3 text-center">{member.onboardedToday === 'N/A' ? (<span className="text-gray-400 text-xs font-bold">N/A</span>) : member.onboardedToday > 0 ? (<span className="font-bold text-green-600 bg-green-50 px-2 py-1 rounded text-xs border border-green-100 flex items-center justify-center gap-1 w-fit mx-auto"><UserPlus size={12}/> {member.onboardedToday}</span>) : (<span className="text-gray-300 text-xs font-bold">-</span>)}</td>
                              <td className="px-4 py-3 text-center"><span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border ${member.status === 'Absent' ? 'bg-red-50 text-red-600 border-red-100' : member.status === 'No Data' ? 'bg-gray-50 text-gray-600 border-gray-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>{member.status}</span></td>
-                             <td className="px-4 py-3 text-center"><button className="p-1.5 text-gray-400 hover:text-[#103c7f] hover:bg-blue-50 rounded-lg transition-all" title="View Detailed Log"><Eye size={16} /></button></td>
+                             <td className="px-4 py-3 text-center"><button onClick={() => { const today = new Date().toISOString().split('T')[0]; router.push(`/manager/team-leads?from_date=${today}&to_date=${today}&selectedFse=${member.id}`); }} className="p-1.5 text-gray-400 hover:text-[#103c7f] hover:bg-blue-50 rounded-lg transition-all" title="View Detailed Log"><Eye size={16} /></button></td>
                           </tr>
                        ))
                     )}
@@ -399,7 +459,7 @@ export default function ManagerHome() {
            <div className="bg-[#103c7f] text-white rounded-[24px] p-6 shadow-lg shadow-[#103c7f]/20 relative overflow-hidden shrink-0">
               <div className="relative z-10">
                  <div className="flex items-center justify-between mb-4"><div className="p-2 bg-white/10 rounded-lg"><AlertCircle size={20} /></div><span className="text-[10px] font-black bg-[#a1db40] text-[#103c7f] px-2 py-1 rounded">URGENT</span></div>
-                 <h3 className="text-2xl font-black italic tracking-tight">{pendingActions.length} Pending Actions</h3>
+                 <h3 className="text-2xl font-black italic tracking-tight">{pendingCount} Pending Actions</h3>
                  <p className="text-[11px] font-medium text-blue-200 mt-1">Claims Approvals require your attention.</p>
 
                  {/* 👈 3. NAVIGATION BUTTON */}

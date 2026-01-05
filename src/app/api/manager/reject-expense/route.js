@@ -20,6 +20,20 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Expense ID is required' }, { status: 400 })
     }
 
+    // First, check if the expense exists and is pending for this manager's team
+    const { data: expenseCheck, error: checkError } = await supabaseServer
+      .from('expenses')
+      .select('exp_id, users!expenses_user_id_fkey(manager_id)')
+      .eq('exp_id', exp_id)
+      .eq('status', 'Pending (Manager)')
+      .eq('submitted', true)
+      .eq('users.manager_id', user.id)
+      .single()
+
+    if (checkError || !expenseCheck) {
+      return NextResponse.json({ error: 'Expense not found or not authorized' }, { status: 404 })
+    }
+
     // Update the expense status to Rejected
     const { data: updatedExpense, error: updateError } = await supabaseServer
       .from('expenses')

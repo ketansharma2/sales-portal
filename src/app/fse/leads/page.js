@@ -24,7 +24,8 @@ export default function LeadsList() {
     status: '',
     location: '',
     projection: '',
-    date: ''
+    fromDate: '',
+    toDate: ''
   });
 
   // 1. HYDRATION FIX
@@ -48,30 +49,24 @@ export default function LeadsList() {
     }
   }, [mounted]);
 
-  // 4. REFETCH WHEN FILTERS CHANGE
+  // 4. REFETCH WHEN NON-DATE FILTERS CHANGE
   useEffect(() => {
     if (mounted) {
       fetchLeads();
     }
-  }, [filters, mounted]);
+  }, [filters.company, filters.category, filters.state, filters.status, filters.location, filters.projection, mounted]);
 
   const fetchLeads = async (all = false) => {
     try {
       setLoading(true);
       const session = JSON.parse(localStorage.getItem('session') || '{}');
 
-      // Check if any filters are applied
-      const hasFilters = filters.company || filters.category || filters.state || filters.status || filters.location || filters.projection || filters.date;
-
       let url = '/api/fse/clients';
-      if (!hasFilters && !all) {
+      if (!all) {
         // Default to current and last month
         const now = new Date();
         const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
         url += `?limit=100&date_from=${lastMonthStart}&date_op=gte`;
-      } else if (filters.date) {
-        // If date filter is set, add it to the query
-        url += `${url.includes('?') ? '&' : '?'}date_from=${filters.date}&date_op=eq`;
       }
 
       const response = await fetch(url, {
@@ -150,7 +145,14 @@ export default function LeadsList() {
   // 4. FILTER LEADS FUNCTION
   const getFilteredLeads = () => {
     return leads.filter(lead => {
+      const leadDate = new Date(lead.latest_contact_date);
+      const fromDate = filters.fromDate ? new Date(filters.fromDate) : null;
+      const toDate = filters.toDate ? new Date(filters.toDate) : null;
+
+      const dateMatch = (!fromDate || leadDate >= fromDate) && (!toDate || leadDate <= toDate);
+
       return (
+        dateMatch &&
         (!filters.company || lead.company.toLowerCase().includes(filters.company.toLowerCase())) &&
         (!filters.category || lead.category === filters.category) &&
         (!filters.state || lead.state === filters.state) &&
@@ -223,29 +225,37 @@ export default function LeadsList() {
   return (
 <div className="w-full h-screen flex flex-col overflow-auto font-['Calibri'] p-2 bg-[#f8fafc]">
       {/* 8. HEADER SECTION */}
-<div className="flex justify-between items-center mb-5 shrink-0">        
+<div className="flex justify-between items-center mb-5 shrink-0">
   <div>
-          <h1 className="text-2xl font-black text-[#103c7f] tracking-tight uppercase italic leading-none">Leads Master Database</h1>
-          <p className="text-gray-400 font-bold uppercase text-[9px] tracking-widest mt-1.5 flex items-center gap-2">
-             <span className="w-1.5 h-1.5 bg-[#a1db40] rounded-full animate-pulse shadow-[0_0_5px_#a1db40]"></span> Field Operations Portal
-          </p>
-        </div>
-        <button
-          onClick={openAddModal}
-          disabled={saving}
-          className="bg-[#a1db40] text-[#103c7f] px-6 py-2.5 rounded-xl font-black flex items-center gap-2 hover:scale-105 transition-all shadow-lg uppercase italic text-[11px] disabled:opacity-50"
-        >
-          <Plus size={18} strokeWidth={4} /> ADD NEW CLIENT
-        </button>
-      </div>
+    <h1 className="text-2xl font-black text-[#103c7f] tracking-tight uppercase italic leading-none">Leads Master Database</h1>
+    <p className="text-gray-400 font-bold uppercase text-[9px] tracking-widest mt-1.5 flex items-center gap-2">
+      <span className="w-1.5 h-1.5 bg-[#a1db40] rounded-full animate-pulse shadow-[0_0_5px_#a1db40]"></span> Field Operations Portal
+    </p>
+  </div>
+  <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2">
+      <input type="date" value={filters.fromDate} onChange={(e) => updateFilter('fromDate', e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold text-[#103c7f] outline-none" placeholder="From Date" />
+      <span className="text-gray-400">-</span>
+      <input type="date" value={filters.toDate} onChange={(e) => updateFilter('toDate', e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold text-[#103c7f] outline-none" placeholder="To Date" />
+      {filters.fromDate && filters.toDate && <button onClick={() => { updateFilter('fromDate', ''); updateFilter('toDate', ''); }} className="p-2 text-gray-400 hover:text-[#103c7f] hover:bg-blue-50 rounded-lg transition-all" title="Clear Date Filters"><X size={16} /></button>}
+      <span className="text-[10px] font-bold text-gray-400">(Applied on latest date)</span>
+    </div>
+    <button
+      onClick={openAddModal}
+      disabled={saving}
+      className="bg-[#a1db40] text-[#103c7f] px-6 py-2.5 rounded-xl font-black flex items-center gap-2 hover:scale-105 transition-all shadow-lg uppercase italic text-[11px] disabled:opacity-50"
+    >
+      <Plus size={18} strokeWidth={4} /> ADD NEW CLIENT
+    </button>
+  </div>
+</div>
 
       {/* 9. FILTER BAR */}
       <div className="bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm mb-4 w-full shrink-0">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           <input type="text" placeholder="COMPANY..." value={filters.company} onChange={(e) => updateFilter('company', e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold text-[#103c7f] outline-none placeholder:text-gray-300" />
           <select value={filters.category} onChange={(e) => updateFilter('category', e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold text-[#103c7f] outline-none cursor-pointer appearance-none"><option value="">CATEGORY</option>{dropdowns.categoryList.map(c => <option key={c} value={c}>{c}</option>)}</select>
           <select value={filters.state} onChange={(e) => updateFilter('state', e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold text-[#103c7f] outline-none cursor-pointer appearance-none"><option value="">STATE</option>{dropdowns.statesList.map(s => <option key={s} value={s}>{s}</option>)}</select>
-          <input type="date" value={filters.date} onChange={(e) => updateFilter('date', e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold text-[#103c7f] outline-none" />
           <select value={filters.status} onChange={(e) => updateFilter('status', e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold text-[#103c7f] outline-none cursor-pointer appearance-none"><option value="">STATUS</option>{dropdowns.statusList.map(st => <option key={st} value={st}>{st}</option>)}</select>
           <input type="text" placeholder="LOCATION..." value={filters.location} onChange={(e) => updateFilter('location', e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold text-[#103c7f] outline-none placeholder:text-gray-300" />
           <select value={filters.projection} onChange={(e) => updateFilter('projection', e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold text-[#103c7f] outline-none cursor-pointer appearance-none"><option value="">PROJECTION</option>{dropdowns.projectionList.map(p => <option key={p} value={p}>{p}</option>)}</select>

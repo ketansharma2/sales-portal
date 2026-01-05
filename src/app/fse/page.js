@@ -83,6 +83,7 @@ export default function FSEDashboard() {
             onboard: data.data.latestActivity.onboarded
           },
           clients: data.data.latestLeads.map(lead => ({
+            date: lead.date,
             name: lead.name,
             status: lead.status,
             sub: lead.sub,
@@ -223,6 +224,7 @@ export default function FSEDashboard() {
             <table className="w-full text-left border-separate border-spacing-0">
               <thead className="sticky top-0 z-20 shadow-sm bg-white">
                 <tr>
+                  <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 tracking-wider border-b border-gray-100 bg-white">Date</th>
                   <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 tracking-wider border-b border-gray-100 bg-white">Client Name</th>
                   <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 tracking-wider border-b border-gray-100 bg-white text-center">Status</th>
                   <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 tracking-wider border-b border-gray-100 bg-white text-right">Substatus</th>
@@ -231,6 +233,7 @@ export default function FSEDashboard() {
               <tbody className="divide-y divide-gray-100">
                 {stats.clients.map((client, idx) => (
                   <tr key={idx} className="hover:bg-blue-50 transition-all group">
+                    <td className="px-6 py-2 text-xs font-bold text-slate-700">{client.date}</td>
                     <td className="px-6 py-2 text-xs font-bold text-slate-700">{client.name} </td>
                     <td className="px-6 py-2 text-center">
                       <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter ${client.color}`}>{client.status}</span>

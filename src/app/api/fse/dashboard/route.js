@@ -39,6 +39,20 @@ export async function POST(request) {
     const monthlyIndividualVisits = monthlyDwr?.reduce((sum, d) => sum + (parseInt(d.individual) || 0), 0) || 0
     const monthlyOnboarded = monthlyDwr?.reduce((sum, d) => sum + (parseInt(d.onboarded) || 0), 0) || 0
 
+    // Get latest DWR record
+    const { data: latestDwrData, error: latestDwrError } = await supabaseServer
+      .from('dwr_history')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('dwr_date', { ascending: false })
+      .limit(1)
+
+    if (latestDwrError) {
+      console.error('Latest DWR error:', latestDwrError)
+    }
+
+    const latestDwr = latestDwrData?.[0] || null
+
     // Get DWR for display
     let displayDwr;
     if (from && to) {
@@ -66,19 +80,6 @@ export async function POST(request) {
         avg_visit: rangeDwr?.reduce((sum, d) => sum + (parseFloat(d.avg_visit) || 0), 0) / (rangeDwr?.length || 1) || 0
       }
     } else {
-      // Get latest DWR record
-      const { data: latestDwrData, error: latestDwrError } = await supabaseServer
-        .from('dwr_history')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('dwr_date', { ascending: false })
-        .limit(1)
-
-      if (latestDwrError) {
-        console.error('Latest DWR error:', latestDwrError)
-      }
-
-      const latestDwr = latestDwrData?.[0] || null
       displayDwr = latestDwr || {
         dwr_date: today,
         total_visit: 0,
@@ -144,21 +145,41 @@ export async function POST(request) {
     }
 
     // Get clients with activity on the latest DWR date
-    const latestDwrDate = displayDwr.dwr_date || today
-    const { data: recentLeads, error: leadsError } = await supabaseServer
-      .from('clients')
-      .select('*')
-      .eq('user_id', user.id)
-      .or(`sourcing_date.eq.${latestDwrDate},latest_contact_date.eq.${latestDwrDate}`)
-      .order('created_at', { ascending: false })
+    let recentLeads;
+    if (from && to) {
+      // Sum for date range
+      const { data: rangeLeads, error: rangeError } = await supabaseServer
+        .from('clients')
+        .select('*')
+        .eq('user_id', user.id)
+        .or(`and(sourcing_date.gte.${from},sourcing_date.lte.${to}),and(latest_contact_date.gte.${from},latest_contact_date.lte.${to})`)
+        .order('created_at', { ascending: false })
 
-    if (leadsError) {
-      console.error('Recent leads error:', leadsError)
+      if (rangeError) {
+        console.error('Range leads error:', rangeError)
+      }
+
+      recentLeads = rangeLeads
+    } else {
+      const latestDwrDate = displayDwr.dwr_date || today
+      const { data: dateLeads, error: dateError } = await supabaseServer
+        .from('clients')
+        .select('*')
+        .eq('user_id', user.id)
+        .or(`sourcing_date.eq.${latestDwrDate},latest_contact_date.eq.${latestDwrDate}`)
+        .order('created_at', { ascending: false })
+
+      if (dateError) {
+        console.error('Date leads error:', dateError)
+      }
+
+      recentLeads = dateLeads
     }
 
     // Format recent leads for UI
     const formattedLeads = recentLeads?.map((lead, index) => ({
       sn: index + 1,
+      date: lead.sourcing_date || lead.latest_contact_date || displayDwr.dwr_date || today,
       name: lead.company,
       status: lead.status,
       sub: lead.sub_status || '-',

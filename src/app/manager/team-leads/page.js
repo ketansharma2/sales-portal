@@ -1,11 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Filter, MapPin, Phone, User, Calendar,
   Building2, Search, Download, X
 } from "lucide-react";
 
 export default function FSETeamTracking() {
+  const searchParams = useSearchParams();
+
   // --- FILTER STATE ---
   const [filters, setFilters] = useState({
     fromDate: "",
@@ -29,6 +32,16 @@ export default function FSETeamTracking() {
   useEffect(() => {
     fetchFseTeam();
   }, []);
+
+  // Set filters from URL params on mount
+  useEffect(() => {
+    const fromDate = searchParams.get('from_date');
+    const toDate = searchParams.get('to_date');
+    const selectedFse = searchParams.get('selectedFse');
+    if (fromDate) setFilters(prev => ({ ...prev, fromDate }));
+    if (toDate) setFilters(prev => ({ ...prev, toDate }));
+    if (selectedFse) setFilters(prev => ({ ...prev, selectedFse }));
+  }, [searchParams]);
 
   // Fetch leads on mount and when filters change
   useEffect(() => {

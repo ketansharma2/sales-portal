@@ -105,7 +105,7 @@ export default function ManagerApprovals() {
             </h1>
             <p className="text-gray-400 text-[10px] font-bold tracking-[0.2em] mt-1.5 uppercase flex items-center gap-2">
                <span className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></span>
-               FSE Claims Queue
+               Current Month Approvals
             </p>
           </div>
         </div>
@@ -172,23 +172,29 @@ export default function ManagerApprovals() {
                     {item.date}
                   </td>
                   
-                  {/* Status Column (UPDATED LOGIC: "Sent to HR" is Blue/Indigo) */}
+                  {/* Status Column (UPDATED LOGIC: "Sent to HR" is Blue/Indigo, Approved/Rejected added) */}
                   <td className="px-5 py-3 text-center">
                     <span className={`px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border italic flex items-center justify-center gap-1.5 w-fit mx-auto
-                      ${item.status === 'Sent to HR' 
+                      ${item.status === 'Sent to HR'
                         ? 'bg-indigo-50 text-indigo-600 border-indigo-100' // Blue/Indigo for HR Handoff
-                        : item.status === 'Clarification Req' 
-                          ? 'bg-yellow-50 text-yellow-600 border-yellow-100' 
-                          : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
-                      
+                        : item.status === 'Clarification Req'
+                          ? 'bg-yellow-50 text-yellow-600 border-yellow-100'
+                          : item.status === 'Approved'
+                            ? 'bg-green-50 text-green-600 border-green-100'
+                            : item.status === 'Rejected'
+                              ? 'bg-red-50 text-red-600 border-red-100'
+                              : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
+
                       {item.status === 'Pending Review' && <Clock size={10} />}
                       {/* Using Building Icon for HR */}
-                      {item.status === 'Sent to HR' && <Building2 size={10} />} 
+                      {item.status === 'Sent to HR' && <Building2 size={10} />}
+                      {item.status === 'Approved' && <CheckCircle size={10} />}
+                      {item.status === 'Rejected' && <X size={10} />}
                       {item.status}
                     </span>
                   </td>
                   
-                  {/* Action Column (UPDATED LOGIC: Shows "Forwarded" status) */}
+                  {/* Action Column (UPDATED LOGIC: Shows "Forwarded" status, added Approved/Rejected) */}
                   <td className="px-5 py-3 text-center">
                     {item.status === "Sent to HR" ? (
                       // Locked State - Shows Process Flow
@@ -201,8 +207,18 @@ export default function ManagerApprovals() {
                            HR Dept
                          </span>
                       </div>
+                    ) : item.status === "Approved" ? (
+                      // Approved State
+                      <div className="flex justify-center items-center opacity-60">
+                        <CheckCircle size={16} className="text-green-600" />
+                      </div>
+                    ) : item.status === "Rejected" ? (
+                      // Rejected State
+                      <div className="flex justify-center items-center opacity-60">
+                        <X size={16} className="text-red-600" />
+                      </div>
                     ) : (
-                      // Active Buttons
+                      // Active Buttons for Pending Review and Clarification Req
                       <div className="flex justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => handleApprove(item.id)} className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Approve">
                           <Check size={16} strokeWidth={3}/>
@@ -211,7 +227,7 @@ export default function ManagerApprovals() {
                           <X size={16} strokeWidth={3}/>
                         </button>
                         <button className="bg-gray-100 text-[#103c7f] p-2 rounded-lg hover:bg-[#103c7f] hover:text-white transition-all shadow-sm" title="View Bill Proof">
-                          <FileText size={16} strokeWidth={2}/> 
+                          <FileText size={16} strokeWidth={2}/>
                         </button>
                       </div>
                     )}
@@ -228,7 +244,7 @@ export default function ManagerApprovals() {
               <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">My Team: {teamCount} FSEs</p>
               <div className="h-3 w-px bg-gray-300"></div>
               <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">
-                Action Req: {approvals.length} Claims
+                Total Claims: {approvals.length}
               </p>
            </div>
            <p className="text-[10px] font-black uppercase tracking-widest">Total Approval Value: <span className="text-lg italic">₹{approvals.reduce((sum, item) => sum + parseFloat(item.amount.replace(/,/g, '') || 0), 0).toLocaleString()}</span></p>

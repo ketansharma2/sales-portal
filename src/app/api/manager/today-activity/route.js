@@ -84,7 +84,7 @@ export async function GET(request) {
     // Fetch today's DWR data
     const { data: dwrData, error: dwrError } = await supabaseServer
       .from('dwr_history')
-      .select('user_id, onboarded')
+      .select('user_id, total_visit, onboarded')
       .eq('dwr_date', today)
       .in('user_id', userIdsToQuery)
 
@@ -114,14 +114,15 @@ export async function GET(request) {
     const activityData = fseDetails.map(fse => {
       const dwr = dwrData.find(d => d.user_id === fse.user_id)
       if (dwr) {
+        const totalVisits = dwr.total_visit || 0
         const onboarded = dwr.onboarded || 0
         return {
           id: fse.user_id,
           name: fse.name,
           role: fse.role,
-          visitsToday: onboarded, // Assuming visits = onboarded for now
+          visitsToday: totalVisits,
           onboardedToday: onboarded,
-          status: onboarded > 0 ? 'Active' : 'Absent',
+          status: totalVisits > 0 ? 'Active' : 'Absent',
           avatar: fse.name.charAt(0).toUpperCase()
         }
       } else {

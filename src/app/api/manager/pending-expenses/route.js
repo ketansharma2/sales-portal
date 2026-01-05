@@ -14,8 +14,13 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Fetch pending expenses for FSEs under this manager
-    const { data: pendingExpenses, error: expensesError } = await supabaseServer
+    // Get query parameters
+    const { searchParams } = new URL(request.url)
+    const fromDate = searchParams.get('from_date')
+    const toDate = searchParams.get('to_date')
+    const statusFilter = searchParams.get('status')
+
+    let query = supabaseServer
       .from('expenses')
       .select(`
         exp_id,
@@ -32,10 +37,19 @@ export async function GET(request) {
           manager_id
         )
       `)
-      .eq('status', 'Pending (Manager)')
       .eq('submitted', true)
       .eq('users.manager_id', user.id)
       .order('created_at', { ascending: false })
+
+    if (statusFilter === 'pending') {
+      query = query.eq('status', 'Pending (Manager)')
+    }
+
+    if (fromDate && toDate) {
+      query = query.gte('date', fromDate).lte('date', toDate)
+    }
+
+    const { data: pendingExpenses, error: expensesError } = await query
 
     if (expensesError) {
       console.error('Pending expenses fetch error:', expensesError)
@@ -46,17 +60,29 @@ export async function GET(request) {
     }
 
     // Format the data
-    const formattedExpenses = pendingExpenses?.map(expense => ({
-      id: expense.exp_id,
-      name: expense.users.name,
-      role: expense.users.role,
-      category: expense.category,
-      notes: expense.notes || 'No notes added',
-      amount: expense.amount,
-      date: new Date(expense.date).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-'),
-      status: 'Pending Review',
-      img: 'bg-blue-100 text-blue-600' // Default avatar style
-    })) || []
+    const formattedExpenses = pendingExpenses?.map(expense => {
+      let displayStatus = expense.status;
+      if (expense.status === 'Pending (Manager)') {
+        displayStatus = 'Pending Review';
+      } else if (expense.status === 'Approved') {
+        displayStatus = 'Approved';
+      } else if (expense.status === 'Rejected') {
+        displayStatus = 'Rejected';
+      }
+      // Keep other statuses as is
+
+      return {
+        id: expense.exp_id,
+        name: expense.users.name,
+        role: expense.users.role,
+        category: expense.category,
+        notes: expense.notes || 'No notes added',
+        amount: expense.amount,
+        date: new Date(expense.date).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-'),
+        status: displayStatus,
+        img: 'bg-blue-100 text-blue-600' // Default avatar style
+      };
+    }) || []
 
     return NextResponse.json({
       success: true,
