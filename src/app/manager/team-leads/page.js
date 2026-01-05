@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
@@ -8,7 +8,7 @@ import {
   Building2, Search, Download, X
 } from "lucide-react";
 
-export default function FSETeamTracking() {
+function FSETeamTracking() {
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
 
@@ -307,5 +307,13 @@ export default function FSETeamTracking() {
 
       </div>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="h-full flex items-center justify-center">Loading...</div>}>
+      <FSETeamTracking />
+    </Suspense>
   );
 }
