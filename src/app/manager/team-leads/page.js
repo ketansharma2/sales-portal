@@ -10,6 +10,7 @@ import {
 
 export default function FSETeamTracking() {
   const searchParams = useSearchParams();
+  const [mounted, setMounted] = useState(false);
 
   // --- FILTER STATE ---
   const [filters, setFilters] = useState({
@@ -30,10 +31,17 @@ export default function FSETeamTracking() {
   const [fseTeam, setFseTeam] = useState([]);
   const [fseLoading, setFseLoading] = useState(true);
 
+  // Set mounted
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Fetch FSE team on mount
   useEffect(() => {
-    fetchFseTeam();
-  }, []);
+    if (mounted) {
+      fetchFseTeam();
+    }
+  }, [mounted]);
 
   // Set filters from URL params on mount
   useEffect(() => {
@@ -111,6 +119,8 @@ export default function FSETeamTracking() {
 
   // Leads are already filtered by API
   const filteredLeads = leads;
+
+  if (!mounted) return <div className="h-full flex items-center justify-center">Loading...</div>;
 
   return (
     <div className="h-[calc(100vh-2rem)] bg-[#f8fafc] w-full font-['Calibri'] p-2 flex flex-col overflow-hidden">
