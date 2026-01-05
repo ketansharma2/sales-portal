@@ -1,71 +1,95 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Check, X, ShieldCheck, UserCircle, Search, Download, 
   Clock, FileText, CheckCircle, ArrowRightCircle, Building2 
 } from "lucide-react";
 
 export default function ManagerApprovals() {
-  const [approvals] = useState([
-    { 
-      id: 1, name: "Rahul Verma", role: "Field Sales Executive", category: "Travel", 
-      notes: "Cab to Airport for Mumbai Client visit", amount: "2,400", date: "24-12-2025", 
-      status: "Sent to HR", img: "bg-blue-100 text-blue-600" 
-    },
-    { 
-      id: 2, name: "Priya Das", role: "Field Sales Executive", category: "Food", 
-      notes: "Lunch with Maven Jobs HR Team", amount: "850", date: "24-12-2025", 
-      status: "Pending Review", img: "bg-purple-100 text-purple-600" 
-    },
-    { 
-      id: 3, name: "Vikram Singh", role: "Field Sales Executive", category: "Stay", 
-      notes: "Hotel Lemon Tree (2 Nights)", amount: "4,200", date: "23-12-2025", 
-      status: "Pending Review", img: "bg-green-100 text-green-600" 
-    },
-    { 
-      id: 4, name: "Anjali Mehta", role: "Field Sales Executive", category: "Travel", 
-      notes: "Local Auto charges (No bill)", amount: "350", date: "22-12-2025", 
-      status: "Clarification Req", img: "bg-orange-100 text-orange-600" 
-    },
-    { 
-      id: 5, name: "Rohit Kumar", role: "Field Sales Executive", category: "Fuel", 
-      notes: "Bike Petrol (450km Travelled)", amount: "1,800", date: "21-12-2025", 
-      status: "Pending Review", img: "bg-red-100 text-red-600" 
-    },
-    
-    // 👇 NEW: APPROVED ROW (Now shows "Sent to HR")
-    { 
-      id: 11, name: "Suresh Raina", role: "Field Sales Executive", category: "Food", 
-      notes: "Team Lunch (Pre-approved)", amount: "1,200", date: "25-12-2025", 
-      status: "Sent to HR", img: "bg-emerald-100 text-emerald-600" 
-    },
+  const [approvals, setApprovals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [teamCount, setTeamCount] = useState(0);
 
-    { 
-      id: 6, name: "Sneha Gupta", role: "Field Sales Executive", category: "Food", 
-      notes: "Client Dinner with HOD Approval", amount: "2,500", date: "21-12-2025", 
-      status: "Pending Review", img: "bg-teal-100 text-teal-600" 
-    },
-    { 
-      id: 7, name: "Amit Sharma", role: "Field Sales Executive", category: "Travel", 
-      notes: "Flight Ticket (Del -> Blr)", amount: "6,500", date: "20-12-2025", 
-      status: "Pending Review", img: "bg-indigo-100 text-indigo-600" 
-    },
-    { 
-      id: 8, name: "Kavita Rao", role: "Field Sales Executive", category: "Misc", 
-      notes: "Stationery for Field Camp", amount: "450", date: "19-12-2025", 
-      status: "Clarification Req", img: "bg-pink-100 text-pink-600" 
-    },
-    { 
-      id: 9, name: "Arjun Reddy", role: "Field Sales Executive", category: "Stay", 
-      notes: "Hotel OYO (Emergency Stay)", amount: "1,200", date: "18-12-2025", 
-      status: "Pending Review", img: "bg-yellow-100 text-yellow-600" 
-    },
-    { 
-      id: 10, name: "Meera Nair", role: "Field Sales Executive", category: "Travel", 
-      notes: "Uber Intercity", amount: "1,100", date: "18-12-2025", 
-      status: "Pending Review", img: "bg-cyan-100 text-cyan-600" 
-    },
-  ]);
+  const fetchPendingExpenses = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/manager/pending-expenses', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setApprovals(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch pending expenses:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTeamCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/manager/fse-team', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setTeamCount(data.count);
+      }
+    } catch (error) {
+      console.error('Failed to fetch team count:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchPendingExpenses();
+    fetchTeamCount();
+  }, []);
+
+  const handleApprove = async (exp_id) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/manager/approve-expense', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ exp_id })
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchPendingExpenses(); // Refresh the list
+      }
+    } catch (error) {
+      console.error('Failed to approve expense:', error);
+    }
+  };
+
+  const handleReject = async (exp_id) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/manager/reject-expense', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ exp_id })
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchPendingExpenses(); // Refresh the list
+      }
+    } catch (error) {
+      console.error('Failed to reject expense:', error);
+    }
+  };
 
   return (
 <div className="h-[calc(100vh-4rem)] bg-[#f8fafc] w-full font-['Calibri'] p-2 flex flex-col overflow-hidden">      
@@ -180,10 +204,10 @@ export default function ManagerApprovals() {
                     ) : (
                       // Active Buttons
                       <div className="flex justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                        <button className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Approve">
+                        <button onClick={() => handleApprove(item.id)} className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Approve">
                           <Check size={16} strokeWidth={3}/>
                         </button>
-                        <button className="bg-red-50 text-red-600 p-2 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Reject">
+                        <button onClick={() => handleReject(item.id)} className="bg-red-50 text-red-600 p-2 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Reject">
                           <X size={16} strokeWidth={3}/>
                         </button>
                         <button className="bg-gray-100 text-[#103c7f] p-2 rounded-lg hover:bg-[#103c7f] hover:text-white transition-all shadow-sm" title="View Bill Proof">
@@ -201,13 +225,13 @@ export default function ManagerApprovals() {
         {/* Footer */}
         <div className="bg-gray-50 p-3 border-t border-gray-100 flex justify-between items-center text-[#103c7f] shrink-0">
            <div className="flex items-center gap-4">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">My Team: 12 FSEs</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">My Team: {teamCount} FSEs</p>
               <div className="h-3 w-px bg-gray-300"></div>
               <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">
-                Action Req: {approvals.filter(a => a.status !== 'Sent to HR').length} Claims
+                Action Req: {approvals.length} Claims
               </p>
            </div>
-           <p className="text-[10px] font-black uppercase tracking-widest">Total Approval Value: <span className="text-lg italic">₹22,550</span></p>
+           <p className="text-[10px] font-black uppercase tracking-widest">Total Approval Value: <span className="text-lg italic">₹{approvals.reduce((sum, item) => sum + parseFloat(item.amount.replace(/,/g, '') || 0), 0).toLocaleString()}</span></p>
         </div>
       </div>
     </div>

@@ -25,7 +25,7 @@ export async function GET(request) {
       return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
     }
 
-    if (userProfile.role !== 'MANAGER') {
+    if (!userProfile.role || !userProfile.role.includes('MANAGER')) {
       return NextResponse.json({ error: 'Access denied. Manager role required.' }, { status: 403 })
     }
 
@@ -44,7 +44,7 @@ export async function GET(request) {
         .from('users')
         .select('user_id')
         .eq('user_id', selectedFseId)
-        .eq('role', 'FSE')
+        .contains('role', ['FSE'])
         .eq('manager_id', user.id)
         .single()
 
@@ -60,7 +60,7 @@ export async function GET(request) {
       const { data: fseTeam, error: fseError } = await supabaseServer
         .from('users')
         .select('user_id')
-        .eq('role', 'FSE')
+        .contains('role', ['FSE'])
         .eq('manager_id', user.id)
 
       if (fseError) {

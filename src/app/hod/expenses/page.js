@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Wallet, Plus, X, FileText, Send, CheckCircle, 
   Clock, Paperclip, AlertCircle, ChevronDown, Trash2, ShieldCheck 
@@ -8,39 +8,100 @@ import {
 export default function HODPersonalClaims() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterDate, setFilterDate] = useState("");
-  
-  // 👇 DATA CHANGED: HOD Expenses (Higher Value / Strategic)
-  // Status is now handled by S.Sir (Super Admin/Director)
-  const [expenses, setExpenses] = useState([
-    { id: 1, date: "2025-12-18", type: "FLIGHT", amount: "12500", status: "APPROVED", notes: "Annual Strategy Meet - Bangalore", bill: "flight_biz.pdf" },
-    { id: 2, date: "2025-12-20", type: "STAY", amount: "8500", status: "PENDING (S.SIR)", notes: "Hotel Oberoi - Client Hosting", bill: "hotel_lux.pdf" },
-    { id: 3, date: "2025-12-22", type: "FOOD", amount: "4200", status: "PENDING (S.SIR)", notes: "Dinner with Regional Directors", bill: "dinner_bill.jpg" },
-    { id: 4, date: "2025-12-25", type: "MISC", amount: "15000", status: "DRAFT", notes: "Diwali Gifts for Department", bill: null },
-    { id: 5, date: "2025-12-26", type: "TRAVEL", amount: "2200", status: "REJECTED", notes: "Personal Cab Detour", bill: "cab_bill.jpg" },
-  ]);
+  const [expenses, setExpenses] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Working State & Logic
-  const [formData, setFormData] = useState({ date: "", type: "TRAVEL", amount: "", notes: "", bill: null });
+  const [formData, setFormData] = useState({ date: "", category: "TRAVEL", amount: "", notes: "" });
 
-  const handleSave = (e) => {
-    e.preventDefault();
-    
-    const newExpense = { 
-      ...formData, 
-      id: Date.now(), 
-      status: "DRAFT" 
-    };
-
-    setExpenses([...expenses, newExpense]);
-    setIsModalOpen(false);
-    setFormData({ date: "", type: "TRAVEL", amount: "", notes: "", bill: null });
+  const fetchExpenses = async (dateFilter = "") => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const url = dateFilter ? `/api/hod/expenses?date=${dateFilter}` : '/api/hod/expenses';
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setExpenses(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch expenses:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // 👇 LOGIC CHANGED: Submit to S.Sir (Hierarchy Maintained)
-  const submitToSuperior = (id) => {
-    setExpenses(expenses.map(exp => 
-      exp.id === id ? { ...exp, status: "PENDING (S.SIR)" } : exp
-    ));
+  useEffect(() => {
+    fetchExpenses();
+  }, []);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+
+    try {
+      // Call API to save
+    const session = JSON.parse(localStorage.getItem('session') || '{}');
+    const response = await fetch('/api/hod/expenses', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify(formData)
+    });
+    const data = await response.json();
+    if (data.success) {
+      fetchExpenses(filterDate);
+      setIsModalOpen(false);
+      setFormData({ date: "", category: "TRAVEL", amount: "", notes: "" });
+    }
+    } catch (error) {
+      console.error('Failed to save expense:', error);
+    }
+  };
+
+  const handleSubmitToAdmin = async (exp_id) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/hod/submit-expense', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ exp_id })
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchExpenses(filterDate); // Refresh the list
+      }
+    } catch (error) {
+      console.error('Failed to submit expense:', error);
+    }
+  };
+
+  const handleDeleteExpense = async (exp_id) => {
+    if (!confirm('Are you sure you want to delete this expense?')) return;
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/hod/expenses', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ exp_id })
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchExpenses(filterDate); // Refresh the list
+      }
+    } catch (error) {
+      console.error('Failed to delete expense:', error);
+    }
   };
 
   return (
@@ -111,7 +172,7 @@ export default function HODPersonalClaims() {
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
                       <span className="font-black text-[#103c7f] text-xs uppercase flex items-center gap-2">
-                        {exp.type} {exp.bill && <Paperclip size={12} className="text-[#a1db40]" />}
+                        {exp.category}
                       </span>
                       <span className="text-gray-400 text-[11px] font-bold italic mt-0.5">{exp.notes}</span>
                     </div>
@@ -121,12 +182,14 @@ export default function HODPersonalClaims() {
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border italic flex items-center justify-center gap-1.5 ${
-                        exp.status === 'APPROVED' 
-                          ? 'bg-green-50 text-green-600 border-green-100' 
-                        : exp.status === 'REJECTED'
+                        exp.status === 'Approved'
+                          ? 'bg-green-50 text-green-600 border-green-100'
+                        : exp.status === 'Rejected'
                           ? 'bg-red-50 text-red-600 border-red-100'
-                        : exp.status.includes('S.SIR') 
+                        : exp.status.includes('S.SIR')
                           ? 'bg-purple-50 text-purple-600 border-purple-100' // Purple for S.Sir Pending
+                        : exp.status.includes('Pending')
+                          ? 'bg-orange-50 text-orange-600 border-orange-100'
                         : 'bg-gray-50 text-gray-400 border-gray-100'
                       }`}>
                       {exp.status === 'APPROVED' && <CheckCircle size={10} />}
@@ -139,11 +202,10 @@ export default function HODPersonalClaims() {
                   <td className="px-6 py-4 text-center">
                     {exp.status === "DRAFT" ? (
                       <div className="flex justify-center gap-2">
-                        {/* 👇 Updated Action Button for HOD */}
-                        <button onClick={() => submitToSuperior(exp.id)} className="bg-[#103c7f] text-white px-4 py-2 rounded-[12px] hover:bg-[#a1db40] hover:text-[#103c7f] flex items-center gap-2 shadow-md transition-colors">
-                          <Send size={12} /> <span className="text-[10px] font-black uppercase">Submit to S.Sir</span>
+                        <button onClick={() => handleSubmitToAdmin(exp.id)} className="bg-[#103c7f] text-white px-4 py-2 rounded-[12px] hover:bg-[#a1db40] hover:text-[#103c7f] flex items-center gap-2 shadow-md transition-colors">
+                          <Send size={12} /> <span className="text-[10px] font-black uppercase">Submit to Admin</span>
                         </button>
-                        <button className="bg-red-50 text-red-600 p-2 rounded-[12px] hover:bg-red-600 hover:text-white transition-all"><Trash2 size={14} /></button>
+                        <button onClick={() => handleDeleteExpense(exp.id)} className="bg-red-50 text-red-600 p-2 rounded-[12px] hover:bg-red-600 hover:text-white transition-all"><Trash2 size={14} /></button>
                       </div>
                     ) : (
                       <span className="text-gray-300 font-bold italic text-[10px] uppercase bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">Locked</span>
@@ -182,7 +244,7 @@ export default function HODPersonalClaims() {
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Category</label>
                   <div className="relative">
-                    <select onChange={(e) => setFormData({...formData, type: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-[14px] focus:ring-2 focus:ring-[#a1db40]/50 outline-none text-sm font-bold text-gray-700 appearance-none">
+                    <select onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-[14px] focus:ring-2 focus:ring-[#a1db40]/50 outline-none text-sm font-bold text-gray-700 appearance-none">
                       <option value="TRAVEL">Travel / Fuel</option>
                       <option value="FLIGHT">Flight</option>
                       <option value="STAY">Hotel / Stay</option>
@@ -194,19 +256,19 @@ export default function HODPersonalClaims() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Amount (₹)</label>
                   <input type="number" required placeholder="0.00" onChange={(e) => setFormData({...formData, amount: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-[14px] focus:ring-2 focus:ring-[#a1db40]/50 outline-none text-sm font-bold text-gray-700" />
                 </div>
-                <div className="space-y-1">
+                {/* <div className="space-y-1">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Proof</label>
                   <div className="relative border-2 border-dashed border-gray-200 rounded-[14px] p-2 bg-gray-50/50 hover:bg-[#a1db40]/5 hover:border-[#a1db40]/50 transition-all group flex items-center justify-center gap-3 cursor-pointer h-[46px]">
                     <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" />
                     <FileText size={18} className="text-[#103c7f] opacity-40 group-hover:text-[#a1db40]" />
                     <p className="text-[10px] font-black text-gray-600 uppercase tracking-tight group-hover:text-[#103c7f]">Upload Bill</p>
                   </div>
-                </div>
+                </div> */}
               </div>
 
               <div className="space-y-1">

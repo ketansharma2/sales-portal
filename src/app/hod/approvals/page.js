@@ -1,48 +1,76 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Check, X, ShieldCheck, UserCircle, Search, Download, 
   Clock, FileText, CheckCircle, ArrowRightCircle, Building2 
 } from "lucide-react";
 
 export default function HODApprovals() {
-  
-  // 👇 DATA: HOD approves Manager Claims -> Sends to HR
-  const [approvals] = useState([
-    { 
-      id: 1, name: "Anil Kapoor", role: "Sales Manager (North)", category: "Flight", 
-      notes: "Urgent Client Meeting - Mumbai", amount: "12,400", date: "24-12-2025", 
-      status: "Sent to HR", img: "bg-blue-100 text-blue-600" 
-    },
-    { 
-      id: 2, name: "Sonia Mehra", role: "Sales Manager (South)", category: "Team Lunch", 
-      notes: "Quarterly Review Lunch with 15 FSEs", amount: "8,500", date: "24-12-2025", 
-      status: "Pending Review", img: "bg-purple-100 text-purple-600" 
-    },
-    { 
-      id: 3, name: "Vikram Rathore", role: "Sales Manager (East)", category: "Hotel Stay", 
-      notes: "Taj Vivanta (2 Nights) - Vendor Meet", amount: "14,200", date: "23-12-2025", 
-      status: "Pending Review", img: "bg-green-100 text-green-600" 
-    },
-    { 
-      id: 4, name: "Rahul Roy", role: "Sales Manager (West)", category: "Misc", 
-      notes: "Diwali Gifts for Key Clients", amount: "25,000", date: "22-12-2025", 
-      status: "Clarification Req", img: "bg-orange-100 text-orange-600" 
-    },
-    
-    // 👇 APPROVED ROW
-    { 
-      id: 11, name: "Pooja Hegde", role: "Sales Manager (Central)", category: "Fuel", 
-      notes: "Monthly Fuel Reimbursement (Car)", amount: "5,200", date: "25-12-2025", 
-      status: "Sent to HR", img: "bg-emerald-100 text-emerald-600" 
-    },
+  const [approvals, setApprovals] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    { 
-      id: 6, name: "Amitabh Bachan", role: "Sr. Sales Manager", category: "Client Dinner", 
-      notes: "Hosting CEO of TechCorp", amount: "6,500", date: "21-12-2025", 
-      status: "Pending Review", img: "bg-teal-100 text-teal-600" 
-    },
-  ]);
+  const fetchPendingExpenses = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/hod/pending-expenses', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setApprovals(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch pending expenses:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPendingExpenses();
+  }, []);
+
+  const handleApprove = async (exp_id) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/manager/approve-expense', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ exp_id })
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchPendingExpenses(); // Refresh the list
+      }
+    } catch (error) {
+      console.error('Failed to approve expense:', error);
+    }
+  };
+
+  const handleReject = async (exp_id) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/manager/reject-expense', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ exp_id })
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchPendingExpenses(); // Refresh the list
+      }
+    } catch (error) {
+      console.error('Failed to reject expense:', error);
+    }
+  };
 
   return (
     <div className="h-[calc(100vh-4rem)] bg-[#f8fafc] w-full font-['Calibri'] p-2 flex flex-col overflow-hidden">      
@@ -157,14 +185,14 @@ export default function HODApprovals() {
                     ) : (
                       // Active Buttons
                       <div className="flex justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                        <button className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Approve & Forward to HR">
+                        <button onClick={() => handleApprove(item.id)} className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Approve & Forward to HR">
                           <Check size={16} strokeWidth={3}/>
                         </button>
-                        <button className="bg-red-50 text-red-600 p-2 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Reject">
+                        <button onClick={() => handleReject(item.id)} className="bg-red-50 text-red-600 p-2 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Reject">
                           <X size={16} strokeWidth={3}/>
                         </button>
                         <button className="bg-gray-100 text-[#103c7f] p-2 rounded-lg hover:bg-[#103c7f] hover:text-white transition-all shadow-sm" title="View Bill Proof">
-                          <FileText size={16} strokeWidth={2}/> 
+                          <FileText size={16} strokeWidth={2}/>
                         </button>
                       </div>
                     )}
@@ -181,10 +209,10 @@ export default function HODApprovals() {
              <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">My Team: 5 Managers</p>
              <div className="h-3 w-px bg-gray-300"></div>
              <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">
-               Action Req: {approvals.filter(a => a.status !== 'Sent to HR').length} Claims
+               Action Req: {approvals.length} Claims
              </p>
            </div>
-           <p className="text-[10px] font-black uppercase tracking-widest">Total Pending Value: <span className="text-lg italic">₹71,800</span></p>
+           <p className="text-[10px] font-black uppercase tracking-widest">Total Pending Value: <span className="text-lg italic">₹{approvals.reduce((sum, item) => sum + parseFloat(item.amount.replace(/,/g, '') || 0), 0).toLocaleString()}</span></p>
         </div>
       </div>
     </div>

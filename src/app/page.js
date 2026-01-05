@@ -10,6 +10,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showRoleSelector, setShowRoleSelector] = useState(false);
+  const [availableRoles, setAvailableRoles] = useState([]);
+  const [userData, setUserData] = useState(null);
+  const [sessionData, setSessionData] = useState(null);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -28,20 +32,28 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (data.success) {
-        // Save user data to localStorage
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('session', JSON.stringify(data.session));
+        if (data.requiresSelection) {
+          // Show role selector
+          setAvailableRoles(data.availableRoles);
+          setUserData(data.user);
+          setSessionData(data.session);
+          setShowRoleSelector(true);
+        } else {
+          // Single role: proceed
+          localStorage.setItem('user', JSON.stringify(data.user));
+          localStorage.setItem('session', JSON.stringify(data.session));
 
-        // Redirect based on role
-        const roleRoutes = {
-          'FSE': '/fse',
-          'MANAGER': '/manager',
-          'HOD': '/hod',
-          'ADMIN': '/admin'
-        };
+          // Redirect based on current_role
+          const roleRoutes = {
+            'FSE': '/fse',
+            'MANAGER': '/manager',
+            'HOD': '/hod',
+            'ADMIN': '/admin'
+          };
 
-        const redirectPath = roleRoutes[data.user.role] || '/fse';
-        router.push(redirectPath);
+          const redirectPath = roleRoutes[data.user.current_role] || '/fse';
+          router.push(redirectPath);
+        }
       } else {
         setError(data.error || 'Login failed');
       }
@@ -53,25 +65,76 @@ export default function LoginPage() {
     }
   };
 
+  const handleRoleSelect = (selectedRole) => {
+    // Set current_role
+    const updatedUser = { ...userData, current_role: selectedRole };
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    localStorage.setItem('session', JSON.stringify(sessionData));
+
+    // Redirect
+    const roleRoutes = {
+      'FSE': '/fse',
+      'MANAGER': '/manager',
+      'HOD': '/hod',
+      'ADMIN': '/admin'
+    };
+
+    const redirectPath = roleRoutes[selectedRole] || '/fse';
+    router.push(redirectPath);
+  };
+
+  if (showRoleSelector) {
+    return (
+      <div className="min-h-screen bg-[#103c7f] flex items-center justify-center p-6 font-['Calibri'] relative overflow-hidden">
+        <div className="bg-white/95 backdrop-blur-xl w-full max-w-md rounded-[40px] shadow-2xl p-10 relative z-10 border border-white/20">
+          <div className="text-center mb-10">
+            <Image
+              src="/maven-logo.png"
+              alt="Maven Jobs"
+              width={180}
+              height={60}
+              priority
+              className="object-contain mx-auto mb-4"
+            />
+            <p className="text-gray-400 font-bold text-[10px] tracking-[0.3em] uppercase mt-2 italic">
+              Select Your Role
+            </p>
+          </div>
+          <div className="space-y-4">
+            {availableRoles.map((role) => (
+              <button
+                key={role}
+                onClick={() => handleRoleSelect(role)}
+                className="w-full bg-[#a1db40] text-[#103c7f] py-4 rounded-[22px] font-black tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-[#a1db40]/20 uppercase italic"
+              >
+                Login as {role.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#103c7f] flex items-center justify-center p-6 font-['Calibri'] relative overflow-hidden">
-      
+
       {/* Background Decorative Elements */}
       <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-[#a1db40]/10 rounded-full blur-3xl"></div>
       <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
 
       <div className="bg-white/95 backdrop-blur-xl w-full max-w-md rounded-[40px] shadow-2xl p-10 relative z-10 border border-white/20">
-        
+
         {/* --- BRANDING SECTION: Logo replace kiya gaya --- */}
         <div className="text-center mb-10">
           <div className="flex items-center justify-center mb-4">
              <Image
-                src="/maven-logo.png" 
+                src="/maven-logo.png"
                 alt="Maven Jobs"
                 width={180}
-                height={60} 
+                height={60}
                 priority
-                className="object-contain" 
+                className="object-contain"
               />
           </div>
           <p className="text-gray-400 font-bold text-[10px] tracking-[0.3em] uppercase mt-2 italic">
@@ -80,7 +143,7 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5">
-          
+
           {/* EMAIL FIELD */}
           <div className="space-y-2">
             <label className="text-[10px] font-black text-[#103c7f] uppercase tracking-widest ml-2">Email</label>
@@ -102,11 +165,12 @@ export default function LoginPage() {
             <label className="text-[10px] font-black text-[#103c7f] uppercase tracking-widest ml-2">Password</label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
-              <input 
-                type="password" 
-                required 
+              <input
+                type="password"
+                required
                 placeholder="••••••••"
                 className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-[#a1db40]/50 outline-none font-bold text-[#103c7f] transition-all placeholder:text-gray-200"
+                value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
@@ -114,15 +178,22 @@ export default function LoginPage() {
 
           {/* LOGIN BUTTON */}
           <div className="pt-4">
-            <button 
+            <button
               type="submit"
-              className="w-full bg-[#a1db40] text-[#103c7f] py-5 rounded-[22px] font-black tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-[#a1db40]/20 flex items-center justify-center gap-3 uppercase italic"
+              disabled={loading}
+              className="w-full bg-[#a1db40] text-[#103c7f] py-5 rounded-[22px] font-black tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-[#a1db40]/20 flex items-center justify-center gap-3 uppercase italic disabled:opacity-50"
             >
-              Sign In
-              <ArrowRight size={20} strokeWidth={3} />
+              {loading ? <Loader2 className="animate-spin" size={20} /> : 'Sign In'}
+              {!loading && <ArrowRight size={20} strokeWidth={3} />}
             </button>
           </div>
         </form>
+
+        {error && (
+          <div className="mt-4 text-center text-red-500 text-sm font-bold">
+            {error}
+          </div>
+        )}
 
         <div className="mt-10 text-center">
           <p className="text-gray-300 text-[9px] font-bold uppercase tracking-widest">

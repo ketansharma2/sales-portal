@@ -62,7 +62,8 @@ export async function POST(request) {
         interested: rangeDwr?.reduce((sum, d) => sum + (parseInt(d.interested) || 0), 0) || 0,
         not_interested: rangeDwr?.reduce((sum, d) => sum + (parseInt(d.not_interested) || 0), 0) || 0,
         reached_out: rangeDwr?.reduce((sum, d) => sum + (parseInt(d.reached_out) || 0), 0) || 0,
-        onboarded: rangeDwr?.reduce((sum, d) => sum + (parseInt(d.onboarded) || 0), 0) || 0
+        onboarded: rangeDwr?.reduce((sum, d) => sum + (parseInt(d.onboarded) || 0), 0) || 0,
+        avg_visit: rangeDwr?.reduce((sum, d) => sum + (parseFloat(d.avg_visit) || 0), 0) / (rangeDwr?.length || 1) || 0
       }
     } else {
       // Get latest DWR record
@@ -86,7 +87,8 @@ export async function POST(request) {
         interested: 0,
         not_interested: 0,
         onboarded: 0,
-        reached_out: 0
+        reached_out: 0,
+        avg_visit: 0
       }
     }
 
@@ -175,7 +177,7 @@ export async function POST(request) {
         individualVisits: monthlyIndividualVisits,
         totalOnboarded: monthlyOnboarded,
         mtdMp: `${monthlyOnboarded}/12`,
-        avg: monthlyTotalVisits > 0 ? (monthlyOnboarded / monthlyTotalVisits * 10).toFixed(1) : '0.0'
+        avg: displayDwr.avg_visit ? parseFloat(displayDwr.avg_visit).toString() : '0.0'
       },
       latestActivity: {
         date: displayDwr.dwr_date ? new Date(displayDwr.dwr_date).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'), // DD/MM/YYYY format

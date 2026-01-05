@@ -39,15 +39,20 @@ export async function POST(request) {
       }, { status: 404 })
     }
 
-    // Return success with user data
-    return NextResponse.json({
+    // Check roles
+    if (!profileData.role || profileData.role.length === 0) {
+      return NextResponse.json({
+        error: 'No roles assigned to user'
+      }, { status: 403 })
+    }
+
+    let responseData = {
       success: true,
       message: 'Login successful',
       user: {
         user_id: profileData.user_id,
         name: profileData.name,
         email: profileData.email,
-        role: profileData.role,
         manager_id: profileData.manager_id,
         hod_id: profileData.hod_id
       },
@@ -56,7 +61,20 @@ export async function POST(request) {
         refresh_token: authData.session.refresh_token,
         expires_at: authData.session.expires_at
       }
-    })
+    }
+
+    if (profileData.role.length === 1) {
+      // Single role: set current_role and proceed
+      responseData.user.current_role = profileData.role[0]
+      responseData.user.role = profileData.role // keep for compatibility
+    } else {
+      // Multiple roles: require selection
+      responseData.requiresSelection = true
+      responseData.availableRoles = profileData.role
+      responseData.user.role = profileData.role
+    }
+
+    return NextResponse.json(responseData)
 
   } catch (error) {
     console.error('Login API error:', error)
