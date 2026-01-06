@@ -38,6 +38,8 @@ export async function POST(request) {
     const monthlyTotalVisits = monthlyDwr?.reduce((sum, d) => sum + (parseInt(d.total_visit) || 0), 0) || 0
     const monthlyIndividualVisits = monthlyDwr?.reduce((sum, d) => sum + (parseInt(d.individual) || 0), 0) || 0
     const monthlyOnboarded = monthlyDwr?.reduce((sum, d) => sum + (parseInt(d.onboarded) || 0), 0) || 0
+    const sortedMonthlyDwr = monthlyDwr?.sort((a, b) => new Date(b.dwr_date) - new Date(a.dwr_date)) || []
+    const monthlyAvg = sortedMonthlyDwr[0]?.avg_visit || 0
 
     // Get latest DWR record
     const { data: latestDwrData, error: latestDwrError } = await supabaseServer
@@ -68,6 +70,8 @@ export async function POST(request) {
         console.error('Range DWR error:', rangeError)
       }
 
+      const sortedRangeDwr = rangeDwr?.sort((a, b) => new Date(b.dwr_date) - new Date(a.dwr_date)) || []
+
       displayDwr = {
         dwr_date: to,
         total_visit: rangeDwr?.reduce((sum, d) => sum + (parseInt(d.total_visit) || 0), 0) || 0,
@@ -77,7 +81,7 @@ export async function POST(request) {
         not_interested: rangeDwr?.reduce((sum, d) => sum + (parseInt(d.not_interested) || 0), 0) || 0,
         reached_out: rangeDwr?.reduce((sum, d) => sum + (parseInt(d.reached_out) || 0), 0) || 0,
         onboarded: rangeDwr?.reduce((sum, d) => sum + (parseInt(d.onboarded) || 0), 0) || 0,
-        avg_visit: rangeDwr?.reduce((sum, d) => sum + (parseFloat(d.avg_visit) || 0), 0) / (rangeDwr?.length || 1) || 0
+        avg_visit: sortedRangeDwr[0]?.avg_visit || 0
       }
     } else {
       displayDwr = latestDwr || {
@@ -198,7 +202,7 @@ export async function POST(request) {
         individualVisits: monthlyIndividualVisits,
         totalOnboarded: monthlyOnboarded,
         mtdMp: `${monthlyOnboarded}/12`,
-        avg: displayDwr.avg_visit ? parseFloat(displayDwr.avg_visit).toString() : '0.0'
+        avg: monthlyAvg ? parseFloat(monthlyAvg).toString() : '0.0'
       },
       latestActivity: {
         date: displayDwr.dwr_date ? new Date(displayDwr.dwr_date).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'), // DD/MM/YYYY format
@@ -212,7 +216,6 @@ export async function POST(request) {
       },
       latestLeads: formattedLeads
     }
-
     return NextResponse.json({
       success: true,
       data: dashboardData
