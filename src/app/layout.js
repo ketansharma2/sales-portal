@@ -30,7 +30,12 @@ export default function RootLayout({ children }) {
           {!isLoginPage && <Header />}
 
           {/* Page Content: Login page full screen hogi, baki content p-8 follow karega */}
-<main className={`${isLoginPage ? "w-full" : "pt-4 px-6 pb-0 w-full"}`}>            {children}
+<main 
+            className={`flex-1 overflow-y-auto ${
+              isLoginPage ? "w-full p-0" : "pt-4 px-6 pb-8 w-full"
+            }`}
+          >
+            {children}
           </main>
         </div>
       </body>

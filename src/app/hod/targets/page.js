@@ -1,225 +1,268 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
-  Target, Users, Save, Search, TrendingUp, 
-  ChevronDown, CheckCircle, AlertCircle, BarChart3 
+  Target, Calendar, Users, Save, TrendingUp, 
+  Phone, MapPin, Briefcase, Calculator, Building2, Home 
 } from "lucide-react";
 
-export default function HODTargets() {
-  
-  // 👇 MOCK DATA: Managers and their FSEs
-  const [teams, setTeams] = useState([
-    {
-      managerId: 101,
-      managerName: "Diwakar",
+export default function HodTargetPage() {
+
+  // --- STATE 1: GLOBAL SETTINGS ---
+  const [workingDays, setWorkingDays] = useState(24);
+  const currentMonth = "January 2026";
+
+  // --- STATE 2: ASM LIST & TARGETS ---
+  const [asms, setAsms] = useState([
+    { 
+      id: 1, 
+      name: "Vikram Malhotra", 
       region: "North Zone",
-      fses: [
-        { id: 1, name: "Monu", role: "Sr. FSE", visitTarget: 5, onboardTarget: 10, lastMonthPerf: "110%" },
-        { id: 2, name: "Amit Verma", role: "FSE", visitTarget: 4, onboardTarget: 8, lastMonthPerf: "85%" },
-        
-      ]
+      sector: "Corporate", // 👉 NEW FIELD
+      fseCount: 8,
+      leadGenCount: 4,
+      lastMonthAchieved: "92%",
+      
+      targetVisitPerDay: 4,
+      targetOnboardPerMonth: 5,
+      targetCallPerDay: 60
     },
-    {
-      managerId: 102,
-      managerName: "Monu",
+    { 
+      id: 2, 
+      name: "Rohan Singh", 
+      region: "West Zone",
+      sector: "Domestic", // 👉 NEW FIELD
+      fseCount: 12,
+      leadGenCount: 5,
+      lastMonthAchieved: "105%",
+      
+      targetVisitPerDay: 5,
+      targetOnboardPerMonth: 6,
+      targetCallPerDay: 65
+    },
+    { 
+      id: 3, 
+      name: "Anjali Gupta", 
       region: "South Zone",
-      fses: [
-        { id: 4, name: "Saurabh", role: "Sr. FSE", visitTarget: 6, onboardTarget: 12, lastMonthPerf: "105%" },
-        { id: 5, name: "Priya Das", role: "FSE", visitTarget: 4, onboardTarget: 8, lastMonthPerf: "78%" },
-      ]
+      sector: "Corporate", // 👉 NEW FIELD
+      fseCount: 6,
+      leadGenCount: 3,
+      lastMonthAchieved: "88%",
+      
+      targetVisitPerDay: 4,
+      targetOnboardPerMonth: 4,
+      targetCallPerDay: 55
     }
   ]);
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [savingId, setSavingId] = useState(null); // To show loading state on specific button
-
-  // --- HANDLE INPUT CHANGE ---
-  const handleTargetChange = (managerId, fseId, field, value) => {
-    setTeams(prevTeams => prevTeams.map(team => {
-      if (team.managerId !== managerId) return team;
-      return {
-        ...team,
-        fses: team.fses.map(fse => 
-          fse.id === fseId ? { ...fse, [field]: Number(value) } : fse
-        )
-      };
-    }));
+  const handleInputChange = (id, field, value) => {
+    const updatedAsms = asms.map(asm => 
+        asm.id === id ? { ...asm, [field]: Number(value) } : asm
+    );
+    setAsms(updatedAsms);
   };
 
-  // --- SAVE FUNCTION ---
-  const saveIndividualTarget = (fseId) => {
-    setSavingId(fseId);
-    // Simulate API Call
-    setTimeout(() => {
-      setSavingId(null);
-      alert("Target Updated Successfully!");
-    }, 1000);
+  const handlePublish = () => {
+    alert(`Targets for ${currentMonth} published to all ASMs!`);
   };
-
-  // Filter Logic
-  const filteredTeams = teams.filter(team => 
-    team.managerName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    team.fses.some(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
 
   return (
-<div className="h-screen overflow-y-auto bg-[#f8fafc] w-full font-['Calibri'] p-2 flex flex-col pb-20">      
-      {/* HEADER */}
-      <div className="flex justify-between items-end mb-8">
-        <div>
-           <h1 className="text-3xl font-black text-[#103c7f] tracking-tight uppercase italic leading-none">
-             Target Configuration
-           </h1>
-           <p className="text-gray-400 font-bold uppercase text-[10px] tracking-[0.2em] mt-1.5 flex items-center gap-2">
-              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> 
-              Goal Setting Console
-           </p>
-        </div>
-        
-        {/* GLOBAL STATS WIDGET */}
-        <div className="flex gap-4">
-            <div className="bg-white px-5 py-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
-                <div className="bg-blue-50 p-2 rounded-lg text-[#103c7f]"><Users size={20}/></div>
-                <div>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total FSEs</p>
-                    <p className="text-xl font-black text-[#103c7f]">24</p>
-                </div>
-            </div>
-            <div className="bg-white px-5 py-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
-                <div className="bg-green-50 p-2 rounded-lg text-green-600"><Target size={20}/></div>
-                <div>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total Revenue Goal</p>
-                    <p className="text-xl font-black text-green-600">₹ 45L</p>
-                </div>
-            </div>
-        </div>
+    <div className="min-h-screen bg-gray-50/50 font-['Calibri'] p-4 pb-6">
+      
+      {/* 1. HEADER */}
+      <div className="flex justify-between items-end mb-4">
+         <div>
+            <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
+               <Target size={28} /> Master Target Assignment
+            </h1>
+            <p className="text-sm text-gray-500 font-bold uppercase tracking-widest mt-1">
+               {currentMonth}
+            </p>
+         </div>
+         <button 
+            onClick={handlePublish}
+            className="bg-[#103c7f] hover:bg-blue-900 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-lg shadow-blue-900/20 flex items-center gap-2 transition transform active:scale-95"
+         >
+            <Save size={18} /> Publish to ASMs
+         </button>
       </div>
 
-      {/* SEARCH BAR */}
-      <div className="bg-white p-4 rounded-[20px] border border-gray-100 shadow-sm mb-6 flex items-center gap-3 w-full max-w-md">
-         <Search size={18} className="text-gray-300"/>
-         <input 
-            type="text" 
-            placeholder="Search Manager or FSE Name..." 
-            className="w-full text-sm font-bold text-[#103c7f] placeholder:text-gray-300 outline-none"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-         />
+      {/* 2. GLOBAL SETTINGS CARD */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 mb-4 flex items-center gap-8">
+         <div className="bg-blue-50 p-4 rounded-xl text-[#103c7f]">
+            <Calendar size={32} />
+         </div>
+         <div className="flex-1">
+            <h2 className="text-lg font-black text-gray-800 uppercase">Monthly Configuration</h2>
+            <p className="text-xs text-gray-500">Set the standard working days for the entire company for this month.</p>
+         </div>
+         <div className="flex flex-col items-end">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Working Days</label>
+            <input 
+               type="number" 
+               value={workingDays}
+               onChange={(e) => setWorkingDays(Number(e.target.value))}
+               className="text-3xl font-black text-[#103c7f] w-24 text-right border-b-2 border-gray-200 focus:border-[#103c7f] outline-none bg-transparent"
+            />
+         </div>
       </div>
 
-      {/* TEAMS GRID */}
-      <div className="grid grid-cols-1 gap-8 pb-10">
-        
-        {filteredTeams.map((team) => (
-            <div key={team.managerId} className="bg-white rounded-[24px] border border-gray-200 shadow-lg shadow-gray-100/50 overflow-hidden">
-                
-                {/* TEAM HEADER */}
-                <div className="bg-[#103c7f] px-6 py-4 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white">
-                            <Users size={20} />
+      {/* 3. ASM ASSIGNMENT TABLE */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+         
+         {/* Table Header */}
+         <div className="grid grid-cols-12 bg-[#103c7f] text-white text-[11px] uppercase font-bold py-4 px-4 gap-4">
+            <div className="col-span-2">ASM Details & Sector</div>
+            <div className="col-span-2 text-center">Previous Achievement</div>
+            <div className="col-span-3 text-center border-l border-blue-800/50">FSE Input</div>
+            <div className="col-span-2 text-center border-l border-blue-800/50">LeadGen Input</div>
+            {/* Split Header for Clarity */}
+            <div className="col-span-3 text-center border-l border-blue-800/50 grid grid-cols-2">
+               <span>Per Person (Mon)</span>
+               <span>Team Total</span>
+            </div>
+         </div>
+
+         {/* Table Body */}
+         <div className="divide-y divide-gray-100">
+            {asms.map((asm) => {
+               
+               // --- CALCULATIONS ---
+               // 1. Per FSE Monthly
+               const perFseMonthlyVisits = asm.targetVisitPerDay * workingDays;
+               const perFseMonthlyOnboards = asm.targetOnboardPerMonth; // Direct input
+               
+               // 2. Per LeadGen Monthly
+               const perLeadGenMonthlyCalls = asm.targetCallPerDay * workingDays;
+
+               // 3. Team Totals
+               const teamTotalVisits = perFseMonthlyVisits * asm.fseCount;
+               const teamTotalOnboards = perFseMonthlyOnboards * asm.fseCount;
+               const teamTotalCalls = perLeadGenMonthlyCalls * asm.leadGenCount;
+
+               return (
+                  <div key={asm.id} className="grid grid-cols-12 py-5 px-4 gap-4 items-center hover:bg-gray-50 transition">
+                     
+                     {/* 1. ASM Details + Sector */}
+                     <div className="col-span-2">
+                        <div className="flex items-center gap-2 mb-1">
+                           <h3 className="text-base font-black text-gray-800 leading-none">{asm.name}</h3>
+                           
+                           {/* Sector Badge */}
+                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase flex items-center gap-1 border ${
+                              asm.sector === 'Corporate' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-green-50 text-green-700 border-green-100'
+                           }`}>
+                              {asm.sector === 'Corporate' ? <Building2 size={8}/> : <Home size={8}/>} {asm.sector}
+                           </span>
+                        </div>
+                        
+                        <p className="text-[10px] text-gray-400 font-bold uppercase mb-2">{asm.region}</p>
+                        
+                        <div className="flex gap-2">
+                           <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-bold border border-gray-200">
+                              {asm.fseCount} FSEs
+                           </span>
+                           <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-bold border border-gray-200">
+                              {asm.leadGenCount} Callers
+                           </span>
+                        </div>
+                     </div>
+
+                     {/* 2. History */}
+                     <div className="col-span-2 text-center">
+                        <div className={`text-sm font-black ${parseInt(asm.lastMonthAchieved) >= 100 ? 'text-green-600' : 'text-gray-400'}`}>
+                           {asm.lastMonthAchieved}
+                        </div>
+                        <p className="text-[9px] text-gray-400 uppercase">Last Mon.</p>
+                     </div>
+
+                     {/* 3. FSE Targets Inputs */}
+                     <div className="col-span-3 px-2 border-l border-gray-100 grid grid-cols-2 gap-2">
+                        <div>
+                           <label className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1 mb-1">
+                              <MapPin size={10}/> Visit/Day
+                           </label>
+                           <input 
+                              type="number" 
+                              value={asm.targetVisitPerDay}
+                              onChange={(e) => handleInputChange(asm.id, 'targetVisitPerDay', e.target.value)}
+                              className="w-full bg-white border border-gray-300 rounded-lg py-1.5 px-2 text-sm font-bold text-gray-800 focus:border-[#103c7f] outline-none text-center shadow-sm"
+                           />
                         </div>
                         <div>
-                            <h2 className="text-white font-black uppercase tracking-wide text-lg">{team.managerName}</h2>
-                            <span className="text-blue-200 text-[10px] font-bold uppercase tracking-widest bg-blue-900/50 px-2 py-0.5 rounded">
-                                {team.region} • {team.fses.length} Members
-                            </span>
+                           <label className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1 mb-1">
+                              <Briefcase size={10}/> Onbd/Mon
+                           </label>
+                           <input 
+                              type="number" 
+                              value={asm.targetOnboardPerMonth}
+                              onChange={(e) => handleInputChange(asm.id, 'targetOnboardPerMonth', e.target.value)}
+                              className="w-full bg-white border border-gray-300 rounded-lg py-1.5 px-2 text-sm font-bold text-gray-800 focus:border-[#103c7f] outline-none text-center shadow-sm"
+                           />
                         </div>
-                    </div>
-                    {/* Bulk Action (Optional) */}
-                    <button className="text-[10px] font-bold text-white uppercase bg-white/10 px-3 py-1.5 rounded-lg hover:bg-[#a1db40] hover:text-[#103c7f] transition-all">
-                        Set Team Default
-                    </button>
-                </div>
+                     </div>
 
-                {/* FSE TABLE */}
-                <div className="p-2">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="text-[10px] uppercase font-black text-gray-400 tracking-widest bg-gray-50 border-b border-gray-100">
-                            <tr>
-                                <th className="px-6 py-3">Team Member</th>
-                                <th className="px-6 py-3">Performance (Last Month)</th>
-                                <th className="px-6 py-3 text-center">
-                                    <div className="flex items-center justify-center gap-1">
-                                        <TrendingUp size={12}/> Daily Visit Target
-                                    </div>
-                                </th>
-                                <th className="px-6 py-3 text-center">
-                                    <div className="flex items-center justify-center gap-1">
-                                        <Target size={12}/> Monthly Onboarding
-                                    </div>
-                                </th>
-                                <th className="px-6 py-3 text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="text-sm">
-                            {team.fses.map((fse) => (
-                                <tr key={fse.id} className="border-b border-gray-50 hover:bg-blue-50/20 transition-all">
-                                    
-                                    {/* Name */}
-                                    <td className="px-6 py-4">
-                                        <p className="font-bold text-[#103c7f]">{fse.name}</p>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase">{fse.role}</p>
-                                    </td>
+                     {/* 4. LeadGen Inputs */}
+                     <div className="col-span-2 px-2 border-l border-gray-100">
+                        <label className="text-[9px] font-bold text-gray-400 uppercase flex items-center justify-center gap-1 mb-1">
+                           <Phone size={10}/> Calls/Day
+                        </label>
+                        <input 
+                           type="number" 
+                           value={asm.targetCallPerDay}
+                           onChange={(e) => handleInputChange(asm.id, 'targetCallPerDay', e.target.value)}
+                           className="w-full bg-white border border-gray-300 rounded-lg py-1.5 px-2 text-sm font-bold text-gray-800 focus:border-[#103c7f] outline-none text-center shadow-sm"
+                        />
+                     </div>
 
-                                    {/* Performance Badge */}
-                                    <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded text-[10px] font-black ${
-                                            parseInt(fse.lastMonthPerf) >= 100 
-                                            ? 'bg-green-50 text-green-600' 
-                                            : 'bg-orange-50 text-orange-600'
-                                        }`}>
-                                            {fse.lastMonthPerf} Achieved
-                                        </span>
-                                    </td>
+                     {/* 5. CALCULATIONS (Per Person vs Total) */}
+                     <div className="col-span-3 pl-2 border-l border-gray-100 grid grid-cols-2 gap-4 text-right">
+                        
+                        {/* Per Person Column */}
+                        <div className="flex flex-col gap-1 pr-2 border-r border-gray-100">
+                           <div>
+                              <p className="text-[9px] text-gray-400 uppercase">1 FSE Visits</p>
+                              <p className="text-xs font-bold text-gray-700">{perFseMonthlyVisits}</p>
+                           </div>
+                           <div>
+                              <p className="text-[9px] text-gray-400 uppercase">1 FSE Onboard</p>
+                              <p className="text-xs font-bold text-gray-700">{perFseMonthlyOnboards}</p>
+                           </div>
+                           <div>
+                              <p className="text-[9px] text-gray-400 uppercase">1 Caller Calls</p>
+                              <p className="text-xs font-bold text-gray-700">{perLeadGenMonthlyCalls}</p>
+                           </div>
+                        </div>
 
-                                    {/* Daily Visit Input */}
-                                    <td className="px-6 py-4 text-center">
-                                        <div className="flex justify-center">
-                                            <input 
-                                                type="number" 
-                                                value={fse.visitTarget}
-                                                onChange={(e) => handleTargetChange(team.managerId, fse.id, 'visitTarget', e.target.value)}
-                                                className="w-16 p-2 text-center font-black text-[#103c7f] bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#a1db40] outline-none"
-                                            />
-                                        </div>
-                                    </td>
+                        {/* Team Total Column */}
+                        <div className="flex flex-col gap-1">
+                           <div>
+                              <p className="text-[9px] text-gray-400 uppercase">Total Visits</p>
+                              <p className="text-xs font-black text-[#103c7f]">{teamTotalVisits.toLocaleString()}</p>
+                           </div>
+                           <div>
+                              <p className="text-[9px] text-gray-400 uppercase">Total Onboard</p>
+                              <p className="text-xs font-black text-green-600">{teamTotalOnboards.toLocaleString()}</p>
+                           </div>
+                           <div>
+                              <p className="text-[9px] text-gray-400 uppercase">Total Calls</p>
+                              <p className="text-xs font-black text-orange-600">{teamTotalCalls.toLocaleString()}</p>
+                           </div>
+                        </div>
 
-                                    {/* Monthly Onboarding Input */}
-                                    <td className="px-6 py-4 text-center">
-                                        <div className="flex justify-center">
-                                            <input 
-                                                type="number" 
-                                                value={fse.onboardTarget}
-                                                onChange={(e) => handleTargetChange(team.managerId, fse.id, 'onboardTarget', e.target.value)}
-                                                className="w-16 p-2 text-center font-black text-[#103c7f] bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#a1db40] outline-none"
-                                            />
-                                        </div>
-                                    </td>
+                     </div>
 
-                                    {/* Save Button */}
-                                    <td className="px-6 py-4 text-center">
-                                        <button 
-                                            onClick={() => saveIndividualTarget(fse.id)}
-                                            className="bg-[#103c7f] text-white p-2 rounded-lg hover:bg-[#a1db40] hover:text-[#103c7f] transition-all shadow-md active:scale-95"
-                                            title="Save Target"
-                                        >
-                                            {savingId === fse.id ? (
-                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                            ) : (
-                                                <Save size={16} />
-                                            )}
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        ))}
-
+                  </div>
+               )
+            })}
+         </div>
       </div>
+
+      {/* Info Note */}
+      <div className="mt-4 flex items-center gap-2 text-xs text-gray-400 font-medium bg-white p-3 rounded-lg border border-gray-200 w-fit shadow-sm">
+         <Calculator size={14} className="text-[#103c7f]" />
+         <span>Calculations: <strong>Daily Target</strong> × <strong>{workingDays} Days</strong> = Monthly Per Person</span>
+      </div>
+
     </div>
   );
 }

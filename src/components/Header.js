@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { 
   Bell, UserCircle, LogOut, User, ChevronDown, 
   X, Mail, Phone, MapPin, Briefcase, Calendar, BadgeCheck 
-} from "lucide-react"; // Removed 'Settings' icon
+} from "lucide-react"; 
 import NotificationDropdown from "./NotificationDropdown";
 
 export default function Header() {
@@ -34,24 +34,69 @@ export default function Header() {
 
   const user = mounted ? JSON.parse(localStorage.getItem('user') || '{}') : {};
 
-  // Dynamic Labels
-  let roleLabel = "Field Sales Executive";
-  let pageSubtitle = "DAILY WORK REPORT";
-  let userName = user.name || "User";
+  // --- DYNAMIC HEADER LOGIC START ---
+  const segments = pathname.split('/').filter(Boolean);
+  const isSectorPath = segments[0] === "corporate" || segments[0] === "domestic";
+  
+  const currentSector = isSectorPath ? segments[0] : null; 
+  const currentRole = isSectorPath ? segments[1] : segments[0];
 
-  if (pathname.startsWith("/admin")) { roleLabel = "System Administrator"; pageSubtitle = "MASTER CONTROL PANEL"; } 
-  else if (pathname.startsWith("/hod")) { roleLabel = "Head of Department"; pageSubtitle = "STRATEGY OVERSIGHT"; } 
-  else if (pathname.startsWith("/manager")) { roleLabel = "Sales Manager"; pageSubtitle = "TEAM MANAGEMENT"; }
+  let sectorLabel = "MAVEN PORTAL"; // Default
+  let roleLabel = "User";
+  let pageSubtitle = "DASHBOARD";
 
-  // Profile Data Object
+  // 1. Determine Sector Label
+  if (currentSector === "corporate") sectorLabel = "CORPORATE SALES";
+  else if (currentSector === "domestic") sectorLabel = "DOMESTIC SALES";
+  else if (currentRole === "hod") sectorLabel = "DEPARTMENT HEADQUARTERS";
+  else if (currentRole === "admin") sectorLabel = "SYSTEM ADMINISTRATION";
+
+  // 2. Determine Role & Subtitle
+  switch (currentRole) {
+    case "admin":
+      roleLabel = "System Admin";
+      pageSubtitle = "MASTER CONTROL";
+      break;
+    case "hod":
+      roleLabel = "Head of Department";
+      pageSubtitle = "STRATEGY OVERSIGHT";
+      break;
+    case "subhod":
+      roleLabel = "Sub-HOD";
+      pageSubtitle = "CLUSTER OPERATIONS";
+      break;
+    case "manager":
+      roleLabel = "Sales Manager";
+      pageSubtitle = "TEAM MANAGEMENT";
+      break;
+    case "fse":
+      roleLabel = "Field Executive";
+      pageSubtitle = "DAILY WORK REPORT";
+      break;
+    case "leadgen":
+      roleLabel = "Lead Generation";
+      pageSubtitle = "CALLING STATION";
+      break;
+    case "crm":
+      roleLabel = "CRM Manager";
+      pageSubtitle = "RELATIONSHIP MGMT";
+      break;
+    default:
+      roleLabel = "Team Member";
+      pageSubtitle = "WORK DASHBOARD";
+  }
+  // --- DYNAMIC HEADER LOGIC END ---
+
+  // Profile Data Object (Using User Data or Fallback)
+  const userName = user.name || "User";
   const userProfile = {
     name: userName,
     role: roleLabel,
-    email: user.email || "ansh.sharma@mavenjobs.com",
+    email: user.email || "user@mavenjobs.com",
     phone: "+91 98765 43210",
     empId: "MJ-2024-045",
-    manager: "Diwakar",
-    location: "Delhi NCR, India",
+    manager: "Diwakar", // Ideally comes from DB
+    location: currentSector ? `${currentSector.charAt(0).toUpperCase() + currentSector.slice(1)} Region` : "Head Office",
     joiningDate: "12 Aug, 2024"
   };
 
@@ -71,7 +116,9 @@ export default function Header() {
             <Image src="/maven-logo.png" alt="Maven Jobs" width={140} height={40} priority className="object-contain p-0 m-0" />
           </div>
           <div className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] hidden md:flex items-center gap-2">
-            DOMESTIC SALES <span className="text-gray-300">|</span> 
+            {/* Dynamic Sector Label */}
+            {sectorLabel} <span className="text-gray-300">|</span> 
+            {/* Dynamic Page Subtitle */}
             <span className="text-[#103c7f] font-black">{pageSubtitle}</span>
           </div>
         </div>
@@ -123,7 +170,6 @@ export default function Header() {
                       <User size={16} className="text-gray-400 group-hover:text-[#103c7f]" />
                       My Profile
                     </button>
-                    {/* Settings button removed from here */}
                   </div>
 
                   {/* Logout Section */}
