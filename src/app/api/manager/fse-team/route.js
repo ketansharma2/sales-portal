@@ -29,26 +29,26 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Access denied. Manager role required.' }, { status: 403 })
     }
 
-    // Fetch FSE team members under this manager
-    const { data: fseTeam, error: fseError } = await supabaseServer
+    // Fetch team members under this manager (FSE and LeadGen)
+    const { data: team, error: teamError } = await supabaseServer
       .from('users')
-      .select('user_id, name, email')
-      .contains('role', ['FSE'])
+      .select('user_id, name, email, role')
+      .or('role.cs.{FSE},role.cs.{LEADGEN}')
       .eq('manager_id', user.id)
       .order('name')
 
-    if (fseError) {
-      console.error('FSE team fetch error:', fseError)
+    if (teamError) {
+      console.error('Team fetch error:', teamError)
       return NextResponse.json({
-        error: 'Failed to fetch FSE team',
-        details: fseError.message
+        error: 'Failed to fetch team',
+        details: teamError.message
       }, { status: 500 })
     }
 
     return NextResponse.json({
       success: true,
-      data: fseTeam || [],
-      count: fseTeam?.length || 0
+      data: team || [],
+      count: team?.length || 0
     })
 
   } catch (error) {

@@ -61,7 +61,7 @@ export default function LeadsList() {
       setLoading(true);
       const session = JSON.parse(localStorage.getItem('session') || '{}');
 
-      let url = '/api/fse/clients';
+      let url = '/api/corporate/fse/clients';
       if (!all) {
         // Default to current and last month
         const now = new Date();
@@ -100,7 +100,7 @@ export default function LeadsList() {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
 
       const isEdit = !!selectedLead;
-      const url = '/api/fse/clients';
+      const url = '/api/corporate/fse/clients';
       const method = isEdit ? 'PUT' : 'POST';
       
       const payload = isEdit 

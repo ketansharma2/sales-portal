@@ -17,7 +17,7 @@ export default function ExpenseList() {
   const fetchExpenses = async (dateFilter = "") => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const url = dateFilter ? `/api/fse/expenses?date=${dateFilter}` : '/api/fse/expenses';
+      const url = dateFilter ? `/api/domestic/fse/expenses?date=${dateFilter}` : '/api/domestic/fse/expenses';
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
@@ -44,7 +44,7 @@ export default function ExpenseList() {
     try {
       // Call API to save
     const session = JSON.parse(localStorage.getItem('session') || '{}');
-    const response = await fetch('/api/fse/expenses', {
+    const response = await fetch('/api/domestic/fse/expenses', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -65,7 +65,7 @@ export default function ExpenseList() {
   const handleSubmitToManager = async (exp_id) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/fse/submit-expense', {
+      const response = await fetch('/api/domestic/fse/submit-expense', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ export default function ExpenseList() {
     if (!confirm('Are you sure you want to delete this expense?')) return;
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/fse/expenses', {
+      const response = await fetch('/api/domestic/fse/expenses', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

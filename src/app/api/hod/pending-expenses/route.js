@@ -14,7 +14,47 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Fetch pending expenses for managers (status Pending (HOD))
+    // First, get managers under this HOD
+    const { data: managers, error: mgrError } = await supabaseServer
+      .from('users')
+      .select('user_id')
+      .eq('hod_id', user.id)
+      .contains('role', ['MANAGER'])
+
+    if (mgrError) {
+      console.error('Managers fetch error:', mgrError)
+      return NextResponse.json({
+        error: 'Failed to fetch managers',
+        details: mgrError.message
+      }, { status: 500 })
+    }
+
+    const managerIds = managers?.map(m => m.user_id) || []
+
+    if (managerIds.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: []
+      })
+    }
+
+    // Get user IDs under these managers
+    const { data: usersUnderManagers, error: usersError } = await supabaseServer
+      .from('users')
+      .select('user_id')
+      .in('manager_id', managerIds)
+
+    if (usersError) {
+      console.error('Users fetch error:', usersError)
+      return NextResponse.json({
+        error: 'Failed to fetch users',
+        details: usersError.message
+      }, { status: 500 })
+    }
+
+    const userIds = usersUnderManagers?.map(u => u.user_id) || []
+
+    // Fetch all submitted expenses for these users
     const { data: pendingExpenses, error: expensesError } = await supabaseServer
       .from('expenses')
       .select(`
@@ -31,8 +71,8 @@ export async function GET(request) {
           role
         )
       `)
-      .eq('status', 'Pending (HOD)')
       .eq('submitted', true)
+      .in('user_id', userIds)
       .order('created_at', { ascending: false })
 
     if (expensesError) {
@@ -52,7 +92,7 @@ export async function GET(request) {
       notes: expense.notes || 'No notes added',
       amount: expense.amount,
       date: new Date(expense.date).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-'),
-      status: 'Pending Review',
+      status: expense.status,
       img: 'bg-blue-100 text-blue-600' // Default avatar style
     })) || []
 

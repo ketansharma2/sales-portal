@@ -17,7 +17,7 @@ export default function ManagerPersonalClaims() {
   const fetchExpenses = async (dateFilter = "") => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const url = dateFilter ? `/api/manager/expenses?date=${dateFilter}` : '/api/manager/expenses';
+      const url = dateFilter ? `/api/corporate/manager/expenses?date=${dateFilter}` : '/api/corporate/manager/expenses';
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
@@ -44,7 +44,7 @@ export default function ManagerPersonalClaims() {
     try {
       // Call API to save
     const session = JSON.parse(localStorage.getItem('session') || '{}');
-    const response = await fetch('/api/manager/expenses', {
+    const response = await fetch('/api/corporate/manager/expenses', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ export default function ManagerPersonalClaims() {
   const handleSubmitToHOD = async (exp_id) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/manager/submit-expense', {
+      const response = await fetch('/api/corporate/manager/expenses/submit-expense', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,7 +87,7 @@ export default function ManagerPersonalClaims() {
     if (!confirm('Are you sure you want to delete this expense?')) return;
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/manager/expenses', {
+      const response = await fetch('/api/corporate/manager/expenses', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

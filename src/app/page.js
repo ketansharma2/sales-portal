@@ -43,15 +43,10 @@ export default function LoginPage() {
           localStorage.setItem('user', JSON.stringify(data.user));
           localStorage.setItem('session', JSON.stringify(data.session));
 
-          // Redirect based on current_role
-          const roleRoutes = {
-            'FSE': '/fse',
-            'MANAGER': '/manager',
-            'HOD': '/hod',
-            'ADMIN': '/admin'
-          };
-
-          const redirectPath = roleRoutes[data.user.current_role] || '/fse';
+          // Redirect based on sector and current_role
+          const redirectPath = data.user.sector
+            ? `/${data.user.sector.toLowerCase()}/${data.user.current_role.toLowerCase()}`
+            : `/${data.user.current_role.toLowerCase()}`;
           router.push(redirectPath);
         }
       } else {
@@ -71,15 +66,10 @@ export default function LoginPage() {
     localStorage.setItem('user', JSON.stringify(updatedUser));
     localStorage.setItem('session', JSON.stringify(sessionData));
 
-    // Redirect
-    const roleRoutes = {
-      'FSE': '/fse',
-      'MANAGER': '/manager',
-      'HOD': '/hod',
-      'ADMIN': '/admin'
-    };
-
-    const redirectPath = roleRoutes[selectedRole] || '/fse';
+    // Redirect based on sector and selectedRole
+    const redirectPath = userData.sector
+      ? `/${userData.sector.toLowerCase()}/${selectedRole.toLowerCase()}`
+      : `/${selectedRole.toLowerCase()}`;
     router.push(redirectPath);
   };
 

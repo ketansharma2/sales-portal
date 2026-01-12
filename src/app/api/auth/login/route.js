@@ -28,7 +28,7 @@ export async function POST(request) {
     // Fetch user profile from users table
     const { data: profileData, error: profileError } = await supabaseServer
       .from('users')
-      .select('user_id, name, email, role, manager_id, hod_id')
+      .select('user_id, name, email, role, manager_id, hod_id, sector')
       .eq('user_id', authData.user.id)
       .single()
 
@@ -54,7 +54,8 @@ export async function POST(request) {
         name: profileData.name,
         email: profileData.email,
         manager_id: profileData.manager_id,
-        hod_id: profileData.hod_id
+        hod_id: profileData.hod_id,
+        sector: profileData.sector
       },
       session: {
         access_token: authData.session.access_token,

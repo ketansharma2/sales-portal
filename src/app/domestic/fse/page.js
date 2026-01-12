@@ -21,7 +21,7 @@ export default function FSEDashboard() {
   // Initial stats with defaults
   const [stats, setStats] = useState({
     global: { totalClients: 0, totalOnboard: 0, totalVisits: 0 },
-    monthly: { visitTarget: 0 , individualVisits: 0, onboardMtd: "0/0", avgVisit: 0 },
+    monthly: { visitTarget: 0 , individualVisits: 0, onboardMtd: "0/0", avgVisit: 0, visitGoal: 0, onboardGoal: 0 },
     projections: { mpLess50: 0, mpGreater50: 0, wpLess50: 0, wpGreater50: 0 },
     dynamicMetrics: { total: 0, individual: 0, repeat: 0, interested: 0, notInterested: 0, reachedOut: 0, onboard: 0 },
     clients: []
@@ -31,13 +31,42 @@ export default function FSEDashboard() {
   useEffect(() => {
     if (mounted) {
       fetchDashboard();
+      fetchVisitTarget();
     }
   }, [mounted]);
+
+  const fetchVisitTarget = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const currentMonth = new Date().toISOString().split('T')[0].substring(0, 7) + '-01';
+      const response = await fetch(`/api/domestic/fse/targets?month=${currentMonth}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      console.log('Targets API response:', data);
+      if (data.success && data.data) {
+        console.log('Visit Goal:', data.data.monthly_visits);
+        console.log('Onboard Goal:', data.data.monthly_onboards);
+        setStats(prev => ({
+          ...prev,
+          monthly: {
+            ...prev.monthly,
+            visitGoal: data.data.monthly_visits || 0,
+            onboardGoal: data.data.monthly_onboards || 0
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch visit target:', error);
+    }
+  };
 
   const fetchDashboard = async (from = '', to = '') => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/fse/dashboard', {
+      const response = await fetch('/api/domestic/fse/dashboard', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,6 +90,7 @@ export default function FSEDashboard() {
             totalVisits: data.data.totalVisits
           },
           monthly: {
+            ...prev.monthly,
             visitTarget: data.data.monthlyStats.totalVisits,
             individualVisits: data.data.monthlyStats.individualVisits,
             onboardMtd: data.data.monthlyStats.mtdMp,
@@ -132,38 +162,41 @@ export default function FSEDashboard() {
                 label="Total Visit"
                 value={stats.monthly.visitTarget}
                 icon={<TrendingUp size={16} />}
-                target="216"
-                progress={stats.monthly.visitTarget ? (parseInt(stats.monthly.visitTarget) / 216) * 100 : 0}
+                target={stats.monthly.visitGoal }
+                progress={stats.monthly.visitGoal ? (parseInt(stats.monthly.visitTarget) / parseInt(stats.monthly.visitGoal)) * 100 : 0}
                 trend="-1%"
             />
           {/* CARD 2: Individual Visits */}
-            <CompactMonthCard 
-                label="Individual Visit" 
-                value={stats.monthly.individualVisits} 
-                icon={<Users size={16} />} 
-                // No target, No progress, No trend passed here
-            />
+          <CompactMonthCard
+              label="Individual Visit"
+              value={stats.monthly.individualVisits}
+              icon={<Users size={16} />}
+              target={null}
+              // No progress, No trend passed here
+          />
 
             {/* CARD 3: Onboard (String data "12/20") */}
             <CompactMonthCard
                 label="Onboard (MTD)"
                 value={stats.monthly.onboardMtd} // e.g., "12/20"
                 icon={<CheckCircle size={16} />}
-                target="12"
+                target={stats.monthly.onboardGoal}
                 progress={(() => {
                     const parts = stats.monthly.onboardMtd.toString().split('/');
                     const curr = Number(parts[0]) || 0;
-                    return (curr / 12) * 100;
+                    const goal = stats.monthly.onboardGoal;
+                    return (curr / goal) * 100;
                 })()}
                 trend="+5%" // Dummy trend
             />
 
             {/* CARD 4: Avg Visit (Fixed "Pending") */}
-            <CompactMonthCard 
-                label="Avg Visit" 
-                value={stats.monthly.avgVisit || "0.0"} 
-                icon={<Activity size={16} />} 
-                // No target, No progress passed here as per request
+            <CompactMonthCard
+                label="Avg Visit"
+                value={stats.monthly.avgVisit || "0.0"}
+                icon={<Activity size={16} />}
+                target={null}
+                // No progress passed here as per request
             />
           </div>
 
@@ -285,7 +318,9 @@ function CompactMonthCard({ label, value, icon, trend, progress, target }) {
            
            <div className="flex flex-col min-w-0">
              <span className="text-[12px] font-bold text-gray-400 uppercase tracking-wide truncate">{label}</span>
-             {target && <span className="text-[10px] font-semibold text-gray-300 leading-none mt-0.5">Goal: {target}</span>}
+             {(label === "Total Visit" || label === "Onboard (MTD)") && target != null && (
+               <span className="text-[10px] font-semibold text-gray-300 leading-none mt-0.5">Goal: {target}</span>
+             )}
            </div>
         </div>
 

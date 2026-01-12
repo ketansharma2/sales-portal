@@ -1,9 +1,10 @@
 "use client";
-import { useState, useEffect } from "react";
-import { 
-  Calendar, MapPin, Navigation, Phone, Menu, 
-  ChevronRight, CheckSquare, Info, X, User, Clock 
+import { useState, useEffect, useMemo } from "react";
+import {
+  Calendar, MapPin, Navigation, Phone, Menu,
+  ChevronRight, CheckSquare, Info, X, User, Clock
 } from "lucide-react";
+import { supabase } from '@/lib/supabase';
 
 export default function FseDashboard() {
   
@@ -11,7 +12,12 @@ export default function FseDashboard() {
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth();
-  const toIsoString = (date) => date.toISOString().split('T')[0];
+  const toLocalDateString = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   // --- STATE ---
   const [currentDate, setCurrentDate] = useState(today); 
@@ -20,73 +26,22 @@ export default function FseDashboard() {
   const [modalType, setModalType] = useState(""); 
   const [selectedTask, setSelectedTask] = useState(null);
 
-  // --- TASK STATE (Converted to State for Updates) ---
-  const [tasks, setTasks] = useState([
-    {
-      id: 1,
-      date: toIsoString(today),
-      company: "Alpha Tech Solutions",
-      category: "IT Services",
-      location: "Okhla Ph-3",
-      state: "Delhi",
-      empCount: "50-100",
-      contactPerson: "Mr. Verma",
-      phone: "9876543210",
-      latestRemark: "Client interested in demo.",
-      status: "Scheduled",
-      subStatus: "Visit Planned",
-      visitOutcome: null // New Field for the last column
-    },
-    {
-      id: 2,
-      date: toIsoString(today),
-      company: "Star Logistics",
-      category: "Logistics",
-      location: "Nehru Place",
-      state: "Delhi",
-      empCount: "10-50",
-      contactPerson: "Reception",
-      phone: "9988007766",
-      latestRemark: "Drop proposal hardcopy.",
-      status: "Scheduled",
-      subStatus: "Drop Doc",
-      visitOutcome: null
-    },
-    {
-      id: 3,
-      date: toIsoString(today),
-      company: "Green Field Estates",
-      category: "Real Estate",
-      location: "Sec-44",
-      state: "Gurgaon",
-      empCount: "100+",
-      contactPerson: "Ms. Kaur",
-      phone: "9988776655",
-      latestRemark: "Collect cheque.",
-      status: "Rescheduled",
-      subStatus: "Next Week",
-      visitOutcome: "Rescheduled" // Pre-filled example
-    }
-  ]);
+  // --- TASK STATE ---
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // --- HELPER: Get Weeks ---
   const getWeeksInMonth = (year, month) => {
     const weeks = [];
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    let currentWeek = 1;
-    let currentStartDate = new Date(firstDay);
-
-    while (currentStartDate <= lastDay) {
-        const dayOfWeek = currentStartDate.getDay();
-        const diffToSunday = 7 - (dayOfWeek === 0 ? 7 : dayOfWeek); 
-        let endOfWeek = new Date(currentStartDate);
-        endOfWeek.setDate(currentStartDate.getDate() + diffToSunday);
-        if (endOfWeek > lastDay) endOfWeek = lastDay;
-        weeks.push({ weekNum: currentWeek, start: new Date(currentStartDate), end: new Date(endOfWeek) });
-        currentStartDate = new Date(endOfWeek);
-        currentStartDate.setDate(currentStartDate.getDate() + 1);
-        currentWeek++;
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    let weekNum = 1;
+    let currentStart = 1;
+    while (currentStart <= lastDay) {
+      const start = new Date(year, month, currentStart);
+      const end = new Date(year, month, Math.min(currentStart + 6, lastDay));
+      weeks.push({ weekNum, start, end });
+      currentStart += 7;
+      weekNum++;
     }
     return weeks;
   };
@@ -96,6 +51,44 @@ export default function FseDashboard() {
   useEffect(() => {
     const week = allWeeks.find(w => today >= w.start && today <= w.end);
     if(week) setSelectedWeek(week.weekNum);
+  }, []);
+
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const response = await fetch('/api/corporate/fse/weekly-plan', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          const formattedTasks = data.data.map(assignment => ({
+            id: assignment.id,
+            date: assignment.visit_date,
+            company: assignment.company,
+            category: assignment.category,
+            location: assignment.location,
+            state: assignment.state,
+            empCount: assignment.emp_count,
+            contactPerson: "N/A", // Not in API
+            phone: "N/A", // Not in API
+            latestRemark: assignment.latestRemark, // Placeholder
+            status: assignment.sm_status,
+            subStatus: assignment.fse_status,
+            visitOutcome: assignment.fse_status === 'pending' ? null : assignment.fse_status
+          }));
+          setTasks(formattedTasks);
+          setManagerName(data.managerName || 'Unknown Manager');
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAssignments();
   }, []);
 
   const getDaysForWeek = (weekObj) => {
@@ -110,11 +103,11 @@ export default function FseDashboard() {
   };
 
   const weekDays = getDaysForWeek(allWeeks[selectedWeek - 1] || allWeeks[0]);
-  const managerName = "Suresh Kumar"; 
+  const [managerName, setManagerName] = useState('Loading...');
 
-  // Filter Tasks
-  const selectedDateString = toIsoString(currentDate);
-  const todaysTasks = tasks.filter(task => task.date === selectedDateString);
+  // Filter Tasks by selected date
+  const selectedDateString = useMemo(() => toLocalDateString(currentDate), [currentDate]);
+  const todaysTasks = useMemo(() => tasks.filter(task => task.date === selectedDateString), [tasks, selectedDateString]);
 
   // --- HANDLERS ---
   const openModal = (task, type) => {
@@ -124,12 +117,37 @@ export default function FseDashboard() {
   }
 
   // 👉 UPDATE LOGIC
-  const handleUpdateSubmit = (outcome) => {
-      const updatedTasks = tasks.map(t => 
-          t.id === selectedTask.id ? { ...t, visitOutcome: outcome } : t
+  const handleUpdateSubmit = async (outcome) => {
+      // Update local state first
+      const updatedTasks = tasks.map(t =>
+          t.id === selectedTask.id ? { ...t, visitOutcome: outcome, subStatus: outcome } : t
       );
       setTasks(updatedTasks);
       setIsModalOpen(false);
+
+      // Send update to server
+      try {
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const response = await fetch('/api/corporate/fse/update-visit-status', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({
+                  id: selectedTask.id,
+                  status: outcome
+              })
+          });
+          const data = await response.json();
+          if (!data.success) {
+              console.error('Failed to update status:', data.error);
+              // Optionally revert local state or show error
+          }
+      } catch (error) {
+          console.error('Error updating status:', error);
+          // Optionally revert local state or show error
+      }
   }
 
   return (
@@ -165,11 +183,11 @@ export default function FseDashboard() {
 
         <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4">
            {weekDays.map((date, idx) => {
-              const dateStr = toIsoString(date);
-              const isActive = dateStr === selectedDateString;
-              const isToday = toIsoString(today) === dateStr;
+              const dateStr = toLocalDateString(date);
+              const isActive = dateStr === toLocalDateString(currentDate);
+              const isToday = toLocalDateString(today) === dateStr;
               return (
-                 <button 
+                 <button
                     key={idx}
                     onClick={() => setCurrentDate(date)}
                     className={`flex-shrink-0 flex flex-col items-center justify-center w-14 h-16 rounded-2xl transition border-2 ${
@@ -211,7 +229,16 @@ export default function FseDashboard() {
                   </tr>
                </thead>
                <tbody className="text-xs text-gray-700 divide-y divide-gray-100">
-                  {todaysTasks.length > 0 ? (
+                  {loading ? (
+                     <tr>
+                       <td colSpan="6" className="p-8 text-center text-gray-400 text-xs font-bold uppercase">
+                         <div className="flex flex-col items-center gap-2">
+                           <Clock size={24} className="opacity-20"/>
+                           Loading assignments...
+                         </div>
+                       </td>
+                     </tr>
+                  ) : todaysTasks.length > 0 ? (
                      todaysTasks.map((task) => (
                         <tr key={task.id} className="hover:bg-blue-50/10 transition group">
                            

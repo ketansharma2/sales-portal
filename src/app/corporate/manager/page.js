@@ -89,7 +89,7 @@ export default function ManagerHome() {
   const fetchFseTeam = async () => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/manager/fse-team', {
+      const response = await fetch('/api/corporate/manager/fse-team', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -114,7 +114,7 @@ export default function ManagerHome() {
       if (filters.fromDate) params.push(`from_date=${filters.fromDate}`);
       if (filters.toDate) params.push(`to_date=${filters.toDate}`);
       const query = params.length > 0 ? `?${params.join('&')}` : "";
-      const url = `/api/manager/monthly-onboarded${query}`;
+      const url = `/api/corporate/manager/monthly-onboarded${query}`;
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
@@ -155,7 +155,7 @@ export default function ManagerHome() {
       if (filters.fromDate) params.push(`from_date=${filters.fromDate}`);
       if (filters.toDate) params.push(`to_date=${filters.toDate}`);
       const query = params.length > 0 ? `?${params.join('&')}` : "";
-      const url = `/api/manager/weekly-projections${query}`;
+      const url = `/api/corporate/manager/weekly-projections${query}`;
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
@@ -197,7 +197,7 @@ export default function ManagerHome() {
       if (filters.fromDate) params.push(`from_date=${filters.fromDate}`);
       if (filters.toDate) params.push(`to_date=${filters.toDate}`);
       const query = params.length > 0 ? `?${params.join('&')}` : "";
-      const url = `/api/manager/monthly-projections${query}`;
+      const url = `/api/corporate/manager/monthly-projections${query}`;
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
@@ -235,7 +235,7 @@ export default function ManagerHome() {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
 
       const params = filters.selectedFse !== "All" ? `?fse_id=${filters.selectedFse}` : "";
-      const url = `/api/manager/today-activity${params}`;
+      const url = `/api/corporate/manager/today-activity${params}`;
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
@@ -265,7 +265,7 @@ export default function ManagerHome() {
       let params = `fse_id=${filters.selectedFse}`
       if (filters.fromDate) params += `&from_date=${filters.fromDate}`
       if (filters.toDate) params += `&to_date=${filters.toDate}`
-      const response = await fetch(`/api/manager/avg-visits?${params}`, {
+      const response = await fetch(`/api/corporate/manager/avg-visits?${params}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -290,7 +290,7 @@ export default function ManagerHome() {
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
       const fromDate = startOfMonth.toISOString().split('T')[0]
       const toDate = endOfMonth.toISOString().split('T')[0]
-      const response = await fetch(`/api/manager/pending-expenses?from_date=${fromDate}&to_date=${toDate}&status=pending`, {
+      const response = await fetch(`/api/corporate/manager/pending-expenses?from_date=${fromDate}&to_date=${toDate}&status=pending`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }

@@ -63,7 +63,7 @@ function FSETeamTracking() {
   const fetchFseTeam = async () => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/manager/fse-team', {
+      const response = await fetch('/api/domestic/manager/fse-team', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -88,7 +88,7 @@ function FSETeamTracking() {
       if (filters.fromDate) params.push(`from_date=${filters.fromDate}`);
       if (filters.toDate) params.push(`to_date=${filters.toDate}`);
       const query = params.length > 0 ? `?${params.join('&')}` : "";
-      const response = await fetch(`/api/manager/fse-clients-today${query}`, {
+      const response = await fetch(`/api/domestic/manager/fse-clients-today${query}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }

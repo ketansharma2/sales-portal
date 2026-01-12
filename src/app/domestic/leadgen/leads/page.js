@@ -7,46 +7,79 @@ import {
 
 export default function LeadsTablePage() {
   
-  // --- MOCK DATA ---
-  const initialLeads = [
-    { 
-      id: 101, 
-      sourcingDate: "2024-01-01", // YYYY-MM-DD format for better filtering
-      company: "Tech Solutions Pvt Ltd", 
-      category: "IT Services",
-      state: "Delhi",
-      location: "Okhla Ph-3",
-      empCount: "50-100",
-      reference: "LinkedIn",
-      firstFollowup: "02-Jan-24 ",
-      latestFollowup: "05-Jan-24 ",
-      remarks: "Interested, asked for proposal",
-      nextFollowup: "08-Jan-2024",
-      status: "Interested",
-      subStatus: "Proposal Sent"
-    },
-    { 
-      id: 102, 
-      sourcingDate: "2024-01-03",
-      company: "BuildWell Constructions", 
-      category: "Real Estate",
-      state: "Haryana",
-      location: "Gurgaon Sec-44",
-      empCount: "100-500",
-      reference: "Cold Call",
-      firstFollowup: "03-Jan-24 ",
-      latestFollowup: "04-Jan-24 ",
-      remarks: "Manager not available",
-      nextFollowup: "07-Jan-2024",
-      status: "New",
-      subStatus: "Callback"
-    },
-  ];
+  // --- MOCK DATA --- (will be replaced by API data)
+  const initialLeads = [];
 
   const [leads, setLeads] = useState(initialLeads);
+  const [allLeads, setAllLeads] = useState(initialLeads);
+  const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   const [modalType, setModalType] = useState("");
+
+  const [newLeadData, setNewLeadData] = useState({
+    company: '',
+    category: '',
+    state: '',
+    location: '',
+    emp_count: '1 - 10',
+    reference: '',
+    sourcing_date: ''
+  });
+
+  const [interactionData, setInteractionData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    status: '',
+    sub_status: '',
+    remarks: '',
+    next_follow_up: '',
+    contact_person: '',
+    contact_no: '',
+    email: ''
+  });
+
+  const [interactions, setInteractions] = useState([]);
+
+  const fetchLeads = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/leadgen/leads', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setAllLeads(data.data);
+        setLeads(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch leads:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchInteractions = async (clientId) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch(`/api/domestic/leadgen/interaction?client_id=${clientId}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setInteractions(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch interactions:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeads();
+  }, []);
   
 
   // --- FILTER STATE ---
@@ -65,7 +98,7 @@ export default function LeadsTablePage() {
     setFilters(newFilters);
 
     // Filter Logic
-    const filtered = initialLeads.filter(lead => {
+    const filtered = allLeads.filter(lead => {
       // 1. Date Range Check
       const leadDate = new Date(lead.sourcingDate);
       const from = newFilters.fromDate ? new Date(newFilters.fromDate) : null;
@@ -88,10 +121,13 @@ export default function LeadsTablePage() {
     setLeads(filtered);
   };
 
-  const handleAction = (lead, type) => {
+  const handleAction = async (lead, type) => {
     setSelectedLead(lead);
     setModalType(type);
     setIsFormOpen(true);
+    if (type === 'view') {
+      await fetchInteractions(lead.id);
+    }
   };
 
   const handleCreateNew = () => {
@@ -100,19 +136,91 @@ export default function LeadsTablePage() {
     setIsFormOpen(true);
   };
 
-  const handleSaveAndFollowup = () => {
-    // 1. Logic to Save the new lead to DB would go here
-    const newMockLead = { 
-        id: 999, 
-        company: "New Company Corp", // In real app, get from form state
-        status: "New" 
-    }; 
-    
-    // 2. Select this new lead
-    setSelectedLead(newMockLead);
-    
-    // 3. Switch Modal View to 'add' (Followup Mode) immediately
-    setModalType("add");
+  const handleSaveOnly = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/leadgen/leadscreation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(newLeadData)
+      });
+      const data = await response.json();
+      if (data.success) {
+        setIsFormOpen(false);
+        setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '' });
+        fetchLeads();
+      } else {
+        alert('Failed to save lead');
+      }
+    } catch (error) {
+      console.error('Failed to save lead:', error);
+    }
+  };
+
+  const handleSaveAndFollowup = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/leadgen/leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(newLeadData)
+      });
+      const data = await response.json();
+      if (data.success) {
+        setSelectedLead({
+          id: data.data.client_id,
+          company: data.data.company,
+          category: data.data.category,
+          state: data.data.state,
+          location: data.data.location,
+          empCount: data.data.emp_count,
+          reference: data.data.reference,
+          sourcingDate: data.data.sourcing_date,
+          status: 'New',
+          subStatus: 'New Lead'
+        });
+        setModalType("add");
+        setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '' });
+        fetchLeads();
+      } else {
+        alert('Failed to save lead');
+      }
+    } catch (error) {
+      console.error('Failed to save lead:', error);
+    }
+  };
+
+  const handleSaveInteraction = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/leadgen/interaction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          client_id: selectedLead.id,
+          ...interactionData
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setIsFormOpen(false);
+        setInteractionData({ date: new Date().toISOString().split('T')[0], status: '', sub_status: '', remarks: '', next_follow_up: '', contact_person: '', contact_no: '', email: '' });
+        fetchLeads(); // Refresh the leads list to update latest interaction
+      } else {
+        alert('Failed to save interaction');
+      }
+    } catch (error) {
+      console.error('Failed to save interaction:', error);
+    }
   };
   return (
       <div className="p-2 h-screen flex flex-col font-['Calibri'] bg-gray-50">
@@ -247,21 +355,22 @@ export default function LeadsTablePage() {
     </thead>
 
     {/* --- BODY --- */}
-   <tbody className="divide-y divide-gray-100 text-xs text-gray-700 font-medium">
-  {leads.length > 0 ? (
-    leads.map((lead) => {
-      
+    <tbody className="divide-y divide-gray-100 text-xs text-gray-700 font-medium">
+   {loading ? (
+     <tr key="loading">
+       <td colSpan="13" className="p-8 text-center text-gray-400 font-bold uppercase tracking-widest">
+         Loading leads...
+       </td>
+     </tr>
+   ) : leads.length > 0 ? (
+    leads.map((lead, index) => {
+
       // 1. CHECK IF ROW IS LOCKED (Sent to Manager)
 const isLocked = lead.isSubmitted;
       return (
-        <tr 
-          key={lead.id} 
-          // 👉 CHANGE 2: ClassName update karein (Row freeze karne ke liye)
-          className={`border-b border-gray-100 transition group ${
-            isLocked 
-            ? 'bg-gray-100/60 grayscale pointer-events-none select-none' 
-            : 'hover:bg-blue-50/40'
-          }`}
+        <tr
+          key={index}
+          className="border-b border-gray-100 transition group hover:bg-blue-50/40"
         >
           
           <td className="px-2 py-2 border-r border-gray-100">{lead.sourcingDate}</td>
@@ -286,9 +395,9 @@ const isLocked = lead.isSubmitted;
 
           <td className="px-2 py-2 border-r border-gray-100 font-bold text-orange-600">{lead.nextFollowup}</td>
           
-          <td className="px-2 py-2 border-r border-gray-100">
+          <td className="px-2 py-2 border-r border-gray-100 text-center">
             {/* 3. STATUS BADGE: Purple if Locked */}
-            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border block w-fit ${
+            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border inline-block ${
               isLocked ? 'bg-purple-100 text-purple-700 border-purple-200' :
               lead.status === 'Interested' ? 'bg-green-50 text-green-700 border-green-200' :
               lead.status === 'New' ? 'bg-blue-50 text-blue-700 border-blue-200' :
@@ -326,7 +435,7 @@ const isLocked = lead.isSubmitted;
       );
     })
   ) : (
-    <tr>
+    <tr key="no-data">
       <td colSpan="13" className="p-8 text-center text-gray-400 font-bold uppercase tracking-widest">
         No records match your filters
       </td>
@@ -368,14 +477,14 @@ const isLocked = lead.isSubmitted;
               {modalType === 'create' && (
                 <div className="space-y-4">
                     {/* Row 1: Company & Category */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                         <div>
                             <label className="text-[10px] font-bold text-gray-400 uppercase">Company Name <span className="text-red-500">*</span></label>
-                            <input type="text" placeholder="Enter full name" className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none" />
+                            <input type="text" placeholder="Enter full name" value={newLeadData.company} onChange={(e) => setNewLeadData({...newLeadData, company: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none" />
                         </div>
                         <div>
                             <label className="text-[10px] font-bold text-gray-400 uppercase">Category</label>
-                            <select className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
+                            <select value={newLeadData.category} onChange={(e) => setNewLeadData({...newLeadData, category: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
                                 <option>Select Category...</option>
                                 <option>IT Services</option>
                                 <option>Manufacturing</option>
@@ -383,13 +492,17 @@ const isLocked = lead.isSubmitted;
                                 <option>Logistics</option>
                             </select>
                         </div>
+                        <div>
+                            <label className="text-[10px] font-bold text-gray-400 uppercase">Sourcing Date</label>
+                            <input type="date" value={newLeadData.sourcing_date} onChange={(e) => setNewLeadData({...newLeadData, sourcing_date: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none" />
+                        </div>
                     </div>
 
                     {/* Row 2: State & Emp Count */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="text-[10px] font-bold text-gray-400 uppercase">State</label>
-                            <select className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
+                            <select value={newLeadData.state} onChange={(e) => setNewLeadData({...newLeadData, state: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
                                 <option>Select State...</option>
                                 <option>Delhi</option>
                                 <option>Haryana</option>
@@ -399,7 +512,7 @@ const isLocked = lead.isSubmitted;
                         </div>
                         <div>
                             <label className="text-[10px] font-bold text-gray-400 uppercase">Employee Count</label>
-                            <select className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
+                            <select value={newLeadData.emp_count} onChange={(e) => setNewLeadData({...newLeadData, emp_count: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
                                 <option>1 - 10</option>
                                 <option>11 - 50</option>
                                 <option>50 - 200</option>
@@ -411,13 +524,13 @@ const isLocked = lead.isSubmitted;
                     {/* Row 3: Location (Area) */}
                     <div>
                         <label className="text-[10px] font-bold text-gray-400 uppercase">Location / Area</label>
-                        <textarea className="w-full border border-gray-300 rounded p-2 text-sm mt-1 h-16 resize-none focus:border-[#103c7f] outline-none" placeholder="E.g., Okhla Phase 3, Near Crown Plaza..."></textarea>
+                        <textarea value={newLeadData.location} onChange={(e) => setNewLeadData({...newLeadData, location: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 h-16 resize-none focus:border-[#103c7f] outline-none" placeholder="E.g., Okhla Phase 3, Near Crown Plaza..."></textarea>
                     </div>
 
                     {/* Row 4: Reference */}
                     <div>
                         <label className="text-[10px] font-bold text-gray-400 uppercase">Reference / Source</label>
-                        <input type="text" placeholder="LinkedIn, Google, Cold Call..." className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none" />
+                        <input type="text" placeholder="LinkedIn, Google, Cold Call..." value={newLeadData.reference} onChange={(e) => setNewLeadData({...newLeadData, reference: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none" />
                     </div>
                 </div>
               )}
@@ -450,22 +563,58 @@ const isLocked = lead.isSubmitted;
 
     {/* 2. INPUT FORM */}
     <div className="space-y-3 pt-2">
-       
+
        {/* Row 1: Interaction Date (Jis din baat hui) */}
        <div>
          <label className="text-[10px] font-bold text-gray-500 uppercase">Interaction Date</label>
-         <input 
-           type="date" 
-           defaultValue={new Date().toISOString().split('T')[0]} // Default to Today
-           className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none font-medium" 
+         <input
+           type="date"
+           value={interactionData.date}
+           onChange={(e) => setInteractionData({...interactionData, date: e.target.value})}
+           className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none font-medium"
          />
        </div>
 
-       {/* Row 2: Status & Sub-Status */}
+       {/* Row 2: Contact Person, Phone, Email */}
+       <div className="grid grid-cols-3 gap-4">
+          <div>
+            <label className="text-[10px] font-bold text-gray-500 uppercase">Contact Person</label>
+            <input
+              type="text"
+              placeholder="Enter name"
+              value={interactionData.contact_person}
+              onChange={(e) => setInteractionData({...interactionData, contact_person: e.target.value})}
+              className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-gray-500 uppercase">Phone</label>
+            <input
+              type="tel"
+              placeholder="Enter phone number"
+              value={interactionData.contact_no}
+              onChange={(e) => setInteractionData({...interactionData, contact_no: e.target.value})}
+              className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-gray-500 uppercase">Email</label>
+            <input
+              type="email"
+              placeholder="Enter email"
+              value={interactionData.email}
+              onChange={(e) => setInteractionData({...interactionData, email: e.target.value})}
+              className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
+            />
+          </div>
+       </div>
+
+       {/* Row 3: Status & Sub-Status */}
        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-[10px] font-bold text-gray-500 uppercase">New Status</label>
-            <select className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
+            <select value={interactionData.status} onChange={(e) => setInteractionData({...interactionData, status: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
+              <option value="">Select Status</option>
               <option>Interested</option>
               <option>Not Interested</option>
               <option>Call Later</option>
@@ -474,7 +623,8 @@ const isLocked = lead.isSubmitted;
           </div>
           <div>
             <label className="text-[10px] font-bold text-gray-500 uppercase">Sub-Status</label>
-            <select className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
+            <select value={interactionData.sub_status} onChange={(e) => setInteractionData({...interactionData, sub_status: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
+              <option value="">Select Sub-Status</option>
               <option>Ready To Visit</option>
               <option>Onboard</option>
               <option>Callback</option>
@@ -484,19 +634,21 @@ const isLocked = lead.isSubmitted;
           </div>
        </div>
 
-       {/* Row 3: Remarks */}
+       {/* Row 4: Remarks */}
        <div>
          <label className="text-[10px] font-bold text-gray-500 uppercase">Remarks (Conversation Details)</label>
-         <textarea 
+         <textarea
+           value={interactionData.remarks}
+           onChange={(e) => setInteractionData({...interactionData, remarks: e.target.value})}
            className="w-full border border-gray-300 rounded p-3 text-sm mt-1 h-20 focus:border-[#103c7f] outline-none resize-none placeholder:text-gray-300"
            placeholder="Client kya bola? Mention key points..."
          ></textarea>
        </div>
 
-       {/* Row 4: Next Follow-up */}
+       {/* Row 5: Next Follow-up */}
        <div>
          <label className="text-[10px] font-bold text-gray-500 uppercase text-orange-600">Next Follow-up Date</label>
-         <input type="date" className="w-full border border-orange-200 bg-orange-50/30 rounded p-2 text-sm mt-1 focus:border-orange-500 outline-none font-bold text-gray-700" />
+         <input type="date" value={interactionData.next_follow_up} onChange={(e) => setInteractionData({...interactionData, next_follow_up: e.target.value})} className="w-full border border-orange-200 bg-orange-50/30 rounded p-2 text-sm mt-1 focus:border-orange-500 outline-none font-bold text-gray-700" />
        </div>
 
     </div>
@@ -545,206 +697,54 @@ const isLocked = lead.isSubmitted;
              </tr>
           </thead>
           <tbody className="text-xs divide-y divide-gray-50">
-             
-             {/* ROW 1: Latest Interaction */}
-             <tr className="hover:bg-blue-50/30 transition duration-150 group">
-                <td className="p-4">
-                   <div className="font-bold text-[#103c7f] text-sm">05 Jan</div>
-                   <div className="text-[10px] text-gray-400 font-medium">2024</div>
-                </td>
-                <td className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-[10px]">
-                      AK
+             {interactions.length > 0 ? interactions.map((interaction, index) => (
+               <tr key={index} className={`hover:bg-blue-50/30 transition duration-150 group ${index > 0 ? 'opacity-75 grayscale hover:grayscale-0' : ''}`}>
+                  <td className="p-4">
+                     <div className="font-bold text-[#103c7f] text-sm">{new Date(interaction.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</div>
+                     <div className="text-[10px] text-gray-400 font-medium">{new Date(interaction.date).getFullYear()}</div>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-[10px]">
+                        {interaction.contact_person ? interaction.contact_person.split(' ').map(n => n[0]).join('').toUpperCase() : 'N/A'}
+                      </div>
+                      <div>
+                        <div className="font-bold text-gray-800">{interaction.contact_person || 'N/A'}</div>
+                        <div className="text-[10px] text-gray-400 font-medium">Contact</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-bold text-gray-800">{selectedLead.person || "Amit Kumar"}</div>
-                      <div className="text-[10px] text-gray-400 font-medium">Manager</div>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex flex-col gap-1">
+                      {interaction.contact_no && <span className="font-mono text-gray-600 bg-gray-50 px-1.5 rounded w-fit">{interaction.contact_no}</span>}
+                      {interaction.email && <span className="text-[10px] text-blue-500 font-medium lowercase">{interaction.email}</span>}
+                      {!interaction.contact_no && !interaction.email && <span className="text-gray-400">No contact info</span>}
                     </div>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="font-mono text-gray-600 bg-gray-50 px-1.5 rounded w-fit">{selectedLead.phone}</span>
-                    <span className="text-[10px] text-blue-500 font-medium lowercase">amit@example.com</span>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <p className="text-gray-600 italic bg-gray-50 p-2 rounded-lg border border-gray-100 group-hover:bg-white group-hover:border-blue-100 transition">
-                    "{selectedLead.remarks}"
-                  </p>
-                </td>
-                <td className="p-4">
-                   <span className={`inline-flex flex-col items-center px-2 py-1 rounded-lg text-[10px] font-bold w-20 text-center ${
-                      selectedLead.status === 'Interested' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-600'
-                   }`}>
-                     {selectedLead.status}
-                     <span className="text-[8px] opacity-70 font-normal mt-0.5">{selectedLead.subStatus}</span>
-                   </span>
-                </td>
-                <td className="p-4">
-                   <div className="text-orange-600 font-bold bg-orange-50 px-2 py-1 rounded border border-orange-100 text-center w-fit">
-                      {selectedLead.nextFollowup}
-                   </div>
-                </td>
-             </tr>
-
-             {/* ROW 2: Historical Data (Faded) */}
-             <tr className="hover:bg-gray-50 transition duration-150 opacity-75 grayscale hover:grayscale-0">
-                <td className="p-4">
-                   <div className="font-bold text-gray-500 text-sm">02 Jan</div>
-                   <div className="text-[10px] text-gray-400 font-medium">2024</div>
-                </td>
-                <td className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center font-bold text-[10px]">
-                      FD
-                    </div>
-                    <div>
-                      <div className="font-bold text-gray-600">Front Desk</div>
-                      <div className="text-[10px] text-gray-400 font-medium">Reception</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="font-mono text-gray-500 bg-gray-50 px-1.5 rounded w-fit">011-4567890</span>
-                    <span className="text-[10px] text-blue-400 font-medium lowercase">info@example.com</span>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <p className="text-gray-500 italic">
-                    "Called landline, asked to share profile on email."
-                  </p>
-                </td>
-                <td className="p-4">
-                   <span className="inline-block px-2 py-1 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200 w-20 text-center">
-                     New
-                   </span>
-                </td>
-                <td className="p-4">
-                   <div className="text-gray-400 font-bold text-xs">
-                      05-Jan-24
-                   </div>
-                </td>
-             </tr>
-             {/* ROW 2: Historical Data (Faded) */}
-             <tr className="hover:bg-gray-50 transition duration-150 opacity-75 grayscale hover:grayscale-0">
-                <td className="p-4">
-                   <div className="font-bold text-gray-500 text-sm">02 Jan</div>
-                   <div className="text-[10px] text-gray-400 font-medium">2024</div>
-                </td>
-                <td className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center font-bold text-[10px]">
-                      FD
-                    </div>
-                    <div>
-                      <div className="font-bold text-gray-600">Front Desk</div>
-                      <div className="text-[10px] text-gray-400 font-medium">Reception</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="font-mono text-gray-500 bg-gray-50 px-1.5 rounded w-fit">011-4567890</span>
-                    <span className="text-[10px] text-blue-400 font-medium lowercase">info@example.com</span>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <p className="text-gray-500 italic">
-                    "Called landline, asked to share profile on email."
-                  </p>
-                </td>
-                <td className="p-4">
-                   <span className="inline-block px-2 py-1 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200 w-20 text-center">
-                     New
-                   </span>
-                </td>
-                <td className="p-4">
-                   <div className="text-gray-400 font-bold text-xs">
-                      05-Jan-24
-                   </div>
-                </td>
-             </tr>
-             {/* ROW 2: Historical Data (Faded) */}
-             <tr className="hover:bg-gray-50 transition duration-150 opacity-75 grayscale hover:grayscale-0">
-                <td className="p-4">
-                   <div className="font-bold text-gray-500 text-sm">02 Jan</div>
-                   <div className="text-[10px] text-gray-400 font-medium">2024</div>
-                </td>
-                <td className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center font-bold text-[10px]">
-                      FD
-                    </div>
-                    <div>
-                      <div className="font-bold text-gray-600">Front Desk</div>
-                      <div className="text-[10px] text-gray-400 font-medium">Reception</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="font-mono text-gray-500 bg-gray-50 px-1.5 rounded w-fit">011-4567890</span>
-                    <span className="text-[10px] text-blue-400 font-medium lowercase">info@example.com</span>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <p className="text-gray-500 italic">
-                    "Called landline, asked to share profile on email."
-                  </p>
-                </td>
-                <td className="p-4">
-                   <span className="inline-block px-2 py-1 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200 w-20 text-center">
-                     New
-                   </span>
-                </td>
-                <td className="p-4">
-                   <div className="text-gray-400 font-bold text-xs">
-                      05-Jan-24
-                   </div>
-                </td>
-             </tr>
-             {/* ROW 2: Historical Data (Faded) */}
-             <tr className="hover:bg-gray-50 transition duration-150 opacity-75 grayscale hover:grayscale-0">
-                <td className="p-4">
-                   <div className="font-bold text-gray-500 text-sm">02 Jan</div>
-                   <div className="text-[10px] text-gray-400 font-medium">2024</div>
-                </td>
-                <td className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center font-bold text-[10px]">
-                      FD
-                    </div>
-                    <div>
-                      <div className="font-bold text-gray-600">Front Desk</div>
-                      <div className="text-[10px] text-gray-400 font-medium">Reception</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="font-mono text-gray-500 bg-gray-50 px-1.5 rounded w-fit">011-4567890</span>
-                    <span className="text-[10px] text-blue-400 font-medium lowercase">info@example.com</span>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <p className="text-gray-500 italic">
-                    "Called landline, asked to share profile on email."
-                  </p>
-                </td>
-                <td className="p-4">
-                   <span className="inline-block px-2 py-1 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200 w-20 text-center">
-                     New
-                   </span>
-                </td>
-                <td className="p-4">
-                   <div className="text-gray-400 font-bold text-xs">
-                      05-Jan-24
-                   </div>
-                </td>
-             </tr>
+                  </td>
+                  <td className="p-4">
+                    <p className="text-gray-600 italic bg-gray-50 p-2 rounded-lg border border-gray-100 group-hover:bg-white group-hover:border-blue-100 transition">
+                      "{interaction.remarks || 'No remarks'}"
+                    </p>
+                  </td>
+                  <td className="p-4">
+                     <span className={`inline-flex flex-col items-center px-2 py-1 rounded-lg text-[10px] font-bold w-20 text-center ${interaction.status === 'Interested' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-600'}`}>
+                       {interaction.status}
+                       <span className="text-[8px] opacity-70 font-normal mt-0.5">{interaction.sub_status}</span>
+                     </span>
+                  </td>
+                  <td className="p-4">
+                     <div className="text-orange-600 font-bold bg-orange-50 px-2 py-1 rounded border border-orange-100 text-center w-fit">
+                        {interaction.next_follow_up ? new Date(interaction.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : 'N/A'}
+                     </div>
+                  </td>
+               </tr>
+             )) : (
+               <tr>
+                 <td colSpan="6" className="p-8 text-center text-gray-400 font-bold uppercase tracking-widest">
+                   No interactions found
+                 </td>
+               </tr>
+             )}
           </tbody>
         </table>
       </div>
@@ -788,7 +788,7 @@ const isLocked = lead.isSubmitted;
    {/* 2. Buttons for CREATE Mode */}
    {modalType === 'create' && (
      <>
-       <button className="px-5 py-2 bg-white border border-[#103c7f] text-[#103c7f] rounded-lg font-bold text-sm shadow-sm hover:bg-blue-50">
+       <button onClick={handleSaveOnly} className="px-5 py-2 bg-white border border-[#103c7f] text-[#103c7f] rounded-lg font-bold text-sm shadow-sm hover:bg-blue-50">
          Save Only
        </button>
        <button 
@@ -802,7 +802,7 @@ const isLocked = lead.isSubmitted;
 
    {/* 3. Button for ADD FOLLOWUP Mode */}
    {modalType === 'add' && (
-     <button className="bg-[#103c7f] hover:bg-blue-900 text-white px-2 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-2">
+     <button onClick={handleSaveInteraction} className="bg-[#103c7f] hover:bg-blue-900 text-white px-2 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-2">
        <Save size={16} /> Save Record
      </button>
    )}
@@ -810,18 +810,36 @@ const isLocked = lead.isSubmitted;
    {/* 4. Button for SEND TO MANAGER Mode (ONLY ONE BUTTON) */}
    {/* === MODE 4: SEND TO MANAGER (Footer Button Only) === */}
 {modalType === 'send_to_manager' && (
-   <button 
-     onClick={() => {
-        // 1. Update State: Set 'isSubmitted' to true
-        const updatedLeads = leads.map(l => 
-           l.id === selectedLead.id 
-           ? { ...l, isSubmitted: true } 
-           : l
-        );
-        setLeads(updatedLeads);
+   <button
+     onClick={async () => {
+        try {
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const response = await fetch('/api/domestic/leadgen/send-to-manager', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ client_id: selectedLead.id })
+          });
+          const data = await response.json();
+          if (data.success) {
+            // 1. Update State: Set 'isSubmitted' to true
+            const updatedLeads = leads.map(l =>
+               l.id === selectedLead.id
+               ? { ...l, isSubmitted: true }
+               : l
+            );
+            setLeads(updatedLeads);
 
-        // 2. Close Modal
-        setIsFormOpen(false);
+            // 2. Close Modal
+            setIsFormOpen(false);
+          } else {
+            alert('Failed to send to manager');
+          }
+        } catch (error) {
+          console.error('Failed to send to manager:', error);
+        }
      }}
      // Button Style: Centered, Purple
      className="bg-purple-600 hover:bg-purple-700 text-white px-10 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-purple-200 flex items-center gap-2 transition transform active:scale-95"

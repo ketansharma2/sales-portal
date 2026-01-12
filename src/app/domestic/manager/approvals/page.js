@@ -13,7 +13,7 @@ export default function ManagerApprovals() {
   const fetchPendingExpenses = async () => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/manager/pending-expenses', {
+      const response = await fetch('/api/domestic/manager/approvals/pending-expenses', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -54,7 +54,7 @@ export default function ManagerApprovals() {
   const handleApprove = async (exp_id) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/manager/approve-expense', {
+      const response = await fetch('/api/domestic/manager/approvals/approve-expense', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -74,7 +74,7 @@ export default function ManagerApprovals() {
   const handleReject = async (exp_id) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/manager/reject-expense', {
+      const response = await fetch('/api/domestic/manager/approvals/reject-expense', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

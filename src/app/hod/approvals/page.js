@@ -35,7 +35,7 @@ export default function HODApprovals() {
   const handleApprove = async (exp_id) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/manager/approve-expense', {
+      const response = await fetch('/api/hod/approve-expense', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -55,7 +55,7 @@ export default function HODApprovals() {
   const handleReject = async (exp_id) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/manager/reject-expense', {
+      const response = await fetch('/api/hod/reject-expense', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -153,25 +153,41 @@ export default function HODApprovals() {
                     {item.date}
                   </td>
                   
-                  {/* Status Column (UPDATED: "Sent to HR" is Indigo/Blue) */}
+                  {/* Status Column */}
                   <td className="px-5 py-3 text-center">
                     <span className={`px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border italic flex items-center justify-center gap-1.5 w-fit mx-auto
-                      ${item.status === 'Sent to HR' 
-                        ? 'bg-indigo-50 text-indigo-600 border-indigo-100' // Consistent HR Color
-                        : item.status === 'Clarification Req' 
-                          ? 'bg-yellow-50 text-yellow-600 border-yellow-100' 
-                          : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
-                      
-                      {item.status === 'Pending Review' && <Clock size={10} />}
-                      {/* Using Building Icon for HR */}
-                      {item.status === 'Sent to HR' && <Building2 size={10} />} 
+                      ${item.status === 'Sent to HR'
+                        ? 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                        : item.status === 'Rejected'
+                          ? 'bg-red-50 text-red-600 border-red-100'
+                        : item.status === 'Approved'
+                          ? 'bg-green-50 text-green-600 border-green-100'
+                        : item.status === 'Pending (HOD)'
+                          ? 'bg-orange-50 text-orange-600 border-orange-100'
+                        : 'bg-gray-50 text-gray-600 border-gray-100'}`}>
+
+                      {item.status === 'Pending (HOD)' && <Clock size={10} />}
+                      {item.status === 'Sent to HR' && <Building2 size={10} />}
                       {item.status}
                     </span>
                   </td>
                   
-                  {/* Action Column (Shows HOD -> HR Flow) */}
+                  {/* Action Column */}
                   <td className="px-5 py-3 text-center">
-                    {item.status === "Sent to HR" ? (
+                    {item.status === "Pending (HOD)" ? (
+                      // Active Buttons for Pending
+                      <div className="flex justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleApprove(item.id)} className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Approve & Forward to HR">
+                          <Check size={16} strokeWidth={3}/>
+                        </button>
+                        <button onClick={() => handleReject(item.id)} className="bg-red-50 text-red-600 p-2 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Reject">
+                          <X size={16} strokeWidth={3}/>
+                        </button>
+                        <button className="bg-gray-100 text-[#103c7f] p-2 rounded-lg hover:bg-[#103c7f] hover:text-white transition-all shadow-sm" title="View Bill Proof">
+                          <FileText size={16} strokeWidth={2}/>
+                        </button>
+                      </div>
+                    ) : item.status === "Sent to HR" ? (
                       // Locked State - Shows Process Flow
                       <div className="flex justify-center items-center gap-1 opacity-60">
                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
@@ -183,17 +199,11 @@ export default function HODApprovals() {
                          </span>
                       </div>
                     ) : (
-                      // Active Buttons
-                      <div className="flex justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => handleApprove(item.id)} className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Approve & Forward to HR">
-                          <Check size={16} strokeWidth={3}/>
-                        </button>
-                        <button onClick={() => handleReject(item.id)} className="bg-red-50 text-red-600 p-2 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Reject">
-                          <X size={16} strokeWidth={3}/>
-                        </button>
-                        <button className="bg-gray-100 text-[#103c7f] p-2 rounded-lg hover:bg-[#103c7f] hover:text-white transition-all shadow-sm" title="View Bill Proof">
-                          <FileText size={16} strokeWidth={2}/>
-                        </button>
+                      // Other statuses - Show status indicator
+                      <div className="flex justify-center items-center opacity-60">
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                          {item.status}
+                        </span>
                       </div>
                     )}
                   </td>

@@ -28,7 +28,7 @@ export async function POST(request) {
       password: password,
       user_metadata: {
         name: name,
-        role: role
+        role: [role]
       },
       email_confirm: true // Auto-confirm email for testing
     })
@@ -48,7 +48,7 @@ export async function POST(request) {
         user_id: authData.user.id,
         name: name,
         email: email,
-        role: role,
+        role: [role],
         manager_id: manager_id || null,
         hod_id: hod_id || null
       })
@@ -74,7 +74,7 @@ export async function POST(request) {
         user_id: authData.user.id,
         name: name,
         email: email,
-        role: role,
+        role: [role],
         manager_id: manager_id,
         hod_id: hod_id,
         created_at: profileData.created_at

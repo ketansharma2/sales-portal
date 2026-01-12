@@ -1,146 +1,66 @@
 "use client";
 import { useState, useEffect } from "react";
-import { 
-  Search, Filter, Eye, UserPlus, Truck, 
-  MapPin, X, CheckCircle, Calendar, Phone, Mail ,CalendarDays,CheckSquare
+import {
+  Search, Filter, Eye, UserPlus, Truck,
+  MapPin, X, CheckCircle, Calendar, Phone, Mail, CalendarDays, CheckSquare
 } from "lucide-react";
+import { supabase } from '@/lib/supabase';
 
 export default function ManagerLeadsPage() {
   
    const getWeekNumber = (dateString) => {
-    if (!dateString) return null;
-    const date = new Date(dateString);
-    const startDate = new Date(date.getFullYear(), 0, 1);
-    const days = Math.floor((date - startDate) / (24 * 60 * 60 * 1000));
-    return Math.ceil((days + 1) / 7);
-  };
+     if (!dateString) return null;
+     const date = new Date(dateString);
+     return Math.ceil(date.getDate() / 7);
+   };
 
   const formatDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
     return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
   };
-  // --- MOCK DATA ---
-  const initialLeads = [
-    { 
-      id: 201, 
-      arrivedDate: "2024-01-07", 
-      sourcingDate: "2024-01-05", 
-      sourcedBy: "Rahul Sharma", 
-      company: "Alpha Tech Solutions", 
-      category: "IT Services",
-      state: "Delhi",
-      location: "Okhla Ph-3",
-      empCount: "50-100",
-      reference: "LinkedIn",
-      latestRemark: "Client is very interested, wants a demo.",
-      status: "Interested",
-      subStatus: "Pending Approval",
-      // 👉 ASSIGNED & PROCESSED DATA
-      isProcessed: true,
-      actionType: 'FSE',
-      assignedTo: 'Amit Kumar (South Delhi)',
-      assignedDate: '2024-01-10',
-      
-      // 👉 NEW FIELD: VISIT STATUS FROM FSE
-      visitStatus: 'Visit Completed', // Example: FSE has updated this
-      interactions: [
-        { 
-            date: "2024-01-05", 
-            person: "Amit Kumar", 
-            role: "Manager",
-            phone: "9876543210", 
-            email: "amit@example.com",
-            remarks: "First call, interested.", 
-            status: "New", 
-            subStatus: "Call Later" 
-        },
-        { 
-            date: "2024-01-07", 
-            person: "Front Desk", 
-            role: "Reception",
-            phone: "011-4567890", 
-            email: "info@alpha.com",
-            remarks: "Asked for demo, sending to manager.", 
-            status: "Sent to Manager", 
-            subStatus: "Pending Approval" 
-        },
-        { 
-            date: "2024-01-07", 
-            person: "Front Desk", 
-            role: "Reception",
-            phone: "011-4567890", 
-            email: "info@alpha.com",
-            remarks: "Asked for demo, sending to manager.", 
-            status: "Sent to Manager", 
-            subStatus: "Pending Approval" 
-        },
-        { 
-            date: "2024-01-07", 
-            person: "Front Desk", 
-            role: "Reception",
-            phone: "011-4567890", 
-            email: "info@alpha.com",
-            remarks: "Asked for demo, sending to manager.", 
-            status: "Sent to Manager", 
-            subStatus: "Pending Approval" 
-        },
-        { 
-            date: "2024-01-07", 
-            person: "Front Desk", 
-            role: "Reception",
-            phone: "011-4567890", 
-            email: "info@alpha.com",
-            remarks: "Asked for demo, sending to manager.", 
-            status: "Sent to Manager", 
-            subStatus: "Pending Approval" 
-        }
-      ]
-    },
-    { 
-      id: 202, 
-      arrivedDate: "2024-01-08",
-      sourcingDate: "2024-01-06", 
-      sourcedBy: "Priya Singh", 
-      company: "Green Field Estates", 
-      category: "Real Estate",
-      state: "Haryana",
-      location: "Gurgaon Sec-44",
-      empCount: "100-500",
-      reference: "Cold Call",
-      latestRemark: "Payment ready, move to delivery.",
-      status: "Onboard",
-      subStatus: "Document Sent",
-      // 👉 ASSIGNED & PROCESSED DATA
-      isProcessed: true,
-      actionType: 'FSE',
-      assignedTo: 'Amit Kumar (South Delhi)',
-      assignedDate: '2024-01-10',
-      
-      // 👉 NEW FIELD: VISIT STATUS FROM FSE
-      visitStatus: 'Reschedule', // Example: FSE has updated this
-      interactions: [
-        { 
-            date: "2024-01-06", 
-            person: "Ms. Kaur", 
-            role: "Director",
-            phone: "9988776655", 
-            email: "kaur@greenfield.com",
-            remarks: "Direct closure.", 
-            status: "Sent to Manager", 
-            subStatus: "Ready for Onboard" 
-        }
-      ]
-    },
-  ];
+  const [leads, setLeads] = useState([]);
+  const [filteredLeads, setFilteredLeads] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [sourcedByOptions, setSourcedByOptions] = useState([]);
+  const [fseOptions, setFseOptions] = useState([]);
 
-  const [leads, setLeads] = useState(initialLeads); 
-  const [filteredLeads, setFilteredLeads] = useState(initialLeads); 
+  useEffect(() => {
+    const fetchLeads = async () => {
+        console.log('API called');
+        try {
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const response = await fetch('/api/domestic/manager/leads', {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`
+            }
+          });
+          const data = await response.json();
+          console.log('API response:', data);
+          const leadsArray = Array.isArray(data.leads) ? data.leads : [];
+          const fseTeam = data.fseTeam || [];
+          setLeads(leadsArray);
+          setFilteredLeads(leadsArray);
+          const uniqueSourcedBy = [...new Set(leadsArray.map(l => l.sourcedBy))];
+          setSourcedByOptions(uniqueSourcedBy);
+          setFseOptions(fseTeam.map(f => ({ id: f.user_id, name: f.name })));
+          if (fseTeam.length > 0) {
+            setAssignFseName(fseTeam[0].name);
+          }
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      };
+    fetchLeads();
+  }, []);
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   const [modalType, setModalType] = useState(""); 
-  const [assignFseName, setAssignFseName] = useState("Amit Kumar (South Delhi)");
+  const [assignFseName, setAssignFseName] = useState("");
+  const [visitDate, setVisitDate] = useState("");
 
   // --- FILTER STATE ---
   const [filters, setFilters] = useState({
@@ -158,17 +78,27 @@ export default function ManagerLeadsPage() {
     let result = leads;
 
     if (filters.fromDate) {
-        result = result.filter(l => new Date(l.arrivedDate) >= new Date(filters.fromDate));
+        result = result.filter(l => {
+          if (!l.arrivedDate) return false;
+          const [day, month, year] = l.arrivedDate.split('/');
+          const arrivedDate = new Date(`${year}-${month}-${day}`);
+          return arrivedDate >= new Date(filters.fromDate);
+        });
     }
     if (filters.toDate) {
-        result = result.filter(l => new Date(l.arrivedDate) <= new Date(filters.toDate));
+        result = result.filter(l => {
+          if (!l.arrivedDate) return false;
+          const [day, month, year] = l.arrivedDate.split('/');
+          const arrivedDate = new Date(`${year}-${month}-${day}`);
+          return arrivedDate <= new Date(filters.toDate);
+        });
     }
     if (filters.company) {
         result = result.filter(l => l.company.toLowerCase().includes(filters.company.toLowerCase()));
     }
     if (filters.location) {
-        result = result.filter(l => 
-            l.location.toLowerCase().includes(filters.location.toLowerCase()) || 
+        result = result.filter(l =>
+            l.location.toLowerCase().includes(filters.location.toLowerCase()) ||
             l.state.toLowerCase().includes(filters.location.toLowerCase())
         );
     }
@@ -176,7 +106,7 @@ export default function ManagerLeadsPage() {
         result = result.filter(l => l.status === filters.status);
     }
     if (filters.subStatus !== "All") {
-        result = result.filter(l => l.subStatus === filters.subStatus);
+        result = result.filter(l => l.sub_status === filters.subStatus);
     }
     if (filters.sourcedBy !== "All") {
         result = result.filter(l => l.sourcedBy === filters.sourcedBy);
@@ -198,36 +128,65 @@ export default function ManagerLeadsPage() {
     setIsFormOpen(true);
   };
 
-  const handleConfirmAction = () => {
-    
-    // Create updated list
-    const updatedLeads = leads.map(l => {
-      if (l.id === selectedLead.id) {
-        // Agar Assign FSE hai
-        if (modalType === 'assign_fse') {
-           return { 
-             ...l, 
-             isProcessed: true, // Row lock karne ke liye flag
-             actionType: 'FSE', 
-             assignedTo: assignFseName // Dropdown se liya hua naam
-           };
-        }
-        // Agar Pass to Delivery hai
-        if (modalType === 'pass_delivery') {
-           return { 
-             ...l, 
-             isProcessed: true, 
-             actionType: 'DELIVERY' 
-           };
-        }
+  const handleConfirmAction = async () => {
+    if (modalType === 'assign_fse') {
+      const fse = fseOptions.find(f => f.name === assignFseName);
+      if (!fse || !visitDate) {
+        alert('Please select FSE and visit date');
+        return;
       }
-      return l;
-    });
-
-    setLeads(updatedLeads);
-    // Filtered list ko bhi sync karein taaki UI turant update ho
-    setFilteredLeads(updatedLeads); 
-    setIsFormOpen(false);
+      try {
+        const response = await fetch('/api/domestic/manager/leads/assign-fse', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            client_id: selectedLead.id,
+            fse_id: fse.id,
+            date: visitDate
+          })
+        });
+        if (!response.ok) {
+          throw new Error('Failed to assign FSE');
+        }
+        // Update local state
+        const updatedLeads = leads.map(l => {
+          if (l.id === selectedLead.id) {
+            return {
+              ...l,
+              isProcessed: true,
+              actionType: 'FSE',
+              assignedTo: assignFseName,
+              assignedDate: new Date().toISOString().split('T')[0],
+              visitStatus: 'Pending Visit'
+            };
+          }
+          return l;
+        });
+        setLeads(updatedLeads);
+        setFilteredLeads(updatedLeads);
+        setIsFormOpen(false);
+      } catch (error) {
+        console.error(error);
+        alert('Error assigning FSE');
+      }
+    } else {
+      // For pass_delivery, keep the local update
+      const updatedLeads = leads.map(l => {
+        if (l.id === selectedLead.id) {
+          return {
+            ...l,
+            isProcessed: true,
+            actionType: 'DELIVERY'
+          };
+        }
+        return l;
+      });
+      setLeads(updatedLeads);
+      setFilteredLeads(updatedLeads);
+      setIsFormOpen(false);
+    }
   };
 
   return (
@@ -295,8 +254,9 @@ export default function ManagerLeadsPage() {
             <select className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] transition cursor-pointer"
                 onChange={(e) => handleFilterChange("sourcedBy", e.target.value)}>
                <option value="All">All Agents</option>
-               <option>Rahul Sharma</option>
-               <option>Priya Singh</option>
+               {sourcedByOptions.map(name => (
+                 <option key={name} value={name}>{name}</option>
+               ))}
             </select>
          </div>
 
@@ -304,6 +264,11 @@ export default function ManagerLeadsPage() {
 
       {/* 3. TABLE */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex-1 overflow-x-auto overflow-y-auto">
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="text-gray-500 font-bold uppercase tracking-widest">Loading leads...</div>
+          </div>
+        ) : (
         <table className="w-full table-auto border-collapse text-left">
           
           {/* HEADER */}
@@ -377,17 +342,19 @@ export default function ManagerLeadsPage() {
 
                            {/* 2. Visit Status (from FSE) */}
                            {lead.visitStatus ? (
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-bold border uppercase flex items-center gap-1 ${
-                                 lead.visitStatus === 'Visit Completed' ? 'bg-green-50 text-green-700 border-green-200' :
-                                 lead.visitStatus === 'Reschedule' ? 'bg-orange-50 text-orange-700 border-orange-200' :
-                                 'bg-gray-50 text-gray-500 border-gray-200'
-                              }`}>
-                                 {lead.visitStatus === 'Visit Completed' && <CheckSquare size={10}/>}
-                                 {lead.visitStatus === 'Reschedule' && <CalendarDays size={10}/>}
-                                 {lead.visitStatus}
-                              </span>
+                             <span className={`px-2 py-0.5 rounded text-[9px] font-bold border uppercase flex items-center gap-1 ${
+                               lead.visitStatus === 'visited' ? 'bg-green-50 text-green-700 border-green-200' :
+                               lead.visitStatus === 'rescheduled' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                               lead.visitStatus === 'not_visited' ? 'bg-red-50 text-red-700 border-red-200' :
+                               'bg-gray-50 text-gray-500 border-gray-200'
+                             }`}>
+                               {lead.visitStatus === 'visited' && <CheckSquare size={10}/>}
+                               {lead.visitStatus === 'rescheduled' && <CalendarDays size={10}/>}
+                               {lead.visitStatus === 'not_visited' && '✗'}
+                               {lead.visitStatus}
+                             </span>
                            ) : (
-                              <span className="text-[9px] text-gray-400 italic">Pending Visit</span>
+                             <span className="text-[9px] text-gray-400 italic">Pending</span>
                            )}
 
                         </div>
@@ -442,10 +409,11 @@ export default function ManagerLeadsPage() {
                 </tr>
               ))
             ) : (
-               <tr><td colSpan="7" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest">No pending leads found</td></tr>
+               <tr><td colSpan="8" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest">No pending leads found</td></tr>
             )}
           </tbody>
         </table>
+        )}
       </div>
 
       {/* --- MODALS --- */}
@@ -608,15 +576,15 @@ export default function ManagerLeadsPage() {
                      <div className="grid grid-cols-2 gap-4">
                         <div>
                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select FSE</label>
-                           <select onChange={(e) => setAssignFseName(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm mt-1 outline-none focus:border-[#103c7f] focus:ring-1 focus:ring-[#103c7f] transition bg-white">
-                              <option>Amit Kumar (South Delhi)</option>
-                              <option>Rohan Singh (Gurgaon)</option>
-                              <option>Vikram Malhotra (Noida)</option>
+                           <select value={assignFseName} onChange={(e) => setAssignFseName(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm mt-1 outline-none focus:border-[#103c7f] focus:ring-1 focus:ring-[#103c7f] transition bg-white">
+                              {fseOptions.map(f => (
+                                <option key={f.id} value={f.name}>{f.name}</option>
+                              ))}
                            </select>
                         </div>
                         <div>
                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Visit Date</label>
-                           <input type="date" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm mt-1 outline-none focus:border-[#103c7f] focus:ring-1 focus:ring-[#103c7f] transition text-gray-700 font-bold" />
+                           <input type="date" value={visitDate} onChange={(e) => setVisitDate(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm mt-1 outline-none focus:border-[#103c7f] focus:ring-1 focus:ring-[#103c7f] transition text-gray-700 font-bold" />
                         </div>
                      </div>
                      

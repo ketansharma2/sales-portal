@@ -7,27 +7,84 @@ import {
 
 export default function ManagerTargetPage() {
 
-  // --- MOCK DATA: HOD SE AAYA HUA ASSIGNMENT ---
+  // --- HOD ASSIGNMENT DATA ---
   const [hodAssignment, setHodAssignment] = useState({
-    month: "January 2026",
+    month: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
     workingDays: 24,
-    totalVisits: 768,    
-    totalOnboards: 40,   
-    totalCalls: 5760,    
-    // HOD logic for reference (1 Person Target)
-    fseDailyVisit: 4,
-    fseMonthlyOnboard: 5,
-    leadGenDailyCall: 60
+    totalVisits: 0,
+    totalOnboards: 0,
+    totalCalls: 0,
+    visitPerDay: 0,
+    onboardPerMonth: 0,
+    callsPerDay: 0
   });
+  const [loading, setLoading] = useState(true);
+
+  // --- FETCH HOD ASSIGNMENT ---
+  const fetchHodAssignment = async () => {
+    try {
+      setLoading(true);
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch(`/api/domestic/manager/targets?month=${new Date().toISOString().split('T')[0].substring(0, 7) + '-01'}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setHodAssignment({
+          month: new Date(data.data.month).toLocaleString('default', { month: 'long', year: 'numeric' }),
+          workingDays: data.data.workingDays,
+          totalVisits: data.data.totalVisits,
+          totalOnboards: data.data.totalOnboards,
+          totalCalls: data.data.totalCalls,
+          visitPerDay: data.data.visitPerDay,
+          onboardPerMonth: data.data.onboardPerMonth,
+          callsPerDay: data.data.callsPerDay
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch HOD assignment:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHodAssignment();
+    fetchTeam();
+  }, []);
 
   // --- TEAM MEMBERS (With Previous Achievement) ---
-  const [team, setTeam] = useState([
-    { id: 1, name: "Amit Kumar", role: "FSE", prevAch: "105%", visits: 96, onboards: 5, calls: 0 },
-    { id: 2, name: "Rohan Singh", role: "FSE", prevAch: "92%", visits: 96, onboards: 5, calls: 0 },
-    { id: 3, name: "Vikram Malhotra", role: "FSE", prevAch: "80%", visits: 90, onboards: 4, calls: 0 },
-    { id: 4, name: "Rahul Sharma", role: "LeadGen", prevAch: "100%", visits: 0, onboards: 0, calls: 1440 },
-    { id: 5, name: "Priya Singh", role: "LeadGen", prevAch: "98%", visits: 0, onboards: 0, calls: 1440 },
-  ]);
+  const [team, setTeam] = useState([]);
+
+  // --- FETCH TEAM ---
+  const fetchTeam = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/manager/team-members', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        // Transform to UI format with default values
+        const formattedTeam = data.data.map(member => ({
+          id: member.user_id,
+          name: member.name,
+          role: member.role.includes('FSE') ? 'FSE' : 'LeadGen', // Simplify role
+          prevAch: "85%", // Default, can be calculated later
+          visits: member.role.includes('FSE') ? 192 : 0, // Default 192 for FSE
+          onboards: member.role.includes('FSE') ? 12 : 0, // Default 12 for FSE
+          calls: member.role.includes('LeadGen') ? 0 : 0
+        }));
+        setTeam(formattedTeam);
+      }
+    } catch (error) {
+      console.error('Failed to fetch team:', error);
+    }
+  };
 
   // --- REAL-TIME CALCULATION ---
   const [stats, setStats] = useState({
@@ -52,11 +109,44 @@ export default function ManagerTargetPage() {
     setTeam(team.map(m => m.id === id ? { ...m, [field]: Number(value) } : m));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (stats.remVisits !== 0 || stats.remOnboards !== 0 || stats.remCalls !== 0) {
         if(!confirm("Warning: Targets are not perfectly distributed. Save anyway?")) return;
     }
-    alert("Team Targets Published Successfully!");
+
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+
+      // Prepare targets array
+      const targets = team.map(member => ({
+        user_id: member.id,
+        visits: member.visits,
+        onboards: member.onboards,
+        calls: member.calls
+      }));
+
+      const response = await fetch('/api/domestic/manager/targets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          month: new Date().toISOString().split('T')[0].substring(0, 7) + '-01',
+          targets
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert(data.message || "Team Targets Published Successfully!");
+      } else {
+        alert('Failed to publish targets: ' + (data.details || data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Failed to publish targets:', error);
+      alert('Network error while publishing targets');
+    }
   };
 
   return (
@@ -93,7 +183,7 @@ export default function ManagerTargetPage() {
                <div>
                   <span className="text-2xl font-black text-gray-800 leading-none">{hodAssignment.totalVisits}</span>
                   <div className="text-[10px] font-bold text-blue-600 uppercase mt-2 flex items-center gap-1">
-                     <TrendingUp size={10}/> Ideal: {hodAssignment.fseDailyVisit} / Day per FSE
+                     <TrendingUp size={10}/> Ideal: {hodAssignment.visitPerDay} / Day per FSE
                   </div>
                </div>
                <div className={`px-3 py-1 rounded-lg border text-xs font-bold ${stats.remVisits === 0 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-orange-50 text-orange-600 border-orange-200'}`}>
@@ -112,7 +202,7 @@ export default function ManagerTargetPage() {
                <div>
                   <span className="text-2xl font-black text-gray-800 leading-none">{hodAssignment.totalOnboards}</span>
                   <div className="text-[10px] font-bold text-green-600 uppercase mt-2 flex items-center gap-1">
-                     <CheckCircle size={10}/> Ideal: {hodAssignment.fseMonthlyOnboard} / Mon per FSE
+                     <CheckCircle size={10}/> Ideal: {hodAssignment.onboardPerMonth} / Mon per FSE
                   </div>
                </div>
                <div className={`px-3 py-1 rounded-lg border text-xs font-bold ${stats.remOnboards === 0 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-orange-50 text-orange-600 border-orange-200'}`}>
@@ -131,7 +221,7 @@ export default function ManagerTargetPage() {
                <div>
                   <span className="text-2xl font-black text-gray-800 leading-none">{hodAssignment.totalCalls}</span>
                   <div className="text-[10px] font-bold text-orange-600 uppercase mt-2 flex items-center gap-1">
-                     <Phone size={10}/> Ideal: {hodAssignment.leadGenDailyCall} / Day per Caller
+                     <Phone size={10}/> Ideal: {hodAssignment.callsPerDay} / Day per Caller
                   </div>
                </div>
                <div className={`px-3 py-1 rounded-lg border text-xs font-bold ${stats.remCalls === 0 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-orange-50 text-orange-600 border-orange-200'}`}>
