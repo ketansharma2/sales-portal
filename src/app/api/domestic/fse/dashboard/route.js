@@ -35,9 +35,80 @@ export async function POST(request) {
       console.error('Monthly DWR error:', monthlyDwrError)
     }
 
-    const monthlyTotalVisits = monthlyDwr?.reduce((sum, d) => sum + (parseInt(d.total_visit) || 0), 0) || 0
-    const monthlyIndividualVisits = monthlyDwr?.reduce((sum, d) => sum + (parseInt(d.individual) || 0), 0) || 0
-    const monthlyOnboarded = monthlyDwr?.reduce((sum, d) => sum + (parseInt(d.onboarded) || 0), 0) || 0
+    // Get monthly visits from interactions
+    const { count: monthlyTotalVisitsCount, error: monthlyVisitsError } = await supabaseServer
+      .from('domestic_clients_interaction')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('contact_date', startDate)
+      .lte('contact_date', `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(currentYear, currentMonth, 0).getDate()}`)
+      .ilike('contact_mode', 'visit')
+
+    if (monthlyVisitsError) {
+      console.error('Monthly visits error:', monthlyVisitsError)
+    }
+
+    const monthlyTotalVisits = monthlyTotalVisitsCount || 0
+
+    // Get monthly individual visits from domestic_clients
+    const { count: monthlyIndividualVisitsCount, error: monthlyIndividualError } = await supabaseServer
+      .from('domestic_clients')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('sourcing_date', startDate)
+      .lte('sourcing_date', `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(currentYear, currentMonth, 0).getDate()}`)
+
+    if (monthlyIndividualError) {
+      console.error('Monthly individual visits error:', monthlyIndividualError)
+    }
+
+    const monthlyIndividualVisits = monthlyIndividualVisitsCount || 0
+
+    // Get monthly onboarded from interactions
+    const monthEnd = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(currentYear, currentMonth, 0).getDate()}`
+    let monthlyInteractions = []
+    let monthlyOffset = 0
+    const monthlyBatchSize = 1000
+    let monthlyOnboardError = null
+
+    while (true) {
+      const { data, error } = await supabaseServer
+        .from('domestic_clients_interaction')
+        .select('client_id, status, contact_date, created_at')
+        .eq('user_id', user.id)
+        .gte('contact_date', startDate)
+        .lte('contact_date', monthEnd)
+        .order('client_id', { ascending: true })
+        .order('contact_date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .range(monthlyOffset, monthlyOffset + monthlyBatchSize - 1)
+
+      if (error) {
+        monthlyOnboardError = error
+        break
+      }
+
+      if (data.length === 0) break
+
+      monthlyInteractions.push(...data)
+      monthlyOffset += monthlyBatchSize
+
+      if (data.length < monthlyBatchSize) break
+    }
+
+    if (monthlyOnboardError) {
+      console.error('Monthly onboarded error:', monthlyOnboardError)
+    }
+
+    // Process to get latest status per client in month
+    const monthlyLatestStatuses = new Map()
+    monthlyInteractions?.forEach(interaction => {
+      if (!monthlyLatestStatuses.has(interaction.client_id)) {
+        monthlyLatestStatuses.set(interaction.client_id, interaction.status)
+      }
+    })
+
+    const monthlyOnboarded = Array.from(monthlyLatestStatuses.values()).filter(status => status === 'Onboarded').length
     const sortedMonthlyDwr = monthlyDwr?.sort((a, b) => new Date(b.dwr_date) - new Date(a.dwr_date)) || []
     const monthlyAvg = sortedMonthlyDwr[0]?.avg_visit || 0
 
@@ -99,7 +170,7 @@ export async function POST(request) {
 
     // Get total clients count
     const { count: totalClients, error: countError } = await supabaseServer
-      .from('clients')
+      .from('domestic_clients')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
 
@@ -107,20 +178,85 @@ export async function POST(request) {
       console.error('Total clients count error:', countError)
     }
 
-    // Get total onboarded count
-    const { count: totalOnboarded, error: onboardError } = await supabaseServer
-      .from('clients')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('status', 'Onboarded')
+    // Get total onboarded count based on latest interactions
+    let allInteractions = []
+    let offset = 0
+    const batchSize = 1000
+    let onboardError = null
+
+    while (true) {
+      const { data, error } = await supabaseServer
+        .from('domestic_clients_interaction')
+        .select('client_id, status, projection, contact_date, created_at')
+        .eq('user_id', user.id)
+        .order('client_id', { ascending: true })
+        .order('contact_date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + batchSize - 1)
+
+      if (error) {
+        onboardError = error
+        break
+      }
+
+      if (data.length === 0) break
+
+      allInteractions.push(...data)
+      offset += batchSize
+
+      if (data.length < batchSize) break
+    }
 
     if (onboardError) {
       console.error('Total onboarded count error:', onboardError)
     }
 
-    // Get total visits count
+    // Process to get latest status and projection per client
+    const latestStatuses = new Map()
+    const latestProjections = new Map()
+    allInteractions?.forEach(interaction => {
+      if (!latestStatuses.has(interaction.client_id)) {
+        latestStatuses.set(interaction.client_id, interaction.status)
+        latestProjections.set(interaction.client_id, interaction.projection)
+      }
+    })
+
+    const totalOnboarded = Array.from(latestStatuses.values()).filter(status => status === 'Onboarded').length
+
+    // Get latest contact date
+    const latestContactDate = allInteractions?.reduce((max, interaction) => interaction.contact_date > max ? interaction.contact_date : max, '') || today
+
+    // Get counts for latest activity date
+    const latestDateInteractions = allInteractions?.filter(interaction => interaction.contact_date === latestContactDate) || []
+    const latestTotalVisits = latestDateInteractions.length
+    // For individual, count clients sourced on that date
+    // Actually, since we have allInteractions, but to match, perhaps query domestic_clients
+    // But to keep simple, since domestic_clients sourcing_date is when client was added, perhaps count unique client_id in interactions on date
+    // But user said query domestic_clients sourcing_date = latest date
+    // So, change to count from domestic_clients
+    // But since we don't have domestic_clients data, perhaps add a query
+    // For now, keep as is, but user wants from domestic_clients
+    // Let's add a query for individual
+    const { count: latestIndividualCount, error: latestIndividualError } = await supabaseServer
+      .from('domestic_clients')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('sourcing_date', latestContactDate)
+
+    if (latestIndividualError) {
+      console.error('Latest individual error:', latestIndividualError)
+    }
+
+    const latestIndividualVisits = latestIndividualCount || 0
+    const latestOnboarded = latestDateInteractions.filter(interaction => interaction.status === 'Onboarded').length
+    const latestInterested = latestDateInteractions.filter(interaction => interaction.status === 'Interested').length
+    const latestNotInterested = latestDateInteractions.filter(interaction => interaction.status === 'Not Interested').length
+    const latestReachedOut = latestDateInteractions.filter(interaction => interaction.status === 'Reached Out').length
+    const latestRepeat = latestTotalVisits - latestIndividualVisits
+
+    // Get total visits count from interactions
     const { count: totalVisitsEver, error: visitsError } = await supabaseServer
-      .from('clients')
+      .from('domestic_clients_interaction')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .ilike('contact_mode', 'visit')
@@ -129,23 +265,14 @@ export async function POST(request) {
       console.error('Total visits count error:', visitsError)
     }
 
-    // Get projection counts
+    // Get projection counts from latest interactions
     const projections = {}
     const projectionTypes = ["WP > 50", "WP < 50", "MP > 50", "MP < 50"]
     const projectionKeys = ["wpGreater50", "wpLess50", "mpGreater50", "mpLess50"]
 
     for (let i = 0; i < projectionTypes.length; i++) {
-      const { count, error } = await supabaseServer
-        .from('clients')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('projection', projectionTypes[i])
-
-      if (error) {
-        console.error(`Projection count error for ${projectionTypes[i]}:`, error)
-      }
-
-      projections[projectionKeys[i]] = count || 0
+      const count = Array.from(latestProjections.values()).filter(proj => proj === projectionTypes[i]).length
+      projections[projectionKeys[i]] = count
     }
 
     // Get clients with activity on the latest DWR date
@@ -153,7 +280,7 @@ export async function POST(request) {
     if (from && to) {
       // Sum for date range
       const { data: rangeLeads, error: rangeError } = await supabaseServer
-        .from('clients')
+        .from('domestic_clients')
         .select('*')
         .eq('user_id', user.id)
         .or(`and(sourcing_date.gte.${from},sourcing_date.lte.${to}),and(latest_contact_date.gte.${from},latest_contact_date.lte.${to})`)
@@ -167,7 +294,7 @@ export async function POST(request) {
     } else {
       const latestDwrDate = displayDwr.dwr_date || today
       const { data: dateLeads, error: dateError } = await supabaseServer
-        .from('clients')
+        .from('domestic_clients')
         .select('*')
         .eq('user_id', user.id)
         .or(`sourcing_date.eq.${latestDwrDate},latest_contact_date.eq.${latestDwrDate}`)
@@ -205,14 +332,14 @@ export async function POST(request) {
         avg: monthlyAvg ? parseFloat(monthlyAvg).toString() : '0.0'
       },
       latestActivity: {
-        date: displayDwr.dwr_date ? new Date(displayDwr.dwr_date).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'), // DD/MM/YYYY format
-        total: displayDwr.total_visit || 0,
-        individual: displayDwr.individual || 0,
-        repeat: displayDwr.repeat || 0,
-        interested: displayDwr.interested || 0,
-        notInterested: displayDwr.not_interested || 0,
-        reachedOut: displayDwr.reached_out || 0,
-        onboarded: displayDwr.onboarded || 0
+        date: latestContactDate ? new Date(latestContactDate).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'), // DD/MM/YYYY format
+        total: latestTotalVisits,
+        individual: latestIndividualVisits,
+        repeat: latestRepeat,
+        interested: latestInterested,
+        notInterested: latestNotInterested,
+        reachedOut: latestReachedOut,
+        onboarded: latestOnboarded
       },
       latestLeads: formattedLeads
     }

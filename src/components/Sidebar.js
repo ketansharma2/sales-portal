@@ -80,7 +80,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   else if (currentRole === "fse") {
     menuItems = [
       { name: "My Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
-      { name: "My Leads", href: `${roleBaseHref}/leads`, icon: <Users size={20} /> },
+      { name: "My Leads", href: `${roleBaseHref}/lead`, icon: <Users size={20} /> },
       { name: "My Weekly Plan", href: `${roleBaseHref}/weekly-plan`, icon: <Calendar size={20} /> },
       { name: "My Expenses", href: `${roleBaseHref}/expenses`, icon: <Wallet size={20} /> },
     ];

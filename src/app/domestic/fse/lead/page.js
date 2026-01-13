@@ -21,6 +21,8 @@ export default function LeadsMasterPage() {
   const [isViewMode, setIsViewMode] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false); // Naya state
   const [isFullViewOpen, setIsFullViewOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const [totalLeads, setTotalLeads] = useState(0);
 
   // Filters State (Robust Initialization)
   const [filters, setFilters] = useState({ 
@@ -37,13 +39,13 @@ export default function LeadsMasterPage() {
   // Robust Dependency Array
   useEffect(() => {
     if (mounted) fetchLeads();
-  }, [mounted, filters.company, filters.category, filters.status, filters.locationSearch, filters.statusSearch, filters.projection]);
+  }, [mounted, filters.company, filters.category, filters.status, filters.locationSearch, filters.statusSearch, filters.projection, showAll]);
 
   const fetchLeads = async () => {
     try {
       setLoading(true);
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      
+
       // 1. Prepare Query Params for Real API (Good for robustness)
       const queryParams = new URLSearchParams();
       if (filters.company) queryParams.append('company', filters.company);
@@ -51,34 +53,41 @@ export default function LeadsMasterPage() {
       if (filters.locationSearch) queryParams.append('location', filters.locationSearch);
       if (filters.statusSearch) queryParams.append('status', filters.statusSearch);
       if (filters.projection) queryParams.append('projection', filters.projection);
+      const limit = showAll ? 10000 : 100;
+      queryParams.append('limit', limit);
 
-      // REAL API CALL EXAMPLE (Uncomment when ready):
-      // const response = await fetch(`/api/domestic/fse/clients?${queryParams.toString()}`, {
-      //   headers: { 'Authorization': `Bearer ${session.access_token}` }
-      // });
-      // const data = await response.json();
+      // REAL API CALL
+      const response = await fetch(`/api/domestic/fse/lead?${queryParams.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setLeads(data.data);
+        setTotalLeads(data.data.length); // This is the fetched count, not total
+      }
+      setLoading(false);
       
-      // 2. MOCK DATA LOGIC (Updated to respect filters)
-      setTimeout(() => {
-         const mockData = [
-             { sourcing_date: '2024-01-20', company: 'Tech Corp', category: 'IT', location: 'Noida', state: 'UP', client_type: 'Premium', remarks: 'Meeting was good, need to follow up next week.', status: 'Interested', sub_status: 'In Process', projection: 'MP > 50' },
-             { sourcing_date: '2024-01-22', company: 'Build Well', category: 'Real Estate', location: 'Gurgaon', state: 'Haryana', client_type: 'Standard', remarks: 'Not interested right now.', status: 'Not Interested', sub_status: 'Low Budget', projection: 'Not Projected' }
-         ];
+      // 2. MOCK DATA LOGIC (Commented out for real API)
+      // setTimeout(() => {
+      //    const mockData = [
+      //        { sourcing_date: '2024-01-20', company: 'Tech Corp', category: 'IT', location: 'Noida', state: 'UP', client_type: 'Premium', remarks: 'Meeting was good, need to follow up next week.', status: 'Interested', sub_status: 'In Process', projection: 'MP > 50' },
+      //        { sourcing_date: '2024-01-22', company: 'Build Well', category: 'Real Estate', location: 'Gurgaon', state: 'Haryana', client_type: 'Standard', remarks: 'Not interested right now.', status: 'Not Interested', sub_status: 'Low Budget', projection: 'Not Projected' }
+      //    ];
 
-         // Apply client-side filtering to the mock data
-         const filteredData = mockData.filter(lead => {
-            const matchCompany = lead.company.toLowerCase().includes(filters.company.toLowerCase());
-            const matchCategory = filters.category ? lead.category === filters.category : true;
-            const matchLocation = lead.location.toLowerCase().includes(filters.locationSearch.toLowerCase()) || lead.state.toLowerCase().includes(filters.locationSearch.toLowerCase());
-            const matchStatus = filters.statusSearch ? lead.status === filters.statusSearch : true;
-            const matchProjection = filters.projection ? lead.projection === filters.projection : true;
+      //    // Apply client-side filtering to the mock data
+      //    const filteredData = mockData.filter(lead => {
+      //       const matchCompany = lead.company.toLowerCase().includes(filters.company.toLowerCase());
+      //       const matchCategory = filters.category ? lead.category === filters.category : true;
+      //       const matchLocation = lead.location.toLowerCase().includes(filters.locationSearch.toLowerCase()) || lead.state.toLowerCase().includes(filters.locationSearch.toLowerCase());
+      //       const matchStatus = filters.statusSearch ? lead.status === filters.statusSearch : true;
+      //       const matchProjection = filters.projection ? lead.projection === filters.projection : true;
 
-            return matchCompany && matchCategory && matchLocation && matchStatus && matchProjection;
-         });
+      //       return matchCompany && matchCategory && matchLocation && matchStatus && matchProjection;
+      //    });
 
-         setLeads(filteredData);
-         setLoading(false);
-      }, 500);
+      //    setLeads(filteredData);
+      //    setLoading(false);
+      // }, 500);
 
     } catch (err) {
       setError('Failed to load leads');
@@ -86,30 +95,64 @@ export default function LeadsMasterPage() {
     }
   };
 
-  const saveLead = async (formData) => {
+  const saveLead = async (formData, openFollowup = false) => {
     try {
       setSaving(true);
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const isEdit = !!formData.client_id;
-      
-      const response = await fetch('/api/domestic/fse/clients', {
+
+      const response = await fetch('/api/domestic/fse/lead', {
         method: isEdit ? 'PUT' : 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}` 
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify(formData)
       });
 
       const data = await response.json();
       if (data.success) {
-        alert('Client record updated successfully');
+        alert(isEdit ? 'Client record updated successfully' : 'Client record created successfully');
         fetchLeads();
-        setIsModalOpen(false);
+        if (openFollowup) {
+          setSelectedLead(data.data);
+          setIsFollowUpModalOpen(true);
+          setIsModalOpen(false);
+        } else if (isEdit) {
+          setIsEditModalOpen(false);
+        } else {
+          setIsModalOpen(false);
+        }
+      }
+    } catch (err) {
+      alert('Error saving data');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveInteraction = async (formData) => {
+    try {
+      setSaving(true);
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+
+      const response = await fetch('/api/domestic/fse/lead/interaction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('Interaction record created successfully');
+        fetchLeads(); // refresh to update latest interaction
         setIsFollowUpModalOpen(false);
       }
     } catch (err) {
-      // alert('Error saving data'); // Silent fail or toast is better
+      alert('Error saving interaction');
     } finally {
       setSaving(false);
     }
@@ -223,43 +266,43 @@ export default function LeadsMasterPage() {
   
   {/* LEVEL 1 HEADER */}
   <tr className="bg-[#103c7f]/95 border-b border-white/10 backdrop-blur-sm">
-    <th colSpan="3" className="px-4 py-2 text-center border-r border-white/10 bg-[#103c7f]">
+    <th colSpan="3" className=" py-2 text-center border-r border-white/10 bg-[#103c7f]">
       Basic Information
     </th>
-    <th colSpan="5" className="px-4 py-2 text-center border-r border-white/10 bg-[#103c7f]">
+    <th colSpan="5" className=" py-2 text-center border-r border-white/10 bg-[#103c7f]">
       Latest Interaction
     </th>
-    <th rowSpan="2" className="px-4 py-5 text-center bg-[#103c7f] min-w-[140px] sticky right-0 z-20 shadow-[-5px_0px_10px_rgba(0,0,0,0.05)]">
+    <th rowSpan="2" className=" py-5 text-center bg-[#103c7f] min-w-[140px] sticky right-0 z-20 shadow-[-5px_0px_10px_rgba(0,0,0,0.05)]">
       Action
     </th>
   </tr>
 
   {/* LEVEL 2 HEADER - Added min-w to ALL columns */}
   <tr className="bg-[#103c7f]">
-    <th className="px-4 py-4 text-center border-r border-white/5 whitespace-nowrap min-w-[10px]">
+    <th className="py-4 text-center border-r border-white/5 whitespace-nowrap">
       Sourcing Date
     </th>
-    <th className="px-4 py-4 text-center border-r border-white/5 whitespace-nowrap min-w-[100px]">
+    <th className=" py-4 text-center border-r border-white/5 whitespace-nowrap ">
       Company & Category
     </th>
-    <th className="px-4 py-4 text-center border-r border-white/10 whitespace-nowrap min-w-[100px]">
+    <th className=" py-4 text-center border-r border-white/10 whitespace-nowrap ">
       Location & State
     </th>
     
-    <th className="px-4 py-4 text-center border-r border-white/5 bg-[#0d2e63] whitespace-nowrap min-w-[150px]">
+    <th className=" py-4 text-center border-r border-white/5 bg-[#0d2e63] whitespace-nowrap ">
       Followup Date
     </th>
     {/* Remarks already had 500px, kept it same */}
-    <th className="px-4 py-4 text-center border-r border-white/5 bg-[#0d2e63] min-w-[500px]">
+    <th className="px-2 py-4 text-center border-r border-white/5 bg-[#0d2e63] ">
       Latest Remarks
     </th>
-    <th className="px-4 py-4 text-center border-r border-white/5 bg-[#0d2e63] whitespace-nowrap min-w-[100px]">
+    <th className="px-2 py-4 text-center border-r border-white/5 bg-[#0d2e63] whitespace-nowrap ">
       Next Followup
     </th>
-    <th className="px-4 py-4 text-center border-r border-white/5 bg-[#0d2e63] whitespace-nowrap min-w-[150px]">
+    <th className="py-4 text-center border-r border-white/5 bg-[#0d2e63] whitespace-nowrap">
       Status & Sub-status
     </th>
-    <th className="px-4 py-4 text-center border-r border-white/10 bg-[#0d2e63] whitespace-nowrap min-w-[150px]">
+    <th className="py-4 text-center border-r border-white/10 bg-[#0d2e63] whitespace-nowrap ">
       Projection
     </th>
   </tr>
@@ -283,16 +326,16 @@ export default function LeadsMasterPage() {
                   <tr key={idx} className="hover:bg-blue-50/50 transition-colors group">
                     
                     {/* Sourcing Date */}
-                    <td className="px-6 py-4 text-gray-500 font-medium whitespace-nowrap">
+                    <td className="text-center py-4 text-gray-500 font-medium whitespace-nowrap">
                       {lead.sourcing_date}
                     </td>
 
                     {/* Company & Category */}
-                    <td className="px-6 py-4 border-r border-gray-50">
+                    <td className="px-2 py-4 border-r border-gray-50">
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
                           <span className="font-black text-[#103c7f] text-sm uppercase italic leading-tight">
-                            {lead.company}
+                            {lead.company_name}
                           </span>
                           <Star 
                             size={14} 
@@ -308,29 +351,29 @@ export default function LeadsMasterPage() {
                     </td>
 
                     {/* Location */}
-                    <td className="px-6 py-4 font-semibold text-gray-600 border-r border-gray-50 whitespace-nowrap">
+                    <td className="px-2 py-4 font-semibold text-gray-600 border-r border-gray-50 max-w-[50px] truncate" title={`${lead.location}, ${lead.state}`}>
                       {lead.location}, {lead.state}
                     </td>
 
                     {/* Followup Date */}
-                    <td className="px-6 py-4 text-gray-500 font-bold italic whitespace-nowrap">
+                    <td className="px-2 text-center py-4 text-gray-500 font-bold italic whitespace-nowrap">
                       {lead.latest_contact_date || '--'}
                     </td>
 
                     {/* WIDE REMARKS BODY */}
-                    <td className="px-6 py-4 min-w-[500px]">
+                    <td className="px-2 py-4 ">
                       <p className="whitespace-normal text-gray-400 italic font-medium leading-relaxed" title={lead.remarks}>
                         {lead.remarks || 'No remarks yet'}
                       </p>
                     </td>
 
                     {/* Next Followup */}
-                    <td className="px-6 py-4 font-black text-orange-600 italic whitespace-nowrap">
+                    <td className="text-center py-4 font-black text-orange-600 italic whitespace-nowrap">
                       {lead.next_follow_up || '--'}
                     </td>
 
                     {/* Status */}
-                    <td className="px-6 py-4">
+                    <td className=" text-center py-4">
                       <div className="flex flex-col">
                         <span className="font-black text-[#103c7f] uppercase text-[10px]">
                           {lead.status || 'No Status'}
@@ -342,7 +385,7 @@ export default function LeadsMasterPage() {
                     </td>
 
                     {/* Projection */}
-                    <td className="px-6 py-4">
+                    <td className="text-center py-4">
                       <span className="px-2 py-1 bg-blue-50 text-[#103c7f] rounded font-black text-[9px] uppercase border border-blue-100 whitespace-nowrap">
                         {lead.projection || 'N/A'}
                       </span>
@@ -384,6 +427,22 @@ export default function LeadsMasterPage() {
                 ))
               )}
             </tbody>
+
+            {/* VIEW MORE BUTTON INSIDE TABLE */}
+            {!showAll && totalLeads > 0 && (
+              <tfoot>
+                <tr>
+                  <td colSpan="9" className="text-center py-4">
+                    <button
+                      onClick={() => setShowAll(true)}
+                      className="bg-[#103c7f] text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-900 transition-all shadow-xl shadow-blue-900/20 uppercase italic text-xs active:scale-95"
+                    >
+                      View All
+                    </button>
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
@@ -402,10 +461,10 @@ export default function LeadsMasterPage() {
 
       {/* DEDICATED FOLLOW-UP MODAL */}
       {isFollowUpModalOpen && (
-        <FollowUpModal 
-          lead={selectedLead} 
+        <FollowUpModal
+          lead={selectedLead}
           onClose={() => setIsFollowUpModalOpen(false)}
-          onSave={saveLead}
+          onSave={saveInteraction}
           saving={saving}
           statusList={dropdowns.statusList}
         />
@@ -443,12 +502,12 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
     setFormData({
       client_id: lead?.client_id || null,
       sourcing_date: lead?.sourcing_date || new Date().toISOString().split('T')[0],
-      company: lead?.company || '',
+      company: lead?.company_name || '',
       client_type: lead?.client_type || 'Standard',
       category: lead?.category || '',
       state: lead?.state || '',
       location: lead?.location || '',
-      employee_count: lead?.employee_count || '',
+      employee_count: lead?.emp_count || '',
       reference: lead?.reference || '',
       contact_mode: lead?.contact_mode || 'Visit'
     });
@@ -472,7 +531,7 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
               </span>
               {(isEditing || isViewMode) && (
                 <span className="text-[10px] text-gray-400 tracking-widest mt-0.5">
-                  Target: <span className="text-orange-600 font-bold">{formData.company}</span>
+                  Target: <span className="text-orange-600 font-bold">{lead?.company_name}</span>
                 </span>
               )}
             </h2>
@@ -531,6 +590,7 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
                   <button key={m} type="button" disabled={isViewMode} onClick={() => updateField('contact_mode', m)} className={`flex-1 py-2 rounded-lg font-black text-[10px] uppercase transition ${formData.contact_mode === m ? 'bg-[#103c7f] text-white shadow-md' : 'text-gray-400'} disabled:opacity-60 disabled:cursor-not-allowed`}>{m}</button>
                 ))}
               </div>
+      
             </div>
 
             <div className="space-y-1">
@@ -592,7 +652,7 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
 
 function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
   const [formData, setFormData] = useState({
-    ...lead, 
+    ...lead,
     contact_person: lead?.contact_person || '',
     contact_no: lead?.contact_no || '',
     email: lead?.email || '',
@@ -605,11 +665,35 @@ function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
     projection: lead?.projection || ''
   });
 
+  const [suggestions, setSuggestions] = useState({ persons: [], nos: [], emails: [] });
+
   const subStatusList = ["Blue Collar", "Call Back", "In Process", "Low Budget", "Proposal Shared", "Ready to Sign"];
   const projectionList = ["WP > 50", "WP < 50", "MP > 50", "MP < 50", "Not Projected"];
 
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (!lead?.client_id) return;
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const response = await fetch(`/api/domestic/fse/lead/interaction?client_id=${lead.client_id}`, {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          const persons = [...new Set(data.data.map(i => i.contact_person).filter(Boolean))];
+          const nos = [...new Set(data.data.map(i => i.contact_no).filter(Boolean))];
+          const emails = [...new Set(data.data.map(i => i.email).filter(Boolean))];
+          setSuggestions({ persons, nos, emails });
+        }
+      } catch (err) {
+        console.error('Failed to fetch suggestions');
+      }
+    };
+    fetchSuggestions();
+  }, [lead]);
+
   const updateField = (f, v) => setFormData(p => ({ ...p, [f]: v }));
-  
+
   // Consistent Styling
   const inputStyle = `w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-800 outline-none focus:ring-2 focus:ring-[#103c7f]/20 transition shadow-sm`;
 
@@ -624,7 +708,7 @@ function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
               <HistoryIcon size={22} strokeWidth={2.5} /> Interaction Details
             </h2>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1 ml-1">
-              Logging for: <span className="text-orange-600">{lead?.company}</span>
+              Logging for: <span className="text-orange-600">{lead?.company_name}</span>
             </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-red-50 hover:text-red-500 transition rounded-full text-gray-400"><X size={24}/></button>
@@ -637,19 +721,28 @@ function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
             {/* 1. Contact Person */}
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Contact Person</label>
-              <input type="text" value={formData.contact_person} onChange={e => updateField('contact_person', e.target.value)} className={inputStyle} placeholder="Name..." />
+              <input type="text" value={formData.contact_person} onChange={e => updateField('contact_person', e.target.value)} className={inputStyle} placeholder="Name..." list="persons" />
+              <datalist id="persons">
+                {suggestions.persons.map(p => <option key={p} value={p} />)}
+              </datalist>
             </div>
 
             {/* 2. Contact No */}
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Contact No.</label>
-              <input type="tel" value={formData.contact_no} onChange={e => updateField('contact_no', e.target.value)} className={inputStyle} placeholder="10 digit..." />
+              <input type="tel" value={formData.contact_no} onChange={e => updateField('contact_no', e.target.value)} className={inputStyle} placeholder="10 digit..." list="nos" />
+              <datalist id="nos">
+                {suggestions.nos.map(n => <option key={n} value={n} />)}
+              </datalist>
             </div>
 
             {/* 3. Email */}
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
-              <input type="email" value={formData.email} onChange={e => updateField('email', e.target.value)} className={inputStyle} placeholder="client@email.com" />
+              <input type="email" value={formData.email} onChange={e => updateField('email', e.target.value)} className={inputStyle} placeholder="client@email.com" list="emails" />
+              <datalist id="emails">
+                {suggestions.emails.map(e => <option key={e} value={e} />)}
+              </datalist>
             </div>
 
             {/* 4. Interaction Mode */}
@@ -758,12 +851,12 @@ function EditLeadModal({ lead, onUpdate, onClose, saving, ...lists }) {
   const [formData, setFormData] = useState({
     client_id: lead?.client_id || null,
     sourcing_date: lead?.sourcing_date || '',
-    company: lead?.company || '',
+    company: lead?.company_name || '',
     client_type: lead?.client_type || 'Standard',
     category: lead?.category || '',
     state: lead?.state || '',
     location: lead?.location || '',
-    employee_count: lead?.employee_count || '',
+    employee_count: lead?.emp_count || '',
     reference: lead?.reference || '',
     contact_mode: lead?.contact_mode || 'Visit'
   });
@@ -784,7 +877,7 @@ function EditLeadModal({ lead, onUpdate, onClose, saving, ...lists }) {
               Update Client Record
             </h2>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1 ml-1">
-              Editing: <span className="text-orange-600">{lead?.company}</span>
+              Editing: <span className="text-orange-600">{lead?.company_name}</span>
             </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-red-50 hover:text-red-500 transition rounded-full text-gray-400"><X size={24}/></button>
@@ -887,96 +980,35 @@ function EditLeadModal({ lead, onUpdate, onClose, saving, ...lists }) {
 }
 
 function ClientFullViewModal({ lead, onClose }) {
-  // Mock History Data (10 Entries for testing scroll)
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setHistory([
-        {
-          id: 1,
-          contact_person: 'Rajesh Kumar',
-          contact_no: '9876543210',
-          email: 'rajesh@techcorp.com',
-          mode: 'Call',
-          date: '2024-01-20',
-          remarks: 'Discussed the premium plan. Client is interested but needs approval from the finance department. Asked to share the revised proposal.',
-          next_follow_up: '2024-01-24',
-          status: 'Interested',
-          sub_status: 'Proposal Shared',
-          projection: 'MP > 50'
-        },
-        {
-          id: 2,
-          contact_person: 'Anita Singh',
-          contact_no: '8877665544',
-          email: 'anita.hr@techcorp.com',
-          mode: 'Visit',
-          date: '2024-01-18',
-          remarks: 'Visited their Noida office. Met with the HR team. They have a requirement for 50+ candidates next month. Demo went well.',
-          next_follow_up: '2024-01-22',
-          status: 'Interested',
-          sub_status: 'In Process',
-          projection: 'WP > 50'
-        },
-        {
-          id: 3,
-          contact_person: 'Vikram Malhotra',
-          contact_no: '9988776655',
-          email: 'vikram.m@techcorp.com',
-          mode: 'Call',
-          date: '2024-01-15',
-          remarks: 'Client mentioned budget constraints. They are looking for a cheaper alternative. Tried to convince on value proposition.',
-          next_follow_up: '2024-02-01',
-          status: 'Not Interested',
-          sub_status: 'Low Budget',
-          projection: 'MP < 50'
-        },
-        {
-          id: 4,
-          contact_person: 'Reception / Front Desk',
-          contact_no: '011-4567890',
-          email: 'info@techcorp.com',
-          mode: 'Call',
-          date: '2024-01-10',
-          remarks: 'Tried connecting with the decision maker but he was in a meeting. Left a message to call back.',
-          next_follow_up: '2024-01-11',
-          status: 'Reached Out',
-          sub_status: 'Call Back',
-          projection: 'Not Projected'
-        },
-        {
-          id: 5,
-          contact_person: 'Suresh Raina',
-          contact_no: '9123456789',
-          email: 'suresh@techcorp.com',
-          mode: 'Visit',
-          date: '2024-01-05',
-          remarks: 'Casual meeting. They are currently using a competitor service but are unhappy. Good chance to convert in Q2.',
-          next_follow_up: '2024-01-20',
-          status: 'Interested',
-          sub_status: 'Blue Collar',
-          projection: 'MP > 50'
-        },
-        {
-          id: 6,
-          contact_person: 'Pooja Bedi',
-          contact_no: '7890123456',
-          email: 'pooja.b@techcorp.com',
-          mode: 'Call',
-          date: '2023-12-28',
-          remarks: 'Follow-up on the email sent last week. She acknowledged receipt but hasn\'t reviewed it yet due to holidays.',
-          next_follow_up: '2024-01-05',
-          status: 'Reached Out',
-          sub_status: 'In Process',
-          projection: 'WP < 50'
-        },
-        // ... more data if needed
-      ]);
-      setLoading(false);
-    }, 500);
+    const fetchInteractions = async () => {
+      if (!lead?.client_id) {
+        setHistory([]);
+        setLoading(false);
+        return;
+      }
+      try {
+        setLoading(true);
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const response = await fetch(`/api/domestic/fse/lead/interaction?client_id=${lead.client_id}`, {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setHistory(data.data);
+        } else {
+          setHistory([]);
+        }
+      } catch (err) {
+        setHistory([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInteractions();
   }, [lead]);
 
   // Helper for Compact Basic Info
@@ -1005,7 +1037,7 @@ function ClientFullViewModal({ lead, onClose }) {
               </div>
               <div>
                 <h2 className="text-2xl font-black text-[#103c7f] uppercase italic tracking-tight leading-none">
-                  {lead?.company}
+                  {lead?.company_name}
                 </h2>
                 <div className="flex items-center gap-2 mt-1.5">
                   <span className="flex items-center gap-1 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
@@ -1032,8 +1064,8 @@ function ClientFullViewModal({ lead, onClose }) {
           <div className="flex flex-wrap gap-3">
             <StatCard label="Sourcing Date" value={lead?.sourcing_date} icon={Calendar} />
             <StatCard label="Category" value={lead?.category} icon={Zap} />
-            <StatCard label="Sourcing Mode" value={lead?.contact_mode} icon={Phone} />
-            <StatCard label="Emp Count" value={lead?.employee_count} icon={User} />
+            <StatCard label="Sourcing Mode" value={lead?.sourcing_mode} icon={Phone} />
+            <StatCard label="Emp Count" value={lead?.emp_count} icon={User} />
             <StatCard label="Reference" value={lead?.reference} icon={MessageSquarePlus} />
             <StatCard label="Current Status" value={lead?.status} icon={CheckCircle} colorClass="bg-green-50 text-green-600"/>
           </div>
@@ -1076,13 +1108,13 @@ function ClientFullViewModal({ lead, onClose }) {
                     <tr><td colSpan="6" className="p-10 text-center text-gray-400 font-bold italic">No history available</td></tr>
                   ) : (
                     history.map((item) => (
-                      <tr key={item.id} className="hover:bg-blue-50/30 transition group">
+                      <tr key={item.interaction_id} className="hover:bg-blue-50/30 transition group">
                         
                         <td className="px-4 py-4 align-top">
                           <div className="flex flex-col gap-1">
-                            <span className="font-bold text-[#103c7f] text-sm">{item.date}</span>
-                            <span className={`w-fit px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wide border ${item.mode === 'Visit' ? 'bg-purple-50 text-purple-600 border-purple-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                              {item.mode}
+                            <span className="font-bold text-[#103c7f] text-sm">{item.contact_date}</span>
+                            <span className={`w-fit px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wide border ${item.contact_mode === 'Visit' ? 'bg-purple-50 text-purple-600 border-purple-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
+                              {item.contact_mode}
                             </span>
                           </div>
                         </td>
