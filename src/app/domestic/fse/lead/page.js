@@ -30,8 +30,12 @@ export default function LeadsMasterPage() {
     category: '', 
     locationSearch: '', 
     statusSearch: '', 
+    subStatusSearch: '',
     projection: '',
-    status: '' 
+    status: '' ,
+    clientType: '',
+    fromDate: '', // New
+    toDate: ''    // New
   });
 
   useEffect(() => { setMounted(true); }, []);
@@ -39,7 +43,7 @@ export default function LeadsMasterPage() {
   // Robust Dependency Array
   useEffect(() => {
     if (mounted) fetchLeads();
-  }, [mounted, filters.company, filters.category, filters.status, filters.locationSearch, filters.statusSearch, filters.projection, showAll]);
+  }, [mounted, filters.company, filters.category, filters.status, filters.locationSearch, filters.statusSearch, filters.projection, filters.fromDate, filters.toDate,showAll]);
 
   const fetchLeads = async () => {
     try {
@@ -53,6 +57,12 @@ export default function LeadsMasterPage() {
       if (filters.locationSearch) queryParams.append('location', filters.locationSearch);
       if (filters.statusSearch) queryParams.append('status', filters.statusSearch);
       if (filters.projection) queryParams.append('projection', filters.projection);
+      if (filters.subStatusSearch) queryParams.append('sub_status', filters.subStatusSearch);
+      if (filters.clientType) queryParams.append('client_type', filters.clientType);
+      
+      // 👇 DATE FILTERS (Agar pehle miss ho gaye the toh ye bhi zaroori hain)
+      if (filters.fromDate) queryParams.append('fromDate', filters.fromDate);
+      if (filters.toDate) queryParams.append('toDate', filters.toDate);
       const limit = showAll ? 10000 : 100;
       queryParams.append('limit', limit);
 
@@ -174,24 +184,75 @@ export default function LeadsMasterPage() {
     <div className="w-full h-[100dvh] flex flex-col overflow-hidden font-['Calibri'] p-3 md:p-6 bg-[#f8fafc]">
       
       {/* HEADER - Stacked on Mobile, Row on Desktop */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-4 shrink-0 gap-4">
-        <div className="text-center md:text-left">
-          <h1 className="text-2xl md:text-3xl font-black text-[#103c7f] uppercase italic tracking-tight">Leads Master Database</h1>
+      {/* HEADER */}
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-2 gap-4">
+        
+        {/* LEFT: TITLE & COUNT */}
+        <div className="flex flex-col md:flex-row items-center gap-3 shrink-0">
+          <h1 className="text-2xl md:text-3xl font-black text-[#103c7f] uppercase italic tracking-tight whitespace-nowrap">
+            Leads Master Database
+          </h1>
+          
+          {/* 👇 NEW: ROW COUNTER BADGE */}
+          <span className="bg-blue-50 border border-blue-100 text-[#103c7f] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
+            {totalLeads} Records Found
+          </span>
         </div>
-        <button 
-          onClick={() => { setSelectedLead(null); setIsViewMode(false); setIsModalOpen(true); }}
-          className="bg-[#103c7f] text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-900 transition-all shadow-xl shadow-blue-900/20 uppercase italic text-xs active:scale-95"
-        >
-          <Plus size={18} strokeWidth={3} /> Add New Client
-        </button>
+
+        {/* RIGHT: FILTERS & BUTTON GROUP */}
+        <div className="flex flex-col md:flex-row items-center gap-3">
+          
+          {/* COMPACT DATE RANGE PICKER */}
+          <div className="flex items-center bg-white px-2 py-1.5 rounded-2xl border border-gray-200 shadow-sm gap-2">
+            
+            <div className="relative">
+              <input 
+                type="date" 
+                value={filters.fromDate}
+                onChange={(e) => setFilters({...filters, fromDate: e.target.value})}
+                className="w-[110px] px-2 py-1 bg-gray-50 rounded-lg text-[10px] font-bold text-[#103c7f] uppercase outline-none focus:ring-1 focus:ring-blue-100 cursor-pointer"
+              />
+            </div>
+
+            <span className="text-gray-300 font-bold text-xs">-</span>
+
+            <div className="relative">
+              <input 
+                type="date" 
+                value={filters.toDate}
+                onChange={(e) => setFilters({...filters, toDate: e.target.value})}
+                className="w-[110px] px-2 py-1 bg-gray-50 rounded-lg text-[10px] font-bold text-[#103c7f] uppercase outline-none focus:ring-1 focus:ring-blue-100 cursor-pointer"
+              />
+            </div>
+
+            {(filters.fromDate || filters.toDate) && (
+              <button 
+                onClick={() => setFilters({...filters, fromDate: '', toDate: ''})}
+                className="p-1 hover:bg-red-50 text-red-400 rounded-full transition"
+                title="Clear Dates"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* ADD BUTTON */}
+          <button 
+            onClick={() => { setSelectedLead(null); setIsViewMode(false); setIsModalOpen(true); }}
+            className="bg-[#103c7f] text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-900 transition-all shadow-xl shadow-blue-900/20 uppercase italic text-xs active:scale-95 whitespace-nowrap"
+          >
+            <Plus size={18} strokeWidth={3} /> Add New Client
+          </button>
+        </div>
       </div>
 
       {/* FILTER BAR */}
-      <div className="bg-white p-4 rounded-[1.5rem] border border-gray-100 shadow-sm mb-4 w-full shrink-0 overflow-x-auto custom-scrollbar">
+      <div className="bg-white p-4 rounded-[1.5rem] border border-gray-100 shadow-sm mb-2 w-full shrink-0 overflow-x-auto custom-scrollbar">
         <div className="grid grid-cols-12 gap-2 items-center min-w-[850px]">
           
           {/* 1. COMPANY */}
-          <div className="col-span-3 relative">
+          <div className="col-span-2 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
             <input 
               type="text" 
@@ -203,7 +264,7 @@ export default function LeadsMasterPage() {
           </div>
 
           {/* 2. CATEGORY */}
-          <div className="col-span-2">
+          <div className="col-span-1">
             <select 
               value={filters.category || ''} 
               onChange={(e) => setFilters({...filters, category: e.target.value})}
@@ -215,7 +276,7 @@ export default function LeadsMasterPage() {
           </div>
 
           {/* 3. LOCATION */}
-          <div className="col-span-3 relative">
+          <div className="col-span-2 relative">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
             <input 
               type="text" 
@@ -237,14 +298,37 @@ export default function LeadsMasterPage() {
               <optgroup label="MAIN STATUS" className="text-[#103c7f]">
                 {dropdowns.statusList.map(s => <option key={s} value={s}>{s}</option>)}
               </optgroup>
-              <optgroup label="SUB-STATUS" className="text-orange-600">
+              {/* <optgroup label="SUB-STATUS" className="text-orange-600">
                 {dropdowns.subStatusList.map(ss => <option key={ss} value={ss}>{ss}</option>)}
-              </optgroup>
+              </optgroup> */}
+            </select>
+          </div>
+
+          <div className="col-span-2">
+            <select 
+              value={filters.subStatusSearch || ''} 
+              onChange={(e) => setFilters({...filters, subStatusSearch: e.target.value})} 
+              className="w-full px-3 py-2.5 bg-gray-50/50 border border-gray-100 rounded-xl text-[10px] font-bold text-[#103c7f] uppercase outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer appearance-none"
+            >
+              <option value="">SUB-STATUS</option>
+              {dropdowns.subStatusList.map(ss => <option key={ss} value={ss}>{ss}</option>)}
+            </select>
+          </div>
+
+          <div className="col-span-2">
+            <select 
+              value={filters.clientType || ''} 
+              onChange={(e) => setFilters({...filters, clientType: e.target.value})} 
+              className="w-full px-3 py-2.5 bg-gray-50/50 border border-gray-100 rounded-xl text-[10px] font-bold text-[#103c7f] uppercase outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer appearance-none"
+            >
+              <option value="">CLIENT TYPE</option>
+              <option value="Standard">STANDARD</option>
+              <option value="Premium">PREMIUM</option>
             </select>
           </div>
 
           {/* 5. PROJECTION */}
-          <div className="col-span-2">
+          <div className="col-span-1">
             <select 
               value={filters.projection || ''} 
               onChange={(e) => setFilters({...filters, projection: e.target.value})}
@@ -259,168 +343,167 @@ export default function LeadsMasterPage() {
       </div>
 
       {/* TABLE AREA - Flex-1 ensures it takes remaining height */}
-      <div className="bg-white border border-gray-100 rounded-[2rem] flex-1 overflow-hidden shadow-sm relative z-0 flex flex-col">
-        <div className="w-full h-full overflow-auto no-scrollbar">
-          <table className="min-w-[2200px] text-[12px] border-collapse">      
-           <thead className="sticky top-0 z-10 font-black uppercase tracking-widest text-[10px] text-white">
-  
-  {/* LEVEL 1 HEADER */}
-  <tr className="bg-[#103c7f]/95 border-b border-white/10 backdrop-blur-sm">
-    <th colSpan="3" className=" py-2 text-center border-r border-white/10 bg-[#103c7f]">
-      Basic Information
-    </th>
-    <th colSpan="5" className=" py-2 text-center border-r border-white/10 bg-[#103c7f]">
-      Latest Interaction
-    </th>
-    <th rowSpan="2" className=" py-5 text-center bg-[#103c7f] min-w-[140px] sticky right-0 z-20 shadow-[-5px_0px_10px_rgba(0,0,0,0.05)]">
-      Action
-    </th>
-  </tr>
+     {/* TABLE AREA - Compact, Clean, Scrollable */}
+      <div className="bg-white border border-gray-100 rounded-[1.5rem] flex-1 overflow-hidden shadow-sm relative z-0 flex flex-col mt-1">
+        <div className="w-full h-full overflow-auto custom-scrollbar">
+          <table className="min-w-max text-left text-xs border-collapse relative">      
+            
+            {/* STICKY HEADER */}
+            <thead className="sticky top-0 z-20 bg-[#103c7f] text-white font-bold uppercase tracking-widest text-[10px] shadow-md">
+              
+              {/* Level 1: Group Headers */}
+              <tr className="border-b border-white/10">
+                <th colSpan="3" className="px-4 py-2 text-center border-r border-white/10 bg-[#0d3269]">
+                  Basic Information
+                </th>
+                <th colSpan="5" className="px-4 py-2 text-center border-r border-white/10 bg-[#0d3269]">
+                  Latest Interaction
+                </th>
+                <th rowSpan="2" className="px-4 py-2 text-center bg-[#103c7f] min-w-[130px] sticky right-0 z-30 shadow-[-4px_0_10px_rgba(0,0,0,0.1)]">
+                  Action
+                </th>
+              </tr>
 
-  {/* LEVEL 2 HEADER - Added min-w to ALL columns */}
-  <tr className="bg-[#103c7f]">
-    <th className="py-4 text-center border-r border-white/5 whitespace-nowrap">
-      Sourcing Date
-    </th>
-    <th className=" py-4 text-center border-r border-white/5 whitespace-nowrap ">
-      Company & Category
-    </th>
-    <th className=" py-4 text-center border-r border-white/10 whitespace-nowrap ">
-      Location & State
-    </th>
-    
-    <th className=" py-4 text-center border-r border-white/5 bg-[#0d2e63] whitespace-nowrap ">
-      Followup Date
-    </th>
-    {/* Remarks already had 500px, kept it same */}
-    <th className="px-2 py-4 text-center border-r border-white/5 bg-[#0d2e63] ">
-      Latest Remarks
-    </th>
-    <th className="px-2 py-4 text-center border-r border-white/5 bg-[#0d2e63] whitespace-nowrap ">
-      Next Followup
-    </th>
-    <th className="py-4 text-center border-r border-white/5 bg-[#0d2e63] whitespace-nowrap">
-      Status & Sub-status
-    </th>
-    <th className="py-4 text-center border-r border-white/10 bg-[#0d2e63] whitespace-nowrap ">
-      Projection
-    </th>
-  </tr>
-</thead>
+              {/* Level 2: Column Headers */}
+              <tr>
+                <th className="px-4 py-3 border-r border-white/10 min-w-[100px] whitespace-nowrap">Sourcing Date</th>
+                <th className="px-4 py-3 border-r border-white/10 min-w-[220px]">Company & Category</th>
+                <th className="px-4 py-3 border-r border-white/10 min-w-[160px]">Location & State</th>
+                
+                <th className="px-4 py-3 border-r border-white/10 min-w-[120px] bg-[#15468f] whitespace-nowrap">Followup Date</th>
+                {/* REMARKS: Wider width */}
+                <th className="px-4 py-3 border-r border-white/10 min-w-[350px] bg-[#15468f]">Latest Remarks</th>
+                <th className="px-4 py-3 border-r border-white/10 min-w-[120px] bg-[#15468f] whitespace-nowrap">Next Followup</th>
+                <th className="px-4 py-3 border-r border-white/10 min-w-[160px] bg-[#15468f]">Status & Sub-status</th>
+                <th className="px-4 py-3 border-r border-white/10 min-w-[120px] bg-[#15468f]">Projection</th>
+              </tr>
+            </thead>
 
-            <tbody className="divide-y divide-gray-50">
+            {/* TABLE BODY */}
+            <tbody className="divide-y divide-gray-100 bg-white">
               {loading ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-20">
-                    <Loader2 className="animate-spin mx-auto text-[#103c7f]" size={40}/>
+                  <td colSpan="9" className="py-20 text-center">
+                    <Loader2 className="animate-spin mx-auto text-[#103c7f] opacity-50" size={32}/>
+                    <p className="mt-2 text-xs font-bold text-gray-400 uppercase tracking-widest">Loading Records...</p>
                   </td>
                 </tr>
               ) : leads.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-20 text-gray-400 font-bold uppercase italic">
+                  <td colSpan="9" className="py-24 text-center text-gray-400 font-bold uppercase italic tracking-wider bg-gray-50/30">
                     No records found
                   </td>
                 </tr>
               ) : (
                 leads.map((lead, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50/50 transition-colors group">
+                  <tr key={idx} className="hover:bg-blue-50/40 transition-colors duration-150 group border-b border-gray-100 last:border-0">
                     
                     {/* Sourcing Date */}
-                    <td className="text-center py-4 text-gray-500 font-medium whitespace-nowrap">
+                    <td className="px-4 py-2.5 text-gray-600 font-semibold whitespace-nowrap text-[11px]">
                       {lead.sourcing_date}
                     </td>
 
                     {/* Company & Category */}
-                    <td className="px-2 py-4 border-r border-gray-50">
-                      <div className="flex flex-col">
+                    <td className="px-4 py-2.5 ">
+                      <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-2">
-                          <span className="font-black text-[#103c7f] text-sm uppercase italic leading-tight">
+                          <span className="font-black text-[#103c7f] text-sm uppercase tracking-tight truncate max-w-[180px]" title={lead.company_name}>
                             {lead.company_name}
                           </span>
+                          {/* LOGIC UNCHANGED FOR STARS */}
                           <Star 
                             size={14} 
                             strokeWidth={lead.client_type === 'Premium' ? 0 : 2.5}
                             fill={lead.client_type === 'Premium' ? '#EAB308' : '#3B82F6'} 
-                            className={lead.client_type === 'Premium' ? 'text-yellow-500' : 'text-blue-500'} 
+                            className={lead.client_type === 'Premium' ? 'text-yellow-500 shrink-0' : 'text-blue-500 shrink-0'} 
                           />
                         </div>
-                        <span className="text-gray-400 font-bold uppercase text-[9px] tracking-widest mt-1">
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
                           {lead.category || 'NO CATEGORY'}
                         </span>
                       </div>
                     </td>
 
                     {/* Location */}
-                    <td className="px-2 py-4 font-semibold text-gray-600 border-r border-gray-50 max-w-[50px] truncate" title={`${lead.location}, ${lead.state}`}>
-                      {lead.location}, {lead.state}
+                    <td className="px-4 py-2.5 text-gray-700 font-medium ">
+                      <div className="flex items-center gap-1.5">
+                        <MapPin size={11} className="text-gray-400"/>
+                        <span className="truncate max-w-[140px] text-[11px]" title={`${lead.location}, ${lead.state}`}>
+                          {lead.location}, {lead.state}
+                        </span>
+                      </div>
                     </td>
 
                     {/* Followup Date */}
-                    <td className="px-2 text-center py-4 text-gray-500 font-bold italic whitespace-nowrap">
+                    <td className="px-4 py-2.5 text-gray-500 font-semibold italic whitespace-nowrap text-[11px]">
                       {lead.latest_contact_date || '--'}
                     </td>
 
-                    {/* WIDE REMARKS BODY */}
-                    <td className="px-2 py-4 ">
-                      <p className="whitespace-normal text-gray-400 italic font-medium leading-relaxed" title={lead.remarks}>
-                        {lead.remarks || 'No remarks yet'}
+                    {/* REMARKS: Handling Long Text with line-clamp */}
+                    <td className="px-4 py-2.5 min-w-[350px]">
+                      <p className="text-gray-600 text-[11px] font-medium leading-snug line-clamp-2 hover:line-clamp-none transition-all cursor-default" title={lead.remarks}>
+                        {lead.remarks || <span className="text-gray-300 italic">No remarks available</span>}
                       </p>
                     </td>
 
                     {/* Next Followup */}
-                    <td className="text-center py-4 font-black text-orange-600 italic whitespace-nowrap">
-                      {lead.next_follow_up || '--'}
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      {lead.next_follow_up ? (
+                        <span className="text-orange-600 bg-orange-50 px-2 py-0.5 rounded font-bold text-[10px] border border-orange-100">
+                          {lead.next_follow_up}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300 font-bold">--</span>
+                      )}
                     </td>
 
                     {/* Status */}
-                    <td className=" text-center py-4">
+                    <td className="px-4 py-2.5">
                       <div className="flex flex-col">
-                        <span className="font-black text-[#103c7f] uppercase text-[10px]">
-                          {lead.status || 'No Status'}
+                        <span className="font-black text-[#103c7f] uppercase text-[10px] tracking-wide">
+                          {lead.status || 'NO STATUS'}
                         </span>
-                        <span className="text-gray-400 text-[9px] font-bold whitespace-nowrap">
+                        <span className="text-[9px] font-semibold text-gray-500 truncate max-w-[120px]">
                           {lead.sub_status || '--'}
                         </span>
                       </div>
                     </td>
 
                     {/* Projection */}
-                    <td className="text-center py-4">
-                      <span className="px-2 py-1 bg-blue-50 text-[#103c7f] rounded font-black text-[9px] uppercase border border-blue-100 whitespace-nowrap">
+                    <td className="px-4 py-2.5">
+                      <span className={`px-2 py-0.5 rounded font-bold text-[9px] uppercase border whitespace-nowrap ${
+                        lead.projection && lead.projection.includes('>') 
+                          ? 'bg-green-50 text-green-700 border-green-100' 
+                          : 'bg-gray-50 text-gray-500 border-gray-100'
+                      }`}>
                         {lead.projection || 'N/A'}
                       </span>
                     </td>
 
                     {/* ACTIONS - STICKY RIGHT */}
-                    <td className="px-6 py-4 sticky right-0 bg-white group-hover:bg-blue-50 transition-colors border-l border-gray-100 z-10 shadow-[-5px_0px_10px_rgba(0,0,0,0.02)]">
+                    <td className="px-3 py-2.5 sticky right-0 bg-white group-hover:bg-blue-50/40 transition-colors border-l border-gray-100 z-10 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
                       <div className="flex items-center justify-center gap-2">
                         <button 
-  onClick={() => { 
-    setSelectedLead(lead); 
-    setIsFullViewOpen(true); // Yahan 'isViewMode' ki zarurat nahi hai ab
-  }} 
-  className="p-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition shadow-sm border border-green-100" 
-  title="Full View"
->
-  <Eye size={16} strokeWidth={2.5} />
-</button>
-                        <button 
-                          onClick={() => { setSelectedLead(lead); setIsFollowUpModalOpen(true); }} 
-                          className="p-2 bg-orange-50 text-orange-600 rounded-xl hover:bg-orange-100 transition shadow-sm border border-orange-100" 
-                          title="Add Follow-up"
+                          onClick={() => { setSelectedLead(lead); setIsFullViewOpen(true); }} 
+                          className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 hover:shadow-md transition-all border border-green-100 active:scale-95" 
+                          title="Full View"
                         >
-                          <MessageSquarePlus size={16} strokeWidth={2.5} />
+                          <Eye size={14} strokeWidth={2.5} />
                         </button>
                         <button 
-  onClick={() => { 
-    setSelectedLead(lead); 
-    setIsEditModalOpen(true); // Ab alag modal open hoga
-  }} 
-  className="p-2 bg-blue-50 text-[#103c7f] rounded-xl hover:bg-blue-100 transition shadow-sm border border-blue-100" 
-  title="Edit Details"
->
-  <Pencil size={16} strokeWidth={2.5} />
-</button>
+                          onClick={() => { setSelectedLead(lead); setIsFollowUpModalOpen(true); }} 
+                          className="p-1.5 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 hover:shadow-md transition-all border border-orange-100 active:scale-95" 
+                          title="Add Follow-up"
+                        >
+                          <MessageSquarePlus size={14} strokeWidth={2.5} />
+                        </button>
+                        <button 
+                          onClick={() => { setSelectedLead(lead); setIsEditModalOpen(true); }} 
+                          className="p-1.5 bg-blue-50 text-[#103c7f] rounded-lg hover:bg-blue-100 hover:shadow-md transition-all border border-blue-100 active:scale-95" 
+                          title="Edit Details"
+                        >
+                          <Pencil size={14} strokeWidth={2.5} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -432,12 +515,12 @@ export default function LeadsMasterPage() {
             {!showAll && totalLeads > 0 && (
               <tfoot>
                 <tr>
-                  <td colSpan="9" className="text-center py-4">
+                  <td colSpan="9" className="text-center py-6 bg-gray-50/30">
                     <button
                       onClick={() => setShowAll(true)}
-                      className="bg-[#103c7f] text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-900 transition-all shadow-xl shadow-blue-900/20 uppercase italic text-xs active:scale-95"
+                      className="bg-white border border-gray-200 text-gray-600 px-6 py-2.5 rounded-full font-bold text-xs hover:bg-gray-50 hover:text-[#103c7f] hover:border-blue-200 transition-all shadow-sm active:scale-95 flex items-center gap-2 mx-auto"
                     >
-                      View All
+                      View All Records <ArrowRight size={14} />
                     </button>
                   </td>
                 </tr>
