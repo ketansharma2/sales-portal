@@ -226,33 +226,49 @@ export async function POST(request) {
     // Get latest contact date
     const latestContactDate = allInteractions?.reduce((max, interaction) => interaction.contact_date > max ? interaction.contact_date : max, '') || today
 
-    // Get counts for latest activity date
-    const latestDateInteractions = allInteractions?.filter(interaction => interaction.contact_date === latestContactDate) || []
-    const latestTotalVisits = latestDateInteractions.length
-    // For individual, count clients sourced on that date
-    // Actually, since we have allInteractions, but to match, perhaps query domestic_clients
-    // But to keep simple, since domestic_clients sourcing_date is when client was added, perhaps count unique client_id in interactions on date
-    // But user said query domestic_clients sourcing_date = latest date
-    // So, change to count from domestic_clients
-    // But since we don't have domestic_clients data, perhaps add a query
-    // For now, keep as is, but user wants from domestic_clients
-    // Let's add a query for individual
-    const { count: latestIndividualCount, error: latestIndividualError } = await supabaseServer
-      .from('domestic_clients')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('sourcing_date', latestContactDate)
+    // Get counts for latest activity date or range
+    let latestActivityDate = latestContactDate
+    let latestTotalVisits = 0
+    let latestIndividualVisits = 0
+    let latestOnboarded = 0
+    let latestInterested = 0
+    let latestNotInterested = 0
+    let latestReachedOut = 0
+    let latestRepeat = 0
 
-    if (latestIndividualError) {
-      console.error('Latest individual error:', latestIndividualError)
+    if (from && to) {
+      // For range, calculate totals for the range
+      const rangeInteractions = allInteractions?.filter(interaction => interaction.contact_date >= from && interaction.contact_date <= to) || []
+      latestActivityDate = to // Use the end date as the display date
+      latestTotalVisits = rangeInteractions.length
+      const uniqueClientsInRange = new Set(rangeInteractions.map(i => i.client_id))
+      latestIndividualVisits = uniqueClientsInRange.size
+      latestOnboarded = rangeInteractions.filter(interaction => interaction.status === 'Onboarded').length
+      latestInterested = rangeInteractions.filter(interaction => interaction.status === 'Interested').length
+      latestNotInterested = rangeInteractions.filter(interaction => interaction.status === 'Not Interested').length
+      latestReachedOut = rangeInteractions.filter(interaction => interaction.status === 'Reached Out').length
+      latestRepeat = latestTotalVisits - latestIndividualVisits
+    } else {
+      // For latest date
+      const latestDateInteractions = allInteractions?.filter(interaction => interaction.contact_date === latestContactDate) || []
+      latestTotalVisits = latestDateInteractions.length
+      const { count: latestIndividualCount, error: latestIndividualError } = await supabaseServer
+        .from('domestic_clients')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('sourcing_date', latestContactDate)
+
+      if (latestIndividualError) {
+        console.error('Latest individual error:', latestIndividualError)
+      }
+
+      latestIndividualVisits = latestIndividualCount || 0
+      latestOnboarded = latestDateInteractions.filter(interaction => interaction.status === 'Onboarded').length
+      latestInterested = latestDateInteractions.filter(interaction => interaction.status === 'Interested').length
+      latestNotInterested = latestDateInteractions.filter(interaction => interaction.status === 'Not Interested').length
+      latestReachedOut = latestDateInteractions.filter(interaction => interaction.status === 'Reached Out').length
+      latestRepeat = latestTotalVisits - latestIndividualVisits
     }
-
-    const latestIndividualVisits = latestIndividualCount || 0
-    const latestOnboarded = latestDateInteractions.filter(interaction => interaction.status === 'Onboarded').length
-    const latestInterested = latestDateInteractions.filter(interaction => interaction.status === 'Interested').length
-    const latestNotInterested = latestDateInteractions.filter(interaction => interaction.status === 'Not Interested').length
-    const latestReachedOut = latestDateInteractions.filter(interaction => interaction.status === 'Reached Out').length
-    const latestRepeat = latestTotalVisits - latestIndividualVisits
 
     // Get total visits count from interactions
     const { count: totalVisitsEver, error: visitsError } = await supabaseServer
@@ -275,46 +291,82 @@ export async function POST(request) {
       projections[projectionKeys[i]] = count
     }
 
-    // Get clients with activity on the latest DWR date
+    // Get clients with interactions on the latest date
     let recentLeads
     if (from && to) {
-      // Sum for date range
-      const { data: rangeLeads, error: rangeError } = await supabaseServer
-        .from('domestic_clients')
-        .select('*')
+      // For date range, get all interactions in range
+      const { data: rangeInteractions, error: rangeError } = await supabaseServer
+        .from('domestic_clients_interaction')
+        .select('client_id, status, sub_status, contact_date, created_at')
         .eq('user_id', user.id)
-        .or(`and(sourcing_date.gte.${from},sourcing_date.lte.${to}),and(latest_contact_date.gte.${from},latest_contact_date.lte.${to})`)
+        .gte('contact_date', from)
+        .lte('contact_date', to)
+        .order('contact_date', { ascending: false })
         .order('created_at', { ascending: false })
 
       if (rangeError) {
-        console.error('Range leads error:', rangeError)
+        console.error('Range interactions error:', rangeError)
       }
 
-      recentLeads = rangeLeads
-    } else {
-      const latestDwrDate = displayDwr.dwr_date || today
-      const { data: dateLeads, error: dateError } = await supabaseServer
+      const clientIds = [...new Set(rangeInteractions?.map(i => i.client_id) || [])]
+
+      // Fetch client names
+      const { data: clients, error: clientsError } = await supabaseServer
         .from('domestic_clients')
-        .select('*')
+        .select('client_id, company_name')
+        .in('client_id', clientIds)
+
+      if (clientsError) {
+        console.error('Clients fetch error:', clientsError)
+      }
+
+      const clientMapById = new Map(clients?.map(c => [c.client_id, c.company_name]) || [])
+      recentLeads = rangeInteractions?.map(i => ({ ...i, company: clientMapById.get(i.client_id) || 'Unknown' })) || []
+    } else {
+      // For latest date, get interactions on latestContactDate
+      const { data: dateInteractions, error: dateError } = await supabaseServer
+        .from('domestic_clients_interaction')
+        .select('client_id, status, sub_status, contact_date, created_at')
         .eq('user_id', user.id)
-        .or(`sourcing_date.eq.${latestDwrDate},latest_contact_date.eq.${latestDwrDate}`)
+        .eq('contact_date', latestContactDate)
         .order('created_at', { ascending: false })
 
       if (dateError) {
-        console.error('Date leads error:', dateError)
+        console.error('Date interactions error:', dateError)
       }
 
-      recentLeads = dateLeads
+      // Group by client_id, take latest interaction per client
+      const clientMap = new Map()
+      dateInteractions?.forEach(interaction => {
+        if (!clientMap.has(interaction.client_id)) {
+          clientMap.set(interaction.client_id, interaction)
+        }
+      })
+      const uniqueInteractions = Array.from(clientMap.values())
+      const clientIds = uniqueInteractions.map(i => i.client_id)
+
+      // Fetch client names
+      const { data: clients, error: clientsError } = await supabaseServer
+        .from('domestic_clients')
+        .select('client_id, company_name')
+        .in('client_id', clientIds)
+
+      if (clientsError) {
+        console.error('Clients fetch error:', clientsError)
+      }
+
+      const clientMapById = new Map(clients?.map(c => [c.client_id, c.company_name]) || [])
+      recentLeads = uniqueInteractions.map(i => ({ ...i, company: clientMapById.get(i.client_id) || 'Unknown' }))
     }
 
     // Format recent leads for UI
-    const formattedLeads = recentLeads?.map((lead, index) => ({
+    const formattedLeads = recentLeads?.map((interaction, index) => ({
       sn: index + 1,
-      date: lead.sourcing_date || lead.latest_contact_date || displayDwr.dwr_date || today,
-      name: lead.company,
-      status: lead.status,
-      sub: lead.sub_status || '-',
-      color: getStatusColor(lead.status)
+      date: interaction.contact_date,
+      name: interaction.company,
+      status: interaction.status,
+      sub: interaction.sub_status || '-',
+      color: getStatusColor(interaction.status)
     })) || []
 
 
