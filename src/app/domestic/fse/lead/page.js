@@ -181,10 +181,8 @@ export default function LeadsMasterPage() {
 
   return (
     // h-[100dvh] ensures full height on mobile browsers with address bars
-    <div className="w-full h-[100dvh] flex flex-col overflow-hidden font-['Calibri'] p-3 md:p-6 bg-[#f8fafc]">
+    <div className="w-full h-[100dvh] flex flex-col overflow-hidden font-['Calibri'] p-1 md:p-2 bg-[#f8fafc]">
       
-      {/* HEADER - Stacked on Mobile, Row on Desktop */}
-      {/* HEADER */}
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-2 gap-4">
         
@@ -344,9 +342,9 @@ export default function LeadsMasterPage() {
 
       {/* TABLE AREA - Flex-1 ensures it takes remaining height */}
      {/* TABLE AREA - Compact, Clean, Scrollable */}
-      <div className="bg-white border border-gray-100 rounded-[1.5rem] flex-1 overflow-hidden shadow-sm relative z-0 flex flex-col mt-1">
+      <div className="bg-white border border-gray-100  flex-1 overflow-hidden shadow-sm relative z-0 flex flex-col mt-1 rounded-none">
         <div className="w-full h-full overflow-auto custom-scrollbar">
-          <table className="min-w-max text-left text-xs border-collapse relative">      
+          <table className="min-w-[1200px] text-left text-xs border-collapse relative table-fixed">      
             
             {/* STICKY HEADER */}
             <thead className="sticky top-0 z-20 bg-[#103c7f] text-white font-bold uppercase tracking-widest text-[10px] shadow-md">
