@@ -43,7 +43,7 @@ export default function LeadsMasterPage() {
   // Robust Dependency Array
   useEffect(() => {
     if (mounted) fetchLeads();
-  }, [mounted, filters.company, filters.category, filters.status, filters.locationSearch, filters.statusSearch, filters.projection, filters.fromDate, filters.toDate,showAll]);
+  }, [mounted, filters.company, filters.category, filters.status, filters.locationSearch, filters.statusSearch, filters.subStatusSearch, filters.projection, filters.clientType, filters.fromDate, filters.toDate, showAll]);
 
   const fetchLeads = async () => {
     try {

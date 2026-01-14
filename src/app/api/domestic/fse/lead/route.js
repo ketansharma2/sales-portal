@@ -93,7 +93,11 @@ export async function GET(request) {
     const category = searchParams.get('category')
     const location = searchParams.get('location')
     const status = searchParams.get('status')
+    const sub_status = searchParams.get('sub_status')
     const projection = searchParams.get('projection')
+    const client_type = searchParams.get('client_type')
+    const fromDate = searchParams.get('fromDate')
+    const toDate = searchParams.get('toDate')
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')) : null
 
     // Build query for clients with filters
@@ -101,7 +105,7 @@ export async function GET(request) {
       .from('domestic_clients')
       .select(`
         *,
-        domestic_clients_interaction!inner(
+        domestic_clients_interaction(
           contact_date,
           contact_mode,
           remarks,
@@ -113,6 +117,10 @@ export async function GET(request) {
         )
       `)
       .eq('user_id', user.id)
+
+    if (client_type) {
+      query = query.eq('client_type', client_type)
+    }
 
     if (company) {
       query = query.ilike('company_name', `%${company}%`)
@@ -169,13 +177,22 @@ export async function GET(request) {
       }
     })
 
-    // Apply remaining filters (status, projection) in JS
+    // Apply remaining filters (status, sub_status, projection, dates) in JS
     let filteredData = clientsWithLatest
     if (status) {
       filteredData = filteredData.filter(client => client.status === status)
     }
+    if (sub_status) {
+      filteredData = filteredData.filter(client => client.sub_status === sub_status)
+    }
     if (projection) {
       filteredData = filteredData.filter(client => client.projection === projection)
+    }
+    if (fromDate && toDate) {
+      filteredData = filteredData.filter(client => {
+        if (!client.latest_contact_date) return false;
+        return client.latest_contact_date >= fromDate && client.latest_contact_date <= toDate;
+      });
     }
 
     return NextResponse.json({
