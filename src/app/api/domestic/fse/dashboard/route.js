@@ -241,8 +241,19 @@ export async function POST(request) {
       const rangeInteractions = allInteractions?.filter(interaction => interaction.contact_date >= from && interaction.contact_date <= to) || []
       latestActivityDate = to // Use the end date as the display date
       latestTotalVisits = rangeInteractions.length
-      const uniqueClientsInRange = new Set(rangeInteractions.map(i => i.client_id))
-      latestIndividualVisits = uniqueClientsInRange.size
+      // Individual: clients sourced within the range
+      const { count: rangeIndividualCount, error: rangeIndividualError } = await supabaseServer
+        .from('domestic_clients')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('sourcing_date', from)
+        .lte('sourcing_date', to)
+
+      if (rangeIndividualError) {
+        console.error('Range individual error:', rangeIndividualError)
+      }
+
+      latestIndividualVisits = rangeIndividualCount || 0
       latestOnboarded = rangeInteractions.filter(interaction => interaction.status === 'Onboarded').length
       latestInterested = rangeInteractions.filter(interaction => interaction.status === 'Interested').length
       latestNotInterested = rangeInteractions.filter(interaction => interaction.status === 'Not Interested').length
