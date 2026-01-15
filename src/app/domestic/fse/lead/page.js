@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { 
   Pencil, Plus, X, Search, Loader2, Eye, Star,
   Calendar, Phone, MapPin, User, Building2, CheckCircle,
-  ArrowRight, MessageSquarePlus, Mail, Zap,
+  ArrowRight, MessageSquarePlus, Mail, Zap,CalendarOff,
   HistoryIcon
 } from "lucide-react";
 
@@ -13,6 +13,7 @@ export default function LeadsMasterPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,6 +24,8 @@ export default function LeadsMasterPage() {
   const [isFullViewOpen, setIsFullViewOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [totalLeads, setTotalLeads] = useState(0);
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [nonFieldDays, setNonFieldDays] = useState([]);
 
   // Filters State (Robust Initialization)
   const [filters, setFilters] = useState({ 
@@ -167,15 +170,63 @@ export default function LeadsMasterPage() {
       setSaving(false);
     }
   };
+  // 👇 ADD THIS FUNCTION (Missing)
+ const handleSaveLeave = async (date, reason, remarks) => { // <--- Added remarks here
+    console.log("Saving Non-Visit Day:", date, reason, remarks);
+    
+    // Save logic here...
+    setNonFieldDays(prev => [...prev, date]);
+    setIsLeaveModalOpen(false);
+    // Alert mein bhi dikha sakte hain
+    alert(`Marked ${date} as Non-Visit.\nReason: ${reason}\nRemarks: ${remarks}`);
+};
+
 
   if (!mounted) return null;
 
   const dropdowns = {
     categoryList: ["Architect/ID", "Banquet", "Club/Store","Hospitality","IT","Multi Media","Non-IT","Real estate","Trading","Retail", "Manufacturing"],
-    statesList: ["Delhi", "Haryana", "Punjab", "Uttar Pradesh", "Maharashtra", "Gujarat", "Rajasthan"],
-    empCountList: ["1-10", "11-50", "51-100", "101-200", "201-500", "500+"],
+statesList: [
+      "Andaman and Nicobar Islands",
+      "Andhra Pradesh",
+      "Arunachal Pradesh",
+      "Assam",
+      "Bihar",
+      "Chandigarh",
+      "Chhattisgarh",
+      "Dadra and Nagar Haveli and Daman and Diu",
+      "Delhi",
+      "Goa",
+      "Gujarat",
+      "Haryana",
+      "Himachal Pradesh",
+      "Jammu and Kashmir",
+      "Jharkhand",
+      "Karnataka",
+      "Kerala",
+      "Ladakh",
+      "Lakshadweep",
+      "Madhya Pradesh",
+      "Maharashtra",
+      "Manipur",
+      "Meghalaya",
+      "Mizoram",
+      "Nagaland",
+      "Odisha",
+      "Puducherry",
+      "Punjab",
+      "Rajasthan",
+      "Sikkim",
+      "Tamil Nadu",
+      "Telangana",
+      "Tripura",
+      "Uttar Pradesh",
+      "Uttarakhand",
+      "West Bengal"
+    ],
+        empCountList: ["1-10", "11-50", "51-100", "101-200", "201-500", "500+"],
     statusList: ["Interested", "Not Interested", "Onboarded", "Not Picked", "Reached Out"],
-    subStatusList: ["Blue Collar", "Call Back", "In Process", "Low Budget", "Proposal Shared", "Ready to Sign"],
+    subStatusList: ["Blue Collar", "Call Back", "In Process", "Low Budget", "Proposal Shared", "Ready to Sign" , "Not Ready to Sign"],
     projectionList: ["WP > 50", "WP < 50", "MP > 50", "MP < 50", "Not Projected"]
   };
 
@@ -184,15 +235,16 @@ export default function LeadsMasterPage() {
     <div className="w-full h-[100dvh] flex flex-col overflow-hidden font-['Calibri'] p-1 md:p-2 bg-[#f8fafc]">
       
       {/* HEADER */}
+     {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-2 gap-4">
         
         {/* LEFT: TITLE & COUNT */}
         <div className="flex flex-col md:flex-row items-center gap-3 shrink-0">
-          <h1 className="text-2xl md:text-3xl font-black text-[#103c7f] uppercase italic tracking-tight whitespace-nowrap">
-            Leads Master Database
-          </h1>
+          <h1 className="text-2xl md:text-3xl font-black text-[#103c7f] uppercase italic tracking-tight whitespace-nowrap shrink-0">
+  Leads Master Database
+</h1>
           
-          {/* 👇 NEW: ROW COUNTER BADGE */}
+          {/* ROW COUNTER BADGE */}
           <span className="bg-blue-50 border border-blue-100 text-[#103c7f] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
             {totalLeads} Records Found
           </span>
@@ -235,6 +287,15 @@ export default function LeadsMasterPage() {
             )}
           </div>
 
+          {/* 👇 NEW: MARK NON-FIELD DAY BUTTON (Added Here) */}
+          <button 
+            onClick={() => setIsLeaveModalOpen(true)}
+            className="bg-white text-orange-600 border border-orange-200 px-4 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-orange-50 transition-all shadow-sm uppercase italic text-xs active:scale-95 whitespace-nowrap"
+            title="Mark Absent or Office Work"
+          >
+            <CalendarOff size={18} strokeWidth={2.5} /> Non-Visit Day
+          </button>
+
           {/* ADD BUTTON */}
           <button 
             onClick={() => { setSelectedLead(null); setIsViewMode(false); setIsModalOpen(true); }}
@@ -246,7 +307,7 @@ export default function LeadsMasterPage() {
       </div>
 
       {/* FILTER BAR */}
-      <div className="bg-white p-4 rounded-[1.5rem] border border-gray-100 shadow-sm mb-2 w-full shrink-0 overflow-x-auto custom-scrollbar">
+      <div className="bg-white p-4  border border-gray-100 shadow-sm mb-2 w-full shrink-0 overflow-x-auto custom-scrollbar rounded-none">
         <div className="grid grid-cols-12 gap-2 items-center min-w-[850px]">
           
           {/* 1. COMPANY */}
@@ -340,11 +401,10 @@ export default function LeadsMasterPage() {
         </div>
       </div>
 
-      {/* TABLE AREA - Flex-1 ensures it takes remaining height */}
      {/* TABLE AREA - Compact, Clean, Scrollable */}
       <div className="bg-white border border-gray-100  flex-1 overflow-hidden shadow-sm relative z-0 flex flex-col mt-1 rounded-none">
         <div className="w-full h-full overflow-auto custom-scrollbar">
-          <table className="min-w-[1200px] text-left text-xs border-collapse relative table-fixed">      
+          <table className="min-w-[1100px] text-left text-xs border-collapse relative table-fixed">      
             
             {/* STICKY HEADER */}
             <thead className="sticky top-0 z-20 bg-[#103c7f] text-white font-bold uppercase tracking-widest text-[10px] shadow-md">
@@ -559,6 +619,13 @@ export default function LeadsMasterPage() {
     {...dropdowns}
   />
 )}
+{/* 👇 ADD THIS BLOCK (Missing) */}
+      {isLeaveModalOpen && (
+        <LeaveModal 
+          onClose={() => setIsLeaveModalOpen(false)} 
+          onSave={handleSaveLeave} 
+        />
+      )}
 {isFullViewOpen && (
   <ClientFullViewModal 
     lead={selectedLead} 
@@ -748,7 +815,7 @@ function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
 
   const [suggestions, setSuggestions] = useState({ persons: [], nos: [], emails: [] });
 
-  const subStatusList = ["Blue Collar", "Call Back", "In Process", "Low Budget", "Proposal Shared", "Ready to Sign"];
+  const subStatusList = ["Blue Collar", "Call Back", "In Process", "Low Budget", "Proposal Shared", "Ready to Sign","Not Ready to Sign"];
   const projectionList = ["WP > 50", "WP < 50", "MP > 50", "MP < 50", "Not Projected"];
 
   useEffect(() => {
@@ -1250,6 +1317,109 @@ function ClientFullViewModal({ lead, onClose }) {
           </div>
           
         </div>
+      </div>
+    </div>
+  );
+}
+
+function LeaveModal({ onClose, onSave }) {
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]); 
+  const [reason, setReason] = useState('Office Work');
+  const [remarks, setRemarks] = useState(''); // New State for Remarks
+
+  const reasons = [
+    "Office Work", 
+    "Training / Meeting", 
+    "Leave / Absent", 
+    "Public Holiday", 
+    "Vehicle Breakdown", 
+    "Rain / Bad Weather",
+    "Other"
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-[#103c7f]/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 font-['Calibri']">
+      <div className="bg-white rounded-[1.5rem] shadow-2xl w-full max-w-md overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
+        
+        {/* HEADER */}
+        <div className="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
+          <h2 className="text-lg font-black text-[#103c7f] uppercase italic tracking-tight flex items-center gap-2">
+            <CalendarOff size={20} className="text-orange-600"/> Mark Non-Visit Day
+          </h2>
+          <button onClick={onClose} className="p-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-full transition">
+            <X size={20}/>
+          </button>
+        </div>
+
+        {/* BODY */}
+        <div className="p-6 space-y-5">
+          
+          {/* Info Alert */}
+          <div className="p-3 bg-blue-50 text-blue-900 text-xs rounded-xl border border-blue-100 flex gap-2 items-start">
+            <div className="mt-0.5">ℹ️</div>
+            <p className="font-medium leading-relaxed">
+              This date will be excluded from your <strong>Working Days</strong> count. Your <strong>Average Visit</strong> score will remain accurate.
+            </p>
+          </div>
+
+          {/* 1. Date Selector */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Select Date</label>
+            <input 
+              type="date" 
+              value={date} 
+              onChange={(e) => setDate(e.target.value)} 
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-[#103c7f] outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer transition-all"
+            />
+          </div>
+
+          {/* 2. Reason Selector */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Reason for Non-Visit</label>
+            <div className="relative">
+              <select 
+                value={reason} 
+                onChange={(e) => setReason(e.target.value)} 
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-800 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer appearance-none transition-all"
+              >
+                {reasons.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Remarks (NEW ADDITION) */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Additional Remarks (Optional)</label>
+            <textarea 
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="e.g. Approved by HOD, Bike repair shop location..."
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 outline-none focus:ring-2 focus:ring-blue-100 transition-all resize-none h-20"
+            />
+          </div>
+
+        </div>
+
+        {/* FOOTER BUTTONS */}
+        <div className="px-6 py-4 border-t bg-gray-50 flex gap-3">
+          <button 
+            onClick={onClose} 
+            className="flex-1 py-3 font-bold text-gray-400 uppercase text-xs hover:bg-gray-200 rounded-xl transition"
+          >
+            Cancel
+          </button>
+          <button 
+            // Updated to pass remarks
+            onClick={() => onSave(date, reason, remarks)} 
+            className="flex-1 py-3 bg-[#103c7f] text-white font-black uppercase text-xs rounded-xl shadow-lg shadow-blue-900/20 hover:bg-blue-900 transition active:scale-95 flex justify-center items-center gap-2"
+          >
+            <CheckCircle size={16} strokeWidth={2.5} /> Confirm
+          </button>
+        </div>
+
       </div>
     </div>
   );

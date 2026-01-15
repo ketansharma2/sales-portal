@@ -109,7 +109,7 @@ export default function HODPersonalClaims() {
       {/* --- HEADER --- */}
       <div className="flex justify-between items-end mb-3 shrink-0 transition-all duration-500 ease-in-out">
         <div>
-          <h1 className="text-4xl font-black text-[#103c7f] tracking-tight uppercase italic">
+          <h1 className="text-2xl font-black text-[#103c7f] tracking-tight uppercase italic">
             HOD Expense Claims
           </h1>
           <p className="text-gray-500 font-bold uppercase text-[10px] tracking-[0.2em] mt-1 flex items-center gap-2">
@@ -120,38 +120,39 @@ export default function HODPersonalClaims() {
 
         <div className="flex items-end gap-10">
           {/* Date Filter */}
-          <div className="flex flex-col gap-1">
-            <div className="relative flex items-center">
-              <input 
-                type="date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-                className="px-5 py-3 bg-white border border-gray-100 rounded-2xl text-xs font-bold text-[#103c7f] outline-none focus:ring-2 focus:ring-[#a1db40]/30 transition-all shadow-sm cursor-pointer"
-              />
-              {filterDate && (
-                <button 
-                  onClick={() => setFilterDate("")}
-                  className="absolute -right-8 text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-          </div>
+         <div className="flex flex-col gap-1">
+      {/*<label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Filter by Date</label>*/}
+      <div className="relative flex items-center">
+        <input 
+          type="date"
+          value={filterDate}
+          onChange={(e) => setFilterDate(e.target.value)}
+          className="px-5 py-3 bg-white border border-gray-100 rounded-2xl text-xs font-bold text-[#103c7f] outline-none focus:ring-2 focus:ring-[#a1db40]/30 transition-all shadow-sm cursor-pointer"
+        />
+        {filterDate && (
+          <button 
+            onClick={() => setFilterDate("")}
+            className="absolute -right-8 text-gray-400 hover:text-red-500 transition-colors"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
+    </div>
 
           {/* Create Button */}
           <button 
-            onClick={() => setIsModalOpen(true)}
-            className="bg-[#a1db40] text-[#103c7f] px-8 py-4 rounded-[22px] font-black flex items-center gap-2 hover:scale-105 transition-all shadow-xl shadow-[#a1db40]/20 active:scale-95 text-xs uppercase"
-          >
-            <Plus size={18} strokeWidth={3} /> 
-            Create Claim
-          </button>
+  onClick={() => setIsModalOpen(true)}
+  className="bg-[#a1db40] text-[#103c7f] px-6 py-2.5 rounded-2xl font-black flex items-center gap-2 hover:scale-105 transition-all shadow-lg shadow-[#a1db40]/20 active:scale-95 text-sm uppercase"
+>
+  <Plus size={18} strokeWidth={3} /> 
+  Create Claim
+</button>
         </div>
       </div>
 
       {/* TABLE */}
-      <div className="bg-white shadow-sm rounded-lg border border-gray-100 overflow-hidden flex flex-col flex-1 max-h-[80vh]">
+     <div className="bg-white shadow-sm rounded-lg border border-gray-100 overflow-hidden flex flex-col flex-1 max-h-[78vh]">
         <div className="overflow-y-auto flex-1 custom-scrollbar">
           <table className="w-full text-left border-collapse relative">
             <thead className="sticky top-0 z-10 bg-[#103c7f] text-white">
@@ -219,71 +220,122 @@ export default function HODPersonalClaims() {
       </div>
 
       {/* --- MODAL --- */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-[#103c7f]/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn font-['Calibri']">
-          <div className="bg-white/95 rounded-[32px] shadow-2xl max-w-2xl w-full p-8 relative border border-white/40 overflow-hidden">
-            <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 p-2 bg-gray-100/80 rounded-full text-gray-500 hover:text-red-500 transition-all z-10">
-              <X size={18} strokeWidth={2.5} />
-            </button>
-            
-            <div className="mb-6 text-center">
-              <div className="bg-[#a1db40]/20 w-14 h-14 rounded-[20px] flex items-center justify-center text-[#103c7f] mx-auto mb-3">
-                <Wallet size={26} strokeWidth={2} />
-              </div>
-              <h2 className="text-2xl font-black text-[#103c7f] tracking-tight leading-none uppercase italic">New HOD Claim</h2>
-              {/* 👇 Updated Subtitle */}
-              <p className="text-gray-400 text-[9px] font-bold uppercase tracking-[0.2em] mt-2">Submit to S.Sir / Management</p>
+    {isModalOpen && (
+  <div className="fixed inset-0 bg-[#103c7f]/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-['Calibri'] animate-in fade-in duration-200">
+    <div className="bg-white rounded-[24px] shadow-2xl max-w-lg w-full p-8 relative overflow-hidden">
+      
+      {/* Close Button */}
+      <button 
+        onClick={() => setIsModalOpen(false)} 
+        className="absolute top-6 right-6 p-2 bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-full transition-all"
+      >
+        <X size={20} strokeWidth={2.5} />
+      </button>
+      
+      {/* Header Section - Horizontal Layout */}
+      <div className="mb-8 flex items-center gap-5">
+        <div className="bg-[#103c7f]/5 w-16 h-16 rounded-2xl flex items-center justify-center text-[#103c7f] border border-[#103c7f]/10 shrink-0">
+          <Wallet size={30} strokeWidth={2} />
+        </div>
+        <div className="flex flex-col">
+          <h2 className="text-2xl font-black text-[#103c7f] tracking-tight uppercase italic leading-none">
+            New HOD Claim
+          </h2>
+          <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.2em] mt-1.5">
+            Submit to S.Sir / Management
+          </p>
+        </div>
+      </div>
+      
+      {/* Form Section */}
+      <form onSubmit={handleSave} className="space-y-5">
+        
+        {/* Row 1: Date & Category */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="space-y-1">
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Date</label>
+            <input 
+              type="date" 
+              required 
+              onChange={(e) => setFormData({...formData, date: e.target.value})} 
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-[#103c7f] focus:ring-4 focus:ring-[#103c7f]/10 outline-none text-sm font-semibold text-gray-700 transition-all cursor-pointer" 
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Category</label>
+            <div className="relative">
+              <select 
+                onChange={(e) => setFormData({...formData, category: e.target.value})} 
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-[#103c7f] focus:ring-4 focus:ring-[#103c7f]/10 outline-none text-sm font-semibold text-gray-700 appearance-none transition-all cursor-pointer"
+              >
+                <option value="TRAVEL">Travel / Fuel</option>
+                <option value="FLIGHT">Flight</option>
+                <option value="STAY">Hotel / Stay</option>
+                <option value="FOOD">Client Hosting / Food</option>
+                <option value="MISC">Dept Activity / Misc</option>
+              </select>
+              <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
-            
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Date</label>
-                  <input type="date" required onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-[14px] focus:ring-2 focus:ring-[#a1db40]/50 outline-none text-sm font-bold text-gray-700" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Category</label>
-                  <div className="relative">
-                    <select onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-[14px] focus:ring-2 focus:ring-[#a1db40]/50 outline-none text-sm font-bold text-gray-700 appearance-none">
-                      <option value="TRAVEL">Travel / Fuel</option>
-                      <option value="FLIGHT">Flight</option>
-                      <option value="STAY">Hotel / Stay</option>
-                      <option value="FOOD">Client Hosting / Food</option>
-                      <option value="MISC">Dept Activity / Misc</option>
-                    </select>
-                    <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Amount (₹)</label>
-                  <input type="number" required placeholder="0.00" onChange={(e) => setFormData({...formData, amount: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-[14px] focus:ring-2 focus:ring-[#a1db40]/50 outline-none text-sm font-bold text-gray-700" />
-                </div>
-                {/* <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Proof</label>
-                  <div className="relative border-2 border-dashed border-gray-200 rounded-[14px] p-2 bg-gray-50/50 hover:bg-[#a1db40]/5 hover:border-[#a1db40]/50 transition-all group flex items-center justify-center gap-3 cursor-pointer h-[46px]">
-                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                    <FileText size={18} className="text-[#103c7f] opacity-40 group-hover:text-[#a1db40]" />
-                    <p className="text-[10px] font-black text-gray-600 uppercase tracking-tight group-hover:text-[#103c7f]">Upload Bill</p>
-                  </div>
-                </div> */}
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Notes</label>
-                <textarea rows="2" placeholder="Purpose of expense..." onChange={(e) => setFormData({...formData, notes: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-[14px] focus:ring-2 focus:ring-[#a1db40]/50 outline-none text-sm font-bold text-gray-700 resize-none"></textarea>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 bg-gray-100 text-gray-500 py-3.5 rounded-[14px] font-black tracking-widest hover:bg-gray-200 transition-all text-xs uppercase">Cancel</button>
-                <button type="submit" className="flex-1 bg-[#103c7f] text-white py-3.5 rounded-[14px] font-black tracking-widest hover:bg-[#0d316a] shadow-lg transition-all text-xs uppercase">Save Claim</button>
-              </div>
-            </form>
           </div>
         </div>
-      )}
+
+        {/* Row 2: Amount & File Upload */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="space-y-1">
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Amount (₹)</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₹</span>
+              <input 
+                type="number" 
+                required 
+                placeholder="0.00" 
+                onChange={(e) => setFormData({...formData, amount: e.target.value})} 
+                className="w-full pl-8 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-[#103c7f] focus:ring-4 focus:ring-[#103c7f]/10 outline-none text-sm font-semibold text-gray-700 transition-all placeholder:text-gray-300" 
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Proof</label>
+            <div className="relative border border-dashed border-[#103c7f]/30 rounded-xl bg-[#103c7f]/5 hover:bg-[#103c7f]/10 transition-all group flex items-center justify-center gap-2 cursor-pointer h-[46px]">
+              <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+              <FileText size={16} className="text-[#103c7f]" />
+              <p className="text-[11px] font-bold text-[#103c7f] uppercase tracking-wide">Upload Bill</p>
+            </div>
+          </div> 
+        </div>
+
+        {/* Row 3: Notes */}
+        <div className="space-y-1">
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Notes</label>
+          <textarea 
+            rows="3" 
+            placeholder="Purpose of expense..." 
+            onChange={(e) => setFormData({...formData, notes: e.target.value})} 
+            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-[#103c7f] focus:ring-4 focus:ring-[#103c7f]/10 outline-none text-sm font-medium text-gray-700 resize-none transition-all placeholder:text-gray-300"
+          ></textarea>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex gap-4 pt-4 border-t border-gray-100 mt-2">
+          <button 
+            type="button" 
+            onClick={() => setIsModalOpen(false)} 
+            className="flex-1 bg-gray-100 text-gray-600 py-3.5 rounded-xl font-bold tracking-wider hover:bg-gray-200 hover:text-gray-800 transition-all text-xs uppercase"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            className="flex-1 bg-[#103c7f] text-white py-3.5 rounded-xl font-bold tracking-wider hover:bg-[#0d316a] hover:shadow-lg hover:shadow-[#103c7f]/20 transition-all text-xs uppercase flex items-center justify-center gap-2"
+          >
+            <CheckCircle size={16} strokeWidth={2.5} />
+            Save Claim
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
     </div>
   );
 }

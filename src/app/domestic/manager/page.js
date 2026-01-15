@@ -353,7 +353,6 @@ export default function ManagerHome() {
     }
   ];
 
-  // 2. TEAM PERFORMANCE TABLE - now using todayActivity
 
   // 3. PENDING ACTIONS
   const [pendingActions] = useState([]);
