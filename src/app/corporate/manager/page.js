@@ -410,7 +410,7 @@ export default function ManagerHome() {
         <div className="flex-1 bg-white rounded-[24px] border border-gray-100 shadow-sm flex flex-col overflow-hidden">
            <div className="p-5 border-b border-gray-50 flex justify-between items-center shrink-0">
               <h2 className="text-lg font-black text-[#103c7f] uppercase italic tracking-tight">Today's Field Activity</h2>
-              <button onClick={() => { const today = new Date().toISOString().split('T')[0]; router.push(`/manager/team-leads?from_date=${today}&to_date=${today}`); }} className="text-[10px] font-black text-[#103c7f] uppercase bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-[#103c7f] hover:text-white transition-all">View Full Report</button>
+              <button onClick={() => { const today = new Date().toISOString().split('T')[0]; router.push(`/corporate/manager/team-leads?from_date=${today}&to_date=${today}`); }} className="text-[10px] font-black text-[#103c7f] uppercase bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-[#103c7f] hover:text-white transition-all">View Full Report</button>
            </div>
            <div className="overflow-y-auto flex-1 custom-scrollbar p-2">
               <table className="w-full text-left border-collapse">
@@ -444,7 +444,7 @@ export default function ManagerHome() {
                              <td className="px-4 py-3 text-center"><span className="font-black text-gray-700 bg-gray-100 px-2 py-1 rounded text-xs">{member.visitsToday}</span></td>
                              <td className="px-4 py-3 text-center">{member.onboardedToday === 'N/A' ? (<span className="text-gray-400 text-xs font-bold">N/A</span>) : member.onboardedToday > 0 ? (<span className="font-bold text-green-600 bg-green-50 px-2 py-1 rounded text-xs border border-green-100 flex items-center justify-center gap-1 w-fit mx-auto"><UserPlus size={12}/> {member.onboardedToday}</span>) : (<span className="text-gray-300 text-xs font-bold">-</span>)}</td>
                              <td className="px-4 py-3 text-center"><span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border ${member.status === 'Absent' ? 'bg-red-50 text-red-600 border-red-100' : member.status === 'No Data' ? 'bg-gray-50 text-gray-600 border-gray-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>{member.status}</span></td>
-                             <td className="px-4 py-3 text-center"><button onClick={() => { const today = new Date().toISOString().split('T')[0]; router.push(`/manager/team-leads?from_date=${today}&to_date=${today}&selectedFse=${member.id}`); }} className="p-1.5 text-gray-400 hover:text-[#103c7f] hover:bg-blue-50 rounded-lg transition-all" title="View Detailed Log"><Eye size={16} /></button></td>
+                             <td className="px-4 py-3 text-center"><button onClick={() => { const today = new Date().toISOString().split('T')[0]; router.push(`/corporate/manager/team-leads?from_date=${today}&to_date=${today}&selectedFse=${member.id}`); }} className="p-1.5 text-gray-400 hover:text-[#103c7f] hover:bg-blue-50 rounded-lg transition-all" title="View Detailed Log"><Eye size={16} /></button></td>
                           </tr>
                        ))
                     )}
@@ -464,7 +464,7 @@ export default function ManagerHome() {
 
                  {/* 👈 3. NAVIGATION BUTTON */}
                  <button
-                    onClick={() => router.push('/manager/approvals')}
+                    onClick={() => router.push('/corporate/manager/approvals')}
                     className="mt-4 w-full bg-white text-[#103c7f] py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-[#a1db40] transition-colors"
                  >
                     Review Now

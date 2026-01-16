@@ -81,43 +81,53 @@ export async function GET(request) {
       })
     }
 
-    // Query clients for weekly projections
-    let query = supabaseServer
-      .from('clients')
-      .select('user_id, company, projection')
-      .in('user_id', userIdsToQuery)
-      .in('projection', ['WP > 50', 'WP < 50'])
+    // Fetch interactions for each FSE in batches to avoid limits
+    let allInteractions = []
+    for (const userId of userIdsToQuery) {
+      let offset = 0
+      const batchSize = 1000
+      while (true) {
+        const { data: ints, error: intError } = await supabaseServer
+          .from('domestic_clients_interaction')
+          .select('client_id, projection, contact_date, created_at')
+          .eq('user_id', userId)
+          .order('client_id', { ascending: true })
+          .order('contact_date', { ascending: false })
+          .order('created_at', { ascending: false })
+          .range(offset, offset + batchSize - 1)
 
-    if (fromDate && toDate) {
-      query = query.gte('latest_contact_date', fromDate).lte('latest_contact_date', toDate)
+        if (intError || !ints || ints.length === 0) break
+
+        allInteractions.push(...ints)
+        offset += batchSize
+
+        if (ints.length < batchSize) break
+      }
     }
+    const interactions = allInteractions
 
-    const { data: clientsData, error: clientsError } = await query
+    // Get latest projection per client
+    const latestProjections = new Map()
+    interactions?.forEach(int => {
+      if (!latestProjections.has(int.client_id)) {
+        latestProjections.set(int.client_id, int.projection)
+      }
+    })
 
-    if (clientsError) {
-      console.error('Clients fetch error:', clientsError)
-      return NextResponse.json({
-        error: 'Failed to fetch projection data',
-        details: clientsError.message
-      }, { status: 500 })
-    }
-
-    // Count unique clients by projection type
+    // Count by projection type
     const projectionCounts = {
       'WP > 50': 0,
       'WP < 50': 0
     }
 
-    // Use a Set to ensure uniqueness based on user_id + company
-    const uniqueClients = new Set()
+    console.log('Fetched interactions count for weekly:', allInteractions.length)
 
-    clientsData?.forEach(client => {
-      const uniqueKey = `${client.user_id}-${client.company}`
-      if (!uniqueClients.has(uniqueKey)) {
-        uniqueClients.add(uniqueKey)
-        if (projectionCounts.hasOwnProperty(client.projection)) {
-          projectionCounts[client.projection]++
-        }
+    latestProjections.forEach(proj => {
+      const normalizedProj = proj ? proj.toLowerCase() : ''
+      if (normalizedProj === 'wp > 50') {
+        projectionCounts['WP > 50']++
+      } else if (normalizedProj === 'wp < 50') {
+        projectionCounts['WP < 50']++
       }
     })
 

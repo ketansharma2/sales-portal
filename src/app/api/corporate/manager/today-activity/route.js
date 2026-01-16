@@ -81,18 +81,18 @@ export async function GET(request) {
       })
     }
 
-    // Fetch today's DWR data
-    const { data: dwrData, error: dwrError } = await supabaseServer
-      .from('corporate_dwr_history')
-      .select('user_id, total_visit, onboarded')
-      .eq('dwr_date', today)
+    // Fetch today's interactions
+    const { data: interactions, error: intError } = await supabaseServer
+      .from('corporate_clients_interaction')
+      .select('user_id, contact_mode, status')
+      .eq('contact_date', today)
       .in('user_id', userIdsToQuery)
 
-    if (dwrError) {
-      console.error('DWR fetch error:', dwrError)
+    if (intError) {
+      console.error('Interactions fetch error:', intError)
       return NextResponse.json({
         error: 'Failed to fetch today\'s activity',
-        details: dwrError.message
+        details: intError.message
       }, { status: 500 })
     }
 
@@ -110,19 +110,31 @@ export async function GET(request) {
       }, { status: 500 })
     }
 
+    // Aggregate data per FSE
+    const activityMap = new Map()
+    interactions?.forEach(int => {
+      if (!activityMap.has(int.user_id)) {
+        activityMap.set(int.user_id, { visits: 0, onboarded: 0 })
+      }
+      if (int.contact_mode === 'Visit') {
+        activityMap.get(int.user_id).visits++
+      }
+      if (int.status === 'Onboarded') {
+        activityMap.get(int.user_id).onboarded++
+      }
+    })
+
     // Combine data
     const activityData = fseDetails.map(fse => {
-      const dwr = dwrData.find(d => d.user_id === fse.user_id)
-      if (dwr) {
-        const totalVisits = dwr.total_visit || 0
-        const onboarded = dwr.onboarded || 0
+      if (activityMap.has(fse.user_id)) {
+        const activity = activityMap.get(fse.user_id)
         return {
           id: fse.user_id,
           name: fse.name,
           role: fse.role,
-          visitsToday: totalVisits,
-          onboardedToday: onboarded,
-          status: totalVisits > 0 ? 'Active' : 'Absent',
+          visitsToday: activity.visits,
+          onboardedToday: activity.onboarded,
+          status: activity.visits > 0 ? 'Active' : 'Absent',
           avatar: fse.name.charAt(0).toUpperCase()
         }
       } else {
@@ -130,8 +142,8 @@ export async function GET(request) {
           id: fse.user_id,
           name: fse.name,
           role: fse.role,
-          visitsToday: 'N/A',
-          onboardedToday: 'N/A',
+          visitsToday: 0,
+          onboardedToday: 0,
           status: 'No Data',
           avatar: fse.name.charAt(0).toUpperCase()
         }

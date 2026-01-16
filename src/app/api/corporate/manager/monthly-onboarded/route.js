@@ -97,24 +97,35 @@ export async function GET(request) {
       })
     }
 
-    // Query corporate_dwr_history for current month onboarded count
-    const { data: dwrData, error: dwrError } = await supabaseServer
-      .from('corporate_dwr_history')
-      .select('onboarded')
+    // Query corporate_clients_interaction for onboarded count
+    const { data: interactions, error: intError } = await supabaseServer
+      .from('corporate_clients_interaction')
+      .select('client_id, status, contact_date, created_at')
       .in('user_id', userIdsToQuery)
-      .gte('dwr_date', monthStart)
-      .lte('dwr_date', monthEnd)
+      .gte('contact_date', monthStart)
+      .lte('contact_date', monthEnd)
+      .order('client_id', { ascending: true })
+      .order('contact_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .range(0, 9999)
 
-    if (dwrError) {
-      console.error('DWR fetch error:', dwrError)
+    if (intError) {
+      console.error('Interactions fetch error:', intError)
       return NextResponse.json({
         error: 'Failed to fetch monthly data',
-        details: dwrError.message
+        details: intError.message
       }, { status: 500 })
     }
 
-    // Sum onboarded count
-    const totalOnboarded = dwrData?.reduce((sum, record) => sum + (parseInt(record.onboarded) || 0), 0) || 0
+    // Process to get latest status per client
+    const latestStatuses = new Map()
+    interactions?.forEach(interaction => {
+      if (!latestStatuses.has(interaction.client_id)) {
+        latestStatuses.set(interaction.client_id, interaction.status)
+      }
+    })
+
+    const totalOnboarded = Array.from(latestStatuses.values()).filter(status => status === 'Onboarded').length
 
     return NextResponse.json({
       success: true,

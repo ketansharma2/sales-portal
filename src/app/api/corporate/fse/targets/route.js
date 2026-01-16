@@ -20,12 +20,12 @@ export async function GET(request) {
 
     // Get FSE's targets
     let targetsQuery = supabaseServer
-      .from('corporate_sm_fse_visits')
+      .from('corporate_sm_fse_targets')
       .select('*')
       .eq('fse_id', user.id)
 
     if (month) {
-      targetsQuery = targetsQuery.eq('date', month)
+      targetsQuery = targetsQuery.eq('month', month)
     }
 
     const { data: targets, error: targetsError } = await targetsQuery

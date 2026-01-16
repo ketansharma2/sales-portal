@@ -37,7 +37,7 @@ export async function GET(request) {
     const userIds = usersUnderManager?.map(u => u.user_id) || []
 
     let query = supabaseServer
-      .from('expenses')
+      .from('corporate_expenses')
       .select(`
         exp_id,
         date,
@@ -46,7 +46,7 @@ export async function GET(request) {
         notes,
         status,
         created_at,
-        users!expenses_user_id_fkey (
+        users!corporate_expenses_user_id_fkey (
           user_id,
           name,
           role

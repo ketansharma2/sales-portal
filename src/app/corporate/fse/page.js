@@ -36,14 +36,17 @@ export default function FSEDashboard() {
   }, [mounted]);
 
   const fetchVisitTarget = async () => {
+    console.log('fetchVisitTarget called - API call initiated');
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const currentMonth = new Date().toISOString().split('T')[0].substring(0, 7) + '-01';
+      console.log('Calling targets API with month:', currentMonth);
       const response = await fetch(`/api/corporate/fse/targets?month=${currentMonth}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
       });
+      console.log('Targets API response status:', response.status);
       const data = await response.json();
       console.log('Targets API response:', data);
       if (data.success && data.data) {
@@ -64,8 +67,10 @@ export default function FSEDashboard() {
   };
 
   const fetchDashboard = async (from = '', to = '') => {
+    console.log('fetchDashboard called with from:', from, 'to:', to);
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
+      console.log('Calling dashboard API with body:', { from, to });
       const response = await fetch('/api/corporate/fse/dashboard', {
         method: 'POST',
         headers: {
@@ -74,6 +79,7 @@ export default function FSEDashboard() {
         },
         body: JSON.stringify({ from, to })
       });
+      console.log('Dashboard API response status:', response.status);
       console.log('Response status:', response.status);
       const data = await response.json();
       console.log('Dashboard API response:', data);

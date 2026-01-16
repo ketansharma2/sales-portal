@@ -96,47 +96,65 @@ export async function GET(request) {
       })
     }
 
-    // Fetch clients contacted in the date range
-    const { data: clientsData, error: clientsError } = await supabaseServer
-      .from('clients')
+    // Fetch interactions in the date range with client details
+    const { data: interactions, error: intError } = await supabaseServer
+      .from('corporate_clients_interaction')
       .select(`
         user_id,
-        company,
-        location,
+        client_id,
+        contact_date,
+        contact_mode,
         contact_person,
         contact_no,
-        latest_contact_date,
+        email,
+        remarks,
         next_follow_up,
         status,
         sub_status,
         projection,
+        corporate_clients!inner(
+          company_name,
+          location,
+          state
+        ),
         users!inner(name)
       `)
-      .or(`sourcing_date.gte.${startDate},latest_contact_date.gte.${startDate}`)
-      .or(`sourcing_date.lte.${endDate},latest_contact_date.lte.${endDate}`)
+      .gte('contact_date', startDate)
+      .lte('contact_date', endDate)
       .in('user_id', userIdsToQuery)
+      .order('client_id', { ascending: true })
+      .order('contact_date', { ascending: false })
+      .order('created_at', { ascending: false })
 
-    if (clientsError) {
-      console.error('Clients fetch error:', clientsError)
+    if (intError) {
+      console.error('Interactions fetch error:', intError)
       return NextResponse.json({
         error: 'Failed to fetch today\'s clients',
-        details: clientsError.message
+        details: intError.message
       }, { status: 500 })
     }
 
+    // Get latest interaction per client
+    const latestInteractions = new Map()
+    interactions?.forEach(int => {
+      if (!latestInteractions.has(int.client_id)) {
+        latestInteractions.set(int.client_id, int)
+      }
+    })
+
     // Format the data
-    const formattedData = clientsData.map((client, index) => ({
-      id: `${client.user_id}-${client.company}-${index}`,
-      fse: client.users.name,
-      company: client.company,
-      location: client.location || 'N/A',
-      contact_person: client.contact_person || 'N/A',
-      phone: client.contact_no || 'N/A',
-      latest_date: client.latest_contact_date,
-      next_followup: client.next_follow_up || null,
-      status: client.status || 'Unknown',
-      sub_status: client.sub_status || 'N/A',
-      projection: client.projection || 'N/A'
+    const formattedData = Array.from(latestInteractions.values()).map((int, index) => ({
+      id: `${int.user_id}-${int.client_id}-${index}`,
+      fse: int.users.name,
+      company: int.corporate_clients.company_name,
+      location: `${int.corporate_clients.location || 'N/A'}, ${int.corporate_clients.state || ''}`.trim(),
+      contact_person: int.contact_person || 'N/A',
+      phone: int.contact_no || 'N/A',
+      latest_date: int.contact_date,
+      next_followup: int.next_follow_up || null,
+      status: int.status || 'Unknown',
+      sub_status: int.sub_status || 'N/A',
+      projection: int.projection || 'N/A'
     }))
 
     return NextResponse.json({

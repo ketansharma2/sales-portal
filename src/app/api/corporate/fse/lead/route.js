@@ -44,9 +44,9 @@ export async function POST(request) {
       reference: body.reference
     }
 
-    // Insert into domestic_clients table
+    // Insert into corporate_clients table
     const { data, error } = await supabaseServer
-      .from('domestic_clients')
+      .from('corporate_clients')
       .insert(clientData)
       .select()
       .single()
@@ -54,7 +54,7 @@ export async function POST(request) {
     if (error) {
       console.error('Supabase error:', error)
       return NextResponse.json({
-        error: 'Failed to create domestic client record',
+        error: 'Failed to create corporate client record',
         details: error.message
       }, { status: 500 })
     }
@@ -107,7 +107,7 @@ export async function GET(request) {
 
     while (true) {
       let batchQuery = supabaseServer
-        .from('domestic_clients')
+        .from('corporate_clients')
         .select('*')
         .eq('user_id', user.id)
 
@@ -150,7 +150,7 @@ export async function GET(request) {
     let interactions = []
     if (clientIds.length > 0) {
       const { data: ints, error: intError } = await supabaseServer
-        .from('domestic_clients_interaction')
+        .from('corporate_clients_interaction')
         .select('*')
         .eq('user_id', user.id)
         .order('client_id', { ascending: true })
@@ -251,7 +251,7 @@ export async function PUT(request) {
 
     // Fetch existing client data
     const { data: existingClient, error: fetchError } = await supabaseServer
-      .from('domestic_clients')
+      .from('corporate_clients')
       .select('*')
       .eq('client_id', client_id)
       .single()
@@ -299,7 +299,7 @@ export async function PUT(request) {
 
     // Update the client record
     const { data: updatedClient, error: updateError } = await supabaseServer
-      .from('domestic_clients')
+      .from('corporate_clients')
       .update(updateFields)
       .eq('client_id', client_id)
       .select()
@@ -308,7 +308,7 @@ export async function PUT(request) {
     if (updateError) {
       console.error('Update error:', updateError)
       return NextResponse.json({
-        error: 'Failed to update domestic client',
+        error: 'Failed to update corporate client',
         details: updateError.message
       }, { status: 500 })
     }

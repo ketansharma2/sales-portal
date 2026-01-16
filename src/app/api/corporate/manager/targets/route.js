@@ -97,7 +97,7 @@ export async function POST(request) {
 
     // Delete existing targets for this month and manager
     const { error: deleteError } = await supabaseServer
-      .from('corporate_sm_fse_visits')
+      .from('corporate_sm_fse_targets')
       .delete()
       .eq('created_by', user.id)
       .eq('month', month)
@@ -118,7 +118,7 @@ export async function POST(request) {
     }))
 
     const { data: insertedTargets, error: insertError } = await supabaseServer
-      .from('corporate_sm_fse_visits')
+      .from('corporate_sm_fse_targets')
       .insert(targetsToInsert)
       .select()
 

@@ -70,7 +70,7 @@ export default function LeadsMasterPage() {
       queryParams.append('limit', limit);
 
       // REAL API CALL
-      const response = await fetch(`/api/domestic/fse/lead?${queryParams.toString()}`, {
+      const response = await fetch(`/api/corporate/fse/lead?${queryParams.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -117,7 +117,7 @@ export default function LeadsMasterPage() {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const isEdit = !!formData.client_id;
 
-      const response = await fetch('/api/domestic/fse/lead', {
+      const response = await fetch('/api/corporate/fse/lead', {
         method: isEdit ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -152,7 +152,7 @@ export default function LeadsMasterPage() {
       setSaving(true);
       const session = JSON.parse(localStorage.getItem('session') || '{}');
 
-      const response = await fetch('/api/domestic/fse/lead/interaction', {
+      const response = await fetch('/api/corporate/fse/lead/interaction', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -829,7 +829,7 @@ function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
       if (!lead?.client_id) return;
       try {
         const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch(`/api/domestic/fse/lead/interaction?client_id=${lead.client_id}`, {
+        const response = await fetch(`/api/corporate/fse/lead/interaction?client_id=${lead.client_id}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         });
         const data = await response.json();
@@ -1147,7 +1147,7 @@ function ClientFullViewModal({ lead, onClose }) {
       try {
         setLoading(true);
         const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch(`/api/domestic/fse/lead/interaction?client_id=${lead.client_id}`, {
+        const response = await fetch(`/api/corporate/fse/lead/interaction?client_id=${lead.client_id}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         });
         const data = await response.json();

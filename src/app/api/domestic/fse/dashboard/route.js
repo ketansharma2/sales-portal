@@ -24,17 +24,6 @@ export async function POST(request) {
     const currentYear = new Date().getFullYear()
     const startDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`
 
-    // Get monthly stats from DWR
-    const { data: monthlyDwr, error: monthlyDwrError } = await supabaseServer
-      .from('dwr_history')
-      .select('*')
-      .eq('user_id', user.id)
-      .gte('dwr_date', startDate)
-
-    if (monthlyDwrError) {
-      console.error('Monthly DWR error:', monthlyDwrError)
-    }
-
     // Get monthly visits from interactions
     const { count: monthlyTotalVisitsCount, error: monthlyVisitsError } = await supabaseServer
       .from('domestic_clients_interaction')
@@ -109,8 +98,33 @@ export async function POST(request) {
     })
 
     const monthlyOnboarded = Array.from(monthlyLatestStatuses.values()).filter(status => status === 'Onboarded').length
-    const sortedMonthlyDwr = monthlyDwr?.sort((a, b) => new Date(b.dwr_date) - new Date(a.dwr_date)) || []
-    const monthlyAvg = sortedMonthlyDwr[0]?.avg_visit || 0
+
+    // Calculate monthly avg: total visits till today / working days till today (excluding Sundays)
+    const { count: totalVisitsTillNow, error: visitsTillError } = await supabaseServer
+      .from('domestic_clients_interaction')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('contact_date', startDate)
+      .lte('contact_date', today)
+      .ilike('contact_mode', 'visit')
+
+    if (visitsTillError) {
+      console.error('Visits till now error:', visitsTillError)
+    }
+
+    const totalVisits = totalVisitsTillNow || 0
+
+    // Calculate working days from startDate to today, excluding Sundays
+    const start = new Date(startDate)
+    const end = new Date(today)
+    let workingDays = 0
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      if (d.getDay() !== 0) { // 0 is Sunday
+        workingDays++
+      }
+    }
+
+    const monthlyAvg = workingDays > 0 ? (totalVisits / workingDays).toFixed(2) : '0.00'
 
     // Get latest DWR record
     const { data: latestDwrData, error: latestDwrError } = await supabaseServer
@@ -392,7 +406,7 @@ export async function POST(request) {
         individualVisits: monthlyIndividualVisits,
         totalOnboarded: monthlyOnboarded,
         mtdMp: `${monthlyOnboarded}/12`,
-        avg: monthlyAvg ? parseFloat(monthlyAvg).toString() : '0.0'
+        avg: monthlyAvg
       },
       latestActivity: {
         date: latestContactDate ? new Date(latestContactDate).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'), // DD/MM/YYYY format

@@ -32,54 +32,46 @@ export async function GET(request) {
     // Get fse_id
     const { searchParams } = new URL(request.url)
     const fseId = searchParams.get('fse_id')
-    const fromDate = searchParams.get('from_date')
-    const toDate = searchParams.get('to_date')
     if (!fseId) {
       return NextResponse.json({ error: 'FSE ID is required' }, { status: 400 })
     }
 
-    let avgVisit = 0
+    // Calculate cumulative avg for current month till today, excluding Sundays
+    const today = new Date().toISOString().split('T')[0]
+    const currentMonth = new Date().getMonth() + 1
+    const currentYear = new Date().getFullYear()
+    const startDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`
 
-    if (fromDate && toDate) {
-      // Fetch total_visit for date range and calculate average
-      const { data: dwrData, error: dwrError } = await supabaseServer
-        .from('dwr_history')
-        .select('total_visit')
-        .eq('user_id', fseId)
-        .gte('dwr_date', fromDate)
-        .lte('dwr_date', toDate)
+    // Total visits from interactions
+    const { count: totalVisitsTillNow, error: visitsError } = await supabaseServer
+      .from('domestic_clients_interaction')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', fseId)
+      .gte('contact_date', startDate)
+      .lte('contact_date', today)
+      .ilike('contact_mode', 'visit')
 
-      if (dwrError) {
-        console.error('DWR fetch error:', dwrError)
-        return NextResponse.json({
-          error: 'Failed to fetch avg visit',
-          details: dwrError.message
-        }, { status: 500 })
-      }
-
-      if (dwrData && dwrData.length > 0) {
-        const total = dwrData.reduce((sum, d) => sum + (parseFloat(d.total_visit) || 0), 0)
-        avgVisit = total / dwrData.length
-      }
-    } else {
-      // Fetch latest avg_visit
-      const { data: dwrData, error: dwrError } = await supabaseServer
-        .from('dwr_history')
-        .select('avg_visit')
-        .eq('user_id', fseId)
-        .order('dwr_date', { ascending: false })
-        .limit(1)
-
-      if (dwrError) {
-        console.error('DWR fetch error:', dwrError)
-        return NextResponse.json({
-          error: 'Failed to fetch avg visit',
-          details: dwrError.message
-        }, { status: 500 })
-      }
-
-      avgVisit = dwrData?.[0]?.avg_visit || 0
+    if (visitsError) {
+      console.error('Visits fetch error:', visitsError)
+      return NextResponse.json({
+        error: 'Failed to fetch avg visit',
+        details: visitsError.message
+      }, { status: 500 })
     }
+
+    const totalVisits = totalVisitsTillNow || 0
+
+    // Calculate working days from startDate to today, excluding Sundays
+    const start = new Date(startDate)
+    const end = new Date(today)
+    let workingDays = 0
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      if (d.getDay() !== 0) { // 0 is Sunday
+        workingDays++
+      }
+    }
+
+    const avgVisit = workingDays > 0 ? (totalVisits / workingDays).toFixed(2) : '0.00'
 
     return NextResponse.json({
       success: true,
