@@ -35,22 +35,34 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Expense ID is required' }, { status: 400 })
     }
 
-    // First, check if the expense exists and is pending for HOD approval
-    const { data: expenseCheck, error: checkError } = await supabaseServer
-      .from('expenses')
-      .select('exp_id')
-      .eq('exp_id', exp_id)
-      .eq('status', 'Pending (HOD)')
-      .eq('submitted', true)
-      .single()
+    // Check both tables for the expense
+    const [domesticCheck, corporateCheck] = await Promise.all([
+      supabaseServer
+        .from('expenses')
+        .select('exp_id')
+        .eq('exp_id', exp_id)
+        .eq('status', 'Pending (HOD)')
+        .eq('submitted', true)
+        .single(),
+      supabaseServer
+        .from('corporate_expenses')
+        .select('exp_id')
+        .eq('exp_id', exp_id)
+        .eq('status', 'Pending (HOD)')
+        .eq('submitted', true)
+        .single()
+    ])
 
-    if (checkError || !expenseCheck) {
+    const expenseExists = domesticCheck.data || corporateCheck.data
+    const tableName = domesticCheck.data ? 'expenses' : 'corporate_expenses'
+
+    if (!expenseExists) {
       return NextResponse.json({ error: 'Expense not found or not authorized' }, { status: 404 })
     }
 
-    // Update the expense status to Rejected
+    // Update the expense status to Rejected in the appropriate table
     const { data: updatedExpense, error: updateError } = await supabaseServer
-      .from('expenses')
+      .from(tableName)
       .update({
         status: 'Rejected',
         approved_by: user.id,

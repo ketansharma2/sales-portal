@@ -13,6 +13,9 @@ export default function ManagerPersonalClaims() {
 
   // Working State & Logic
   const [formData, setFormData] = useState({ date: "", category: "TRAVEL", amount: "", notes: "" });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewExpense, setPreviewExpense] = useState(null);
 
   const fetchExpenses = async (dateFilter = "") => {
     try {
@@ -42,22 +45,30 @@ export default function ManagerPersonalClaims() {
     e.preventDefault();
 
     try {
-      // Call API to save
-    const session = JSON.parse(localStorage.getItem('session') || '{}');
-    const response = await fetch('/api/domestic/manager/expenses', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify(formData)
-    });
-    const data = await response.json();
-    if (data.success) {
-      fetchExpenses(filterDate);
-      setIsModalOpen(false);
-      setFormData({ date: "", category: "TRAVEL", amount: "", notes: "" });
-    }
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const formDataToSend = new FormData();
+      formDataToSend.append('date', formData.date);
+      formDataToSend.append('category', formData.category);
+      formDataToSend.append('amount', formData.amount);
+      formDataToSend.append('notes', formData.notes);
+      if (selectedFile) {
+        formDataToSend.append('file', selectedFile);
+      }
+
+      const response = await fetch('/api/domestic/manager/expenses', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: formDataToSend
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchExpenses(filterDate);
+        setIsModalOpen(false);
+        setFormData({ date: "", category: "TRAVEL", amount: "", notes: "" });
+        setSelectedFile(null);
+      }
     } catch (error) {
       console.error('Failed to save expense:', error);
     }
@@ -161,6 +172,7 @@ export default function ManagerPersonalClaims() {
                 <th className="px-4 py-3 border-b border-white/10">Date</th>
                 <th className="px-4 py-3 border-b border-white/10">Details</th>
                 <th className="px-4 py-3 text-center border-b border-white/10">Amount</th>
+                <th className="px-4 py-3 text-center border-b border-white/10">Proof</th>
                 <th className="px-4 py-3 text-center border-b border-white/10">Status</th>
                 <th className="px-4 py-3 text-center border-b border-white/10">Action</th>
               </tr>
@@ -181,6 +193,15 @@ export default function ManagerPersonalClaims() {
                   </td>
                   <td className="px-6 py-4 text-center">
                     <p className="text-xl font-black text-[#103c7f] italic leading-none">₹{exp.amount}</p>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {exp.file_link ? (
+                      <button onClick={() => { setPreviewExpense(exp); setIsPreviewOpen(true); }} className="text-[#103c7f] hover:text-[#a1db40] transition-colors w-full flex justify-center">
+                        <Paperclip size={16} />
+                      </button>
+                    ) : (
+                      <span className="text-gray-300">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border italic flex items-center justify-center gap-1.5 ${
@@ -302,11 +323,14 @@ export default function ManagerPersonalClaims() {
           <div className="space-y-1">
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Proof</label>
             <div className="relative border border-dashed border-[#103c7f]/30 rounded-xl bg-[#103c7f]/5 hover:bg-[#103c7f]/10 transition-all group flex items-center justify-center gap-2 cursor-pointer h-[46px]">
-              <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+              <input type="file" onChange={(e) => setSelectedFile(e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
               <FileText size={16} className="text-[#103c7f]" />
-              <p className="text-[11px] font-bold text-[#103c7f] uppercase tracking-wide">Upload Bill</p>
+              <div className="flex flex-col items-center">
+                <p className="text-[11px] font-bold text-[#103c7f] uppercase tracking-wide">{selectedFile ? selectedFile.name : 'Upload Bill'}</p>
+                {selectedFile && <p className="text-[9px] text-gray-500">({(selectedFile.size / 1024).toFixed(1)} KB)</p>}
+              </div>
             </div>
-          </div> 
+          </div>
         </div>
 
         {/* Row 3: Notes */}
@@ -338,6 +362,36 @@ export default function ManagerPersonalClaims() {
           </button>
         </div>
       </form>
+    </div>
+  </div>
+)}
+
+{/* Preview Modal */}
+{isPreviewOpen && (
+  <div className="fixed inset-0 bg-[#103c7f]/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-['Calibri'] animate-in fade-in duration-200">
+    <div className="bg-white rounded-[24px] shadow-2xl max-w-4xl w-full p-8 relative overflow-hidden">
+      <button
+        onClick={() => setIsPreviewOpen(false)}
+        className="absolute top-6 right-6 p-2 bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-full transition-all"
+      >
+        <X size={20} strokeWidth={2.5} />
+      </button>
+      <div className="flex items-center gap-5 mb-6">
+        <div className="bg-[#103c7f]/5 w-16 h-16 rounded-2xl flex items-center justify-center text-[#103c7f] border border-[#103c7f]/10 shrink-0">
+          <FileText size={30} strokeWidth={2} />
+        </div>
+        <div className="flex flex-col">
+          <h2 className="text-2xl font-black text-[#103c7f] tracking-tight uppercase italic leading-none">
+            Bill Preview
+          </h2>
+          <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.2em] mt-1.5">
+            Expense Proof Document
+          </p>
+        </div>
+      </div>
+      <div className="flex justify-center">
+        <img src={previewExpense?.file_link} alt="Bill Preview" className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg" />
+      </div>
     </div>
   </div>
 )}

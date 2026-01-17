@@ -21,7 +21,7 @@ export async function GET(request) {
     // Fetch expenses for the user
     let query = supabaseServer
       .from('corporate_expenses')
-      .select('exp_id, user_id, date, category, amount, notes, status, approved_by, approved_at, created_at')
+      .select('exp_id, user_id, date, category, amount, notes, file_link, status, approved_by, approved_at, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
@@ -46,7 +46,8 @@ export async function GET(request) {
       category: expense.category,
       amount: expense.amount,
       status: expense.status,
-      notes: expense.notes || 'No notes added'
+      notes: expense.notes || 'No notes added',
+      file_link: expense.file_link
     })) || []
 
     return NextResponse.json({
@@ -76,8 +77,37 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { date, category, amount, notes } = body
+    const formData = await request.formData()
+    const date = formData.get('date')
+    const category = formData.get('category')
+    const amount = formData.get('amount')
+    const notes = formData.get('notes')
+    const file = formData.get('file')
+
+    let fileUrl = null
+
+    // Upload file if provided
+    if (file && file.size > 0) {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${user.id}_${Date.now()}.${fileExt}`
+      const { data: uploadData, error: uploadError } = await supabaseServer.storage
+        .from('expense_bills')
+        .upload(fileName, file)
+
+      if (uploadError) {
+        console.error('File upload error:', uploadError)
+        return NextResponse.json({
+          error: 'Failed to upload file',
+          details: uploadError.message
+        }, { status: 500 })
+      }
+
+      const { data: { publicUrl } } = supabaseServer.storage
+        .from('expense_bills')
+        .getPublicUrl(fileName)
+
+      fileUrl = publicUrl
+    }
 
     // Insert new expense
     const { data: newExpense, error: insertError } = await supabaseServer
@@ -88,6 +118,7 @@ export async function POST(request) {
         category,
         amount,
         notes,
+        file_link: fileUrl,
         status: 'DRAFT',
         submitted: false
       })
@@ -105,12 +136,14 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       data: {
+        id: newExpense.exp_id,
         user_id: newExpense.user_id,
         date: newExpense.date,
         category: newExpense.category,
         amount: newExpense.amount,
         status: newExpense.status,
-        notes: newExpense.notes || 'No notes added'
+        notes: newExpense.notes || 'No notes added',
+        file_link: newExpense.file_link
       }
     })
 

@@ -805,21 +805,21 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
 }
 
 function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
-  const [formData, setFormData] = useState({
-    ...lead,
-    contact_person: lead?.contact_person || '',
-    contact_no: lead?.contact_no || '',
-    email: lead?.email || '',
-    latest_contact_mode: 'Call',
-    latest_contact_date: new Date().toISOString().split('T')[0],
-    remarks: '',
-    next_follow_up: '',
-    status: lead?.status || '',
-    sub_status: lead?.sub_status || '',
-    projection: lead?.projection || ''
-  });
+   const [formData, setFormData] = useState({
+     ...lead,
+     contact_person: lead?.contact_person || '',
+     contact_no: lead?.contact_no || '',
+     email: lead?.email || '',
+     latest_contact_mode: 'Call',
+     latest_contact_date: new Date().toISOString().split('T')[0],
+     remarks: '',
+     next_follow_up: '',
+     status: lead?.status || '',
+     sub_status: lead?.sub_status || '',
+     projection: lead?.projection || ''
+   });
 
-  const [suggestions, setSuggestions] = useState({ persons: [], nos: [], emails: [] });
+   const [suggestions, setSuggestions] = useState({ persons: [], nos: [], emails: [] });
 
   const subStatusList = ["Blue Collar", "Call Back", "In Process", "Low Budget", "Proposal Shared", "Ready to Sign","Not Ready to Sign"];
   const projectionList = ["WP > 50", "WP < 50", "MP > 50", "MP < 50", "Not Projected"];
@@ -893,7 +893,14 @@ function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
             {/* 3. Email */}
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
-              <input type="email" value={formData.email} onChange={e => updateField('email', e.target.value)} className={inputStyle} placeholder="client@email.com" list="emails" />
+              <input
+                type="email"
+                value={formData.email}
+                onChange={e => updateField('email', e.target.value)}
+                className={inputStyle}
+                placeholder="client@email.com"
+                list="emails"
+              />
               <datalist id="emails">
                 {suggestions.emails.map(e => <option key={e} value={e} />)}
               </datalist>
@@ -984,11 +991,11 @@ function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
               Cancel
             </button>
 
-            <button 
-              type="button" 
-              onClick={() => onSave(formData)} 
-              disabled={saving} 
-              className="flex-1 py-3.5 bg-[#103c7f] text-white rounded-2xl font-black uppercase text-xs shadow-xl shadow-blue-900/20 active:scale-95 transition flex items-center justify-center gap-2 hover:bg-blue-900 whitespace-nowrap"
+            <button
+              type="button"
+              onClick={() => onSave(formData)}
+              disabled={saving}
+              className="flex-1 py-3.5 bg-[#103c7f] text-white rounded-2xl font-black uppercase text-xs shadow-xl shadow-blue-900/20 active:scale-95 transition flex items-center justify-center gap-2 hover:bg-blue-900 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? <Loader2 className="animate-spin" size={16}/> : <CheckCircle size={18} strokeWidth={2.5}/>}
               Save Interaction

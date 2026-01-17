@@ -44,6 +44,7 @@ export async function GET(request) {
         category,
         amount,
         notes,
+        file_link,
         status,
         created_at,
         users!expenses_user_id_fkey (
@@ -95,6 +96,7 @@ export async function GET(request) {
         amount: expense.amount,
         date: new Date(expense.date).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-'),
         status: displayStatus,
+        file_link: expense.file_link,
         img: 'bg-blue-100 text-blue-600' // Default avatar style
       };
     }) || []

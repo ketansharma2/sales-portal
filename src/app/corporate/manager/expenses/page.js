@@ -13,6 +13,9 @@ export default function ManagerPersonalClaims() {
 
   // Working State & Logic
   const [formData, setFormData] = useState({ date: "", category: "TRAVEL", amount: "", notes: "" });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewExpense, setPreviewExpense] = useState(null);
 
   const fetchExpenses = async (dateFilter = "") => {
     try {
@@ -42,22 +45,30 @@ export default function ManagerPersonalClaims() {
     e.preventDefault();
 
     try {
-      // Call API to save
-    const session = JSON.parse(localStorage.getItem('session') || '{}');
-    const response = await fetch('/api/corporate/manager/expenses', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify(formData)
-    });
-    const data = await response.json();
-    if (data.success) {
-      fetchExpenses(filterDate);
-      setIsModalOpen(false);
-      setFormData({ date: "", category: "TRAVEL", amount: "", notes: "" });
-    }
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const formDataToSend = new FormData();
+      formDataToSend.append('date', formData.date);
+      formDataToSend.append('category', formData.category);
+      formDataToSend.append('amount', formData.amount);
+      formDataToSend.append('notes', formData.notes);
+      if (selectedFile) {
+        formDataToSend.append('file', selectedFile);
+      }
+
+      const response = await fetch('/api/corporate/manager/expenses', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: formDataToSend
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchExpenses(filterDate);
+        setIsModalOpen(false);
+        setFormData({ date: "", category: "TRAVEL", amount: "", notes: "" });
+        setSelectedFile(null);
+      }
     } catch (error) {
       console.error('Failed to save expense:', error);
     }
@@ -159,6 +170,7 @@ export default function ManagerPersonalClaims() {
                 <th className="px-4 py-3 border-b border-white/10">Date</th>
                 <th className="px-4 py-3 border-b border-white/10">Details</th>
                 <th className="px-4 py-3 text-center border-b border-white/10">Amount</th>
+                <th className="px-4 py-3 text-center border-b border-white/10">Proof</th>
                 <th className="px-4 py-3 text-center border-b border-white/10">Status</th>
                 <th className="px-4 py-3 text-center border-b border-white/10">Action</th>
               </tr>
@@ -179,6 +191,15 @@ export default function ManagerPersonalClaims() {
                   </td>
                   <td className="px-6 py-4 text-center">
                     <p className="text-xl font-black text-[#103c7f] italic leading-none">₹{exp.amount}</p>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {exp.file_link ? (
+                      <button onClick={() => { setPreviewExpense(exp); setIsPreviewOpen(true); }} className="text-[#103c7f] hover:text-[#a1db40] transition-colors w-full flex justify-center">
+                        <Paperclip size={16} />
+                      </button>
+                    ) : (
+                      <span className="text-gray-300">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border italic flex items-center justify-center gap-1.5 ${
@@ -218,32 +239,59 @@ export default function ManagerPersonalClaims() {
         </div>
       </div>
 
-      {/* --- MODAL --- */}
+      {/* --- ORIGINAL PREMIUM MODAL (Restored) --- */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-[#103c7f]/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn font-['Calibri']">
-          <div className="bg-white/95 rounded-[32px] shadow-2xl max-w-2xl w-full p-8 relative border border-white/40 overflow-hidden">
-            <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 p-2 bg-gray-100/80 rounded-full text-gray-500 hover:text-red-500 transition-all z-10">
-              <X size={18} strokeWidth={2.5} />
+        <div className="fixed inset-0 bg-[#103c7f]/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-['Calibri'] animate-in fade-in duration-200">
+          <div className="bg-white rounded-[24px] shadow-2xl max-w-lg w-full p-8 relative overflow-hidden">
+
+            {/* Close Button */}
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-6 right-6 p-2 bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-full transition-all"
+            >
+              <X size={20} strokeWidth={2.5} />
             </button>
-            
-            <div className="mb-6 text-center">
-              <div className="bg-[#a1db40]/20 w-14 h-14 rounded-[20px] flex items-center justify-center text-[#103c7f] mx-auto mb-3">
-                <Wallet size={26} strokeWidth={2} />
+
+            <div className="mb-8 flex items-center gap-5">
+
+              {/* Icon Box - Left Side */}
+              <div className="bg-[#103c7f]/5 w-16 h-16 rounded-2xl flex items-center justify-center text-[#103c7f] border border-[#103c7f]/10 shrink-0">
+                <Wallet size={30} strokeWidth={2} />
               </div>
-              <h2 className="text-2xl font-black text-[#103c7f] tracking-tight leading-none uppercase italic">New Manager Claim</h2>
-              <p className="text-gray-400 text-[9px] font-bold uppercase tracking-[0.2em] mt-2">Submit to HOD / Finance</p>
+
+              {/* Text Details - Right Side */}
+              <div className="flex flex-col">
+                <h2 className="text-2xl font-black text-[#103c7f] tracking-tight uppercase italic leading-none">
+                  New Manager Claim
+                </h2>
+                <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.2em] mt-1.5">
+                  Maven Jobs Reimbursement
+                </p>
+              </div>
+
             </div>
-            
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+
+            {/* Form Section - Logic Preserved */}
+            <form onSubmit={handleSave} className="space-y-5">
+
+              {/* Row 1: Date & Category (Responsive Grid) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Date</label>
-                  <input type="date" required onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-[14px] focus:ring-2 focus:ring-[#a1db40]/50 outline-none text-sm font-bold text-gray-700" />
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Date</label>
+                  <input
+                    type="date"
+                    required
+                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-[#103c7f] focus:ring-4 focus:ring-[#103c7f]/10 outline-none text-sm font-semibold text-gray-700 transition-all cursor-pointer"
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Category</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Category</label>
                   <div className="relative">
-                    <select onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-[14px] focus:ring-2 focus:ring-[#a1db40]/50 outline-none text-sm font-bold text-gray-700 appearance-none">
+                    <select
+                      onChange={(e) => setFormData({...formData, category: e.target.value})}
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-[#103c7f] focus:ring-4 focus:ring-[#103c7f]/10 outline-none text-sm font-semibold text-gray-700 appearance-none transition-all cursor-pointer"
+                    >
                       <option value="TRAVEL">Travel / Fuel</option>
                       <option value="FLIGHT">Flight</option>
                       <option value="STAY">Hotel / Stay</option>
@@ -255,31 +303,94 @@ export default function ManagerPersonalClaims() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4">
+              {/* Row 2: Amount & File Upload */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Amount (₹)</label>
-                  <input type="number" required placeholder="0.00" onChange={(e) => setFormData({...formData, amount: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-[14px] focus:ring-2 focus:ring-[#a1db40]/50 outline-none text-sm font-bold text-gray-700" />
-                </div>
-                {/* <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Proof</label>
-                  <div className="relative border-2 border-dashed border-gray-200 rounded-[14px] p-2 bg-gray-50/50 hover:bg-[#a1db40]/5 hover:border-[#a1db40]/50 transition-all group flex items-center justify-center gap-3 cursor-pointer h-[46px]">
-                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                    <FileText size={18} className="text-[#103c7f] opacity-40 group-hover:text-[#a1db40]" />
-                    <p className="text-[10px] font-black text-gray-600 uppercase tracking-tight group-hover:text-[#103c7f]">Upload Bill</p>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Amount (₹)</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₹</span>
+                    <input
+                      type="number"
+                      required
+                      placeholder="0.00"
+                      onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                      className="w-full pl-8 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-[#103c7f] focus:ring-4 focus:ring-[#103c7f]/10 outline-none text-sm font-semibold text-gray-700 transition-all placeholder:text-gray-300"
+                    />
                   </div>
-                </div> */}
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Proof</label>
+                  {/* Improved File Upload UI */}
+                  <div className="relative border border-dashed border-[#103c7f]/30 rounded-xl bg-[#103c7f]/5 hover:bg-[#103c7f]/10 transition-all group flex items-center justify-center gap-2 cursor-pointer h-[46px]">
+                    <input type="file" onChange={(e) => setSelectedFile(e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                    <FileText size={16} className="text-[#103c7f]" />
+                    <div className="flex flex-col items-center">
+                      <p className="text-[11px] font-bold text-[#103c7f] uppercase tracking-wide">{selectedFile ? selectedFile.name : 'Upload Bill'}</p>
+                      {selectedFile && <p className="text-[9px] text-gray-500">({(selectedFile.size / 1024).toFixed(1)} KB)</p>}
+                    </div>
+                  </div>
+                </div>
               </div>
 
+              {/* Row 3: Notes */}
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Notes</label>
-                <textarea rows="2" placeholder="Purpose of expense..." onChange={(e) => setFormData({...formData, notes: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-[14px] focus:ring-2 focus:ring-[#a1db40]/50 outline-none text-sm font-bold text-gray-700 resize-none"></textarea>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Notes</label>
+                <textarea
+                  rows="3"
+                  placeholder="Briefly describe the expense..."
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-[#103c7f] focus:ring-4 focus:ring-[#103c7f]/10 outline-none text-sm font-medium text-gray-700 resize-none transition-all placeholder:text-gray-300"
+                ></textarea>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 bg-gray-100 text-gray-500 py-3.5 rounded-[14px] font-black tracking-widest hover:bg-gray-200 transition-all text-xs uppercase">Cancel</button>
-                <button type="submit" className="flex-1 bg-[#103c7f] text-white py-3.5 rounded-[14px] font-black tracking-widest hover:bg-[#0d316a] shadow-lg transition-all text-xs uppercase">Save Claim</button>
+              {/* Buttons */}
+              <div className="flex gap-4 pt-4 border-t border-gray-100 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 bg-gray-100 text-gray-600 py-3.5 rounded-xl font-bold tracking-wider hover:bg-gray-200 hover:text-gray-800 transition-all text-xs uppercase"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-[#103c7f] text-white py-3.5 rounded-xl font-bold tracking-wider hover:bg-[#0d316a] hover:shadow-lg hover:shadow-[#103c7f]/20 transition-all text-xs uppercase flex items-center justify-center gap-2"
+                >
+                  <CheckCircle size={16} strokeWidth={2.5} />
+                  Save Claim
+                </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {isPreviewOpen && (
+        <div className="fixed inset-0 bg-[#103c7f]/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-['Calibri'] animate-in fade-in duration-200">
+          <div className="bg-white rounded-[24px] shadow-2xl max-w-4xl w-full p-8 relative overflow-hidden">
+            <button
+              onClick={() => setIsPreviewOpen(false)}
+              className="absolute top-6 right-6 p-2 bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-full transition-all"
+            >
+              <X size={20} strokeWidth={2.5} />
+            </button>
+            <div className="flex items-center gap-5 mb-6">
+              <div className="bg-[#103c7f]/5 w-16 h-16 rounded-2xl flex items-center justify-center text-[#103c7f] border border-[#103c7f]/10 shrink-0">
+                <FileText size={30} strokeWidth={2} />
+              </div>
+              <div className="flex flex-col">
+                <h2 className="text-2xl font-black text-[#103c7f] tracking-tight uppercase italic leading-none">
+                  Bill Preview
+                </h2>
+                <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.2em] mt-1.5">
+                  Expense Proof Document
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <img src={previewExpense?.file_link} alt="Bill Preview" className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg" />
+            </div>
           </div>
         </div>
       )}

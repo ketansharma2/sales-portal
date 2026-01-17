@@ -1,4 +1,4 @@
-"use client";
+    "use client";
 import { useState, useEffect } from "react";
 import { 
   Check, X, ShieldCheck, UserCircle, Search, Download, 
@@ -9,6 +9,8 @@ export default function ManagerApprovals() {
   const [approvals, setApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [teamCount, setTeamCount] = useState(0);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState("");
 
   const fetchPendingExpenses = async () => {
     try {
@@ -52,8 +54,10 @@ export default function ManagerApprovals() {
   }, []);
 
   const handleApprove = async (exp_id) => {
+    console.log('Approving expense:', exp_id);
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
+      console.log('Session:', session);
       const response = await fetch('/api/domestic/manager/approvals/approve-expense', {
         method: 'POST',
         headers: {
@@ -62,7 +66,9 @@ export default function ManagerApprovals() {
         },
         body: JSON.stringify({ exp_id })
       });
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', data);
       if (data.success) {
         fetchPendingExpenses(); // Refresh the list
       }
@@ -72,8 +78,10 @@ export default function ManagerApprovals() {
   };
 
   const handleReject = async (exp_id) => {
+    console.log('Rejecting expense:', exp_id);
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
+      console.log('Session:', session);
       const response = await fetch('/api/domestic/manager/approvals/reject-expense', {
         method: 'POST',
         headers: {
@@ -82,7 +90,9 @@ export default function ManagerApprovals() {
         },
         body: JSON.stringify({ exp_id })
       });
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', data);
       if (data.success) {
         fetchPendingExpenses(); // Refresh the list
       }
@@ -209,13 +219,19 @@ export default function ManagerApprovals() {
                       </div>
                     ) : item.status === "Approved" ? (
                       // Approved State
-                      <div className="flex justify-center items-center opacity-60">
+                      <div className="flex justify-center items-center gap-2 opacity-80">
                         <CheckCircle size={16} className="text-green-600" />
+                        <button onClick={() => { setPreviewUrl(item.file_link); setIsPreviewOpen(true); }} className="text-[#103c7f] hover:text-[#a1db40] transition-colors" title="View Bill Proof">
+                          <FileText size={16} strokeWidth={2}/>
+                        </button>
                       </div>
                     ) : item.status === "Rejected" ? (
                       // Rejected State
-                      <div className="flex justify-center items-center opacity-60">
+                      <div className="flex justify-center items-center gap-2 opacity-80">
                         <X size={16} className="text-red-600" />
+                        <button onClick={() => { setPreviewUrl(item.file_link); setIsPreviewOpen(true); }} className="text-[#103c7f] hover:text-[#a1db40] transition-colors" title="View Bill Proof">
+                          <FileText size={16} strokeWidth={2}/>
+                        </button>
                       </div>
                     ) : (
                       // Active Buttons for Pending Review and Clarification Req
@@ -226,7 +242,7 @@ export default function ManagerApprovals() {
                         <button onClick={() => handleReject(item.id)} className="bg-red-50 text-red-600 p-2 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Reject">
                           <X size={16} strokeWidth={3}/>
                         </button>
-                        <button className="bg-gray-100 text-[#103c7f] p-2 rounded-lg hover:bg-[#103c7f] hover:text-white transition-all shadow-sm" title="View Bill Proof">
+                        <button onClick={() => { setPreviewUrl(item.file_link); setIsPreviewOpen(true); }} className="bg-gray-100 text-[#103c7f] p-2 rounded-lg hover:bg-[#103c7f] hover:text-white transition-all shadow-sm" title="View Bill Proof">
                           <FileText size={16} strokeWidth={2}/>
                         </button>
                       </div>
@@ -250,6 +266,36 @@ export default function ManagerApprovals() {
            <p className="text-[10px] font-black uppercase tracking-widest">Total Approval Value: <span className="text-lg italic">₹{approvals.reduce((sum, item) => sum + parseFloat(item.amount.replace(/,/g, '') || 0), 0).toLocaleString()}</span></p>
         </div>
       </div>
+
+      {/* Preview Modal */}
+      {isPreviewOpen && (
+        <div className="fixed inset-0 bg-[#103c7f]/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-['Calibri'] animate-in fade-in duration-200">
+          <div className="bg-white rounded-[24px] shadow-2xl max-w-4xl w-full p-8 relative overflow-hidden">
+            <button
+              onClick={() => setIsPreviewOpen(false)}
+              className="absolute top-6 right-6 p-2 bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-full transition-all"
+            >
+              <X size={20} strokeWidth={2.5} />
+            </button>
+            <div className="flex items-center gap-5 mb-6">
+              <div className="bg-[#103c7f]/5 w-16 h-16 rounded-2xl flex items-center justify-center text-[#103c7f] border border-[#103c7f]/10 shrink-0">
+                <FileText size={30} strokeWidth={2} />
+              </div>
+              <div className="flex flex-col">
+                <h2 className="text-2xl font-black text-[#103c7f] tracking-tight uppercase italic leading-none">
+                  Bill Preview
+                </h2>
+                <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.2em] mt-1.5">
+                  Expense Proof Document
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <img src={previewUrl} alt="Bill Preview" className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
