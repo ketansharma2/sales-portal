@@ -237,7 +237,6 @@ statesList: [
     // h-[100dvh] ensures full height on mobile browsers with address bars
     <div className="w-full h-[100dvh] flex flex-col overflow-hidden font-['Calibri'] p-1 md:p-2 bg-[#f8fafc]">
       
-      {/* HEADER */}
      {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-2 gap-4">
         

@@ -418,16 +418,26 @@ const isLocked = lead.isSubmitted;
             ) : (
                // Agar nahi hai to purane buttons dikhenge
                <div className="flex items-center justify-center gap-1">
-                  <button onClick={() => handleAction(lead, 'view')} className="p-1 text-gray-500 hover:text-[#103c7f] hover:bg-blue-100 rounded tooltip">
-                    <Eye size={16} />
-                  </button>
-                  <button onClick={() => handleAction(lead, 'add')} className="p-1 bg-[#a1db40] text-[#103c7f] rounded hover:bg-[#8cc430] font-bold shadow-sm">
-                    <Phone size={16} />
-                  </button>
-                  <button onClick={() => handleAction(lead, 'send_to_manager')} className="p-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 font-bold shadow-sm">
-                    <Send size={16} />
-                  </button>
-               </div>
+  {/* View Button */}
+  <button onClick={() => handleAction(lead, 'view')} className="p-1 text-gray-500 hover:text-[#103c7f] hover:bg-blue-100 rounded tooltip">
+    <Eye size={16} />
+  </button>
+
+  {/* 👇 NEW: Edit Button (Orange Theme) */}
+  <button onClick={() => handleAction(lead, 'edit')} className="p-1 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 font-bold shadow-sm">
+    <Edit size={16} />
+  </button>
+
+  {/* Phone Button */}
+  <button onClick={() => handleAction(lead, 'add')} className="p-1 bg-[#a1db40] text-[#103c7f] rounded hover:bg-[#8cc430] font-bold shadow-sm">
+    <Phone size={16} />
+  </button>
+
+  {/* Send Button */}
+  <button onClick={() => handleAction(lead, 'send_to_manager')} className="p-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 font-bold shadow-sm">
+    <Send size={16} />
+  </button>
+</div>
             )}
           </td>
 

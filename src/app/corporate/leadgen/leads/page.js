@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { 
   Search, Phone, Filter, X, Save, Plus, Eye, 
-  Calendar, MapPin, ListFilter,ArrowRight,Send,Lock
+  Calendar, MapPin, ListFilter,ArrowRight,Send,Lock,Edit
 } from "lucide-react";
 
 export default function LeadsTablePage() {
@@ -121,12 +121,27 @@ export default function LeadsTablePage() {
     setLeads(filtered);
   };
 
-  const handleAction = async (lead, type) => {
+ const handleAction = async (lead, type) => {
     setSelectedLead(lead);
     setModalType(type);
     setIsFormOpen(true);
+    
     if (type === 'view') {
       await fetchInteractions(lead.id);
+    }
+
+    // --- NEW CODE: Pre-fill data for Edit ---
+    if (type === 'edit') {
+      setNewLeadData({
+        company: lead.company || '',
+        category: lead.category || '',
+        state: lead.state || '',
+        location: lead.location || '',
+        // Map the table's camelCase keys to the form's snake_case keys
+        emp_count: lead.empCount || '1 - 10', 
+        reference: lead.reference || '',
+        sourcing_date: lead.sourcingDate || ''
+      });
     }
   };
 
@@ -196,6 +211,33 @@ export default function LeadsTablePage() {
     }
   };
 
+  const handleUpdateLead = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      // Assuming you use PUT or PATCH for updates. Adjust the method/URL if your API is different.
+      const response = await fetch('/api/corporate/leadgen/leads', { 
+        method: 'PUT', 
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          client_id: selectedLead.id, // We need the ID to know which lead to update
+          ...newLeadData
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setIsFormOpen(false);
+        setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '' });
+        fetchLeads(); // Refresh table
+      } else {
+        alert('Failed to update lead');
+      }
+    } catch (error) {
+      console.error('Failed to update lead:', error);
+    }
+  };
   const handleSaveInteraction = async () => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
@@ -418,16 +460,26 @@ const isLocked = lead.isSubmitted;
             ) : (
                // Agar nahi hai to purane buttons dikhenge
                <div className="flex items-center justify-center gap-1">
-                  <button onClick={() => handleAction(lead, 'view')} className="p-1 text-gray-500 hover:text-[#103c7f] hover:bg-blue-100 rounded tooltip">
-                    <Eye size={16} />
-                  </button>
-                  <button onClick={() => handleAction(lead, 'add')} className="p-1 bg-[#a1db40] text-[#103c7f] rounded hover:bg-[#8cc430] font-bold shadow-sm">
-                    <Phone size={16} />
-                  </button>
-                  <button onClick={() => handleAction(lead, 'send_to_manager')} className="p-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 font-bold shadow-sm">
-                    <Send size={16} />
-                  </button>
-               </div>
+  {/* View Button */}
+  <button onClick={() => handleAction(lead, 'view')} className="p-1 text-gray-500 hover:text-[#103c7f] hover:bg-blue-100 rounded tooltip">
+    <Eye size={16} />
+  </button>
+
+  {/* 👇 NEW: Edit Button (Orange Theme) */}
+  <button onClick={() => handleAction(lead, 'edit')} className="p-1 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 font-bold shadow-sm">
+    <Edit size={16} />
+  </button>
+
+  {/* Phone Button */}
+  <button onClick={() => handleAction(lead, 'add')} className="p-1 bg-[#a1db40] text-[#103c7f] rounded hover:bg-[#8cc430] font-bold shadow-sm">
+    <Phone size={16} />
+  </button>
+
+  {/* Send Button */}
+  <button onClick={() => handleAction(lead, 'send_to_manager')} className="p-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 font-bold shadow-sm">
+    <Send size={16} />
+  </button>
+</div>
             )}
           </td>
 
@@ -474,7 +526,7 @@ const isLocked = lead.isSubmitted;
             <div className="p-6">
               
               {/* === MODE 1: CREATE NEW LEAD FORM === */}
-              {modalType === 'create' && (
+              {(modalType === 'create' || modalType === 'edit') && (
                 <div className="space-y-4">
                     {/* Row 1: Company & Category */}
                     <div className="grid grid-cols-3 gap-4">
@@ -847,6 +899,15 @@ const isLocked = lead.isSubmitted;
      <Send size={16} /> Yes, Confirm
    </button>
 )}
+{/* 5. Button for EDIT Mode */}
+   {modalType === 'edit' && (
+     <button 
+       onClick={handleUpdateLead} 
+       className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-2"
+     >
+       <Edit size={16} /> Update Details
+     </button>
+   )}
 </div>
 </div>
 

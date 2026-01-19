@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   Users, Wallet, LayoutGrid, ShieldCheck, 
-  Settings, FileText, Target, Search, BarChart, Phone,Calendar,MapPin,Truck
+  Settings, FileText, Target, Search, BarChart, Phone,Calendar,MapPin,Truck,UserPlus
 } from "lucide-react";
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
@@ -98,10 +98,13 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
 
   // 7. NEW ROLES (CRM, TL, Recruiter)
   // You can add specific menus for them here. For now, defaulting to Dashboard.
-  else if (["crm", "tl", "recruiter"].includes(currentRole)) {
+ 
+
+  else if (currentRole === "crm") {
     menuItems = [
-      { name: "Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
-      { name: "My Tasks", href: `${roleBaseHref}/tasks`, icon: <FileText size={20} /> },
+      { name: "CRM Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
+      { name: "Onboardings", href: `${roleBaseHref}/onboard`, icon: <UserPlus size={20} /> }, // For New Handovers
+      
     ];
   }
 
