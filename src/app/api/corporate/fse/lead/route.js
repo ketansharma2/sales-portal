@@ -1,4 +1,4 @@
-import { supabaseServer } from '@/lib/supabase-server'
+  import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
 export async function POST(request) {
@@ -145,23 +145,37 @@ export async function GET(request) {
       // No clients fetched
     }
 
-    // Fetch interactions for these clients
+    // Fetch interactions for these clients (with batching to handle >1000 records)
     const clientIds = clients?.map(c => c.client_id) || []
     let interactions = []
     if (clientIds.length > 0) {
-      const { data: ints, error: intError } = await supabaseServer
-        .from('corporate_clients_interaction')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('client_id', { ascending: true })
-        .order('contact_date', { ascending: false })
-        .order('created_at', { ascending: false })
+      let intOffset = 0
+      const intBatchSize = 1000
 
-      if (intError) {
-        console.error('Interactions error:', intError)
-      } else {
+      while (true) {
+        const { data: ints, error: intError } = await supabaseServer
+          .from('corporate_clients_interaction')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('client_id', { ascending: true })
+          .order('contact_date', { ascending: false })
+          .order('created_at', { ascending: false })
+          .range(intOffset, intOffset + intBatchSize - 1)
+
+        if (intError) {
+          console.error('Interactions error:', intError)
+          break
+        }
+
+        if (!ints || ints.length === 0) break
+
         // Filter interactions to only those for the fetched clients
-        interactions = ints?.filter(int => clientIds.includes(int.client_id)) || []
+        const filteredInts = ints.filter(int => clientIds.includes(int.client_id))
+        interactions.push(...filteredInts)
+
+        intOffset += intBatchSize
+
+        if (ints.length < intBatchSize) break
       }
     }
 

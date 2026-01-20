@@ -174,15 +174,31 @@ export default function LeadsMasterPage() {
     }
   };
   // 👇 ADD THIS FUNCTION (Missing)
- const handleSaveLeave = async (date, reason, remarks) => { // <--- Added remarks here
-    console.log("Saving Non-Visit Day:", date, reason, remarks);
-    
-    // Save logic here...
-    setNonFieldDays(prev => [...prev, date]);
-    setIsLeaveModalOpen(false);
-    // Alert mein bhi dikha sakte hain
-    alert(`Marked ${date} as Non-Visit.\nReason: ${reason}\nRemarks: ${remarks}`);
-};
+  const handleSaveLeave = async (date, reason, remarks) => { // <--- Added remarks here
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/fse/non-working', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ date, reason })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert(`Marked ${date} as Non-Visit.\nReason: ${reason}\nRemarks: ${remarks}`);
+        setNonFieldDays(prev => [...prev, date]);
+        setIsLeaveModalOpen(false);
+      } else {
+        alert('Failed to save non-visit day: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error saving non-visit day:', error);
+      alert('Error saving non-visit day. Please try again.');
+    }
+  };
 
 
   if (!mounted) return null;
