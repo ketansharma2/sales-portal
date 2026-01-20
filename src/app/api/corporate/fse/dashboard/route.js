@@ -212,10 +212,19 @@ export async function POST(request) {
       }
 
       latestIndividualVisits = rangeIndividualCount || 0
-      latestOnboarded = rangeInteractions.filter(interaction => interaction.status === 'Onboarded').length
-      latestInterested = rangeInteractions.filter(interaction => interaction.status === 'Interested').length
-      latestNotInterested = rangeInteractions.filter(interaction => interaction.status === 'Not Interested').length
-      latestReachedOut = rangeInteractions.filter(interaction => interaction.status === 'Reached Out').length
+
+      // Count unique clients per status
+      const rangeStatusMap = new Map()
+      rangeInteractions.forEach(interaction => {
+        if (!rangeStatusMap.has(interaction.client_id)) {
+          rangeStatusMap.set(interaction.client_id, interaction.status)
+        }
+      })
+      const rangeStatuses = Array.from(rangeStatusMap.values())
+      latestOnboarded = rangeStatuses.filter(status => status === 'Onboarded').length
+      latestInterested = rangeStatuses.filter(status => status === 'Interested').length
+      latestNotInterested = rangeStatuses.filter(status => status === 'Not Interested').length
+      latestReachedOut = rangeStatuses.filter(status => status === 'Reached Out').length
       latestRepeat = latestTotalVisits - latestIndividualVisits
     } else {
       // For latest date
@@ -232,10 +241,19 @@ export async function POST(request) {
       }
 
       latestIndividualVisits = latestIndividualCount || 0
-      latestOnboarded = latestDateInteractions.filter(interaction => interaction.status === 'Onboarded').length
-      latestInterested = latestDateInteractions.filter(interaction => interaction.status === 'Interested').length
-      latestNotInterested = latestDateInteractions.filter(interaction => interaction.status === 'Not Interested').length
-      latestReachedOut = latestDateInteractions.filter(interaction => interaction.status === 'Reached Out').length
+
+      // Count unique clients per status
+      const latestStatusMap = new Map()
+      latestDateInteractions.forEach(interaction => {
+        if (!latestStatusMap.has(interaction.client_id)) {
+          latestStatusMap.set(interaction.client_id, interaction.status)
+        }
+      })
+      const latestStatuses = Array.from(latestStatusMap.values())
+      latestOnboarded = latestStatuses.filter(status => status === 'Onboarded').length
+      latestInterested = latestStatuses.filter(status => status === 'Interested').length
+      latestNotInterested = latestStatuses.filter(status => status === 'Not Interested').length
+      latestReachedOut = latestStatuses.filter(status => status === 'Reached Out').length
       latestRepeat = latestTotalVisits - latestIndividualVisits
     }
 
