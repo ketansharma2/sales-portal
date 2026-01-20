@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   Database, Phone, CheckCircle, Clock, Calendar,
@@ -8,37 +9,182 @@ import {
 
 export default function LeadGenHome() {
   
-  // --- MOCK DATA ---
-  const stats = {
-    totalDb: 12500,
-    pickedUp: 450,
-    interested: 125,
-    
+  // --- STATS DATA ---
+  const [stats, setStats] = useState({
+    totalDb: 0,
+    pickedUp: 0,
+    interested: 0,
+
     // Monthly
-    monthlyCallTarget: 1500,
-    monthlyCallAchieved: 840,
-    monthlyIntTarget: 50,
-    monthlyIntAchieved: 12,
-    
+    monthlyCallTarget: 0,
+    monthlyCallAchieved: 0,
+    monthlyIntTarget: 0,
+    monthlyIntAchieved: 0,
+
     // Daily
-    dailyCallTarget: 60,
-    dailyCallAchieved: 42,
-    dailyIntTarget: 3,
-    dailyIntAchieved: 1
+    dailyCallTarget: 0,
+    dailyCallAchieved: 0,
+    dailyIntTarget: 0,
+    dailyIntAchieved: 0
+  });
+
+  const [latestDate, setLatestDate] = useState('Loading...');
+  const [latestRawDate, setLatestRawDate] = useState(null);
+
+  const getPercent = (ach, tar) => tar === 0 ? 0 : Math.min(Math.round((ach / tar) * 100), 100);
+  const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+  const todayDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long' });
+
+  // Sidebar Data (Dynamic)
+  const [followUps, setFollowUps] = useState({
+    today: [],
+    tomorrow: []
+  });
+
+  useEffect(() => {
+    fetchTodayFollowups();
+    fetchStats();
+  }, []);
+
+  useEffect(() => {
+    if (latestRawDate) {
+      fetchDailyStats(latestRawDate);
+    }
+  }, [latestRawDate]);
+
+  const fetchDailyStats = async (date) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+
+      // Fetch daily interactions count
+      const dailyInteractionsResponse = await fetch(`/api/domestic/leadgen/daily-interactions-count?date=${date}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const dailyInteractionsData = await dailyInteractionsResponse.json();
+
+      // Fetch daily interested count
+      const dailyInterestedResponse = await fetch(`/api/domestic/leadgen/daily-interested-count?date=${date}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const dailyInterestedData = await dailyInterestedResponse.json();
+
+      setStats(prev => ({
+        ...prev,
+        dailyCallAchieved: dailyInteractionsData.success ? dailyInteractionsData.count : 0,
+        dailyIntAchieved: dailyInterestedData.success ? dailyInterestedData.count : 0
+      }));
+    } catch (error) {
+      console.error('Failed to fetch daily stats:', error);
+    }
   };
 
-  const getPercent = (ach, tar) => Math.min(Math.round((ach / tar) * 100), 100);
-  const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+  const fetchStats = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
 
-  // Sidebar Data (As you liked it)
-  const followUps = {
-    today: [
-      { id: 1, company: "Tech Solutions", time: "10:30 AM", status: "Hot", last_remark: "Send Rate Card" },
-      { id: 2, company: "BuildWell Corp", time: "02:00 PM", status: "Warm", last_remark: "Talk to Purchasing Mgr" },
-    ],
-    tomorrow: [
-      { id: 3, company: "Alpha Traders", time: "11:00 AM", status: "Cold", last_remark: "Call for feedback" },
-    ]
+      // Fetch leads count
+      const leadsResponse = await fetch('/api/domestic/leadgen/leads-count', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const leadsData = await leadsResponse.json();
+
+      // Fetch interactions count
+      const interactionsResponse = await fetch('/api/domestic/leadgen/interactions-count', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const interactionsData = await interactionsResponse.json();
+
+      // Fetch interested count
+      const interestedResponse = await fetch('/api/domestic/leadgen/interested-count', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const interestedData = await interestedResponse.json();
+
+      // Fetch monthly call target
+      const monthlyCallTargetResponse = await fetch('/api/domestic/leadgen/monthly-call-target', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const monthlyCallTargetData = await monthlyCallTargetResponse.json();
+
+      // Fetch monthly interactions count
+      const monthlyInteractionsResponse = await fetch('/api/domestic/leadgen/monthly-interactions-count', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const monthlyInteractionsData = await monthlyInteractionsResponse.json();
+
+      // Fetch monthly interested count
+      const monthlyInterestedResponse = await fetch('/api/domestic/leadgen/monthly-interested-count', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const monthlyInterestedData = await monthlyInterestedResponse.json();
+
+      // Fetch latest interaction date
+      const latestDateResponse = await fetch('/api/domestic/leadgen/latest-interaction-date', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const latestDateData = await latestDateResponse.json();
+
+      setStats(prev => ({
+        ...prev,
+        totalDb: leadsData.success ? leadsData.count : 0,
+        pickedUp: interactionsData.success ? interactionsData.count : 0,
+        interested: interestedData.success ? interestedData.count : 0,
+        monthlyCallTarget: monthlyCallTargetData.success ? monthlyCallTargetData.target : 0,
+        monthlyCallAchieved: monthlyInteractionsData.success ? monthlyInteractionsData.count : 0,
+        monthlyIntAchieved: monthlyInterestedData.success ? monthlyInterestedData.count : 0
+      }));
+
+      if (latestDateData.success) {
+        setLatestDate(latestDateData.latestDate);
+        setLatestRawDate(latestDateData.rawDate);
+      }
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    }
+  };
+
+  const fetchTodayFollowups = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/leadgen/today-followups', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        // Format the data to match the expected structure
+        const formattedToday = data.data.map((item, index) => ({
+          id: index + 1,
+          company: item.company,
+          time: "Pending", // Since time is not in the API, use placeholder
+          status: item.status === 'Interested' ? 'Hot' : item.status === 'Not Interested' ? 'Cold' : 'Warm',
+          last_remark: item.remarks
+        }));
+        setFollowUps(prev => ({ ...prev, today: formattedToday }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch today\'s follow-ups:', error);
+    }
   };
 
   return (
@@ -109,7 +255,7 @@ export default function LeadGenHome() {
           {/* ---------------- ROW 2: MONTHLY TARGETS (JANUARY) ---------------- */}
           <div>
             <h4 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-               <Target size={14} /> Monthly Goals (January)
+               <Target size={14} /> Monthly Goals ({currentMonth})
             </h4>
             <div className="grid grid-cols-2 gap-5">
               
@@ -130,7 +276,7 @@ export default function LeadGenHome() {
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Monthly Call Target</p>
                     <div className="flex items-baseline gap-2">
                        <h3 className="text-3xl font-black text-indigo-900">{stats.monthlyCallAchieved}</h3>
-                       <span className="text-xs font-bold text-gray-400">/ {stats.monthlyCallTarget}</span>
+                       {stats.monthlyCallTarget > 0 && <span className="text-xs font-bold text-gray-400">/ {stats.monthlyCallTarget}</span>}
                     </div>
                     <p className="text-[10px] text-gray-400 mt-1 font-medium">Keep pushing to reach the goal!</p>
                  </div>
@@ -153,7 +299,7 @@ export default function LeadGenHome() {
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Monthly Lead Target</p>
                     <div className="flex items-baseline gap-2">
                        <h3 className="text-3xl font-black text-emerald-900">{stats.monthlyIntAchieved}</h3>
-                       <span className="text-xs font-bold text-gray-400">/ {stats.monthlyIntTarget}</span>
+                       {stats.monthlyIntTarget > 0 && <span className="text-xs font-bold text-gray-400">/ {stats.monthlyIntTarget}</span>}
                     </div>
                     <p className="text-[10px] text-gray-400 mt-1 font-medium">Interested Leads</p>
                  </div>
@@ -165,7 +311,7 @@ export default function LeadGenHome() {
           {/* ---------------- ROW 3: DAILY / LATEST PERFORMANCE ---------------- */}
           <div>
             <h4 className="text-xs font-black text-orange-500 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-               <Zap size={14} fill="currentColor" /> Latest Date Performance ({currentDate})
+               <Zap size={14} fill="currentColor" /> Latest Date Performance ({latestDate})
             </h4>
             <div className="grid grid-cols-2 gap-5">
               
@@ -176,7 +322,7 @@ export default function LeadGenHome() {
                        <p className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">Calls</p>
                        <div className="flex items-baseline gap-1 mt-1">
                           <h3 className="text-4xl font-black text-slate-800">{stats.dailyCallAchieved}</h3>
-                          <span className="text-xs font-bold text-gray-400">/ {stats.dailyCallTarget}</span>
+                          {/* <span className="text-xs font-bold text-gray-400"> {stats.dailyCallTarget}</span> */}
                        </div>
                     </div>
                     <div className="bg-white p-2 rounded-lg shadow-sm text-orange-500"><Phone size={20} /></div>
@@ -195,7 +341,7 @@ export default function LeadGenHome() {
                        <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Interested Leads</p>
                        <div className="flex items-baseline gap-1 mt-1">
                           <h3 className="text-4xl font-black text-slate-800">{stats.dailyIntAchieved}</h3>
-                          <span className="text-xs font-bold text-gray-400">/ {stats.dailyIntTarget}</span>
+                          {stats.dailyIntTarget > 0 && <span className="text-xs font-bold text-gray-400">/ {stats.dailyIntTarget}</span>}
                        </div>
                     </div>
                     <div className="bg-white p-2 rounded-lg shadow-sm text-blue-500"><TrendingUp size={20} /></div>
@@ -227,7 +373,7 @@ export default function LeadGenHome() {
         <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
           <div>
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500"></span> Today
+              <span className="w-2 h-2 rounded-full bg-green-500"></span> Today ({todayDate})
             </h3>
             <div className="space-y-3">
               {followUps.today.map((item) => (
@@ -236,7 +382,7 @@ export default function LeadGenHome() {
                   <div className="bg-white/60 p-2 rounded border border-orange-100 mb-3 text-xs italic text-gray-600">
                     <span className="font-bold text-orange-400 not-italic mr-1">Remark:</span> {item.last_remark}
                   </div>
-                  <Link href={`/domestic/leadgen/leads?search=${item.company}`}>
+                  <Link href="/domestic/leadgen/leads">
                     <button className="w-full bg-white border border-orange-200 text-orange-700 text-xs font-bold py-1.5 rounded-lg hover:bg-orange-600 hover:text-white transition-colors flex items-center justify-center gap-1">
                       Call Now <ArrowRight size={12} />
                     </button>

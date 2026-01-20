@@ -105,7 +105,16 @@ export default function LeadsTablePage() {
   };
 
   useEffect(() => {
-    fetchLeads();
+    const init = async () => {
+      await fetchLeads();
+      // Check for search query param
+      const urlParams = new URLSearchParams(window.location.search);
+      const searchCompany = urlParams.get('search');
+      if (searchCompany) {
+        handleFilterChange("company", searchCompany);
+      }
+    };
+    init();
   }, []);
   
 
@@ -337,10 +346,11 @@ export default function LeadsTablePage() {
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Company</label>
             <div className="relative">
               <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
-              <input 
-                type="text" 
-                placeholder="Type name..." 
-                className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:border-[#103c7f] outline-none" 
+              <input
+                type="text"
+                placeholder="Type name..."
+                value={filters.company}
+                className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:border-[#103c7f] outline-none"
                 onChange={(e) => handleFilterChange("company", e.target.value)}
               />
             </div>
@@ -351,10 +361,11 @@ export default function LeadsTablePage() {
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Location / State</label>
             <div className="relative">
               <MapPin className="absolute left-3 top-2.5 text-gray-400" size={14} />
-              <input 
-                type="text" 
-                placeholder="Delhi, Okhla..." 
-                className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:border-[#103c7f] outline-none" 
+              <input
+                type="text"
+                placeholder="Delhi, Okhla..."
+                value={filters.location}
+                className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:border-[#103c7f] outline-none"
                 onChange={(e) => handleFilterChange("location", e.target.value)}
               />
             </div>

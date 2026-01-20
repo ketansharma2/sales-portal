@@ -37,7 +37,6 @@ export async function POST(request) {
       .single();
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json({ error: 'Failed to create lead' }, { status: 500 });
     }
 
@@ -56,7 +55,82 @@ export async function POST(request) {
     });
 
   } catch (error) {
-    console.error('Leads POST API error:', error)
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: error.message
+    }, { status: 500 })
+  }
+}
+
+export async function PUT(request) {
+  try {
+    // Authentication
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    const body = await request.json();
+    const { client_id, company, category, state, location, emp_count, reference, sourcing_date } = body;
+
+    if (!client_id) {
+      return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
+    }
+
+    // Check if the lead belongs to the user
+    const { data: existingLead, error: fetchError } = await supabaseServer
+      .from('domestic_leadgen_leads')
+      .select('leadgen_id')
+      .eq('client_id', client_id)
+      .single();
+
+    if (fetchError || !existingLead) {
+      return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+    }
+
+    if (existingLead.leadgen_id !== user.id) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    const { data, error } = await supabaseServer
+      .from('domestic_leadgen_leads')
+      .update({
+        company,
+        category,
+        state,
+        location,
+        emp_count,
+        reference,
+        sourcing_date
+      })
+      .eq('client_id', client_id)
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: 'Failed to update lead' }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        client_id: data.client_id,
+        company: data.company,
+        category: data.category,
+        state: data.state,
+        location: data.location,
+        emp_count: data.emp_count,
+        reference: data.reference,
+        sourcing_date: data.sourcing_date
+      }
+    });
+
+  } catch (error) {
     return NextResponse.json({
       error: 'Internal server error',
       details: error.message
@@ -85,7 +159,6 @@ export async function GET(request) {
       .order('created_at', { ascending: false })
 
     if (leadsError) {
-      console.error('Leads fetch error:', leadsError)
       return NextResponse.json({
         error: 'Failed to fetch leads',
         details: leadsError.message
@@ -126,7 +199,6 @@ export async function GET(request) {
     })
 
   } catch (error) {
-    console.error('Leads GET API error:', error)
     return NextResponse.json({
       error: 'Internal server error',
       details: error.message
