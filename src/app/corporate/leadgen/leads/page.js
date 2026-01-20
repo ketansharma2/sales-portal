@@ -40,6 +40,33 @@ export default function LeadsTablePage() {
 
   const [interactions, setInteractions] = useState([]);
 
+  // --- FULL LISTS ---
+  const indianStates = [
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", 
+    "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", 
+    "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", 
+    "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
+    "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu", 
+    "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
+  ];
+
+  const industryCategories = [
+    "Information Technology (IT)", "Finance & Banking", "Healthcare", "Education", "Manufacturing", 
+    "Construction & Real Estate", "Retail & Consumer Goods", "Travel & Hospitality", "Energy & Utilities", 
+    "Media & Communications", "Transportation & Logistics", "Agriculture", "Automotive", 
+    "Telecommunications", "Pharmaceuticals", "Textiles", "Mining", "Non-Profit / NGO", "Government / Public Sector",
+    "Consulting", "Legal Services", "Marketing & Advertising", "Insurance", "Entertainment", "Other"
+  ];
+  const employeeCounts = [
+    "1 - 10",
+    "11 - 50",
+    "51 - 200",
+    "201 - 500",
+    "501 - 1000",
+    "1001 - 5000",
+    "5000 +"
+  ];
+
   const fetchLeads = async () => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
@@ -450,7 +477,7 @@ const isLocked = lead.isSubmitted;
           </td>
           <td className="px-2 py-2 border-r border-gray-100">{lead.subStatus}</td>
           
-         {/* 👉 CHANGE 3: Action Column ko update karein */}
+          {/* 👉 CHANGE 3: Action Column ko update karein */}
           <td className="px-2 py-2 text-center sticky right-0 bg-white group-hover:bg-blue-50/30 border-l border-gray-200 z-10 whitespace-nowrap">
             {isLocked ? (
                // Agar Locked hai to ye dikhega
@@ -538,10 +565,9 @@ const isLocked = lead.isSubmitted;
                             <label className="text-[10px] font-bold text-gray-400 uppercase">Category</label>
                             <select value={newLeadData.category} onChange={(e) => setNewLeadData({...newLeadData, category: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
                                 <option>Select Category...</option>
-                                <option>IT Services</option>
-                                <option>Manufacturing</option>
-                                <option>Real Estate</option>
-                                <option>Logistics</option>
+                                {industryCategories.map((cat, idx) => (
+                                  <option key={idx} value={cat}>{cat}</option>
+                                ))}
                             </select>
                         </div>
                         <div>
@@ -556,21 +582,28 @@ const isLocked = lead.isSubmitted;
                             <label className="text-[10px] font-bold text-gray-400 uppercase">State</label>
                             <select value={newLeadData.state} onChange={(e) => setNewLeadData({...newLeadData, state: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
                                 <option>Select State...</option>
-                                <option>Delhi</option>
-                                <option>Haryana</option>
-                                <option>Uttar Pradesh</option>
-                                <option>Maharashtra</option>
+                                {indianStates.map((state, idx) => (
+                                  <option key={idx} value={state}>{state}</option>
+                                ))}
                             </select>
                         </div>
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-400 uppercase">Employee Count</label>
-                            <select value={newLeadData.emp_count} onChange={(e) => setNewLeadData({...newLeadData, emp_count: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
-                                <option>1 - 10</option>
-                                <option>11 - 50</option>
-                                <option>50 - 200</option>
-                                <option>200 +</option>
-                            </select>
-                        </div>
+                        {/* Replace this block in your code */}
+<div>
+    <label className="text-[10px] font-bold text-gray-400 uppercase">Employee Count</label>
+    <select 
+      value={newLeadData.emp_count} 
+      onChange={(e) => setNewLeadData({...newLeadData, emp_count: e.target.value})} 
+      className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
+    >
+        {/* Default / Placeholder */}
+        <option value="">Select Count...</option>
+        
+        {/* Dynamic Mapping from List */}
+        {employeeCounts.map((count, idx) => (
+          <option key={idx} value={count}>{count}</option>
+        ))}
+    </select>
+</div>
                     </div>
 
                     {/* Row 3: Location (Area) */}
@@ -588,7 +621,7 @@ const isLocked = lead.isSubmitted;
               )}
 
 
-             {/* === MODE 2: ADD FOLLOW-UP FORM (Context + Input) === */}
+              {/* === MODE 2: ADD FOLLOW-UP FORM (Context + Input) === */}
 {modalType === 'add' && (
   <div className="space-y-4 animate-in slide-in-from-right-4 duration-300 font-['Calibri']">
     
@@ -596,10 +629,10 @@ const isLocked = lead.isSubmitted;
     <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 flex justify-between items-start">
        <div className="w-3/4">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">
-             Last Interaction ({selectedLead?.latestFollowup})
+              Last Interaction ({selectedLead?.latestFollowup})
           </p>
           <p className="text-xs text-gray-700 italic border-l-2 border-blue-200 pl-2">
-             "{selectedLead?.remarks || "No previous remarks"}"
+              "{selectedLead?.remarks || "No previous remarks"}"
           </p>
        </div>
        <div className="text-right">
@@ -608,7 +641,7 @@ const isLocked = lead.isSubmitted;
              selectedLead?.status === 'Interested' ? 'bg-green-50 text-green-700 border-green-200' : 
              'bg-blue-50 text-blue-700 border-blue-200'
           }`}>
-             {selectedLead?.status}
+              {selectedLead?.status}
           </span>
        </div>
     </div>
@@ -720,7 +753,7 @@ const isLocked = lead.isSubmitted;
         </h2>
         <div className="flex items-center gap-2 mt-1.5 text-gray-500 font-bold text-xs uppercase tracking-wider">
           <span className="flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-gray-600">
-             <MapPin size={10} /> {selectedLead.location}, {selectedLead.state}
+              <MapPin size={10} /> {selectedLead.location}, {selectedLead.state}
           </span>
         </div>
       </div>
@@ -786,7 +819,7 @@ const isLocked = lead.isSubmitted;
                   </td>
                   <td className="p-4">
                      <div className="text-orange-600 font-bold bg-orange-50 px-2 py-1 rounded border border-orange-100 text-center w-fit">
-                        {interaction.next_follow_up ? new Date(interaction.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : 'N/A'}
+                       {interaction.next_follow_up ? new Date(interaction.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : 'N/A'}
                      </div>
                   </td>
                </tr>
@@ -806,21 +839,21 @@ const isLocked = lead.isSubmitted;
 {/* === MODE 4: SEND TO MANAGER (Body Content) === */}
 {modalType === 'send_to_manager' && (
   <div className="flex flex-col items-center justify-center py-2 px-2 text-center">
-     
+      
     
 
-     {/* 2. Heading */}
-     
+      {/* 2. Heading */}
+      
 
-     {/* 3. Text Data */}
-     <p className="text-sm text-gray-500 leading-relaxed max-w-[80%] mx-auto">
+      {/* 3. Text Data */}
+      <p className="text-sm text-gray-500 leading-relaxed max-w-[80%] mx-auto">
         Are you sure you want to send 
         <span className="font-bold text-[#103c7f] block my-1 text-base">
           {selectedLead?.company}
         </span>
        to Manager ? 
        This will lock the lead.
-     </p>
+      </p>
 
   </div>
 )}
@@ -864,34 +897,34 @@ const isLocked = lead.isSubmitted;
 {modalType === 'send_to_manager' && (
    <button
      onClick={async () => {
-        try {
-          const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const response = await fetch('/api/corporate/leadgen/send-to-manager', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`
-            },
-            body: JSON.stringify({ client_id: selectedLead.id })
-          });
-          const data = await response.json();
-          if (data.success) {
-            // 1. Update State: Set 'isSubmitted' to true
-            const updatedLeads = leads.map(l =>
-               l.id === selectedLead.id
-               ? { ...l, isSubmitted: true }
-               : l
-            );
-            setLeads(updatedLeads);
+       try {
+         const session = JSON.parse(localStorage.getItem('session') || '{}');
+         const response = await fetch('/api/corporate/leadgen/send-to-manager', {
+           method: 'POST',
+           headers: {
+             'Content-Type': 'application/json',
+             'Authorization': `Bearer ${session.access_token}`
+           },
+           body: JSON.stringify({ client_id: selectedLead.id })
+         });
+         const data = await response.json();
+         if (data.success) {
+           // 1. Update State: Set 'isSubmitted' to true
+           const updatedLeads = leads.map(l =>
+              l.id === selectedLead.id
+              ? { ...l, isSubmitted: true }
+              : l
+           );
+           setLeads(updatedLeads);
 
-            // 2. Close Modal
-            setIsFormOpen(false);
-          } else {
-            alert('Failed to send to manager');
-          }
-        } catch (error) {
-          console.error('Failed to send to manager:', error);
-        }
+           // 2. Close Modal
+           setIsFormOpen(false);
+         } else {
+           alert('Failed to send to manager');
+         }
+       } catch (error) {
+         console.error('Failed to send to manager:', error);
+       }
      }}
      // Button Style: Centered, Purple
      className="bg-purple-600 hover:bg-purple-700 text-white px-10 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-purple-200 flex items-center gap-2 transition transform active:scale-95"

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { 
   Search, Phone, Filter, X, Save, Plus, Eye, 
-  Calendar, MapPin, ListFilter,ArrowRight,Send,Lock
+  Calendar, MapPin, ListFilter,ArrowRight,Send,Lock,Edit
 } from "lucide-react";
 
 export default function LeadsTablePage() {
@@ -39,6 +39,33 @@ export default function LeadsTablePage() {
   });
 
   const [interactions, setInteractions] = useState([]);
+
+  // --- FULL LISTS ---
+  const indianStates = [
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", 
+    "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", 
+    "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", 
+    "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
+    "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu", 
+    "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
+  ];
+
+  const industryCategories = [
+    "Information Technology (IT)", "Finance & Banking", "Healthcare", "Education", "Manufacturing", 
+    "Construction & Real Estate", "Retail & Consumer Goods", "Travel & Hospitality", "Energy & Utilities", 
+    "Media & Communications", "Transportation & Logistics", "Agriculture", "Automotive", 
+    "Telecommunications", "Pharmaceuticals", "Textiles", "Mining", "Non-Profit / NGO", "Government / Public Sector",
+    "Consulting", "Legal Services", "Marketing & Advertising", "Insurance", "Entertainment", "Other"
+  ];
+  const employeeCounts = [
+    "1 - 10",
+    "11 - 50",
+    "51 - 200",
+    "201 - 500",
+    "501 - 1000",
+    "1001 - 5000",
+    "5000 +"
+  ];
 
   const fetchLeads = async () => {
     try {
@@ -127,6 +154,19 @@ export default function LeadsTablePage() {
     setIsFormOpen(true);
     if (type === 'view') {
       await fetchInteractions(lead.id);
+    }
+    // --- NEW CODE: Pre-fill data for Edit ---
+    if (type === 'edit') {
+      setNewLeadData({
+        company: lead.company || '',
+        category: lead.category || '',
+        state: lead.state || '',
+        location: lead.location || '',
+        // Map the table's camelCase keys to the form's snake_case keys
+        emp_count: lead.empCount || '1 - 10', 
+        reference: lead.reference || '',
+        sourcing_date: lead.sourcingDate || ''
+      });
     }
   };
 
@@ -220,6 +260,33 @@ export default function LeadsTablePage() {
       }
     } catch (error) {
       console.error('Failed to save interaction:', error);
+    }
+  };
+  const handleUpdateLead = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      // Assuming you use PUT or PATCH for updates. Adjust the method/URL if your API is different.
+      const response = await fetch('/api/domestic/leadgen/leads', { 
+        method: 'PUT', 
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          client_id: selectedLead.id, // We need the ID to know which lead to update
+          ...newLeadData
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setIsFormOpen(false);
+        setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '' });
+        fetchLeads(); // Refresh table
+      } else {
+        alert('Failed to update lead');
+      }
+    } catch (error) {
+      console.error('Failed to update lead:', error);
     }
   };
   return (
@@ -484,7 +551,7 @@ const isLocked = lead.isSubmitted;
             <div className="p-6">
               
               {/* === MODE 1: CREATE NEW LEAD FORM === */}
-              {modalType === 'create' && (
+              {(modalType === 'create' || modalType === 'edit') && (
                 <div className="space-y-4">
                     {/* Row 1: Company & Category */}
                     <div className="grid grid-cols-3 gap-4">
@@ -496,10 +563,9 @@ const isLocked = lead.isSubmitted;
                             <label className="text-[10px] font-bold text-gray-400 uppercase">Category</label>
                             <select value={newLeadData.category} onChange={(e) => setNewLeadData({...newLeadData, category: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
                                 <option>Select Category...</option>
-                                <option>IT Services</option>
-                                <option>Manufacturing</option>
-                                <option>Real Estate</option>
-                                <option>Logistics</option>
+                                {industryCategories.map((cat, idx) => (
+                                  <option key={idx} value={cat}>{cat}</option>
+                                ))}
                             </select>
                         </div>
                         <div>
@@ -514,19 +580,18 @@ const isLocked = lead.isSubmitted;
                             <label className="text-[10px] font-bold text-gray-400 uppercase">State</label>
                             <select value={newLeadData.state} onChange={(e) => setNewLeadData({...newLeadData, state: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
                                 <option>Select State...</option>
-                                <option>Delhi</option>
-                                <option>Haryana</option>
-                                <option>Uttar Pradesh</option>
-                                <option>Maharashtra</option>
+                                {indianStates.map((state, idx) => (
+                                  <option key={idx} value={state}>{state}</option>
+                                ))}
                             </select>
                         </div>
                         <div>
                             <label className="text-[10px] font-bold text-gray-400 uppercase">Employee Count</label>
                             <select value={newLeadData.emp_count} onChange={(e) => setNewLeadData({...newLeadData, emp_count: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
-                                <option>1 - 10</option>
-                                <option>11 - 50</option>
-                                <option>50 - 200</option>
-                                <option>200 +</option>
+                                <option value="">Select Count...</option>
+                                {employeeCounts.map((count, idx) => (
+                                  <option key={idx} value={count}>{count}</option>
+                                ))}
                             </select>
                         </div>
                     </div>
@@ -857,6 +922,15 @@ const isLocked = lead.isSubmitted;
      <Send size={16} /> Yes, Confirm
    </button>
 )}
+{/* 5. Button for EDIT Mode */}
+   {modalType === 'edit' && (
+     <button 
+       onClick={handleUpdateLead} 
+       className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-2"
+     >
+       <Edit size={16} /> Update Details
+     </button>
+   )}
 </div>
 </div>
 
