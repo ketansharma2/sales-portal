@@ -33,7 +33,7 @@ export async function GET(request) {
     const { data: team, error: teamError } = await supabaseServer
       .from('users')
       .select('user_id, name')
-      .eq('manager_id', "4750c5c0-8e2e-4feb-a952-408271c1da16")
+      .eq('manager_id', user.id)
       .contains('role', ['LEADGEN'])
 
     if (teamError) {
@@ -42,8 +42,6 @@ export async function GET(request) {
     }
 
     const leadgenIds = team?.map(t => t.user_id) || []
-    console.log('Team:', team)
-    console.log('Leadgen IDs:', leadgenIds)
 
     if (leadgenIds.length === 0) {
       return NextResponse.json({ leads: [], fseTeam: [] });
@@ -53,7 +51,7 @@ export async function GET(request) {
     const { data: fseTeam, error: fseError } = await supabaseServer
       .from('users')
       .select('user_id, name')
-      .eq('manager_id', "4750c5c0-8e2e-4feb-a952-408271c1da16")
+      .eq('manager_id', user.id)
       .contains('role', ['FSE'])
 
     if (fseError) {
@@ -73,8 +71,6 @@ export async function GET(request) {
       console.error('Error fetching leads:', error);
       return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 });
     }
-
-    console.log('Leads fetched:', leads)
 
     // Format leads with interactions and sourced_by
     const formattedLeads = await Promise.all(leads?.map(async (lead) => {
@@ -139,8 +135,6 @@ export async function GET(request) {
         isProcessed: !!assignment
       }
     }) || [])
-
-    console.log('Formatted leads:', formattedLeads)
 
     return NextResponse.json({ leads: formattedLeads, fseTeam: fseTeam || [] });
   } catch (error) {
