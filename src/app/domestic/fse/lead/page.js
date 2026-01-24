@@ -658,14 +658,27 @@ statesList: [
   );
 }
 
+
+
 function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
   const [formData, setFormData] = useState({
-    sourcing_date: '', company: '', client_type: 'Standard', category: '', state: '',
-    location: '', employee_count: '', reference: '', contact_mode: 'Visit'
+    sourcing_date: '',
+    company: '',
+    client_type: 'Standard',
+    category: '',
+    state: '',
+    location: '',
+    employee_count: '',
+    reference: '',
+    contact_mode: 'Visit',
+    projection: '' // Added projection to initial state
   });
 
   // Check: Are we editing? (Agar ID hai toh Edit hai)
   const isEditing = !!lead?.client_id;
+
+  // Default projection list if not passed in props
+  const projectionList = lists.projectionList || ["WP > 50", "WP < 50", "MP > 50", "MP < 50", "Not Projected"];
 
   useEffect(() => {
     setFormData({
@@ -678,11 +691,14 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
       location: lead?.location || '',
       employee_count: lead?.emp_count || '',
       reference: lead?.reference || '',
-      contact_mode: lead?.contact_mode || 'Visit'
+      contact_mode: lead?.contact_mode || 'Visit',
+      projection: lead?.projection || '' // Set projection from lead data
     });
   }, [lead]);
 
   const updateField = (f, v) => setFormData(p => ({ ...p, [f]: v }));
+  
+  // Consistent Styling
   const inputStyle = `w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-800 outline-none focus:ring-2 focus:ring-[#103c7f]/20 transition shadow-sm disabled:bg-gray-50 disabled:text-gray-500`;
 
   return (
@@ -712,16 +728,19 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
         <div className="p-4 md:p-6 overflow-y-auto custom-scrollbar flex-1">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 md:gap-y-6">
             
+            {/* Sourcing Date */}
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sourcing Date</label>
               <input type="date" disabled={isViewMode} value={formData.sourcing_date} onChange={e => updateField('sourcing_date', e.target.value)} className={inputStyle} />
             </div>
 
+            {/* Company Name */}
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Company Name</label>
               <input type="text" disabled={isViewMode} value={formData.company} onChange={e => updateField('company', e.target.value)} className={inputStyle} placeholder="Enter company..." />
             </div>
             
+            {/* Client Type */}
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Client Type</label>
               <div className="flex p-1 bg-gray-100 rounded-xl gap-1">
@@ -731,6 +750,7 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
               </div>
             </div>
 
+            {/* Category */}
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Category</label>
               <select disabled={isViewMode} value={formData.category} onChange={e => updateField('category', e.target.value)} className={inputStyle}>
@@ -739,6 +759,7 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
               </select>
             </div>
 
+            {/* State */}
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">State</label>
               <select disabled={isViewMode} value={formData.state} onChange={e => updateField('state', e.target.value)} className={inputStyle}>
@@ -747,11 +768,13 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
               </select>
             </div>
 
+            {/* Location */}
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Location</label>
               <input type="text" disabled={isViewMode} value={formData.location} onChange={e => updateField('location', e.target.value)} className={inputStyle} placeholder="Area..." />
             </div>
 
+            {/* Sourcing Mode */}
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sourcing Mode</label>
               <div className="flex p-1 bg-gray-100 rounded-xl gap-1">
@@ -759,9 +782,9 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
                   <button key={m} type="button" disabled={isViewMode} onClick={() => updateField('contact_mode', m)} className={`flex-1 py-2 rounded-lg font-black text-[10px] uppercase transition ${formData.contact_mode === m ? 'bg-[#103c7f] text-white shadow-md' : 'text-gray-400'} disabled:opacity-60 disabled:cursor-not-allowed`}>{m}</button>
                 ))}
               </div>
-      
             </div>
 
+            {/* Employee Count */}
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Employee Count</label>
               <select disabled={isViewMode} value={formData.employee_count} onChange={e => updateField('employee_count', e.target.value)} className={inputStyle}>
@@ -770,10 +793,21 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
               </select>
             </div>
 
-            <div className="md:col-span-2 space-y-1">
+            {/* NEW FIELD: Projection */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Projection</label>
+              <select disabled={isViewMode} value={formData.projection} onChange={e => updateField('projection', e.target.value)} className={inputStyle}>
+                <option value="">Select Projection</option>
+                {projectionList.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+
+            {/* Reference */}
+            <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Reference</label>
               <input type="text" disabled={isViewMode} value={formData.reference} onChange={e => updateField('reference', e.target.value)} className={inputStyle} placeholder="LinkedIn, Referral, etc." />
             </div>
+
           </div>
 
           {/* ACTION BUTTONS */}
@@ -819,6 +853,7 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
   );
 }
 
+
 function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
    const [formData, setFormData] = useState({
      ...lead,
@@ -831,7 +866,7 @@ function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
      next_follow_up: '',
      status: lead?.status || '',
      sub_status: lead?.sub_status || '',
-     projection: lead?.projection || ''
+    // projection: lead?.projection || ''
    });
 
    const [suggestions, setSuggestions] = useState({ persons: [], nos: [], emails: [] });
@@ -973,14 +1008,14 @@ function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
               </select>
             </div>
 
-            {/* 9. Projection (Dropdown Now) */}
+            {/* 9. Projection (Dropdown Now) 
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Projection</label>
               <select value={formData.projection} onChange={e => updateField('projection', e.target.value)} className={inputStyle}>
                 <option value="">Select Projection</option>
                 {projectionList.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
-            </div>
+            </div>*/}
 
             {/* 10. Remarks (Single Column Now) */}
             <div className="space-y-1">
@@ -1034,11 +1069,15 @@ function EditLeadModal({ lead, onUpdate, onClose, saving, ...lists }) {
     location: lead?.location || '',
     employee_count: lead?.emp_count || '',
     reference: lead?.reference || '',
-    contact_mode: lead?.contact_mode || 'Visit'
+    contact_mode: lead?.contact_mode || 'Visit',
+    projection: lead?.projection || '' // Added Projection to state
   });
 
   const updateField = (f, v) => setFormData(p => ({ ...p, [f]: v }));
   
+  // Default projection list if not passed in props
+  const projectionList = lists.projectionList || ["WP > 50", "WP < 50", "MP > 50", "MP < 50", "Not Projected"];
+
   // Same style as LeadModal
   const inputStyle = `w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-800 outline-none focus:ring-2 focus:ring-[#103c7f]/20 transition shadow-sm`;
 
@@ -1120,7 +1159,16 @@ function EditLeadModal({ lead, onUpdate, onClose, saving, ...lists }) {
               </select>
             </div>
 
-            <div className="md:col-span-2 space-y-1">
+            {/* Added Projection Field */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Projection</label>
+              <select value={formData.projection} onChange={e => updateField('projection', e.target.value)} className={inputStyle}>
+                <option value="">Select Projection</option>
+                {projectionList.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+
+            <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Reference</label>
               <input type="text" value={formData.reference} onChange={e => updateField('reference', e.target.value)} className={inputStyle} />
             </div>
