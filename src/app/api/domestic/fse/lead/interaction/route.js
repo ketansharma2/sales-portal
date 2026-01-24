@@ -41,7 +41,6 @@ export async function POST(request) {
       next_follow_up: body.next_follow_up || null,
       status: body.status || null,
       sub_status: body.sub_status || null,
-      projection: body.projection || null,
       remarks: body.remarks || null
     }
 

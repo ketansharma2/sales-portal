@@ -866,13 +866,11 @@ function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
      next_follow_up: '',
      status: lead?.status || '',
      sub_status: lead?.sub_status || '',
-    // projection: lead?.projection || ''
    });
 
    const [suggestions, setSuggestions] = useState({ persons: [], nos: [], emails: [] });
 
   const subStatusList = ["Blue Collar", "Call Back", "In Process", "Low Budget", "Proposal Shared", "Ready to Sign","Not Ready to Sign"];
-  const projectionList = ["WP > 50", "WP < 50", "MP > 50", "MP < 50", "Not Projected"];
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -1008,16 +1006,7 @@ function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
               </select>
             </div>
 
-            {/* 9. Projection (Dropdown Now) 
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Projection</label>
-              <select value={formData.projection} onChange={e => updateField('projection', e.target.value)} className={inputStyle}>
-                <option value="">Select Projection</option>
-                {projectionList.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>*/}
-
-            {/* 10. Remarks (Single Column Now) */}
+            {/* 9. Remarks */}
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Remarks</label>
               <input 
@@ -1380,7 +1369,7 @@ function ClientFullViewModal({ lead, onClose }) {
 
                         <td className="px-4 py-4 align-top text-right">
                           <span className="inline-block px-2 py-1 bg-gray-100 rounded text-[9px] font-bold text-gray-600 border border-gray-200">
-                            {item.projection}
+                            {lead.projection}
                           </span>
                         </td>
 

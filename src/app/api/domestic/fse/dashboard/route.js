@@ -201,7 +201,7 @@ export async function POST(request) {
     while (true) {
       const { data, error } = await supabaseServer
         .from('domestic_clients_interaction')
-        .select('client_id, status, projection, contact_date, created_at')
+        .select('client_id, status, contact_date, created_at, contact_mode')
         .eq('user_id', user.id)
         .order('client_id', { ascending: true })
         .order('contact_date', { ascending: false })
@@ -225,13 +225,11 @@ export async function POST(request) {
       console.error('Total onboarded count error:', onboardError)
     }
 
-    // Process to get latest status and projection per client
+    // Process to get latest status per client
     const latestStatuses = new Map()
-    const latestProjections = new Map()
     allInteractions?.forEach(interaction => {
       if (!latestStatuses.has(interaction.client_id)) {
         latestStatuses.set(interaction.client_id, interaction.status)
-        latestProjections.set(interaction.client_id, interaction.projection)
       }
     })
 
@@ -254,7 +252,7 @@ export async function POST(request) {
       // For range, calculate totals for the range
       const rangeInteractions = allInteractions?.filter(interaction => interaction.contact_date >= from && interaction.contact_date <= to) || []
       latestActivityDate = to // Use the end date as the display date
-      latestTotalVisits = rangeInteractions.length
+      latestTotalVisits = rangeInteractions.filter(i => i.contact_mode?.toLowerCase() === 'visit').length
       // Individual: clients sourced within the range
       const { count: rangeIndividualCount, error: rangeIndividualError } = await supabaseServer
         .from('domestic_clients')
@@ -285,7 +283,7 @@ export async function POST(request) {
     } else {
       // For latest date
       const latestDateInteractions = allInteractions?.filter(interaction => interaction.contact_date === latestContactDate) || []
-      latestTotalVisits = latestDateInteractions.length
+      latestTotalVisits = latestDateInteractions.filter(i => i.contact_mode?.toLowerCase() === 'visit').length
       const { count: latestIndividualCount, error: latestIndividualError } = await supabaseServer
         .from('domestic_clients')
         .select('*', { count: 'exact', head: true })
@@ -324,13 +322,22 @@ export async function POST(request) {
       console.error('Total visits count error:', visitsError)
     }
 
-    // Get projection counts from latest interactions
+    // Get projection counts from domestic_clients
+    const { data: clientsData, error: clientsError } = await supabaseServer
+      .from('domestic_clients')
+      .select('projection')
+      .eq('user_id', user.id)
+
+    if (clientsError) {
+      console.error('Clients projection error:', clientsError)
+    }
+
     const projections = {}
     const projectionTypes = ["WP > 50", "WP < 50", "MP > 50", "MP < 50"]
     const projectionKeys = ["wpGreater50", "wpLess50", "mpGreater50", "mpLess50"]
 
     for (let i = 0; i < projectionTypes.length; i++) {
-      const count = Array.from(latestProjections.values()).filter(proj => proj === projectionTypes[i]).length
+      const count = clientsData?.filter(client => client.projection === projectionTypes[i]).length || 0
       projections[projectionKeys[i]] = count
     }
 

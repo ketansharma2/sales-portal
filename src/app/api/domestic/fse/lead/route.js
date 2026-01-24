@@ -41,7 +41,8 @@ export async function POST(request) {
       location: body.location,
       sourcing_mode: body.contact_mode, // mapping from page
       emp_count: body.employee_count,
-      reference: body.reference
+      reference: body.reference,
+      projection: body.projection
     }
 
     // Insert into domestic_clients table
@@ -204,7 +205,7 @@ export async function GET(request) {
         next_follow_up: latestInteraction?.next_follow_up || null,
         status: latestInteraction?.status || null,
         sub_status: latestInteraction?.sub_status || null,
-        projection: latestInteraction?.projection || null
+        projection: client.projection || null
       }
     })
 
