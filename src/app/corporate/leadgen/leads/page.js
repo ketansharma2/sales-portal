@@ -185,6 +185,16 @@ export default function LeadsTablePage() {
     setSelectedLead(null); // No selected lead yet
     setModalType("create");
     setIsFormOpen(true);
+    // Reset form data to ensure clean slate for new lead
+    setNewLeadData({
+      company: '',
+      category: '',
+      state: '',
+      location: '',
+      emp_count: '1 - 10',
+      reference: '',
+      sourcing_date: ''
+    });
   };
 
   const handleSaveOnly = async () => {
