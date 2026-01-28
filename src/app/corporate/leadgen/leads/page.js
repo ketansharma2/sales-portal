@@ -17,55 +17,57 @@ export default function LeadsTablePage() {
   const [selectedLead, setSelectedLead] = useState(null);
   const [modalType, setModalType] = useState("");
 
-  const [newLeadData, setNewLeadData] = useState({
-    company: '',
-    category: '',
-    state: '',
-    location: '',
-    emp_count: '1 - 10',
-    reference: '',
-    sourcing_date: ''
-  });
+   const [newLeadData, setNewLeadData] = useState({
+     company: '',
+     category: '',
+     state: '',
+     location: '',
+     emp_count: '1 - 10',
+     reference: '',
+     sourcing_date: '',
+     startup: '',
+     district_city: ''
+   });
 
-  const [interactionData, setInteractionData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    status: '',
-    sub_status: '',
-    remarks: '',
-    next_follow_up: '',
-    contact_person: '',
-    contact_no: '',
-    email: ''
-  });
+   const [interactionData, setInteractionData] = useState({
+     date: new Date().toISOString().split('T')[0],
+     status: '',
+     sub_status: '',
+     remarks: '',
+     next_follow_up: '',
+     contact_person: '',
+     contact_no: '',
+     email: '',
+     franchise_status: ''
+   });
 
-  const [interactions, setInteractions] = useState([]);
+   const [interactions, setInteractions] = useState([]);
+   const [suggestions, setSuggestions] = useState({ persons: [], nos: [], emails: [] });
+   const [districtsList, setDistrictsList] = useState([]);
 
-  // --- FULL LISTS ---
-  const indianStates = [
-    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", 
-    "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", 
-    "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", 
-    "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
-    "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu", 
-    "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
-  ];
+   // --- FULL LISTS ---
+   const [indianStates, setIndianStates] = useState([]);
+   const [stateDistrictData, setStateDistrictData] = useState({});
 
   const industryCategories = [
-    "Information Technology (IT)", "Finance & Banking", "Healthcare", "Education", "Manufacturing", 
-    "Construction & Real Estate", "Retail & Consumer Goods", "Travel & Hospitality", "Energy & Utilities", 
-    "Media & Communications", "Transportation & Logistics", "Agriculture", "Automotive", 
+    "Information Technology (IT)", "Finance & Banking", "Healthcare", "Education", "Manufacturing",
+    "Construction & Real Estate", "Retail & Consumer Goods", "Travel & Hospitality", "Energy & Utilities",
+    "Media & Communications", "Transportation & Logistics", "Agriculture", "Automotive",
     "Telecommunications", "Pharmaceuticals", "Textiles", "Mining", "Non-Profit / NGO", "Government / Public Sector",
     "Consulting", "Legal Services", "Marketing & Advertising", "Insurance", "Entertainment", "Other"
   ];
-  const employeeCounts = [
-    "1 - 10",
-    "11 - 50",
-    "51 - 200",
-    "201 - 500",
-    "501 - 1000",
-    "1001 - 5000",
-    "5000 +"
-  ];
+   const employeeCounts = [
+     "1 - 10",
+     "11 - 50",
+     "51 - 200",
+     "201 - 500",
+     "501 - 1000",
+     "1001 - 5000",
+     "5000 +"
+   ];
+
+
+
 
   const fetchLeads = async () => {
     try {
@@ -87,25 +89,48 @@ export default function LeadsTablePage() {
     }
   };
 
-  const fetchInteractions = async (clientId) => {
-    try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch(`/api/corporate/leadgen/interaction?client_id=${clientId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setInteractions(data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch interactions:', error);
-    }
-  };
+   const fetchInteractions = async (clientId) => {
+     try {
+       const session = JSON.parse(localStorage.getItem('session') || '{}');
+       const response = await fetch(`/api/corporate/leadgen/interaction?client_id=${clientId}`, {
+         headers: {
+           'Authorization': `Bearer ${session.access_token}`
+         }
+       });
+       const data = await response.json();
+       if (data.success) {
+         setInteractions(data.data);
+       }
+     } catch (error) {
+       console.error('Failed to fetch interactions:', error);
+     }
+   };
+
+   const fetchStateDistrictData = async () => {
+     try {
+       const response = await fetch('/India-State-District.json');
+       const data = await response.json();
+       setStateDistrictData(data);
+       setIndianStates(Object.keys(data));
+     } catch (error) {
+       console.error('Failed to fetch state district data:', error);
+       setStateDistrictData({});
+       setIndianStates([]);
+     }
+   };
+
+   const fetchDistricts = (stateName) => {
+     if (!stateName) {
+       setDistrictsList([]);
+       return;
+     }
+     const districts = stateDistrictData[stateName] || [];
+     setDistrictsList(districts);
+   };
 
   useEffect(() => {
     const init = async () => {
+      await fetchStateDistrictData();
       await fetchLeads();
       // Check for search query param
       const urlParams = new URLSearchParams(window.location.search);
@@ -116,6 +141,31 @@ export default function LeadsTablePage() {
     };
     init();
   }, []);
+
+   // Fetch suggestions when adding interaction
+   useEffect(() => {
+     const fetchSuggestions = async () => {
+       if (!selectedLead?.id || modalType !== 'add') return;
+       try {
+         const session = JSON.parse(localStorage.getItem('session') || '{}');
+         const response = await fetch(`/api/corporate/leadgen/interaction?client_id=${selectedLead.id}`, {
+           headers: {
+             'Authorization': `Bearer ${session.access_token}`
+           }
+         });
+         const data = await response.json();
+         if (data.success) {
+           const persons = [...new Set(data.data.map(i => i.contact_person).filter(Boolean))];
+           const nos = [...new Set(data.data.map(i => i.contact_no).filter(Boolean))];
+           const emails = [...new Set(data.data.map(i => i.email).filter(Boolean))];
+           setSuggestions({ persons, nos, emails });
+         }
+       } catch (error) {
+         console.error('Failed to fetch suggestions');
+       }
+     };
+     fetchSuggestions();
+   }, [selectedLead, modalType]);
   
 
   // --- FILTER STATE ---
@@ -174,9 +224,11 @@ export default function LeadsTablePage() {
         state: lead.state || '',
         location: lead.location || '',
         // Map the table's camelCase keys to the form's snake_case keys
-        emp_count: lead.empCount || '1 - 10', 
+        emp_count: lead.empCount || '1 - 10',
         reference: lead.reference || '',
-        sourcing_date: lead.sourcingDate || ''
+        sourcing_date: lead.sourcingDate || '',
+        startup: lead.startup || '',
+        district_city: lead.districtCity || ''
       });
     }
   };
@@ -185,16 +237,18 @@ export default function LeadsTablePage() {
     setSelectedLead(null); // No selected lead yet
     setModalType("create");
     setIsFormOpen(true);
-    // Reset form data to ensure clean slate for new lead
-    setNewLeadData({
-      company: '',
-      category: '',
-      state: '',
-      location: '',
-      emp_count: '1 - 10',
-      reference: '',
-      sourcing_date: ''
-    });
+     // Reset form data to ensure clean slate for new lead
+     setNewLeadData({
+       company: '',
+       category: '',
+       state: '',
+       location: '',
+       emp_count: '1 - 10',
+       reference: '',
+       sourcing_date: '',
+       startup: '',
+       district_city: ''
+     });
   };
 
   const handleSaveOnly = async () => {
@@ -211,7 +265,7 @@ export default function LeadsTablePage() {
       const data = await response.json();
       if (data.success) {
         setIsFormOpen(false);
-        setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '' });
+        setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '', startup: '', district_city: '' });
         fetchLeads();
       } else {
         alert('Failed to save lead');
@@ -234,20 +288,20 @@ export default function LeadsTablePage() {
       });
       const data = await response.json();
       if (data.success) {
-        setSelectedLead({
-          id: data.data.client_id,
-          company: data.data.company,
-          category: data.data.category,
-          state: data.data.state,
-          location: data.data.location,
-          empCount: data.data.emp_count,
-          reference: data.data.reference,
-          sourcingDate: data.data.sourcing_date,
-          status: 'New',
-          subStatus: 'New Lead'
-        });
-        setModalType("add");
-        setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '' });
+         setSelectedLead({
+           id: data.data.client_id,
+           company: data.data.company,
+           category: data.data.category,
+           state: data.data.state,
+           location: data.data.location,
+           empCount: data.data.emp_count,
+           reference: data.data.reference,
+           sourcingDate: data.data.sourcing_date,
+           status: 'New',
+           subStatus: 'New Lead'
+         });
+         setModalType("add");
+         setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '', startup: '', district_city: '' });
         fetchLeads();
       } else {
         alert('Failed to save lead');
@@ -275,7 +329,7 @@ export default function LeadsTablePage() {
       const data = await response.json();
       if (data.success) {
         setIsFormOpen(false);
-        setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '' });
+        setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '', startup: '', district_city: '' });
         fetchLeads(); // Refresh table
       } else {
         alert('Failed to update lead');
@@ -301,7 +355,7 @@ export default function LeadsTablePage() {
       const data = await response.json();
       if (data.success) {
         setIsFormOpen(false);
-        setInteractionData({ date: new Date().toISOString().split('T')[0], status: '', sub_status: '', remarks: '', next_follow_up: '', contact_person: '', contact_no: '', email: '' });
+        setInteractionData({ date: new Date().toISOString().split('T')[0], status: '', sub_status: '', remarks: '', next_follow_up: '', contact_person: '', contact_no: '', email: '', franchise_status: '' });
         fetchLeads(); // Refresh the leads list to update latest interaction
       } else {
         alert('Failed to save interaction');
@@ -429,7 +483,7 @@ export default function LeadsTablePage() {
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Sourcing Date</th>
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Company Name</th>
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Category</th>
-        <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">State</th>
+        <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">City/State</th>
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Location</th>
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Emp. Count</th>
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Reference</th>
@@ -466,8 +520,8 @@ const isLocked = lead.isSubmitted;
           <td className="px-2 py-2 border-r border-gray-100">{lead.sourcingDate}</td>
           <td className="px-2 py-2 border-r border-gray-100 font-bold text-[#103c7f]">{lead.company}</td>
           <td className="px-2 py-2 border-r border-gray-100">{lead.category}</td>
-          <td className="px-2 py-2 border-r border-gray-100">{lead.state}</td>
-          <td className="px-2 py-2 border-r border-gray-100">{lead.location}</td>
+          <td className="px-2 py-2 border-r border-gray-100">{lead.district_city ? `${lead.district_city}, ` : ''}{lead.state}</td>
+          <td className="px-2 py-2 border-r border-gray-100">{lead.district_city ? `${lead.district_city}, ` : ''}{lead.location}</td>
           <td className="px-2 py-2 border-r border-gray-100">{lead.empCount}</td>
           <td className="px-2 py-2 border-r border-gray-100">{lead.reference}</td>
           
@@ -597,47 +651,69 @@ const isLocked = lead.isSubmitted;
                         </div>
                     </div>
 
-                    {/* Row 2: State & Emp Count */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-400 uppercase">State</label>
-                            <select value={newLeadData.state} onChange={(e) => setNewLeadData({...newLeadData, state: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
-                                <option>Select State...</option>
-                                {indianStates.map((state, idx) => (
-                                  <option key={idx} value={state}>{state}</option>
-                                ))}
-                            </select>
-                        </div>
-                        {/* Replace this block in your code */}
-<div>
-    <label className="text-[10px] font-bold text-gray-400 uppercase">Employee Count</label>
-    <select 
-      value={newLeadData.emp_count} 
-      onChange={(e) => setNewLeadData({...newLeadData, emp_count: e.target.value})} 
-      className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
-    >
-        {/* Default / Placeholder */}
-        <option value="">Select Count...</option>
-        
-        {/* Dynamic Mapping from List */}
-        {employeeCounts.map((count, idx) => (
-          <option key={idx} value={count}>{count}</option>
-        ))}
-    </select>
-</div>
-                    </div>
+                     {/* Row 2: State, District/City & Emp Count */}
+                     <div className="grid grid-cols-3 gap-4">
+                         <div>
+                             <label className="text-[10px] font-bold text-gray-400 uppercase">State</label>
+                             <select value={newLeadData.state} onChange={(e) => {
+                               const selectedState = e.target.value;
+                               setNewLeadData({...newLeadData, state: selectedState, district_city: ''});
+                               fetchDistricts(selectedState);
+                             }} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
+                                 <option>Select State...</option>
+                                 {indianStates.map((state, idx) => (
+                                   <option key={idx} value={state}>{state}</option>
+                                 ))}
+                             </select>
+                         </div>
+                         <div>
+                             <label className="text-[10px] font-bold text-gray-400 uppercase">District/City</label>
+                             <select value={newLeadData.district_city} onChange={(e) => setNewLeadData({...newLeadData, district_city: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none" disabled={!newLeadData.state}>
+                                 <option value="">Select District/City</option>
+                                 {districtsList.map((district, idx) => (
+                                   <option key={idx} value={district}>{district}</option>
+                                 ))}
+                             </select>
+                         </div>
+                         <div>
+                             <label className="text-[10px] font-bold text-gray-400 uppercase">Employee Count</label>
+                             <select
+                               value={newLeadData.emp_count}
+                               onChange={(e) => setNewLeadData({...newLeadData, emp_count: e.target.value})}
+                               className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
+                             >
+                                 {/* Default / Placeholder */}
+                                 <option value="">Select Count...</option>
 
-                    {/* Row 3: Location (Area) */}
-                    <div>
-                        <label className="text-[10px] font-bold text-gray-400 uppercase">Location / Area</label>
-                        <textarea value={newLeadData.location} onChange={(e) => setNewLeadData({...newLeadData, location: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 h-16 resize-none focus:border-[#103c7f] outline-none" placeholder="E.g., Okhla Phase 3, Near Crown Plaza..."></textarea>
-                    </div>
+                                 {/* Dynamic Mapping from List */}
+                                 {employeeCounts.map((count, idx) => (
+                                   <option key={idx} value={count}>{count}</option>
+                                 ))}
+                             </select>
+                         </div>
+                     </div>
 
-                    {/* Row 4: Reference */}
-                    <div>
-                        <label className="text-[10px] font-bold text-gray-400 uppercase">Reference / Source</label>
-                        <input type="text" placeholder="LinkedIn, Google, Cold Call..." value={newLeadData.reference} onChange={(e) => setNewLeadData({...newLeadData, reference: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none" />
-                    </div>
+                     {/* Row 3: Location (Area) */}
+                     <div>
+                         <label className="text-[10px] font-bold text-gray-400 uppercase">Location / Area</label>
+                         <textarea value={newLeadData.location} onChange={(e) => setNewLeadData({...newLeadData, location: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 h-16 resize-none focus:border-[#103c7f] outline-none" placeholder="E.g., Okhla Phase 3, Near Crown Plaza..."></textarea>
+                     </div>
+
+                     {/* Row 4: Reference & Startup */}
+                     <div className="grid grid-cols-2 gap-4">
+                         <div>
+                             <label className="text-[10px] font-bold text-gray-400 uppercase">Reference / Source</label>
+                             <input type="text" placeholder="LinkedIn, Google, Cold Call..." value={newLeadData.reference} onChange={(e) => setNewLeadData({...newLeadData, reference: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none" />
+                         </div>
+                         <div>
+                             <label className="text-[10px] font-bold text-gray-400 uppercase">Startup</label>
+                             <select value={newLeadData.startup} onChange={(e) => setNewLeadData({...newLeadData, startup: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
+                                 <option value="">Select Option</option>
+                                 <option value="Yes">Yes</option>
+                                 <option value="No">No</option>
+                             </select>
+                         </div>
+                     </div>
                 </div>
               )}
 
@@ -681,75 +757,111 @@ const isLocked = lead.isSubmitted;
          />
        </div>
 
-       {/* Row 2: Contact Person, Phone, Email */}
-       <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="text-[10px] font-bold text-gray-500 uppercase">Contact Person</label>
-            <input
-              type="text"
-              placeholder="Enter name"
-              value={interactionData.contact_person}
-              onChange={(e) => setInteractionData({...interactionData, contact_person: e.target.value})}
-              className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
-            />
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-gray-500 uppercase">Phone</label>
-            <input
-              type="tel"
-              placeholder="Enter phone number"
-              value={interactionData.contact_no}
-              onChange={(e) => setInteractionData({...interactionData, contact_no: e.target.value})}
-              className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
-            />
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-gray-500 uppercase">Email</label>
-            <input
-              type="email"
-              placeholder="Enter email"
-              value={interactionData.email}
-              onChange={(e) => setInteractionData({...interactionData, email: e.target.value})}
-              className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
-            />
-          </div>
-       </div>
+        {/* Row 2: Contact Person, Phone, Email */}
+        <div className="grid grid-cols-3 gap-4">
+           <div>
+             <label className="text-[10px] font-bold text-gray-500 uppercase">Contact Person</label>
+             <input
+               type="text"
+               placeholder="Enter name"
+               value={interactionData.contact_person}
+               onChange={(e) => setInteractionData({...interactionData, contact_person: e.target.value})}
+               className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
+               list="persons"
+             />
+             <datalist id="persons">
+               {suggestions.persons.map(p => <option key={p} value={p} />)}
+             </datalist>
+           </div>
+           <div>
+             <label className="text-[10px] font-bold text-gray-500 uppercase">Phone</label>
+             <input
+               type="tel"
+               placeholder="Enter phone number"
+               value={interactionData.contact_no}
+               onChange={(e) => setInteractionData({...interactionData, contact_no: e.target.value})}
+               className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
+               list="nos"
+             />
+             <datalist id="nos">
+               {suggestions.nos.map(n => <option key={n} value={n} />)}
+             </datalist>
+           </div>
+           <div>
+             <label className="text-[10px] font-bold text-gray-500 uppercase">Email</label>
+             <input
+               type="email"
+               placeholder="Enter email"
+               value={interactionData.email}
+               onChange={(e) => setInteractionData({...interactionData, email: e.target.value})}
+               className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
+               list="emails"
+             />
+             <datalist id="emails">
+               {suggestions.emails.map(e => <option key={e} value={e} />)}
+             </datalist>
+           </div>
+        </div>
 
-       {/* Row 3: Status & Sub-Status */}
-       <div className="grid grid-cols-2 gap-4">
+        {/* Row 3: Status & Sub-Status */}
+        <div className="grid grid-cols-2 gap-4">
+           <div>
+             <label className="text-[10px] font-bold text-gray-500 uppercase">New Status</label>
+             <select value={interactionData.status} onChange={(e) => setInteractionData({...interactionData, status: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
+               <option value="">Select Status</option>
+               <option>Interested</option>
+               <option>Not Interested</option>
+               <option>Not Picked</option>
+               <option>Onboard</option>
+               <option>Call Later</option>
+             </select>
+           </div>
+           <div>
+             <label className="text-[10px] font-bold text-gray-500 uppercase">Sub-Status</label>
+             <select value={interactionData.sub_status} onChange={(e) => setInteractionData({...interactionData, sub_status: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
+               <option value="">Select Sub-Status</option>
+               <option>2nd time not picked</option>
+               <option>Contract Share</option>
+               <option>Enough Vendor Empanelment</option>
+               <option>Hiring Sealed</option>
+               <option>Manager Ask</option>
+               <option>Meeting Align</option>
+               <option>Misaligned T&C</option>
+               <option>Not Right Person</option>
+               <option>Official Mail Ask</option>
+               <option>Reference Ask</option>
+               <option>Self Hiring</option>
+               <option>Ready To Visit</option>
+               <option>Callback</option>
+               <option>NA</option>
+             </select>
+           </div>
+        </div>
+
+        {/* Row 4: Franchise Status & Remarks */}
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-[10px] font-bold text-gray-500 uppercase">New Status</label>
-            <select value={interactionData.status} onChange={(e) => setInteractionData({...interactionData, status: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
-              <option value="">Select Status</option>
-              <option>Interested</option>
+            <label className="text-[10px] font-bold text-gray-500 uppercase">Franchise Status</label>
+            <select value={interactionData.franchise_status} onChange={(e) => setInteractionData({...interactionData, franchise_status: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
+              <option value="">Select Franchise Status</option>
+              <option>Application Form Share</option>
+              <option>No Franchise Discuss</option>
               <option>Not Interested</option>
-              <option>Call Later</option>
-              <option>Ringing</option>
+              <option>Will Think About It</option>
+              <option>Form Filled</option>
+              <option>Form Not Filled</option>
             </select>
           </div>
           <div>
-            <label className="text-[10px] font-bold text-gray-500 uppercase">Sub-Status</label>
-            <select value={interactionData.sub_status} onChange={(e) => setInteractionData({...interactionData, sub_status: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
-              <option value="">Select Sub-Status</option>
-              <option>Ready To Visit</option>
-              <option>Onboard</option>
-              <option>Callback</option>
-              <option>Quotation Sent</option>
-              <option>NA</option>
-            </select>
+            <label className="text-[10px] font-bold text-gray-500 uppercase">Remarks (Conversation Details)</label>
+            <textarea
+              value={interactionData.remarks}
+              onChange={(e) => setInteractionData({...interactionData, remarks: e.target.value})}
+              className="w-full border border-gray-300 rounded p-3 text-sm mt-1 h-20 focus:border-[#103c7f] outline-none resize-none placeholder:text-gray-300"
+              placeholder="Client kya bola? Mention key points..."
+            ></textarea>
           </div>
-       </div>
-
-       {/* Row 4: Remarks */}
-       <div>
-         <label className="text-[10px] font-bold text-gray-500 uppercase">Remarks (Conversation Details)</label>
-         <textarea
-           value={interactionData.remarks}
-           onChange={(e) => setInteractionData({...interactionData, remarks: e.target.value})}
-           className="w-full border border-gray-300 rounded p-3 text-sm mt-1 h-20 focus:border-[#103c7f] outline-none resize-none placeholder:text-gray-300"
-           placeholder="Client kya bola? Mention key points..."
-         ></textarea>
-       </div>
+        </div>
 
        {/* Row 5: Next Follow-up */}
        <div>

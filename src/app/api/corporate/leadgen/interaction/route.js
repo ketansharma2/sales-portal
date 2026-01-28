@@ -48,6 +48,7 @@ export async function GET(request) {
       status: interaction.status,
       sub_status: interaction.sub_status,
       next_follow_up: interaction.next_follow_up,
+      franchise_status: interaction.franchise_status,
       created_at: interaction.created_at
     })) || []
 
@@ -79,7 +80,7 @@ export async function POST(request) {
     }
 
     const body = await request.json()
-    const { client_id, date, status, sub_status, remarks, next_follow_up, contact_person, contact_no, email } = body
+    const { client_id, date, status, sub_status, remarks, next_follow_up, contact_person, contact_no, email, franchise_status } = body
 
     // Validate required fields
     if (!client_id || !date || !status) {
@@ -99,7 +100,8 @@ export async function POST(request) {
         next_follow_up,
         contact_person,
         contact_no,
-        email
+        email,
+        franchise_status
       })
       .select()
       .single()

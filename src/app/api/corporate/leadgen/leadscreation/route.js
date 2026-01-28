@@ -48,7 +48,7 @@ export async function POST(request) {
 
     const supabase = supabaseServer;
     const body = await request.json();
-    const { company, category, state, location, emp_count, reference, sourcing_date } = body;
+    const { company, category, state, location, emp_count, reference, sourcing_date, district_city, startup } = body;
 
     if (!company) {
       return NextResponse.json({ success: false, message: 'Company name is required' }, { status: 400 });
@@ -64,6 +64,8 @@ export async function POST(request) {
         emp_count,
         reference,
         sourcing_date,
+        district_city,
+        startup,
         leadgen_id: user.id
       })
       .select()

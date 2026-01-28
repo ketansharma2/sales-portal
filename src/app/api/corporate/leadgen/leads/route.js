@@ -15,7 +15,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { company, category, state, location, emp_count, reference, sourcing_date } = body;
+    const { company, category, state, location, emp_count, reference, sourcing_date, district_city, startup } = body;
 
     if (!company) {
       return NextResponse.json({ error: 'Company name is required' }, { status: 400 });
@@ -185,6 +185,7 @@ export async function GET(request) {
         category: lead.category,
         state: lead.state,
         location: lead.location,
+        district_city: lead.district_city || '',
         empCount: lead.emp_count,
         reference: lead.reference,
         status: latestInteraction?.status || 'New', // Status from latest interaction

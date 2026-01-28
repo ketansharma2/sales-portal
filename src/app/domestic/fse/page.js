@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { Link } from "next/link";
 import {
   Users, CheckCircle, MapPin, Target,
   TrendingUp, Calendar, Filter,
