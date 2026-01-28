@@ -304,7 +304,8 @@ export async function PUT(request) {
       status: newValues.status,
       sub_status: newValues.sub_status,
       projection: newValues.projection,
-      remarks: newValues.remarks
+      remarks: newValues.remarks,
+      sent_to_sm: newValues.sent_to_sm
     }
 
     // Remove undefined fields

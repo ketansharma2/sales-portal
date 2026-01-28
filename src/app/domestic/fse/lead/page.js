@@ -1,10 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
-import { 
+import {
   Pencil, Plus, X, Search, Loader2, Eye, Star,
   Calendar, Phone, MapPin, User, Building2, CheckCircle,
   ArrowRight, MessageSquarePlus, Mail, Zap,CalendarOff,
-  HistoryIcon
+  HistoryIcon, Send, Lock
 } from "lucide-react";
 
 export default function LeadsMasterPage() {
@@ -27,21 +27,31 @@ export default function LeadsMasterPage() {
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [nonFieldDays, setNonFieldDays] = useState([]);
 
-  // Filters State (Robust Initialization)
-  const [filters, setFilters] = useState({ 
-    company: '', 
-    category: '', 
-    locationSearch: '', 
-    statusSearch: '', 
-    subStatusSearch: '',
-    projection: '',
-    status: '' ,
-    clientType: '',
-    fromDate: '', // New
-    toDate: ''    // New
-  });
+   // Filters State (Robust Initialization)
+   const [filters, setFilters] = useState({
+     company: '',
+     category: '',
+     locationSearch: '',
+     statusSearch: '',
+     subStatusSearch: '',
+     projection: '',
+     status: '' ,
+     clientType: '',
+     fromDate: '', // New
+     toDate: ''    // New
+   });
 
-  useEffect(() => { setMounted(true); }, []);
+   useEffect(() => {
+     const projection = localStorage.getItem('projectionFilter');
+     if (projection) {
+       console.log('Setting projection from localStorage:', projection);
+       setFilters(prev => ({ ...prev, projection }));
+       setShowAll(true);
+       localStorage.removeItem('projectionFilter');
+     }
+   }, []);
+
+   useEffect(() => { setMounted(true); }, []);
 
   // Robust Dependency Array
   useEffect(() => {
@@ -62,7 +72,9 @@ export default function LeadsMasterPage() {
       if (filters.projection) queryParams.append('projection', filters.projection);
       if (filters.subStatusSearch) queryParams.append('sub_status', filters.subStatusSearch);
       if (filters.clientType) queryParams.append('client_type', filters.clientType);
-      
+
+      console.log('Fetching leads with projection:', filters.projection);
+
       // 👇 DATE FILTERS (Agar pehle miss ho gaye the toh ye bhi zaroori hain)
       if (filters.fromDate) queryParams.append('fromDate', filters.fromDate);
       if (filters.toDate) queryParams.append('toDate', filters.toDate);
@@ -172,6 +184,18 @@ export default function LeadsMasterPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSendToManager = async (lead) => {
+    const confirmed = confirm(`Send "${lead.company_name}" to manager?`);
+    if (!confirmed) return;
+
+    const updateData = {
+      client_id: lead.client_id,
+      sent_to_sm: true
+    };
+
+    await saveLead(updateData);
   };
   // 👇 ADD THIS FUNCTION (Missing)
   const handleSaveLeave = async (date, reason, remarks) => { // <--- Added remarks here
@@ -556,32 +580,49 @@ statesList: [
                       </span>
                     </td>
 
-                    {/* ACTIONS - STICKY RIGHT */}
-                    <td className="px-3 py-2.5 sticky right-0 bg-white group-hover:bg-blue-50/40 transition-colors border-l border-gray-100 z-10 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
-                      <div className="flex items-center justify-center gap-2">
-                        <button 
-                          onClick={() => { setSelectedLead(lead); setIsFullViewOpen(true); }} 
-                          className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 hover:shadow-md transition-all border border-green-100 active:scale-95" 
-                          title="Full View"
-                        >
-                          <Eye size={14} strokeWidth={2.5} />
-                        </button>
-                        <button 
-                          onClick={() => { setSelectedLead(lead); setIsFollowUpModalOpen(true); }} 
-                          className="p-1.5 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 hover:shadow-md transition-all border border-orange-100 active:scale-95" 
-                          title="Add Follow-up"
-                        >
-                          <MessageSquarePlus size={14} strokeWidth={2.5} />
-                        </button>
-                        <button 
-                          onClick={() => { setSelectedLead(lead); setIsEditModalOpen(true); }} 
-                          className="p-1.5 bg-blue-50 text-[#103c7f] rounded-lg hover:bg-blue-100 hover:shadow-md transition-all border border-blue-100 active:scale-95" 
-                          title="Edit Details"
-                        >
-                          <Pencil size={14} strokeWidth={2.5} />
-                        </button>
-                      </div>
-                    </td>
+                     {/* ACTIONS - STICKY RIGHT */}
+                     <td className="px-3 py-2.5 sticky right-0 bg-white group-hover:bg-blue-50/40 transition-colors border-l border-gray-100 z-10 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
+                       <div className="flex items-center justify-center gap-2">
+                         <button
+                           onClick={() => { setSelectedLead(lead); setIsFullViewOpen(true); }}
+                           className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 hover:shadow-md transition-all border border-green-100 active:scale-95"
+                           title="Full View"
+                         >
+                           <Eye size={14} strokeWidth={2.5} />
+                         </button>
+                         <button
+                           onClick={() => { setSelectedLead(lead); setIsFollowUpModalOpen(true); }}
+                           className="p-1.5 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 hover:shadow-md transition-all border border-orange-100 active:scale-95"
+                           title="Add Follow-up"
+                         >
+                           <MessageSquarePlus size={14} strokeWidth={2.5} />
+                         </button>
+                         <button
+                           onClick={() => { setSelectedLead(lead); setIsEditModalOpen(true); }}
+                           className="p-1.5 bg-blue-50 text-[#103c7f] rounded-lg hover:bg-blue-100 hover:shadow-md transition-all border border-blue-100 active:scale-95"
+                           title="Edit Details"
+                         >
+                           <Pencil size={14} strokeWidth={2.5} />
+                         </button>
+                         {lead.sent_to_sm ? (
+                           <button
+                             disabled
+                             className="p-1.5 bg-gray-50 text-gray-400 rounded-lg border border-gray-100 cursor-not-allowed"
+                             title="Already Sent to Manager"
+                           >
+                             <Lock size={14} strokeWidth={2.5} />
+                           </button>
+                         ) : (
+                           <button
+                             onClick={() => handleSendToManager(lead)}
+                             className="p-1.5 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 hover:shadow-md transition-all border border-purple-100 active:scale-95"
+                             title="Send to Manager"
+                           >
+                             <Send size={14} strokeWidth={2.5} />
+                           </button>
+                         )}
+                       </div>
+                     </td>
                   </tr>
                 ))
               )}

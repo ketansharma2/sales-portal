@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
-  Users, CheckCircle, MapPin, Target, 
+  Users, CheckCircle, MapPin, Target,
   TrendingUp, Calendar, Filter,
   ArrowRight, Search, Activity
 } from "lucide-react";
@@ -352,11 +354,22 @@ function CompactMonthCard({ label, value, icon, trend, progress, target }) {
 
 // Fixed: Simplified props to match usage (Label + Value only)
 function ProjItem({ label, value }) {
+  const router = useRouter();
+
+  const getProjectionParam = (label) => {
+    return label;
+  };
+
+  const handleClick = () => {
+    localStorage.setItem('projectionFilter', getProjectionParam(label));
+    router.push('/domestic/fse/lead');
+  };
+
   return (
-    <div className="flex justify-between items-center border-b border-white/10 py-1 w-full gap-2">
+    <button onClick={handleClick} className="flex justify-between items-center border-b border-white/10 py-1 w-full gap-2 hover:bg-white/10 transition-colors cursor-pointer">
       <span className="text-[12px] font-bold text-[#a1db40] uppercase tracking-tighter shrink-0">{label}</span>
       <span className="text-[12px] font-black text-white italic shrink-0">{value}</span>
-    </div>
+    </button>
   );
 }
 
