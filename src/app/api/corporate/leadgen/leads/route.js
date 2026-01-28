@@ -188,8 +188,10 @@ export async function GET(request) {
         district_city: lead.district_city || '',
         empCount: lead.emp_count,
         reference: lead.reference,
+        startup: lead.startup,
         status: latestInteraction?.status || 'New', // Status from latest interaction
         subStatus: latestInteraction?.sub_status || 'New Lead', // Sub-status from latest interaction
+        franchiseStatus: latestInteraction?.franchise_status || '', // Franchise status from latest interaction
         latestFollowup: latestInteraction ? new Date(latestInteraction.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : '',
         remarks: latestInteraction?.remarks || '',
         nextFollowup: latestInteraction?.next_follow_up ? new Date(latestInteraction.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : '',

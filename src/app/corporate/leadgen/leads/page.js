@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
-import { 
-  Search, Phone, Filter, X, Save, Plus, Eye, 
-  Calendar, MapPin, ListFilter,ArrowRight,Send,Lock,Edit
+import {
+  Search, Phone, Filter, X, Save, Plus, Eye,
+  Calendar, MapPin, ListFilter,ArrowRight,Send,Lock,Edit,Award
 } from "lucide-react";
 
 export default function LeadsTablePage() {
@@ -174,8 +174,9 @@ export default function LeadsTablePage() {
     toDate: "",
     company: "",
     location: "",
-    status: "All Status",
-    subStatus: "All"
+    status: "All",
+    subStatus: "All",
+    franchiseStatus: "All"
   });
 
   // --- REAL-TIME FILTER LOGIC ---
@@ -198,10 +199,11 @@ export default function LeadsTablePage() {
       const matchLocation = (lead.location + lead.state).toLowerCase().includes(newFilters.location.toLowerCase());
       
       // 3. Dropdown Matching
-      const matchStatus = newFilters.status === "All Status" || lead.status === newFilters.status;
+      const matchStatus = newFilters.status === "All" || lead.status === newFilters.status;
       const matchSubStatus = newFilters.subStatus === "All" || lead.subStatus === newFilters.subStatus;
+      const matchFranchiseStatus = newFilters.franchiseStatus === "All" || lead.franchiseStatus === newFilters.franchiseStatus;
 
-      return isAfterFrom && isBeforeTo && matchCompany && matchLocation && matchStatus && matchSubStatus;
+      return isAfterFrom && isBeforeTo && matchCompany && matchLocation && matchStatus && matchSubStatus && matchFranchiseStatus;
     });
 
     setLeads(filtered);
@@ -379,7 +381,7 @@ export default function LeadsTablePage() {
       </div>
 
       {/* 2. FILTERS BAR (Real-time, No Button) */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-4 grid grid-cols-6 gap-3 items-end">
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-4 grid grid-cols-7 gap-3 items-end">
          
          {/* Filter 1: From Date */}
          <div className="col-span-1">
@@ -440,14 +442,16 @@ export default function LeadsTablePage() {
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Status</label>
             <div className="relative">
               <ListFilter className="absolute left-3 top-2.5 text-gray-400" size={14} />
-              <select 
+              <select
                 className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:border-[#103c7f] outline-none appearance-none cursor-pointer"
                 onChange={(e) => handleFilterChange("status", e.target.value)}
               >
-                <option>All Status</option>
-                <option>New</option>
+                <option>All</option>
                 <option>Interested</option>
-                <option>Rejected</option>
+                <option>Not Interested</option>
+                <option>Not Picked</option>
+                <option>Onboard</option>
+                <option>Call Later</option>
               </select>
             </div>
          </div>
@@ -457,15 +461,45 @@ export default function LeadsTablePage() {
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Sub-Status</label>
             <div className="relative">
               <Filter className="absolute left-3 top-2.5 text-gray-400" size={14} />
-              <select 
+              <select
                 className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:border-[#103c7f] outline-none appearance-none cursor-pointer"
                 onChange={(e) => handleFilterChange("subStatus", e.target.value)}
               >
                 <option>All</option>
-                <option>Call Later</option>
-                <option>Meeting Aligned</option>
-                <option>Proposal Sent</option>
+                <option>2nd time not picked</option>
+                <option>Contract Share</option>
+                <option>Enough Vendor Empanelment</option>
+                <option>Hiring Sealed</option>
+                <option>Manager Ask</option>
+                <option>Meeting Align</option>
+                <option>Misaligned T&C</option>
+                <option>Not Right Person</option>
+                <option>Official Mail Ask</option>
+                <option>Reference Ask</option>
+                <option>Self Hiring</option>
+                <option>Ready To Visit</option>
                 <option>Callback</option>
+                <option>NA</option>
+              </select>
+            </div>
+         </div>
+
+         {/* Filter 7: Franchise Status */}
+         <div className="col-span-1">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Franchise Status</label>
+            <div className="relative">
+              <Award className="absolute left-3 top-2.5 text-gray-400" size={14} />
+              <select
+                className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:border-[#103c7f] outline-none appearance-none cursor-pointer"
+                onChange={(e) => handleFilterChange("franchiseStatus", e.target.value)}
+              >
+                <option>All</option>
+                <option>Application Form Share</option>
+                <option>No Franchise Discuss</option>
+                <option>Not Interested</option>
+                <option>Will Think About It</option>
+                <option>Form Filled</option>
+                <option>Form Not Filled</option>
               </select>
             </div>
          </div>
@@ -494,6 +528,7 @@ export default function LeadsTablePage() {
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Next Followup</th>
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Status</th>
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Sub-Status</th>
+        <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Franchise Status</th>
         <th className="px-2 py-2 text-center bg-[#0d316a] sticky right-0 z-20">Action</th>
       </tr>
     </thead>
@@ -551,7 +586,8 @@ const isLocked = lead.isSubmitted;
             </span>
           </td>
           <td className="px-2 py-2 border-r border-gray-100">{lead.subStatus}</td>
-          
+          <td className="px-2 py-2 border-r border-gray-100">{lead.franchiseStatus}</td>
+
           {/* 👉 CHANGE 3: Action Column ko update karein */}
           <td className="px-2 py-2 text-center sticky right-0 bg-white group-hover:bg-blue-50/30 border-l border-gray-200 z-10 whitespace-nowrap">
             {isLocked ? (
@@ -888,6 +924,9 @@ const isLocked = lead.isSubmitted;
           <span className="flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-gray-600">
               <MapPin size={10} /> {selectedLead.location}, {selectedLead.state}
           </span>
+          <span className="bg-blue-100 px-2 py-0.5 rounded text-blue-700">
+            Startup: {selectedLead.startup || 'N/A'}
+          </span>
         </div>
       </div>
     </div>
@@ -911,6 +950,7 @@ const isLocked = lead.isSubmitted;
                <th className="p-4 border-b border-gray-100">Contact Info</th>
                <th className="p-4 border-b border-gray-100 w-1/3">Remarks</th>
                <th className="p-4 border-b border-gray-100">Status</th>
+               <th className="p-4 border-b border-gray-100">Franchise Status</th>
                <th className="p-4 border-b border-gray-100">Next Follow-up Date</th>
              </tr>
           </thead>
@@ -946,15 +986,20 @@ const isLocked = lead.isSubmitted;
                   </td>
                   <td className="p-4">
                      <span className={`inline-flex flex-col items-center px-2 py-1 rounded-lg text-[10px] font-bold w-20 text-center ${interaction.status === 'Interested' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-600'}`}>
-                       {interaction.status}
-                       <span className="text-[8px] opacity-70 font-normal mt-0.5">{interaction.sub_status}</span>
+                     {interaction.status}
+                     <span className="text-[8px] opacity-70 font-normal mt-0.5">{interaction.sub_status}</span>
                      </span>
-                  </td>
-                  <td className="p-4">
+                     </td>
+                     <td className="p-4">
+                     <span className="px-2 py-1 rounded-lg text-[10px] font-bold text-center bg-blue-50 text-blue-700 border border-blue-200 inline-block">
+                     {interaction.franchise_status || 'N/A'}
+                     </span>
+                     </td>
+                     <td className="p-4">
                      <div className="text-orange-600 font-bold bg-orange-50 px-2 py-1 rounded border border-orange-100 text-center w-fit">
-                       {interaction.next_follow_up ? new Date(interaction.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : 'N/A'}
+                     {interaction.next_follow_up ? new Date(interaction.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : 'N/A'}
                      </div>
-                  </td>
+                     </td>
                </tr>
              )) : (
                <tr>
