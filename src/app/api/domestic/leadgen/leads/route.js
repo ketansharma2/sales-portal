@@ -15,7 +15,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { company, category, state, location, emp_count, reference, sourcing_date } = body;
+    const { company, category, state, location, emp_count, reference, sourcing_date, district_city } = body;
 
     if (!company) {
       return NextResponse.json({ error: 'Company name is required' }, { status: 400 });
@@ -31,6 +31,7 @@ export async function POST(request) {
         emp_count,
         reference,
         sourcing_date,
+        district_city,
         leadgen_id: user.id
       })
       .select()
@@ -76,7 +77,7 @@ export async function PUT(request) {
     }
 
     const body = await request.json();
-    const { client_id, company, category, state, location, emp_count, reference, sourcing_date } = body;
+    const { client_id, company, category, state, location, emp_count, reference, sourcing_date, district_city } = body;
 
     if (!client_id) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
@@ -106,7 +107,8 @@ export async function PUT(request) {
         location,
         emp_count,
         reference,
-        sourcing_date
+        sourcing_date,
+        district_city
       })
       .eq('client_id', client_id)
       .select()
@@ -184,6 +186,7 @@ export async function GET(request) {
         location: lead.location,
         empCount: lead.emp_count,
         reference: lead.reference,
+        district_city: lead.district_city,
         status: latestInteraction?.status || 'New', // Status from latest interaction
         subStatus: latestInteraction?.sub_status || 'New Lead', // Sub-status from latest interaction
         latestFollowup: latestInteraction ? new Date(latestInteraction.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : '',

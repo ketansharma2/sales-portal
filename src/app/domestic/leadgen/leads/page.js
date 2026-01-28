@@ -12,7 +12,7 @@ export default function LeadsTablePage() {
 
   const [leads, setLeads] = useState(initialLeads);
   const [allLeads, setAllLeads] = useState(initialLeads);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   const [modalType, setModalType] = useState("");
@@ -24,7 +24,8 @@ export default function LeadsTablePage() {
     location: '',
     emp_count: '1 - 10',
     reference: '',
-    sourcing_date: ''
+    sourcing_date: '',
+    district_city: ''
   });
 
   const [interactionData, setInteractionData] = useState({
@@ -41,14 +42,9 @@ export default function LeadsTablePage() {
   const [interactions, setInteractions] = useState([]);
 
   // --- FULL LISTS ---
-  const indianStates = [
-    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", 
-    "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", 
-    "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", 
-    "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
-    "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu", 
-    "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
-  ];
+  const [indianStates, setIndianStates] = useState([]);
+  const [stateDistrictData, setStateDistrictData] = useState({});
+  const [districtsList, setDistrictsList] = useState([]);
 
   const industryCategories = [
     "Information Technology (IT)", "Finance & Banking", "Healthcare", "Education", "Manufacturing", 
@@ -107,6 +103,26 @@ export default function LeadsTablePage() {
   useEffect(() => {
     fetchLeads();
   }, []);
+
+  // Load states and districts data
+  useEffect(() => {
+    fetch('/India-State-District.json')
+      .then(res => res.json())
+      .then(data => {
+        setIndianStates(Object.keys(data));
+        setStateDistrictData(data);
+      })
+      .catch(error => console.error('Failed to load state-district data:', error));
+  }, []);
+
+  // Update districts list when state changes
+  useEffect(() => {
+    if (newLeadData.state && stateDistrictData[newLeadData.state]) {
+      setDistrictsList(stateDistrictData[newLeadData.state]);
+    } else {
+      setDistrictsList([]);
+    }
+  }, [newLeadData.state, stateDistrictData]);
   
 
   // --- FILTER STATE ---
@@ -163,9 +179,10 @@ export default function LeadsTablePage() {
         state: lead.state || '',
         location: lead.location || '',
         // Map the table's camelCase keys to the form's snake_case keys
-        emp_count: lead.empCount || '1 - 10', 
+        emp_count: lead.empCount || '1 - 10',
         reference: lead.reference || '',
-        sourcing_date: lead.sourcingDate || ''
+        sourcing_date: lead.sourcingDate || '',
+        district_city: lead.district_city || ''
       });
     }
   };
@@ -178,6 +195,7 @@ export default function LeadsTablePage() {
 
   const handleSaveOnly = async () => {
     try {
+      console.log('Posting new lead data (save only):', newLeadData);
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const response = await fetch('/api/domestic/leadgen/leadscreation', {
         method: 'POST',
@@ -202,6 +220,7 @@ export default function LeadsTablePage() {
 
   const handleSaveAndFollowup = async () => {
     try {
+      console.log('Posting new lead data:', newLeadData);
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const response = await fetch('/api/domestic/leadgen/leads', {
         method: 'POST',
@@ -238,6 +257,7 @@ export default function LeadsTablePage() {
 
   const handleSaveInteraction = async () => {
     try {
+      console.log('Posting interaction data:', { client_id: selectedLead.id, ...interactionData });
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const response = await fetch('/api/domestic/leadgen/interaction', {
         method: 'POST',
@@ -264,10 +284,11 @@ export default function LeadsTablePage() {
   };
   const handleUpdateLead = async () => {
     try {
+      console.log('Updating lead data:', { client_id: selectedLead.id, ...newLeadData });
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       // Assuming you use PUT or PATCH for updates. Adjust the method/URL if your API is different.
-      const response = await fetch('/api/domestic/leadgen/leads', { 
-        method: 'PUT', 
+      const response = await fetch('/api/domestic/leadgen/leads', {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
@@ -280,7 +301,7 @@ export default function LeadsTablePage() {
       const data = await response.json();
       if (data.success) {
         setIsFormOpen(false);
-        setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '' });
+        setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '', district_city: '' });
         fetchLeads(); // Refresh table
       } else {
         alert('Failed to update lead');
@@ -363,14 +384,17 @@ export default function LeadsTablePage() {
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Status</label>
             <div className="relative">
               <ListFilter className="absolute left-3 top-2.5 text-gray-400" size={14} />
-              <select 
+              <select
                 className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:border-[#103c7f] outline-none appearance-none cursor-pointer"
                 onChange={(e) => handleFilterChange("status", e.target.value)}
               >
                 <option>All Status</option>
-                <option>New</option>
                 <option>Interested</option>
-                <option>Rejected</option>
+                <option>Not Interested</option>
+                <option>Not Picked</option>
+                <option>Onboard</option>
+                <option>CallLater</option>
+                <option>Wrong Number</option>
               </select>
             </div>
          </div>
@@ -380,15 +404,17 @@ export default function LeadsTablePage() {
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Sub-Status</label>
             <div className="relative">
               <Filter className="absolute left-3 top-2.5 text-gray-400" size={14} />
-              <select 
+              <select
                 className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:border-[#103c7f] outline-none appearance-none cursor-pointer"
                 onChange={(e) => handleFilterChange("subStatus", e.target.value)}
               >
                 <option>All</option>
-                <option>Call Later</option>
-                <option>Meeting Aligned</option>
-                <option>Proposal Sent</option>
+                <option>2nd time not picked</option>
+                <option>Not Right Person</option>
+                <option>Self Hiring</option>
+                <option>Ready To Visit</option>
                 <option>Callback</option>
+                <option>NA</option>
               </select>
             </div>
          </div>
@@ -406,7 +432,7 @@ export default function LeadsTablePage() {
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Sourcing Date</th>
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Company Name</th>
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Category</th>
-        <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">State</th>
+        <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">City/State</th>
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Location</th>
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Emp. Count</th>
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Reference</th>
@@ -443,7 +469,7 @@ const isLocked = lead.isSubmitted;
           <td className="px-2 py-2 border-r border-gray-100">{lead.sourcingDate}</td>
           <td className="px-2 py-2 border-r border-gray-100 font-bold text-[#103c7f]">{lead.company}</td>
           <td className="px-2 py-2 border-r border-gray-100">{lead.category}</td>
-          <td className="px-2 py-2 border-r border-gray-100">{lead.state}</td>
+          <td className="px-2 py-2 border-r border-gray-100">{lead.district_city ? `${lead.district_city}, ${lead.state}` : lead.state}</td>
           <td className="px-2 py-2 border-r border-gray-100">{lead.location}</td>
           <td className="px-2 py-2 border-r border-gray-100">{lead.empCount}</td>
           <td className="px-2 py-2 border-r border-gray-100">{lead.reference}</td>
@@ -574,14 +600,23 @@ const isLocked = lead.isSubmitted;
                         </div>
                     </div>
 
-                    {/* Row 2: State & Emp Count */}
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Row 2: State, District & Emp Count */}
+                    <div className="grid grid-cols-3 gap-4">
                         <div>
                             <label className="text-[10px] font-bold text-gray-400 uppercase">State</label>
-                            <select value={newLeadData.state} onChange={(e) => setNewLeadData({...newLeadData, state: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
+                            <select value={newLeadData.state} onChange={(e) => setNewLeadData({...newLeadData, state: e.target.value, district_city: ''})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
                                 <option>Select State...</option>
                                 {indianStates.map((state, idx) => (
                                   <option key={idx} value={state}>{state}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-bold text-gray-400 uppercase">District</label>
+                            <select value={newLeadData.district_city} onChange={(e) => setNewLeadData({...newLeadData, district_city: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
+                                <option>Select District...</option>
+                                {districtsList.map((district, idx) => (
+                                  <option key={idx} value={district}>{district}</option>
                                 ))}
                             </select>
                         </div>
@@ -692,18 +727,21 @@ const isLocked = lead.isSubmitted;
               <option value="">Select Status</option>
               <option>Interested</option>
               <option>Not Interested</option>
-              <option>Call Later</option>
-              <option>Ringing</option>
+              <option>Not Picked</option>
+              <option>Onboard</option>
+              <option>CallLater</option>
+              <option>Wrong Number</option>
             </select>
           </div>
           <div>
             <label className="text-[10px] font-bold text-gray-500 uppercase">Sub-Status</label>
             <select value={interactionData.sub_status} onChange={(e) => setInteractionData({...interactionData, sub_status: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
               <option value="">Select Sub-Status</option>
+              <option>2nd time not picked</option>
+              <option>Not Right Person</option>
+              <option>Self Hiring</option>
               <option>Ready To Visit</option>
-              <option>Onboard</option>
               <option>Callback</option>
-              <option>Quotation Sent</option>
               <option>NA</option>
             </select>
           </div>
@@ -887,16 +925,17 @@ const isLocked = lead.isSubmitted;
 {modalType === 'send_to_manager' && (
    <button
      onClick={async () => {
-        try {
-          const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const response = await fetch('/api/domestic/leadgen/send-to-manager', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`
-            },
-            body: JSON.stringify({ client_id: selectedLead.id })
-          });
+       try {
+         console.log('Sending lead to manager:', { client_id: selectedLead.id });
+         const session = JSON.parse(localStorage.getItem('session') || '{}');
+         const response = await fetch('/api/domestic/leadgen/send-to-manager', {
+           method: 'POST',
+           headers: {
+             'Content-Type': 'application/json',
+             'Authorization': `Bearer ${session.access_token}`
+           },
+           body: JSON.stringify({ client_id: selectedLead.id })
+         });
           const data = await response.json();
           if (data.success) {
             // 1. Update State: Set 'isSubmitted' to true
