@@ -94,6 +94,17 @@ export async function GET(request) {
         .limit(1)
         .single()
 
+      // Get CRM name if sent_to_crm
+      let assignedCrm = null
+      if (lead.sent_to_crm) {
+        const { data: crmUser } = await supabaseServer
+          .from('users')
+          .select('name')
+          .eq('user_id', lead.sent_to_crm)
+          .single()
+        assignedCrm = crmUser?.name || 'Unknown CRM'
+      }
+
       // Format interactions
       const formattedInteractions = interactions?.map(interaction => ({
         date: new Date(interaction.date).toLocaleDateString('en-GB'),
@@ -129,10 +140,11 @@ export async function GET(request) {
         interactions: formattedInteractions,
         // Assignment data
         assignedDate: assignment ? assignment.date : null,
-        actionType: assignment ? 'FSE' : null,
+        actionType: assignment ? 'FSE' : (lead.sent_to_crm ? 'DELIVERY' : null),
         assignedTo: assignment ? assignment.users?.name : null,
+        assignedCrm: assignedCrm,
         visitStatus: assignment ? assignment.fse_status : null,
-        isProcessed: !!assignment
+        isProcessed: !!assignment || !!lead.sent_to_crm
       }
     }) || [])
 

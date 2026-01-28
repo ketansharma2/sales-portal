@@ -1,18 +1,21 @@
 
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { 
-  Building2, MapPin, Phone, Mail, User, 
+import { useParams } from "next/navigation";
+import {
+  Building2, MapPin, Phone, Mail, User,
   FileText, Plus, ChevronRight, ArrowLeft,
   MessageSquare, Link as LinkIcon, Clock,
-  Briefcase, CheckCircle, Edit, Share2, 
+  Briefcase, CheckCircle, Edit, Share2,
   Calendar, CreditCard, Layout, ShieldCheck,
   ImageIcon, ExternalLink, X, Save, Eye, Lock,
   PlusCircle
 } from "lucide-react";
 
 export default function ClientMasterProfile() {
+  const params = useParams();
+  const clientId = params.id;
   
   // --- STATE FOR MODALS ---
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -24,71 +27,185 @@ export default function ClientMasterProfile() {
   const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
   const [isAllContactsOpen, setIsAllContactsOpen] = useState(false);
   const [isAllReqsOpen, setIsAllReqsOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   // --- 1. MASTER CLIENT DATA ---
   const [clientData, setClientData] = useState({
-    id: 101,
-    name: "Nexus Retail Group",
-    onboardedOn: "2024-01-18",
-    clientType: "A", // CHANGED: Just 'A', 'B', or 'C'
-    industry: "Retail / FMCG",
-    hqLocation: "Gurgaon, Haryana",
-    gst: "07AAACN1234F1Z5",
-    kycStatus: "Pending", 
-    contractLink: "https://example.com/contract.pdf", 
-    termsCondition: "Standard Net-30 Payment Terms. Invoice generation on 1st of every month.",
-    kycDocLink: "",
-    emailScreenshot: "",
-    status: "Active",
-    branches: [
-      { id: 'b1', name: "Gurgaon HQ", state: "Haryana", type: "Corporate" },
-      { id: 'b2', name: "Noida Warehouse", state: "Uttar Pradesh", type: "Warehouse" },
-      { id: 'b3', name: "Mumbai Regional", state: "Maharashtra", type: "Regional" },
-    ]
+    id: '',
+    name: '',
+    onboardedOn: '',
+    clientType: 'A',
+    industry: '',
+    hqLocation: '',
+    gst: '',
+    kycStatus: 'Pending',
+    contractLink: '',
+    termsCondition: '',
+    kycDocLink: '',
+    emailScreenshot: '',
+    status: 'Active',
+    branches: []
   });
+
+  useEffect(() => {
+    const fetchClient = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const response = await fetch(`/api/domestic/crm/clients/${clientId}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setClientData(data.data);
+
+          // Populate branchDetails from API data
+          const branchDetailsMap = {};
+          data.data.branches.forEach(branch => {
+            branchDetailsMap[branch.branch_id] = {
+              address: branch.full_address || '',
+              contacts: branch.contacts || [],
+              requirements: [],
+              trackers: [],
+              logs: []
+            };
+          });
+          setBranchDetails(branchDetailsMap);
+        }
+      } catch (error) {
+        console.error('Failed to fetch client:', error);
+      }
+    };
+    if (clientId) {
+      fetchClient();
+    }
+  }, [clientId]);
 
   // --- FORM STATE ---
   const [formData, setFormData] = useState(clientData);
-  const [selectedBranchId, setSelectedBranchId] = useState('b1');
+  const [selectedBranchId, setSelectedBranchId] = useState('');
+
+  // Function to fetch conversations
+  const fetchConversations = async () => {
+    if (!selectedBranchId) return;
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch(`/api/domestic/crm/conversation?branch_id=${selectedBranchId}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        // Format conversations to match logs structure
+        const formattedLogs = data.data.map(conv => ({
+          id: conv.conversation_id || conv.id,
+          type: conv.mode,
+          contact: conv.contact_name,
+          date: new Date(conv.date).toLocaleDateString('en-GB'),
+          msg: conv.discussion,
+          nextFollowUp: conv.next_follow_up ? new Date(conv.next_follow_up).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'
+        }));
+
+        // Update branchDetails with fetched conversations
+        setBranchDetails(prev => ({
+          ...prev,
+          [selectedBranchId]: {
+            ...prev[selectedBranchId],
+            logs: formattedLogs
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch conversations:', error);
+    }
+  };
+
+  // Function to fetch requirements
+  const fetchRequirements = async () => {
+    if (!selectedBranchId) return;
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch(`/api/domestic/crm/requirements?branch_id=${selectedBranchId}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        // Update branchDetails with fetched requirements
+        setBranchDetails(prev => ({
+          ...prev,
+          [selectedBranchId]: {
+            ...prev[selectedBranchId],
+            requirements: data.data
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch requirements:', error);
+    }
+  };
+
+  // Function to fetch trackers
+  const fetchTrackers = async () => {
+    if (!selectedBranchId) {
+      setTrackers([]);
+      return;
+    }
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch(`/api/domestic/crm/tracker?branch_id=${selectedBranchId}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        // Format trackers for display
+        const formattedTrackers = data.data.map(tracker => ({
+          id: tracker.tracker_id,
+          name: tracker.domestic_crm_reqs?.job_title || 'Unknown',
+          date: new Date(tracker.tracker_date).toLocaleDateString('en-GB'),
+          s: tracker.shared,
+          i: tracker.interviewed,
+          sel: tracker.selected,
+          j: tracker.joining,
+          r: tracker.not_selected,
+          feedback: tracker.feedback || 'No feedback'
+        }));
+        setTrackers(formattedTrackers);
+      }
+    } catch (error) {
+      console.error('Failed to fetch trackers:', error);
+      setTrackers([]);
+    }
+  };
+
+  // Fetch conversations, requirements, and trackers for the selected branch
+  useEffect(() => {
+    fetchConversations();
+    fetchRequirements();
+    fetchTrackers();
+  }, [selectedBranchId]);
+
+  // --- FILE UPLOAD STATE ---
+  const [uploadingKyc, setUploadingKyc] = useState(false);
+  const [uploadingEmail, setUploadingEmail] = useState(false);
   
   // --- MOCK BRANCH DETAILS ---
- // --- MOCK BRANCH DETAILS (With Scrollable History Data) ---
- // --- MOCK BRANCH DETAILS (Updated with Contact Names in Logs) ---
-  const [branchDetails, setBranchDetails] = useState({
-    'b1': {
-      address: "DLF Cyber City, Phase 3, Gurgaon",
-      contacts: [
-        { id: 'c1', name: "Mr. Vikram Singh", role: "HR Director", phone: "+91 98765 43210", email: "vikram@nexus.com" },
-        { id: 'c2', name: "Ms. Sneha", role: "Talent Acq.", phone: "+91 99887 76655", email: "sneha@nexus.com" }
-      ],
-      requirements: [
-        { id: 'r1', title: "Senior Data Analyst", openPositions: 2, status: "Active", pocId: 'c1' },
-      ],
-      trackers: [ { id: 't1', name: "Data Analyst Tracker", url: "#", lastUpdated: "2 mins ago" } ],
-      logs: [
-        { id: 1, contact: "Mr. Vikram Singh", date: "Today, 10:30 AM", type: "Call", msg: "Spoke regarding the new requirement. He emphasized needing candidates with immediate joining availability.", author: "You" },
-        { id: 2, contact: "Ms. Sneha", date: "Yesterday, 4:15 PM", type: "Email", msg: "Shared the first batch of 5 candidate profiles for the Data Analyst role. Waiting for feedback.", author: "You" },
-        { id: 3, contact: "Ms. Sneha", date: "Jan 19, 11:00 AM", type: "Whatsapp", msg: "Confirmed receipt of the profiles. She said she will schedule interviews by Friday.", author: "You" },
-        { id: 4, contact: "HR Team", date: "Jan 18, 02:30 PM", type: "Call", msg: "Introductory call with the new HR team. Discussed the commercial terms and signed the agreement.", author: "You" },
-        { id: 5, contact: "Mr. Vikram Singh", date: "Jan 15, 09:45 AM", type: "Email", msg: "Sent the revised commercial proposal based on the negotiation call.", author: "You" },
-        { id: 6, contact: "Legal Team", date: "Jan 12, 05:00 PM", type: "Call", msg: "Follow-up on the contract status. Legal team is reviewing the document.", author: "You" },
-        { id: 7, contact: "Accounts Dept", date: "Jan 10, 01:20 PM", type: "Email", msg: "Requested KYC documents to proceed with vendor registration.", author: "You" },
-        { id: 8, contact: "Mr. Vikram Singh", date: "Jan 08, 10:00 AM", type: "Call", msg: "Cold call to Vikram. He expressed interest in our bulk hiring services.", author: "You" },
-        { id: 9, contact: "Info Desk", date: "Jan 05, 03:00 PM", type: "Email", msg: "Sent company capability deck and client case studies.", author: "You" },
-        { id: 10, contact: "Reception", date: "Jan 02, 11:30 AM", type: "Call", msg: "Initial outreach. Left a voicemail.", author: "You" }
-      ]
-    },
-    'b2': { address: "Sector 63, Noida", contacts: [], requirements: [], trackers: [], logs: [] },
-    'b3': { address: "BKC, Mumbai", contacts: [], requirements: [], trackers: [], logs: [] }
-  });
+ // --- BRANCH DETAILS STATE (Populated from API) ---
+ const [branchDetails, setBranchDetails] = useState({});
+ const [trackers, setTrackers] = useState([]);
   // --- STATE FOR ADD BRANCH MODAL ---
  const [newBranchData, setNewBranchData] = useState({
-    name: '',
-    state: '',
-    city: '',      // Added City
-    address: '',   // Added Address
-    status: 'Active' // Added Status (Default Active)
-  });
+   name: '',
+   state: '',
+   city: '',      // Added City
+   address: '',   // Added Address
+   status: '' // Default to empty for placeholder
+ });
 
   const [newContactData, setNewContactData] = useState({
     name: '',
@@ -96,7 +213,7 @@ export default function ClientMasterProfile() {
     phone: '',
     designation: '',
     department: '',
-    isPrimary: 'No',
+    isPrimary: '',
     roleDescription: ''
   });
    
@@ -132,80 +249,306 @@ const [newConversationData, setNewConversationData] = useState({
 
 
   // --- HANDLER TO SAVE BRANCH ---
-  const handleSaveBranch = () => {
-    const newId = `b${clientData.branches.length + 1}`;
-    const newBranch = {
-      id: newId,
-      name: newBranchData.name,
-      state: newBranchData.state,
-      type: "Branch", // Keeping generic type or you can add a dropdown if needed
-      status: newBranchData.status // Store status
-    };
-    setClientData(prev => ({
-      ...prev,
-      branches: [...prev.branches, newBranch]
-    }));
-    setBranchDetails(prev => ({
-      ...prev,
-      [newId]: {
-        address: newBranchData.location,
-        contacts: [],
-        requirements: [],
-        trackers: [],
-        logs: []
+  const handleSaveBranch = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/crm/branches', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          client_id: clientId,
+          branch_name: newBranchData.name,
+          state: newBranchData.state,
+          city: newBranchData.city,
+          initial_status: newBranchData.status,
+          full_address: newBranchData.address
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        // Update local state with the new branch
+        const newBranch = {
+          id: data.data.branch_id,
+          branch_id: data.data.branch_id,
+          name: newBranchData.name,
+          state: newBranchData.state,
+          type: "Branch",
+          status: newBranchData.status
+        };
+
+        setClientData(prev => ({
+          ...prev,
+          branches: [...prev.branches, newBranch]
+        }));
+
+        setBranchDetails(prev => ({
+          ...prev,
+          [data.data.branch_id]: {
+            address: newBranchData.address,
+            contacts: [],
+            requirements: [],
+            trackers: [],
+            logs: []
+          }
+        }));
+
+        setIsBranchModalOpen(false);
+        setNewBranchData({ name: '', state: '', city: '', address: '', status: '' }); // Reset
+      } else {
+        alert('Failed to create branch: ' + (data.error || 'Unknown error'));
       }
-    }));
-    setIsBranchModalOpen(false);
-    setNewBranchData({ name: '', state: '', city: '', address: '', status: 'Active' }); // Reset
+    } catch (error) {
+      console.error('Error creating branch:', error);
+      alert('Error creating branch');
+    }
   };
 
-  const handleSaveConversation = () => {
-    // Mock logic to save conversation
-    console.log("Saving Conversation:", newConversationData);
-    
-    // Here you would typically update the 'logs' state or make an API call
-    // For now, we just close the modal and reset
-    setIsConversationModalOpen(false);
-    setNewConversationData({
-      contactId: '',
-      date: new Date().toISOString().split('T')[0],
-      mode: '',
-      discussion: '',
-      nextFollowUp: ''
-    });
+  const handleSaveConversation = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+
+      // Get contact name from selected contact
+      const selectedContact = currentBranchData.contacts.find(c => c.id === newConversationData.contactId);
+      const contactName = selectedContact ? selectedContact.name : '';
+
+      const response = await fetch('/api/domestic/crm/conversation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          contactId: selectedBranchId, // branch_id
+          contact_name: contactName,
+          date: newConversationData.date,
+          mode: newConversationData.mode,
+          discussion: newConversationData.discussion,
+          nextFollowUp: newConversationData.nextFollowUp
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        // Refresh conversations
+        fetchConversations();
+        setIsConversationModalOpen(false);
+        setNewConversationData({
+          contactId: '',
+          date: new Date().toISOString().split('T')[0],
+          mode: '',
+          discussion: '',
+          nextFollowUp: ''
+        });
+      } else {
+        alert('Failed to save conversation: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error saving conversation:', error);
+      alert('Error saving conversation');
+    }
   };
   
-  const currentBranchData = branchDetails[selectedBranchId] || { contacts: [], requirements: [], logs: [], trackers: [] };
+  const currentBranchData = useMemo(() => branchDetails[selectedBranchId] || { contacts: [], requirements: [], logs: [], trackers: [] }, [branchDetails, selectedBranchId]);
 
   // --- HANDLERS ---
   const openEditModal = () => { setFormData(clientData); setIsEditModalOpen(true); };
-  const handleSaveFundamentals = () => { setClientData(formData); setIsEditModalOpen(false); };
-  const handleSaveContact = () => {
-    // Mock logic to save contact
-    console.log("Saving Contact:", newContactData);
-    setIsContactModalOpen(false);
-    // Reset form
-    setNewContactData({ name: '', email: '', phone: '', designation: '', department: '', isPrimary: 'No', roleDescription: '' });
+
+  // --- FILE UPLOAD HANDLERS ---
+  const handleFileUpload = async (file, fileType) => {
+    if (!file) return;
+
+    const setUploading = fileType === 'kyc_doc' ? setUploadingKyc : setUploadingEmail;
+    setUploading(true);
+
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+      formDataUpload.append('fileType', fileType);
+
+      const response = await fetch('/api/domestic/crm/upload-file', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: formDataUpload
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setFormData(prev => ({
+          ...prev,
+          [fileType === 'kyc_doc' ? 'kycDocLink' : 'emailScreenshot']: data.url
+        }));
+      } else {
+        alert('Failed to upload file: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Error uploading file');
+    } finally {
+      setUploading(false);
+    }
   };
-    const handleSaveTracker = () => {
-    console.log("Saving Tracker Stats:", newTrackerData);
-    setIsTrackerModalOpen(false);
-    // Reset form
-    setNewTrackerData({
-      reqId: '', shareDate: new Date().toISOString().split('T')[0],
-      sharedCount: '', interviewed: '', selected: '', joining: '', rejected: '', feedback: ''
-    });
+
+  const handleSaveFundamentals = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch(`/api/domestic/crm/clients/${clientId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(formData)
+      });
+      const data = await response.json();
+      if (data.success) {
+        setClientData(formData); // Update local state
+        setIsEditModalOpen(false);
+      } else {
+        alert('Failed to update client: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error updating client:', error);
+      alert('Error updating client profile');
+    }
   };
-   const handleSaveRequirement = () => {
-    console.log("Saving Requirement:", newReqData);
-    setIsReqModalOpen(false);
-    // Reset form
-    setNewReqData({
-      jobTitle: '', jdLink: '', experience: '', package: '', 
-      openings: '', priority: '', status: 'Open', timeline: '', 
-      assignedTo: '', receivedDate: new Date().toISOString().split('T')[0]
-    });
+  const handleSaveContact = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/crm/contacts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          branch_id: selectedBranchId,
+          name: newContactData.name,
+          email: newContactData.email,
+          phone: newContactData.phone,
+          designation: newContactData.designation,
+          department: newContactData.department,
+          roleDescription: newContactData.roleDescription,
+          isPrimary: newContactData.isPrimary === 'true'
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        // Update local branch details with the new contact
+        setBranchDetails(prev => ({
+          ...prev,
+          [selectedBranchId]: {
+            ...(prev[selectedBranchId] || { address: '', contacts: [], requirements: [], trackers: [], logs: [] }),
+            contacts: [
+              ...(prev[selectedBranchId]?.contacts || []),
+              {
+                id: data.data.id || `c${Date.now()}`,
+                name: newContactData.name,
+                role: newContactData.designation,
+                phone: newContactData.phone,
+                email: newContactData.email
+              }
+            ]
+          }
+        }));
+
+        setIsContactModalOpen(false);
+        // Reset form
+        setNewContactData({ name: '', email: '', phone: '', designation: '', department: '', isPrimary: '', roleDescription: '' });
+      } else {
+        alert('Failed to create contact: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error creating contact:', error);
+      alert('Error creating contact');
+    }
   };
+  const handleSaveTracker = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/crm/tracker', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          req_id: newTrackerData.reqId,
+          tracker_date: newTrackerData.shareDate,
+          shared: newTrackerData.sharedCount,
+          interviewed: newTrackerData.interviewed,
+          selected: newTrackerData.selected,
+          joining: newTrackerData.joining,
+          not_selected: newTrackerData.rejected,
+          feedback: newTrackerData.feedback
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        // Refresh trackers
+        fetchTrackers();
+        setIsTrackerModalOpen(false);
+        setNewTrackerData({
+          reqId: '', shareDate: new Date().toISOString().split('T')[0],
+          sharedCount: '', interviewed: '', selected: '', joining: '', rejected: '', feedback: ''
+        });
+      } else {
+        alert('Failed to save tracker: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error saving tracker:', error);
+      alert('Error saving tracker');
+    }
+  };
+ const handleSaveRequirement = async () => {
+   try {
+     const session = JSON.parse(localStorage.getItem('session') || '{}');
+     const response = await fetch('/api/domestic/crm/requirements', {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/json',
+         'Authorization': `Bearer ${session.access_token}`
+       },
+       body: JSON.stringify({
+         branch_id: selectedBranchId,
+         job_title: newReqData.jobTitle,
+         jd_link: newReqData.jdLink,
+         experience: newReqData.experience,
+         package: newReqData.package,
+         openings: newReqData.openings,
+         priority: newReqData.priority,
+         status: newReqData.status,
+         timeline: newReqData.timeline,
+         date: newReqData.receivedDate
+       })
+     });
+
+     const data = await response.json();
+     if (data.success) {
+       // Refresh requirements
+       fetchRequirements();
+       setIsReqModalOpen(false);
+       setNewReqData({
+         jobTitle: '', jdLink: '', experience: '', package: '',
+         openings: '', priority: '', status: 'Not Started', timeline: '',
+         receivedDate: new Date().toISOString().split('T')[0]
+       });
+     } else {
+       alert('Failed to save requirement: ' + (data.error || 'Unknown error'));
+     }
+   } catch (error) {
+     console.error('Error saving requirement:', error);
+     alert('Error saving requirement');
+   }
+ };
 
 return (
     <div className="flex h-screen bg-[#f8fafc] font-['Calibri'] text-slate-800 overflow-hidden">
@@ -273,21 +616,21 @@ return (
            
            <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
               {clientData.branches.map((branch) => (
-                <button 
-                  key={branch.id}
-                  onClick={() => setSelectedBranchId(branch.id)}
+                <button
+                  key={branch.branch_id}
+                  onClick={() => setSelectedBranchId(branch.branch_id)}
                   className={`w-full text-left p-3 rounded-xl border transition-all group relative ${
-                    selectedBranchId === branch.id 
-                    ? "bg-white border-[#103c7f] shadow-md ring-1 ring-blue-50" 
+                    selectedBranchId === branch.branch_id
+                    ? "bg-white border-[#103c7f] shadow-md ring-1 ring-blue-50"
                     : "bg-white border-gray-200 hover:border-blue-300 hover:shadow-sm"
                   }`}
                 >
-                  {selectedBranchId === branch.id && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#103c7f] rounded-l-xl"></div>}
+                  {selectedBranchId === branch.branch_id && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#103c7f] rounded-l-xl"></div>}
                   <div className="flex justify-between items-center pl-1">
-                    <span className={`text-xs font-bold ${selectedBranchId === branch.id ? "text-[#103c7f]" : "text-gray-700"}`}>
+                    <span className={`text-xs font-bold ${selectedBranchId === branch.branch_id ? "text-[#103c7f]" : "text-gray-700"}`}>
                       {branch.name}
                     </span>
-                    {selectedBranchId === branch.id && <ChevronRight size={14} className="text-[#103c7f]" />}
+                    {selectedBranchId === branch.branch_id && <ChevronRight size={14} className="text-[#103c7f]" />}
                   </div>
                   <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-1 pl-1">
                     <MapPin size={10} /> {branch.state}
@@ -356,7 +699,7 @@ return (
                               </div>
                               <div className="text-right flex items-center gap-2">
                                  <span className="text-[9px] text-gray-400 uppercase font-bold">Next Follow-up</span>
-                                 <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">Jan 25</span>
+                                 <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">{log.nextFollowUp}</span>
                               </div>
                            </div>
                            <p className="text-xs text-gray-700 font-medium leading-relaxed pl-2">
@@ -409,13 +752,7 @@ return (
                
                <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar max-h-[500px]">
                   <div className="grid grid-cols-1 gap-4 pb-10">
-                     {[
-                        { id: 't1', name: 'Senior Data Analyst', date: 'Jan 18, 2024', s: 12, i: 8, sel: 3, j: 2, r: 4, feedback: "Good candidates, looking for faster joiners..." },
-                        { id: 't2', name: 'Java Backend Developer', date: 'Jan 15, 2024', s: 20, i: 5, sel: 1, j: 0, r: 14, feedback: "Technical skills need improvement." },
-                        { id: 't3', name: 'Frontend React Lead', date: 'Jan 10, 2024', s: 15, i: 4, sel: 2, j: 1, r: 8, feedback: "Profile shortlisted, scheduling interviews." },
-                        { id: 't4', name: 'DevOps Engineer', date: 'Jan 05, 2024', s: 8, i: 6, sel: 2, j: 2, r: 2, feedback: "Excellent coordination. Closed quickly." },
-                        { id: 't5', name: 'Python Developer', date: 'Jan 02, 2024', s: 25, i: 10, sel: 4, j: 3, r: 12, feedback: "Keep sending profiles with Django exp." }
-                     ].map((t) => (
+                     {trackers.map((t) => (
                         <div key={t.id} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all">
                            {/* Compact Header: Title Left, Date Right */}
                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
@@ -506,31 +843,52 @@ return (
                     <div className="grid grid-cols-2 gap-3">
                        
                        {/* Contract */}
-                       <a href={clientData.contractLink || "#"} target="_blank" className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${clientData.contractLink ? 'bg-white border-gray-200 hover:border-blue-300 cursor-pointer group' : 'bg-gray-50 border-gray-100 cursor-not-allowed opacity-60'}`}>
-                          <div className="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center"><FileText size={14}/></div>
-                          <div>
-                             <p className="text-xs font-bold text-gray-700">Contract</p>
-                             <p className="text-[9px] text-gray-400">{clientData.contractLink ? "View PDF" : "Not Uploaded"}</p>
+                       {clientData.contractLink ? (
+                          <div onClick={() => window.open(clientData.contractLink.startsWith('http') ? clientData.contractLink : `https://${clientData.contractLink}`, '_blank')} className="flex items-center gap-3 p-3 rounded-lg border bg-white border-gray-200 hover:border-red-300 cursor-pointer group transition-all">
+                             <div className="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center"><FileText size={14}/></div>
+                             <div className="flex-1">
+                                <p className="text-xs font-bold text-gray-700">Contract</p>
+                                <p className="text-[9px] text-gray-400">Click to open contract</p>
+                             </div>
+                             <ExternalLink size={14} className="text-red-500 group-hover:text-red-700" />
                           </div>
-                       </a>
+                       ) : (
+                          <div className="flex items-center gap-3 p-3 rounded-lg border bg-gray-50 border-gray-100 cursor-not-allowed opacity-60">
+                             <div className="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center"><FileText size={14}/></div>
+                             <div className="flex-1">
+                                <p className="text-xs font-bold text-gray-700">Contract</p>
+                                <p className="text-[9px] text-gray-400">Not Uploaded</p>
+                             </div>
+                          </div>
+                       )}
 
                        {/* KYC Doc */}
-                       <a href={clientData.kycDocLink || "#"} target="_blank" className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${clientData.kycDocLink ? 'bg-white border-gray-200 hover:border-blue-300 cursor-pointer group' : 'bg-gray-50 border-gray-100 cursor-not-allowed opacity-60'}`}>
+                       <div onClick={() => clientData.kycDocLink && setPreviewUrl(clientData.kycDocLink)} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${clientData.kycDocLink ? 'bg-white border-gray-200 hover:border-blue-300 cursor-pointer group' : 'bg-gray-50 border-gray-100 cursor-not-allowed opacity-60'}`}>
                           <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center"><LinkIcon size={14}/></div>
-                          <div>
+                          <div className="flex-1">
                              <p className="text-xs font-bold text-gray-700">KYC Doc</p>
-                             <p className="text-[9px] text-gray-400">{clientData.kycDocLink ? "Download" : "Not Uploaded"}</p>
+                             <p className="text-[9px] text-gray-400">{clientData.kycDocLink ? "Click to preview" : "Not Uploaded"}</p>
                           </div>
-                       </a>
+                          {clientData.kycDocLink && (
+                             <a href={clientData.kycDocLink} target="_blank" className="text-blue-500 hover:text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <ExternalLink size={14} />
+                             </a>
+                          )}
+                       </div>
 
                        {/* Email Proof */}
-                       <a href={clientData.emailScreenshot || "#"} target="_blank" className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${clientData.emailScreenshot ? 'bg-white border-gray-200 hover:border-blue-300 cursor-pointer group' : 'bg-gray-50 border-gray-100 cursor-not-allowed opacity-60'}`}>
+                       <div onClick={() => clientData.emailScreenshot && setPreviewUrl(clientData.emailScreenshot)} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${clientData.emailScreenshot ? 'bg-white border-gray-200 hover:border-blue-300 cursor-pointer group' : 'bg-gray-50 border-gray-100 cursor-not-allowed opacity-60'}`}>
                           <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center"><ImageIcon size={14}/></div>
-                          <div>
+                          <div className="flex-1">
                              <p className="text-xs font-bold text-gray-700">Email Proof</p>
-                             <p className="text-[9px] text-gray-400">{clientData.emailScreenshot ? "View Image" : "Not Uploaded"}</p>
+                             <p className="text-[9px] text-gray-400">{clientData.emailScreenshot ? "Click to preview" : "Not Uploaded"}</p>
                           </div>
-                       </a>
+                          {clientData.emailScreenshot && (
+                             <a href={clientData.emailScreenshot} target="_blank" className="text-purple-500 hover:text-purple-700 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <ExternalLink size={14} />
+                             </a>
+                          )}
+                       </div>
 
                     </div>
                  </div>
@@ -607,14 +965,15 @@ return (
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-[10px] font-bold text-gray-500 uppercase">Client Type</label>
-                                    <select 
-                                        value={formData.clientType} 
-                                        onChange={(e) => setFormData({...formData, clientType: e.target.value})} 
+                                    <select
+                                        value={formData.clientType}
+                                        onChange={(e) => setFormData({...formData, clientType: e.target.value})}
                                         className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
                                     >
-                                        <option>Category A</option>
-                                        <option>Category B</option>
-                                        <option>Category C</option>
+                                        <option value="">Select client type option</option>
+                                        <option>A</option>
+                                        <option>B</option>
+                                        <option>C</option>
                                     </select>
                                 </div>
                                 <div>
@@ -640,13 +999,14 @@ return (
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-[10px] font-bold text-gray-500 uppercase">KYC Status</label>
-                                    <select 
-                                        value={formData.kycStatus} 
-                                        onChange={(e) => setFormData({...formData, kycStatus: e.target.value})} 
+                                    <select
+                                        value={formData.kycStatus}
+                                        onChange={(e) => setFormData({...formData, kycStatus: e.target.value})}
                                         className={`w-full border rounded p-2.5 text-sm font-bold outline-none ${
                                             formData.kycStatus === 'Done' ? 'border-green-200 bg-green-50 text-green-700' : 'border-gray-300'
                                         }`}
                                     >
+                                        <option value="">Select KYC status</option>
                                         <option>Not Started</option>
                                         <option>In Progress</option>
                                         <option>Done</option>
@@ -691,19 +1051,61 @@ return (
                                 ></textarea>
                             </div>
 
-                            {/* Upload Buttons (Simulated) */}
+                            {/* Upload File Inputs */}
                             <div className="grid grid-cols-2 gap-4 pt-1">
                                 <div>
                                     <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">KYC Document</label>
-                                    <button className="w-full border border-dashed border-gray-300 bg-gray-50 hover:bg-blue-50 text-gray-500 hover:text-[#103c7f] p-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all">
-                                        <FileText size={14}/> Upload Doc
-                                    </button>
+                                    <div className="relative">
+                                        <input
+                                            type="file"
+                                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                            onChange={(e) => handleFileUpload(e.target.files[0], 'kyc_doc')}
+                                            disabled={uploadingKyc}
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        />
+                                        <div className={`w-full border border-dashed border-gray-300 bg-gray-50 hover:bg-blue-50 text-gray-500 hover:text-[#103c7f] p-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${uploadingKyc ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                                            {uploadingKyc ? (
+                                                <>
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#103c7f]"></div>
+                                                    Uploading...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <FileText size={14}/> {formData.kycDocLink ? 'Change Doc' : 'Upload Doc'}
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {formData.kycDocLink && (
+                                        <p className="text-[9px] text-green-600 mt-1">✓ Document uploaded</p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Email Screenshot</label>
-                                    <button className="w-full border border-dashed border-gray-300 bg-gray-50 hover:bg-blue-50 text-gray-500 hover:text-[#103c7f] p-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all">
-                                        <ImageIcon size={14}/> Upload Image
-                                    </button>
+                                    <div className="relative">
+                                        <input
+                                            type="file"
+                                            accept=".jpg,.jpeg,.png,.gif"
+                                            onChange={(e) => handleFileUpload(e.target.files[0], 'email_ss')}
+                                            disabled={uploadingEmail}
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        />
+                                        <div className={`w-full border border-dashed border-gray-300 bg-gray-50 hover:bg-blue-50 text-gray-500 hover:text-[#103c7f] p-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${uploadingEmail ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                                            {uploadingEmail ? (
+                                                <>
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#103c7f]"></div>
+                                                    Uploading...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <ImageIcon size={14}/> {formData.emailScreenshot ? 'Change Image' : 'Upload Image'}
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {formData.emailScreenshot && (
+                                        <p className="text-[9px] text-green-600 mt-1">✓ Image uploaded</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -826,11 +1228,12 @@ return (
                         </div>
                         <div>
                             <label className="text-[10px] font-bold text-gray-500 uppercase">Initial Status</label>
-                            <select 
+                            <select
                               value={newBranchData.status}
                               onChange={(e) => setNewBranchData({...newBranchData, status: e.target.value})}
                               className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
                             >
+                                <option value="">Select status option</option>
                                 <option value="Active">Active</option>
                                 <option value="Inactive">Inactive</option>
                                 <option value="Setup in Progress">Setup in Progress</option>
@@ -937,14 +1340,14 @@ return (
                         </div>
                         <div>
                             <label className="text-[10px] font-bold text-gray-500 uppercase">Primary Contact?</label>
-                            <select 
+                            <select
                               value={newContactData.isPrimary}
                               onChange={(e) => setNewContactData({...newContactData, isPrimary: e.target.value})}
                               className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
                             >
-                                <option>Select</option>
-                                <option>Yes</option>
-                                <option>No</option>
+                                <option value="">Select</option>
+                                <option value="true">True</option>
+                                <option value="false">False</option>
                             </select>
                         </div>
                     </div>
@@ -1237,7 +1640,7 @@ return (
                             <option value="">Select Requirement</option>
                             {/* Dynamically listing active requirements */}
                             {currentBranchData.requirements.map(req => (
-                                <option key={req.id} value={req.id}>{req.title} (Openings: {req.openPositions})</option>
+                              <option key={req.req_id} value={req.req_id}>{req.job_title} (Openings: {req.openings})</option>
                             ))}
                         </select>
                     </div>
@@ -1358,10 +1761,10 @@ return (
                     
                     {/* Loop through branches */}
                     {clientData.branches.map((branch) => {
-                       const contacts = branchDetails[branch.id]?.contacts || [];
+                       const contacts = branchDetails[branch.branch_id]?.contacts || [];
 
                        return (
-                          <div key={branch.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                          <div key={branch.branch_id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                              
                              {/* Branch Header */}
                              <div className="bg-gray-100/80 px-4 py-2.5 border-b border-gray-200 flex justify-between items-center">
@@ -1386,7 +1789,7 @@ return (
                                    </thead>
                                    <tbody className="text-xs text-gray-700">
                                       {contacts.length > 0 ? contacts.map((c, index) => (
-                                         <tr key={c.id} className={`hover:bg-blue-50/30 transition ${index !== contacts.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                                         <tr key={c.contact_id} className={`hover:bg-blue-50/30 transition ${index !== contacts.length - 1 ? 'border-b border-gray-100' : ''}`}>
                                             
                                             {/* Name */}
                                             <td className="px-4 py-3 font-bold text-[#103c7f]">
@@ -1405,24 +1808,26 @@ return (
                                                </div>
                                             </td>
 
-                                            {/* Designation & Dept (Mocked since data structure was simple before) */}
+                                            {/* Designation & Dept */}
                                             <td className="px-4 py-3">
                                                <p className="font-semibold">{c.role}</p>
-                                               <p className="text-[10px] text-gray-400">HR Dept</p> {/* Mock Dept */}
+                                               <p className="text-[10px] text-gray-400">{c.dept || 'N/A'}</p>
                                             </td>
 
-                                            {/* Primary Contact (Mocked) */}
+                                            {/* Primary Contact */}
                                             <td className="px-4 py-3 text-center">
-                                               {index === 0 ? ( // Mocking first contact as Primary
-                                                  <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[9px] font-bold uppercase">Yes</span>
-                                               ) : (
-                                                  <span className="text-gray-300 text-[10px]">-</span>
-                                               )}
+                                               <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                                  c.is_primary === true || c.is_primary === 'true'
+                                                    ? 'bg-green-100 text-green-700'
+                                                    : 'bg-gray-100 text-gray-600'
+                                               }`}>
+                                                  {String(c.is_primary)}
+                                               </span>
                                             </td>
 
-                                            {/* Handles (Mocked) */}
+                                            {/* Handles */}
                                             <td className="px-4 py-3 text-gray-500 italic max-w-[150px] truncate">
-                                               Recruitment & Onboarding... {/* Mock Data */}
+                                               {c.handles || 'N/A'}
                                             </td>
 
                                          </tr>
@@ -1471,7 +1876,7 @@ return (
                     
                     {/* Loop through branches */}
                     {clientData.branches.map((branch) => {
-                       const requirements = branchDetails[branch.id]?.requirements || [];
+                       const requirements = branchDetails[branch.branch_id]?.requirements || [];
 
                        return (
                           <div key={branch.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
@@ -1506,11 +1911,11 @@ return (
                                    </thead>
                                    <tbody className="text-xs text-gray-700">
                                       {requirements.length > 0 ? requirements.map((req, index) => (
-                                         <tr key={req.id} className={`hover:bg-blue-50/30 transition ${index !== requirements.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                                         <tr key={req.req_id} className={`hover:bg-blue-50/30 transition ${index !== requirements.length - 1 ? 'border-b border-gray-100' : ''}`}>
                                             
                                             {/* Job Title */}
                                             <td className="px-4 py-3 font-bold text-[#103c7f]">
-                                               {req.title}
+                                               {req.job_title}
                                             </td>
 
                                             {/* JD Link */}
@@ -1522,23 +1927,23 @@ return (
 
                                             {/* Experience */}
                                             <td className="px-4 py-3 font-medium">
-                                               {req.experience || "2-4 Yrs"} {/* Mock Fallback */}
+                                               {req.experience || "2-4 Yrs"}
                                             </td>
 
                                             {/* Package */}
                                             <td className="px-4 py-3 font-medium">
-                                               {req.package || "Not Disclosed"} {/* Mock Fallback */}
+                                               {req.package || "Not Disclosed"}
                                             </td>
 
                                             {/* Openings */}
                                             <td className="px-4 py-3 text-center font-bold">
-                                               {req.openPositions}
+                                               {req.openings}
                                             </td>
 
                                             {/* Priority */}
                                             <td className="px-4 py-3">
                                                <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
-                                                  req.priority === 'High' ? 'bg-red-50 text-red-600' : 
+                                                  req.priority === 'High' ? 'bg-red-50 text-red-600' :
                                                   req.priority === 'Medium' ? 'bg-orange-50 text-orange-600' : 'bg-gray-100 text-gray-600'
                                                }`}>
                                                   {req.priority || "Medium"}
@@ -1548,22 +1953,22 @@ return (
                                            {/* Status */}
                                             <td className="px-4 py-3">
                                                <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
-                                                  req.status === 'Done' ? 'bg-green-50 text-green-700' : 
-                                                  req.status === 'In Progress' ? 'bg-blue-50 text-blue-700' : 
+                                                  req.status === 'Done' ? 'bg-green-50 text-green-700' :
+                                                  req.status === 'In Progress' ? 'bg-blue-50 text-blue-700' :
                                                   'bg-gray-100 text-gray-600' // Default for 'Not Started'
                                                }`}>
-                                                  {req.status || "Done"}
+                                                  {req.status || "Not Started"}
                                                </span>
                                             </td>
 
                                             {/* Timeline */}
                                             <td className="px-4 py-3 text-gray-500">
-                                               {req.timeline || "2024-01-21"}
+                                               {req.timeline ? new Date(req.timeline).toLocaleDateString('en-GB') : "N/A"}
                                             </td>
 
                                             {/* Received Date */}
                                             <td className="px-4 py-3 text-right text-gray-500 font-mono">
-                                               {req.receivedDate || "2024-01-20"}
+                                               {req.date ? new Date(req.date).toLocaleDateString('en-GB') : "N/A"}
                                             </td>
 
                                          </tr>
@@ -1589,6 +1994,60 @@ return (
                  <button onClick={() => setIsAllReqsOpen(false)} className="px-6 py-2 bg-gray-200 text-gray-700 font-bold text-xs rounded-lg hover:bg-gray-300 transition">Close List</button>
               </div>
            </div>
+        </div>
+      )}
+
+      {/* ================= DOCUMENT PREVIEW MODAL ================= */}
+      {previewUrl && (
+        <div className="fixed inset-0 bg-[#103c7f]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-[#103c7f] px-6 py-4 flex justify-between items-center text-white">
+              <h3 className="text-lg font-black uppercase tracking-wide">Document Preview</h3>
+              <button onClick={() => setPreviewUrl(null)} className="hover:bg-white/10 p-1.5 rounded-full transition-colors"><X size={20}/></button>
+            </div>
+            <div className="p-6 flex justify-center min-h-[60vh]">
+              {previewUrl.toLowerCase().endsWith('.pdf') ? (
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-[70vh] border rounded-lg"
+                  title="PDF Preview"
+                />
+              ) : previewUrl.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                <img
+                  src={previewUrl}
+                  alt="Document Preview"
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+                  onError={() => {
+                    alert('Failed to load image. The file might be corrupted or inaccessible.');
+                    setPreviewUrl(null);
+                  }}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-[50vh] text-gray-500">
+                  <FileText size={64} className="mb-4 opacity-50" />
+                  <p className="text-lg font-bold mb-2">Document Preview</p>
+                  <p className="text-sm text-center max-w-md">
+                    This document type cannot be previewed inline. Click "Open Full Size" to view or download the file.
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="p-4 bg-gray-50 border-t flex justify-end gap-3">
+              <a
+                href={previewUrl}
+                target="_blank"
+                className="bg-[#103c7f] hover:bg-blue-900 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2"
+              >
+                <ExternalLink size={16} /> Open Full Size
+              </a>
+              <button
+                onClick={() => setPreviewUrl(null)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 font-bold text-sm rounded-lg hover:bg-gray-300 transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -1,64 +1,58 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-  CheckCircle, Search, ArrowLeft, 
-  MapPin, Phone, Mail, FileText, 
+import {
+  CheckCircle, Search, ArrowLeft,
+  MapPin, Phone, Mail, FileText,
   MessageSquare, User, Filter
 } from "lucide-react";
 
 export default function OnboardPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState(""); // State for Search
+  const [loading, setLoading] = useState(true);
 
   // --- DATA STATE ---
-  const [onboardingList, setOnboardingList] = useState([
-    { 
-      id: 101, 
-      date: "Jan 18, 2024", 
-      company: "Nexus Retail Group", 
-      category: "Retail / FMCG",
-      location: "Gurgaon", 
-      state: "Haryana",
-      contact: { name: "Mr. Vikram Singh", email: "vikram@nexus.com", phone: "+91 98765 43210" },
-      remarks: "Payment received. Contract signed.",
-      isAcknowledged: false 
-    },
-    { 
-      id: 102, 
-      company: "Urban Clap Ltd", 
-      date: "Jan 19, 2024", 
-      category: "Service Aggregator",
-      location: "Noida", 
-      state: "Uttar Pradesh",
-      contact: { name: "Ms. Anjali Verma", email: "anjali.v@urban.co", phone: "+91 99887 77665" },
-      remarks: "Missing GST Certificate.",
-      isAcknowledged: true 
-    },
-    { 
-      id: 103, 
-      company: "Green Earth Agro", 
-      date: "Jan 20, 2024", 
-      category: "Manufacturing",
-      location: "Panipat", 
-      state: "Haryana",
-      contact: { name: "Mr. Rajesh Kumar", email: "rajesh@greenearth.in", phone: "+91 88776 65544" },
-      remarks: "High priority client.",
-      isAcknowledged: false
-    },
-    { 
-      id: 104, 
-      company: "TechSys Solutions", 
-      date: "Jan 21, 2024", 
-      category: "IT / Software",
-      location: "Chandigarh", 
-      state: "Punjab",
-      contact: { name: "Mr. Amit Shah", email: "amit@techsys.com", phone: "+91 76543 21098" },
-      remarks: "Welcome kit sent.",
-      isAcknowledged: true
-    },
-  ]);
+  const [onboardingList, setOnboardingList] = useState([]);
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const response = await fetch('/api/domestic/crm/onboard', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          // Format API data to match UI structure
+          const formattedClients = data.data.map(client => ({
+            id: client.client_id,
+            date: client.onboarding_date ? new Date(client.onboarding_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A',
+            company: client.company_name,
+            category: client.category,
+            location: client.location,
+            state: client.state,
+            contact: {
+              name: client.contact_person || 'N/A',
+              email: client.email || 'N/A',
+              phone: client.phone || 'N/A'
+            },
+            remarks: client.remarks || 'No remarks',
+            isAcknowledged: false // Default to false, can be updated based on status
+          }));
+          setOnboardingList(formattedClients);
+        }
+      } catch (error) {
+        console.error('Failed to fetch clients:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchClients();
+  }, []);
 
   // --- LOGIC: Toggle Status ---
   const handleAcknowledge = (id) => {
@@ -145,7 +139,16 @@ export default function OnboardPage() {
               </thead>
 
               <tbody className="divide-y divide-gray-100">
-                {filteredList.length > 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan="7" className="px-6 py-8 text-center">
+                      <div className="flex flex-col items-center justify-center text-gray-400">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#103c7f] mb-2"></div>
+                        <p className="text-sm font-bold">Loading clients...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredList.length > 0 ? (
                   filteredList.map((item) => (
                     <tr 
                       key={item.id} 

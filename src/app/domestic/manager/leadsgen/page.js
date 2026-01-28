@@ -53,14 +53,35 @@ export default function ManagerLeadsPage() {
           setLoading(false);
         }
       };
+
+    const fetchCrmUsers = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const response = await fetch('/api/domestic/manager/crm-users', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setCrmUsers(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch CRM users:', error);
+      }
+    };
+
     fetchLeads();
+    fetchCrmUsers();
   }, []);
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
-  const [modalType, setModalType] = useState(""); 
+  const [modalType, setModalType] = useState("");
   const [assignFseName, setAssignFseName] = useState("");
   const [visitDate, setVisitDate] = useState("");
+  const [crmUsers, setCrmUsers] = useState([]);
+  const [selectedCrmUser, setSelectedCrmUser] = useState("");
 
   // --- FILTER STATE ---
   const [filters, setFilters] = useState({
@@ -172,20 +193,61 @@ export default function ManagerLeadsPage() {
         alert('Error assigning FSE');
       }
     } else {
-      // For pass_delivery, keep the local update
-      const updatedLeads = leads.map(l => {
-        if (l.id === selectedLead.id) {
-          return {
-            ...l,
-            isProcessed: true,
-            actionType: 'DELIVERY'
-          };
+      // For pass_delivery, send to API
+      if (!selectedCrmUser) {
+        alert('Please select a CRM user');
+        return;
+      }
+
+      // Get latest interaction for contact details
+      const latestInteraction = selectedLead.interactions && selectedLead.interactions.length > 0 ? selectedLead.interactions[0] : {};
+
+      try {
+        const response = await fetch('/api/domestic/manager/leads/pass-to-delivery', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${JSON.parse(localStorage.getItem('session') || '{}').access_token}`
+          },
+          body: JSON.stringify({
+            client_id: selectedLead.id,
+            company_name: selectedLead.company,
+            category: selectedLead.category,
+            location: selectedLead.location,
+            state: selectedLead.state,
+            contact_person: latestInteraction.person || '',
+            email: latestInteraction.email || '',
+            phone: latestInteraction.phone || '',
+            remarks: selectedLead.latestRemark || '',
+            status: selectedLead.status || 'Handover',
+            user_id: selectedCrmUser
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to pass to delivery');
         }
-        return l;
-      });
-      setLeads(updatedLeads);
-      setFilteredLeads(updatedLeads);
-      setIsFormOpen(false);
+
+        // Update local state
+        const updatedLeads = leads.map(l => {
+          if (l.id === selectedLead.id) {
+            return {
+              ...l,
+              isProcessed: true,
+              actionType: 'DELIVERY',
+              assignedCrm: crmUsers.find(u => u.user_id === selectedCrmUser)?.name || selectedCrmUser
+            };
+          }
+          return l;
+        });
+        setLeads(updatedLeads);
+        setFilteredLeads(updatedLeads);
+        setSelectedCrmUser('');
+        setIsFormOpen(false);
+      } catch (error) {
+        console.error(error);
+        alert('Error passing to delivery');
+      }
     }
   };
 
@@ -379,12 +441,12 @@ export default function ManagerLeadsPage() {
 
         {/* 2. Status Label (Instead of Actions) */}
         <div className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold flex items-center gap-1.5 ${
-           lead.actionType === 'DELIVERY' 
-           ? 'bg-green-50 text-green-700 border-green-200' 
+           lead.actionType === 'DELIVERY'
+           ? 'bg-green-50 text-green-700 border-green-200'
            : 'bg-indigo-50 text-indigo-700 border-indigo-200'
         }`}>
            {lead.actionType === 'DELIVERY' ? (
-              <> <Truck size={12} /> Sent to Delivery </>
+              <> <Truck size={12} /> {lead.assignedCrm || 'Sent to Delivery'} </>
            ) : (
               <> <UserPlus size={12} /> {lead.assignedTo?.split('(')[0] || 'Assigned'} </>
            )}
@@ -599,18 +661,38 @@ export default function ManagerLeadsPage() {
 
             {/* === CONTENT: PASS TO DELIVERY === */}
             {modalType === 'pass_delivery' && (
-               <div className="p-8 text-center flex flex-col items-center justify-center h-full">
-                  <div className="bg-green-50 p-5 rounded-full text-green-600 mb-5 shadow-sm animate-in zoom-in duration-300">
-                     <Truck size={40} />
+               <div className="p-6">
+                  <div className="text-center mb-6">
+                     <div className="bg-green-50 p-4 rounded-full text-green-600 mb-4 shadow-sm animate-in zoom-in duration-300 inline-block">
+                        <Truck size={32} />
+                     </div>
+                     <h3 className="text-lg font-black text-gray-800">Move to Delivery</h3>
+                     <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+                        Assign <strong className="text-green-700">{selectedLead.company}</strong> to a CRM user for delivery.
+                     </p>
                   </div>
-                  <h3 className="text-xl font-black text-gray-800">Move to Delivery?</h3>
-                  <p className="text-sm text-gray-500 mt-3 leading-relaxed max-w-xs">
-                     You are moving <strong className="text-green-700">{selectedLead.company}</strong> directly to the Delivery Team for onboarding. 
-                  </p>
-                  <div className="bg-orange-50 text-orange-700 text-xs font-bold px-4 py-2 rounded-lg mt-4 border border-orange-100">
+
+                  <div className="space-y-4">
+                     <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select CRM User</label>
+                        <select
+                          value={selectedCrmUser}
+                          onChange={(e) => setSelectedCrmUser(e.target.value)}
+                          className="w-full border border-gray-300 rounded-lg p-2.5 text-sm mt-1 outline-none focus:border-[#103c7f] focus:ring-1 focus:ring-[#103c7f] transition bg-white"
+                        >
+                          <option value="">Select CRM User...</option>
+                          {crmUsers.map(user => (
+                            <option key={user.user_id} value={user.user_id}>{user.name}</option>
+                          ))}
+                        </select>
+                     </div>
+                  </div>
+
+                  <div className="bg-orange-50 text-orange-700 text-xs font-bold px-4 py-2 rounded-lg mt-4 border border-orange-100 text-center">
                      ⚠️ Ensure payment & agreement terms are discussed.
                   </div>
-                  <button onClick={handleConfirmAction} className="w-full mt-8 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-green-600/20 flex justify-center items-center gap-2 transition transform active:scale-95">
+
+                  <button onClick={handleConfirmAction} className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-green-600/20 flex justify-center items-center gap-2 transition transform active:scale-95">
                      <CheckCircle size={18} /> Confirm Handover
                   </button>
                </div>
