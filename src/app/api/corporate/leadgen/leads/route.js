@@ -192,9 +192,9 @@ export async function GET(request) {
         status: latestInteraction?.status || 'New', // Status from latest interaction
         subStatus: latestInteraction?.sub_status || 'New Lead', // Sub-status from latest interaction
         franchiseStatus: latestInteraction?.franchise_status || '', // Franchise status from latest interaction
-        latestFollowup: latestInteraction ? new Date(latestInteraction.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : '',
+        latestFollowup: (latestInteraction && latestInteraction.date) ? new Date(latestInteraction.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : 'N/A',
         remarks: latestInteraction?.remarks || '',
-        nextFollowup: latestInteraction?.next_follow_up ? new Date(latestInteraction.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : '',
+        nextFollowup: latestInteraction?.next_follow_up ? new Date(latestInteraction.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : 'N/A',
         isSubmitted: lead.sent_to_sm || false
       }
     }) || [])
