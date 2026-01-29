@@ -1,19 +1,19 @@
 "use client";
 import { useState, useEffect } from "react";
 import {
-  Target, Calendar, Users, Save, TrendingUp,
-  Phone, MapPin, Briefcase, Calculator, Building2, Home, Loader2
+  Target, Calendar, Phone, MapPin, Briefcase, 
+  Loader2, Edit2, Trash2, Check, X, User, Send
 } from "lucide-react";
 
 export default function HodTargetPage() {
-  // --- STATE 1: GLOBAL SETTINGS ---
   const [workingDays, setWorkingDays] = useState(24);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split('T')[0].substring(0, 7) + '-01'); // First day of current month
-
-  // --- STATE 2: MANAGERS & TARGETS ---
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split('T')[0].substring(0, 7) + '-01');
   const [managers, setManagers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  
+  const [editingId, setEditingId] = useState(null); 
+  const [editFormData, setEditFormData] = useState({}); 
+  const [sendingId, setSendingId] = useState(null); 
 
   // --- FETCH MANAGERS ---
   const fetchManagers = async () => {
@@ -21,29 +21,25 @@ export default function HodTargetPage() {
       setLoading(true);
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const response = await fetch(`/api/hod/targets?month=${selectedMonth}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
       if (data.success) {
-        // Transform API data to UI format
         const formattedManagers = data.data.managers.map(manager => ({
           id: manager.id,
           name: manager.name,
-          region: manager.region || "Zone", // Use dynamic region from API
-          sector: manager.sector || "-", // Use dynamic sector from API
-          fseCount: manager.fseCount || 0, // Dynamic count from API
-          leadGenCount: manager.leadGenCount || 0, // Dynamic count from API
-          lastMonthAchieved: "85%", // Default, can calculate from actual data
-          targetVisitPerDay: manager.targets ? (manager.targets["visit/day"] || Math.ceil(manager.targets.total_visits / workingDays / (manager.fseCount || 1))) : 8,
-          targetOnboardPerMonth: manager.targets ? (manager.targets["onboard/month"] || Math.ceil(manager.targets.total_onboards / (manager.fseCount || 1))) : 12,
-          targetCallPerDay: manager.targets ? (manager.targets["calls/day"] || Math.ceil(manager.targets.total_calls / workingDays / (manager.leadGenCount || 1))) : 50
+          region: manager.region || "Zone",
+          sector: manager.sector || "General",
+          fseCount: manager.fseCount || 0,
+          leadGenCount: manager.leadGenCount || 0,
+          targetVisitPerDay: manager.targets ? (manager.targets["visit/day"] || 0) : 8,
+          targetOnboardPerMonth: manager.targets ? (manager.targets["onboard/month"] || 0) : 12,
+          targetCallPerDay: manager.targets ? (manager.targets["calls/day"] || 0) : 50
         }));
         setManagers(formattedManagers);
       }
     } catch (error) {
-      console.error('Failed to fetch managers:', error);
+      console.error('Failed to fetch:', error);
     } finally {
       setLoading(false);
     }
@@ -53,20 +49,53 @@ export default function HodTargetPage() {
     fetchManagers();
   }, [selectedMonth]);
 
-  const handleInputChange = (id, field, value) => {
-    const updatedManagers = managers.map(manager =>
-        manager.id === id ? { ...manager, [field]: Number(value) } : manager
-    );
-    setManagers(updatedManagers);
+  // --- HANDLERS ---
+  const handleEditClick = (manager) => {
+    setEditingId(manager.id);
+    setEditFormData({
+      visitPerDay: manager.targetVisitPerDay,
+      onboardPerMonth: manager.targetOnboardPerMonth,
+      callsPerDay: manager.targetCallPerDay
+    });
   };
 
-  const handlePublish = async () => {
-    try {
-      setSaving(true);
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
+  const handleCancelClick = () => {
+    setEditingId(null);
+    setEditFormData({});
+  };
 
-      // Prepare targets array
-      const targets = managers.map(manager => ({
+  const handleSaveLocal = (id) => {
+    setManagers(prev => prev.map(mgr => {
+      if (mgr.id === id) {
+        return {
+          ...mgr,
+          targetVisitPerDay: Number(editFormData.visitPerDay),
+          targetOnboardPerMonth: Number(editFormData.onboardPerMonth),
+          targetCallPerDay: Number(editFormData.callsPerDay)
+        };
+      }
+      return mgr;
+    }));
+    setEditingId(null);
+  };
+
+  const handleDeleteClick = (id) => {
+    if(confirm("Are you sure you want to reset targets for this manager?")) {
+        setManagers(prev => prev.map(mgr => {
+            if (mgr.id === id) {
+              return { ...mgr, targetVisitPerDay: 0, targetOnboardPerMonth: 0, targetCallPerDay: 0 };
+            }
+            return mgr;
+        }));
+    }
+  };
+
+  const handleSendToManager = async (manager) => {
+    try {
+      setSendingId(manager.id); 
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      
+      const singleTarget = {
         sm_id: manager.id,
         total_visits: manager.targetVisitPerDay * workingDays * manager.fseCount,
         total_onboards: manager.targetOnboardPerMonth * manager.fseCount,
@@ -74,7 +103,7 @@ export default function HodTargetPage() {
         "visit/day": manager.targetVisitPerDay,
         "onboard/month": manager.targetOnboardPerMonth,
         "calls/day": manager.targetCallPerDay
-      }));
+      };
 
       const response = await fetch('/api/hod/targets', {
         method: 'POST',
@@ -85,240 +114,261 @@ export default function HodTargetPage() {
         body: JSON.stringify({
           month: selectedMonth,
           working_days: workingDays,
-          targets
+          targets: [singleTarget] 
         })
       });
 
       const data = await response.json();
       if (data.success) {
-        alert(data.message || `Targets published successfully for ${managers.length} managers!`);
+         alert(`Targets sent to ${manager.name} successfully!`);
       } else {
-        alert('Failed to publish targets: ' + (data.details || data.error || 'Unknown error'));
+         alert('Failed: ' + (data.details || data.error));
       }
+      
     } catch (error) {
-      console.error('Failed to publish targets:', error);
-      alert('Network error while publishing targets');
+      console.error(error);
+      alert('Network error');
     } finally {
-      setSaving(false);
+      setSendingId(null); 
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 font-['Calibri'] p-4 pb-6">
+    <div className="min-h-screen bg-gray-50/50 font-['Calibri'] p-4 pb-12">
       
-      {/* 1. HEADER */}
+      {/* TOP HEADER */}
       <div className="flex justify-between items-end mb-4">
           <div>
              <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
                 <Target size={28} /> Master Target Assignment
              </h1>
-             <div className="flex items-center gap-2 mt-1">
-               <input
-                 type="month"
-                 value={selectedMonth.substring(0, 7)}
-                 onChange={(e) => setSelectedMonth(e.target.value + '-01')}
-                 className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-sm font-bold text-[#103c7f] outline-none focus:ring-2 focus:ring-[#103c7f]/30"
-               />
-               <p className="text-sm text-gray-500 font-bold uppercase tracking-widest">
-                 {new Date(selectedMonth).toLocaleString('default', { month: 'long', year: 'numeric' }).toUpperCase()}
-               </p>
+             <div className="flex items-center gap-3 mt-2">
+               <div className="relative">
+                  <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+                  <input
+                    type="month"
+                    value={selectedMonth.substring(0, 7)}
+                    onChange={(e) => setSelectedMonth(e.target.value + '-01')}
+                    className="pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-bold text-[#103c7f] outline-none shadow-sm cursor-pointer"
+                  />
+               </div>
+               <div className="h-4 w-[1px] bg-gray-300"></div>
+               <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase">Working Days:</label>
+                  <input 
+                    type="number" 
+                    value={workingDays}
+                    onChange={(e) => setWorkingDays(Number(e.target.value))}
+                    className="w-10 text-center font-black text-[#103c7f] focus:border-blue-500 outline-none bg-transparent"
+                  />
+               </div>
              </div>
           </div>
-          <button
-             onClick={handlePublish}
-             disabled={saving || loading}
-             className="bg-[#103c7f] hover:bg-blue-900 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-lg shadow-blue-900/20 flex items-center gap-2 transition transform active:scale-95 disabled:opacity-50"
-          >
-             {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Publish to Managers
-          </button>
       </div>
 
-      {/* 2. GLOBAL SETTINGS CARD */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 mb-4 flex items-center gap-8">
-         <div className="bg-blue-50 p-4 rounded-xl text-[#103c7f]">
-            <Calendar size={32} />
-         </div>
-         <div className="flex-1">
-            <h2 className="text-lg font-black text-gray-800 uppercase">Monthly Configuration</h2>
-            <p className="text-xs text-gray-500">Set the standard working days for the entire company for this month.</p>
-         </div>
-         <div className="flex flex-col items-end">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Working Days</label>
-            <input 
-               type="number" 
-               value={workingDays}
-               onChange={(e) => setWorkingDays(Number(e.target.value))}
-               className="text-3xl font-black text-[#103c7f] w-24 text-right border-b-2 border-gray-200 focus:border-[#103c7f] outline-none bg-transparent"
-            />
-         </div>
-      </div>
-
-      {/* 3. ASM ASSIGNMENT TABLE */}
+      {/* MAIN TABLE (Restored to Original Clean Format) */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-         
-         {/* Table Header */}
-         <div className="grid grid-cols-12 bg-[#103c7f] text-white text-[11px] uppercase font-bold py-4 px-4 gap-4">
-            <div className="col-span-2">ASM Details & Sector</div>
-            <div className="col-span-2 text-center">Previous Achievement</div>
-            <div className="col-span-3 text-center border-l border-blue-800/50">FSE Input</div>
-            <div className="col-span-2 text-center border-l border-blue-800/50">LeadGen Input</div>
-            {/* Split Header for Clarity */}
-            <div className="col-span-3 text-center border-l border-blue-800/50 grid grid-cols-2">
-               <span>Per Person (Mon)</span>
-               <span>Team Total</span>
-            </div>
-         </div>
+        
+        <table className="w-full text-left border-collapse">
+          {/* Header */}
+          <thead className="bg-[#103c7f]/5 border-b border-[#103c7f]/10 text-[10px] font-black text-[#103c7f] uppercase tracking-widest">
+            <tr>
+              <th className="px-6 py-4 w-[25%]">Manager Details</th>
+              <th className="px-6 py-4 text-center w-[10%]">Team</th>
+              <th className="px-6 py-4 w-[20%] border-l border-gray-100 bg-blue-50/20 text-center">FSE Targets (Daily)</th>
+              <th className="px-6 py-4 w-[15%] border-l border-gray-100 bg-orange-50/20 text-center">Caller Targets</th>
+              <th className="px-6 py-4 w-[20%] border-l border-gray-100 bg-gray-50/50 text-[#103c7f] text-center">Team Output</th> {/* Output Column Restored */}
+              <th className="px-6 py-4 text-center w-[10%]">Action</th>
+            </tr>
+          </thead>
 
-         {/* Table Body */}
-         <div className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100 text-sm">
             {loading ? (
-              <div className="flex items-center justify-center py-10">
-                <Loader2 className="animate-spin text-[#103c7f]" size={32} />
-                <span className="ml-2 text-gray-600">Loading managers...</span>
-              </div>
+                <tr><td colSpan="6" className="py-10 text-center text-gray-400"><Loader2 className="animate-spin inline mr-2"/> Loading...</td></tr>
             ) : managers.length === 0 ? (
-              <div className="text-center py-10 text-gray-400 font-bold">
-                No managers found under your supervision
-              </div>
+                <tr><td colSpan="6" className="py-8 text-center text-gray-400">No managers found</td></tr>
             ) : (
-              managers.map((manager) => {
-               
-               // --- CALCULATIONS ---
-               // 1. Per FSE Monthly
-               const perFseMonthlyVisits = manager.targetVisitPerDay * workingDays;
-               const perFseMonthlyOnboards = manager.targetOnboardPerMonth; // Direct input
+                managers.map((mgr) => {
+                  const isEditing = editingId === mgr.id;
+                  const isSending = sendingId === mgr.id;
 
-               // 2. Per LeadGen Monthly
-               const perLeadGenMonthlyCalls = manager.targetCallPerDay * workingDays;
+                  // --- CALCULATIONS ---
+                  const visitVal = isEditing ? Number(editFormData.visitPerDay) : mgr.targetVisitPerDay;
+                  const onboardVal = isEditing ? Number(editFormData.onboardPerMonth) : mgr.targetOnboardPerMonth;
+                  const callVal = isEditing ? Number(editFormData.callsPerDay) : mgr.targetCallPerDay;
+                  
+                  // Monthly Per Person
+                  const monthlyVisitPerPerson = visitVal * workingDays;
+                  
+                  // Team Totals (For Output Column)
+                  const teamTotalVisits = monthlyVisitPerPerson * mgr.fseCount;
+                  const teamTotalOnboards = onboardVal * mgr.fseCount; 
+                  const teamTotalCalls = (callVal * workingDays) * mgr.leadGenCount;
 
-               // 3. Team Totals
-               const teamTotalVisits = perFseMonthlyVisits * manager.fseCount;
-               const teamTotalOnboards = perFseMonthlyOnboards * manager.fseCount;
-               const teamTotalCalls = perLeadGenMonthlyCalls * manager.leadGenCount;
+                  return (
+                    <tr key={mgr.id} className={`hover:bg-gray-50 transition-colors ${isEditing ? 'bg-blue-50/10' : ''}`}>
+                      
+                      {/* 1. Manager Details */}
+                      <td className="px-6 py-4">
+                         <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold border border-gray-200 shadow-sm">
+                                {mgr.name.charAt(0)}
+                            </div>
+                            <div>
+                               <p className="font-bold text-gray-800 text-sm">{mgr.name}</p>
+                               <div className="flex gap-2 mt-1">
+                                  <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 uppercase font-bold">{mgr.region}</span>
+                                  <span className={`text-[9px] px-1.5 py-0.5 rounded border uppercase font-bold ${mgr.sector === 'Corporate' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-green-50 text-green-600 border-green-100'}`}>
+                                    {mgr.sector}
+                                  </span>
+                               </div>
+                            </div>
+                         </div>
+                      </td>
 
-               return (
-                  <div key={manager.id} className="grid grid-cols-12 py-5 px-4 gap-4 items-center hover:bg-gray-50 transition">
+                      {/* 2. Team Counts */}
+                      <td className="px-6 py-4 text-center">
+                         <div className="flex flex-col gap-1 text-xs">
+                            <div className="flex justify-between">
+                               <span className="font-bold text-gray-400">FSE:</span>
+                               <span className="font-black text-gray-800">{mgr.fseCount}</span>
+                            </div>
+                            <div className="flex justify-between">
+                               <span className="font-bold text-gray-400">Call:</span>
+                               <span className="font-black text-gray-800">{mgr.leadGenCount}</span>
+                            </div>
+                         </div>
+                      </td>
 
-                     {/* 1. Manager Details + Sector */}
-                     <div className="col-span-2">
-                        <div className="flex items-center gap-2 mb-1">
-                           <h3 className="text-base font-black text-gray-800 leading-none">{manager.name}</h3>
-                           
-                           {/* Sector Badge */}
-                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase flex items-center gap-1 border ${
-                              manager.sector === 'Corporate' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-green-50 text-green-700 border-green-100'
-                           }`}>
-                              {manager.sector === 'Corporate' ? <Building2 size={8}/> : <Home size={8}/>} {manager.sector}
-                           </span>
-                        </div>
+                     {/* 3. FSE Targets (Side-by-Side Units) */}
+                      <td className="px-6 py-4 border-l border-gray-100 bg-blue-50/10 text-center">
+                         {isEditing ? (
+                            <div className="flex gap-2 justify-center">
+                               <div className="text-center">
+                                  <label className="text-[8px] font-bold text-gray-400 uppercase block mb-1">Visits</label>
+                                  <input 
+                                    type="number" 
+                                    value={editFormData.visitPerDay} 
+                                    onChange={(e) => setEditFormData({...editFormData, visitPerDay: e.target.value})}
+                                    className="w-14 border border-blue-300 rounded px-1 py-1 text-sm font-bold text-center outline-none"
+                                  />
+                               </div>
+                               <div className="text-center">
+                                  <label className="text-[8px] font-bold text-gray-400 uppercase block mb-1">Onboard</label>
+                                  <input 
+                                    type="number" 
+                                    value={editFormData.onboardPerMonth} 
+                                    onChange={(e) => setEditFormData({...editFormData, onboardPerMonth: e.target.value})}
+                                    className="w-14 border border-blue-300 rounded px-1 py-1 text-sm font-bold text-center outline-none"
+                                  />
+                               </div>
+                            </div>
+                         ) : (
+                            <div className="flex justify-center gap-6 items-center">
+                               {/* Visit Target */}
+                               <div className="flex items-baseline gap-1">
+                                  <span className="text-lg font-black text-gray-800">{mgr.targetVisitPerDay}</span>
+                                  <span className="text-[9px] font-bold text-gray-400 uppercase">/Day</span>
+                               </div>
+                               
+                               {/* Separator Line */}
+                               <div className="h-6 w-[1px] bg-blue-200/50"></div>
+                               
+                               {/* Onboard Target */}
+                               <div className="flex items-baseline gap-1">
+                                  <span className="text-lg font-black text-gray-800">{mgr.targetOnboardPerMonth}</span>
+                                  <span className="text-[9px] font-bold text-gray-400 uppercase">/Mo</span>
+                               </div>
+                            </div>
+                         )}
+                      </td>
 
-                        <p className="text-[10px] text-gray-400 font-bold uppercase mb-2">{manager.region}</p>
+                      {/* 4. Caller Targets (Side-by-Side Units) */}
+                      <td className="px-6 py-4 border-l border-gray-100 bg-orange-50/10 text-center">
+                         {isEditing ? (
+                            <div className="text-center flex flex-col items-center">
+                               <label className="text-[8px] font-bold text-gray-400 uppercase block mb-1">Calls</label>
+                               <input 
+                                  type="number" 
+                                  value={editFormData.callsPerDay} 
+                                  onChange={(e) => setEditFormData({...editFormData, callsPerDay: e.target.value})}
+                                  className="w-16 border border-orange-300 rounded px-1 py-1 text-sm font-bold text-center outline-none"
+                               />
+                            </div>
+                         ) : (
+                            <div className="flex justify-center items-baseline gap-1">
+                               <span className="text-lg font-black text-gray-800">{mgr.targetCallPerDay}</span>
+                               <span className="text-[9px] font-bold text-gray-400 uppercase">/Day</span>
+                            </div>
+                         )}
+                      </td>
 
-                        <div className="flex gap-2">
-                           <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-bold border border-gray-200">
-                              {manager.fseCount} FSEs
-                           </span>
-                           <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-bold border border-gray-200">
-                              {manager.leadGenCount} Callers
-                           </span>
-                        </div>
-                     </div>
+                      {/* 5. TEAM OUTPUT (Separate Calculation Column) */}
+                      <td className="px-6 py-4 border-l border-gray-100 bg-gray-50/30">
+                         <div className="space-y-1.5">
+                             <div className="flex justify-between items-center text-xs">
+                                <span className="font-bold text-blue-600 uppercase text-[10px]">Visits</span>
+                                <span className="font-black text-gray-800">{teamTotalVisits.toLocaleString()}</span>
+                             </div>
+                             <div className="flex justify-between items-center text-xs">
+                                <span className="font-bold text-green-600 uppercase text-[10px]">Onboard</span>
+                                <span className="font-black text-gray-800">{teamTotalOnboards.toLocaleString()}</span>
+                             </div>
+                             <div className="flex justify-between items-center text-xs ">
+                                <span className="font-bold text-orange-600 uppercase text-[10px]">Calls</span>
+                                <span className="font-black text-gray-800">{teamTotalCalls.toLocaleString()}</span>
+                             </div>
+                         </div>
+                      </td>
 
-                     {/* 2. History */}
-                     <div className="col-span-2 text-center">
-                        <div className={`text-sm font-black ${parseInt(manager.lastMonthAchieved) >= 100 ? 'text-green-600' : 'text-gray-400'}`}>
-                           {manager.lastMonthAchieved}
-                        </div>
-                        <p className="text-[9px] text-gray-400 uppercase">Last Mon.</p>
-                     </div>
+                      {/* 6. Action */}
+                      <td className="px-6 py-4 text-center">
+                         {isEditing ? (
+                            <div className="flex items-center justify-center gap-2">
+                               <button 
+                                 onClick={() => handleSaveLocal(mgr.id)}
+                                 className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                               >
+                                  <Check size={14} strokeWidth={3}/>
+                               </button>
+                               <button 
+                                 onClick={handleCancelClick}
+                                 className="p-1.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
+                               >
+                                  <X size={14} strokeWidth={3}/>
+                               </button>
+                            </div>
+                         ) : (
+                            <div className="flex items-center justify-center gap-2">
+                               <button 
+                                 onClick={() => handleEditClick(mgr)}
+                                 className="p-1.5 border border-blue-200 text-blue-600 rounded hover:bg-blue-50 transition-colors"
+                               >
+                                  <Edit2 size={14}/>
+                               </button>
+                               <button 
+                                 onClick={() => handleSendToManager(mgr)}
+                                 disabled={isSending}
+                                 className={`p-1.5 border rounded transition-colors ${isSending ? 'bg-blue-50 border-blue-200 text-blue-400' : 'border-green-200 text-green-600 hover:bg-green-50'}`} 
+                               >
+                                  {isSending ? <Loader2 size={14} className="animate-spin"/> : <Send size={14}/>}
+                               </button>
+                               <button 
+                                 onClick={() => handleDeleteClick(mgr.id)}
+                                 className="p-1.5 border border-red-200 text-red-500 rounded hover:bg-red-50 transition-colors"
+                               >
+                                  <Trash2 size={14}/>
+                               </button>
+                            </div>
+                         )}
+                      </td>
 
-                     {/* 3. FSE Targets Inputs */}
-                     <div className="col-span-3 px-2 border-l border-gray-100 grid grid-cols-2 gap-2">
-                        <div>
-                           <label className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1 mb-1">
-                              <MapPin size={10}/> Visit/Day
-                           </label>
-                           <input
-                              type="number"
-                              value={manager.targetVisitPerDay}
-                              onChange={(e) => handleInputChange(manager.id, 'targetVisitPerDay', e.target.value)}
-                              className="w-full bg-white border border-gray-300 rounded-lg py-1.5 px-2 text-sm font-bold text-gray-800 focus:border-[#103c7f] outline-none text-center shadow-sm"
-                           />
-                        </div>
-                        <div>
-                           <label className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1 mb-1">
-                              <Briefcase size={10}/> Onbd/Mon
-                           </label>
-                           <input
-                              type="number"
-                              value={manager.targetOnboardPerMonth}
-                              onChange={(e) => handleInputChange(manager.id, 'targetOnboardPerMonth', e.target.value)}
-                              className="w-full bg-white border border-gray-300 rounded-lg py-1.5 px-2 text-sm font-bold text-gray-800 focus:border-[#103c7f] outline-none text-center shadow-sm"
-                           />
-                        </div>
-                     </div>
-
-                     {/* 4. LeadGen Inputs */}
-                     <div className="col-span-2 px-2 border-l border-gray-100">
-                        <label className="text-[9px] font-bold text-gray-400 uppercase flex items-center justify-center gap-1 mb-1">
-                           <Phone size={10}/> Calls/Day
-                        </label>
-                        <input
-                           type="number"
-                           value={manager.targetCallPerDay}
-                           onChange={(e) => handleInputChange(manager.id, 'targetCallPerDay', e.target.value)}
-                           className="w-full bg-white border border-gray-300 rounded-lg py-1.5 px-2 text-sm font-bold text-gray-800 focus:border-[#103c7f] outline-none text-center shadow-sm"
-                        />
-                     </div>
-
-                     {/* 5. CALCULATIONS (Per Person vs Total) */}
-                     <div className="col-span-3 pl-2 border-l border-gray-100 grid grid-cols-2 gap-4 text-right">
-                        
-                        {/* Per Person Column */}
-                        <div className="flex flex-col gap-1 pr-2 border-r border-gray-100">
-                           <div>
-                              <p className="text-[9px] text-gray-400 uppercase">1 FSE Visits</p>
-                              <p className="text-xs font-bold text-gray-700">{perFseMonthlyVisits}</p>
-                           </div>
-                           <div>
-                              <p className="text-[9px] text-gray-400 uppercase">1 FSE Onboard</p>
-                              <p className="text-xs font-bold text-gray-700">{perFseMonthlyOnboards}</p>
-                           </div>
-                           <div>
-                              <p className="text-[9px] text-gray-400 uppercase">1 Caller Calls</p>
-                              <p className="text-xs font-bold text-gray-700">{perLeadGenMonthlyCalls}</p>
-                           </div>
-                        </div>
-
-                        {/* Team Total Column */}
-                        <div className="flex flex-col gap-1">
-                           <div>
-                              <p className="text-[9px] text-gray-400 uppercase">Total Visits</p>
-                              <p className="text-xs font-black text-[#103c7f]">{teamTotalVisits.toLocaleString()}</p>
-                           </div>
-                           <div>
-                              <p className="text-[9px] text-gray-400 uppercase">Total Onboard</p>
-                              <p className="text-xs font-black text-green-600">{teamTotalOnboards.toLocaleString()}</p>
-                           </div>
-                           <div>
-                              <p className="text-[9px] text-gray-400 uppercase">Total Calls</p>
-                              <p className="text-xs font-black text-orange-600">{teamTotalCalls.toLocaleString()}</p>
-                           </div>
-                        </div>
-
-                     </div>
-
-                  </div>
-               )
-              })
+                    </tr>
+                  );
+                })
             )}
-         </div>
-      </div>
-
-      {/* Info Note */}
-      <div className="mt-4 flex items-center gap-2 text-xs text-gray-400 font-medium bg-white p-3 rounded-lg border border-gray-200 w-fit shadow-sm">
-         <Calculator size={14} className="text-[#103c7f]" />
-         <span>Calculations: <strong>Daily Target</strong> × <strong>{workingDays} Days</strong> = Monthly Per Person</span>
+          </tbody>
+        </table>
       </div>
 
     </div>

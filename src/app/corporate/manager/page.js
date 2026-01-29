@@ -364,7 +364,7 @@ export default function ManagerHome() {
       {/* HEADER & FILTERS */}
       <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-6 shrink-0 gap-4">
         <div>
-           <h1 className="text-3xl font-black text-[#103c7f] tracking-tight uppercase italic leading-none">Manager Command Center</h1>
+           <h1 className="text-2xl font-black text-[#103c7f] tracking-tight uppercase italic leading-none">Manager Command Center</h1>
            <div className="flex items-center gap-2 mt-1.5">
               <span className="w-2 h-2 bg-[#a1db40] rounded-full animate-pulse shadow-[0_0_5px_#a1db40]"></span>
               <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest leading-none">Live Performance Dashboard</p>
@@ -386,7 +386,7 @@ export default function ManagerHome() {
           <div key={idx} className={`p-5 rounded-[20px] border shadow-sm transition-all hover:-translate-y-1 bg-white border-gray-100`}>
             <div className="flex justify-between items-start mb-3">
                <div className={`p-3 rounded-xl ${stat.color}`}>{stat.icon}</div>
-               {stat.type === 'projection' && <span className="text-[9px] font-bold bg-gray-100 px-2 py-1 rounded text-gray-500 uppercase">Pipeline</span>}
+             { /* {stat.type === 'projection' && <span className="text-[9px] font-bold bg-gray-100 px-2 py-1 rounded text-gray-500 uppercase">Pipeline</span>}*/}
             </div>
             <div>
                <h3 className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">{stat.title}</h3>
@@ -458,7 +458,6 @@ export default function ManagerHome() {
            {/* Urgent Actions */}
            <div className="bg-[#103c7f] text-white rounded-[24px] p-6 shadow-lg shadow-[#103c7f]/20 relative overflow-hidden shrink-0">
               <div className="relative z-10">
-                 <div className="flex items-center justify-between mb-4"><div className="p-2 bg-white/10 rounded-lg"><AlertCircle size={20} /></div><span className="text-[10px] font-black bg-[#a1db40] text-[#103c7f] px-2 py-1 rounded">URGENT</span></div>
                  <h3 className="text-2xl font-black italic tracking-tight">{pendingCount} Pending Actions</h3>
                  <p className="text-[11px] font-medium text-blue-200 mt-1">Claims Approvals require your attention.</p>
 
