@@ -89,7 +89,7 @@ export async function GET(request) {
       while (true) {
         const { data: ints, error: intError } = await supabaseServer
           .from('domestic_clients_interaction')
-          .select('client_id, projection, contact_date, created_at')
+          .select('client_id, contact_date, created_at, domestic_clients!inner(projection)')
           .eq('user_id', userId)
           .order('client_id', { ascending: true })
           .order('contact_date', { ascending: false })
@@ -110,7 +110,7 @@ export async function GET(request) {
     const latestProjections = new Map()
     interactions?.forEach(int => {
       if (!latestProjections.has(int.client_id)) {
-        latestProjections.set(int.client_id, int.projection)
+        latestProjections.set(int.client_id, int.domestic_clients.projection)
       }
     })
 

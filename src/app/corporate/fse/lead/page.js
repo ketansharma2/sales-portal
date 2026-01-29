@@ -4,7 +4,7 @@ import {
   Pencil, Plus, X, Search, Loader2, Eye, Star,
   Calendar, Phone, MapPin, User, Building2, CheckCircle,
   ArrowRight, MessageSquarePlus, Mail, Zap,CalendarOff,
-  HistoryIcon
+  HistoryIcon, Send, Lock
 } from "lucide-react";
 
 export default function LeadsMasterPage() {
@@ -171,6 +171,37 @@ export default function LeadsMasterPage() {
       alert('Error saving interaction');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSendToManager = async (lead) => {
+    const confirmed = confirm(`Send "${lead.company_name}" to manager?`);
+    if (!confirmed) return;
+
+    const session = JSON.parse(localStorage.getItem('session') || '{}');
+    const updateData = {
+      client_id: lead.client_id
+    };
+
+    try {
+      const response = await fetch('/api/corporate/fse/lead/send-to-manager', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(updateData)
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('Lead sent to manager successfully');
+        fetchLeads(); // refresh to update sent_to_sm status
+      } else {
+        alert('Failed to send to manager: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Error sending to manager');
     }
   };
   // 👇 ADD THIS FUNCTION (Missing)
@@ -565,6 +596,23 @@ statesList: [
                         >
                           <Pencil size={14} strokeWidth={2.5} />
                         </button>
+                        {lead.sent_to_sm ? (
+                          <button
+                            disabled
+                            className="p-1.5 bg-gray-50 text-gray-400 rounded-lg border border-gray-100 cursor-not-allowed"
+                            title="Already Sent to Manager"
+                          >
+                            <Lock size={14} strokeWidth={2.5} />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleSendToManager(lead)}
+                            className="p-1.5 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 hover:shadow-md transition-all border border-purple-100 active:scale-95"
+                            title="Send to Manager"
+                          >
+                            <Send size={14} strokeWidth={2.5} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

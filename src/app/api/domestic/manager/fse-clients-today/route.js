@@ -111,11 +111,11 @@ export async function GET(request) {
         next_follow_up,
         status,
         sub_status,
-        projection,
         domestic_clients!inner(
           company_name,
           location,
-          state
+          state,
+          projection
         ),
         users!inner(name)
       `)
@@ -154,7 +154,7 @@ export async function GET(request) {
       next_followup: int.next_follow_up || null,
       status: int.status || 'Unknown',
       sub_status: int.sub_status || 'N/A',
-      projection: int.projection || 'N/A'
+      projection: int.domestic_clients.projection || 'N/A'
     }))
 
     return NextResponse.json({
