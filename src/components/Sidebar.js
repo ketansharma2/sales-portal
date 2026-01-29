@@ -108,6 +108,13 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     ];
   }
 
+  // 8. OPERATION_HEAD / OPERATIONS (Global - No Sector Folder)
+  else if (currentRole === "operation_head" || currentRole === "operations") {
+    menuItems = [
+      { name: "Reimbursement", href: "/operations/reimbursement", icon: <Wallet size={20} /> },
+    ];
+  }
+
   // DEFAULT
   else {
     menuItems = [{ name: "Portal Home", href: "/", icon: <LayoutGrid size={20} /> }];

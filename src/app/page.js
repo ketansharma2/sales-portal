@@ -44,9 +44,16 @@ export default function LoginPage() {
           localStorage.setItem('session', JSON.stringify(data.session));
 
           // Redirect based on sector and current_role
-          const redirectPath = data.user.sector
-            ? `/${data.user.sector.toLowerCase()}/${data.user.current_role.toLowerCase()}`
-            : `/${data.user.current_role.toLowerCase()}`;
+          let redirectPath;
+          if (data.user.current_role.toLowerCase() === 'hod') {
+            redirectPath = '/hod';
+          } else if (data.user.current_role.toLowerCase() === 'operation_head' || data.user.current_role.toLowerCase() === 'operations') {
+            redirectPath = '/operations/reimbursement';
+          } else {
+            redirectPath = data.user.sector
+              ? `/${data.user.sector.toLowerCase()}/${data.user.current_role.toLowerCase()}`
+              : `/${data.user.current_role.toLowerCase()}`;
+          }
           router.push(redirectPath);
         }
       } else {
@@ -67,9 +74,14 @@ export default function LoginPage() {
     localStorage.setItem('session', JSON.stringify(sessionData));
 
     // Redirect based on sector and selectedRole
-    const redirectPath = userData.sector
-      ? `/${userData.sector.toLowerCase()}/${selectedRole.toLowerCase()}`
-      : `/${selectedRole.toLowerCase()}`;
+    let redirectPath;
+    if (selectedRole.toLowerCase() === 'hod') {
+      redirectPath = '/hod';
+    } else {
+      redirectPath = userData.sector
+        ? `/${userData.sector.toLowerCase()}/${selectedRole.toLowerCase()}`
+        : `/${selectedRole.toLowerCase()}`;
+    }
     router.push(redirectPath);
   };
 

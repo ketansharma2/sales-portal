@@ -52,7 +52,8 @@ export default function Header() {
   else if (currentRole === "admin") sectorLabel = "SYSTEM ADMINISTRATION";
 
   // 2. Determine Role & Subtitle
-  switch (currentRole) {
+  const userRole = (user.current_role || currentRole || "").toLowerCase();
+  switch (userRole) {
     case "admin":
       roleLabel = "System Admin";
       pageSubtitle = "MASTER CONTROL";
@@ -80,6 +81,11 @@ export default function Header() {
     case "crm":
       roleLabel = "CRM Manager";
       pageSubtitle = "RELATIONSHIP MGMT";
+      break;
+    case "operations":
+    case "operation_head":
+      roleLabel = "Operation Head";
+      pageSubtitle = "OPERATIONS CONTROL";
       break;
     default:
       roleLabel = "Team Member";
