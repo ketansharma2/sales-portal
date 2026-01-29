@@ -167,16 +167,17 @@ export default function LeadsTablePage() {
     }, [selectedLead, modalType]);
    
 
-   // --- FILTER STATE ---
-   const [filters, setFilters] = useState({
-     fromDate: "",
-     toDate: "",
-     company: "",
-     location: "",
-     status: "All",
-     subStatus: "All",
-     franchiseStatus: "All"
-   });
+    // --- FILTER STATE ---
+    const [filters, setFilters] = useState({
+      fromDate: "",
+      toDate: "",
+      company: "",
+      location: "",
+      status: "All",
+      subStatus: "All",
+      franchiseStatus: "All",
+      startup: "All"
+    });
 
    // --- REAL-TIME FILTER LOGIC ---
    const handleFilterChange = (key, value) => {
@@ -194,18 +195,19 @@ export default function LeadsTablePage() {
        const isAfterFrom = from && leadDate ? leadDate >= from : true;
        const isBeforeTo = to && leadDate ? leadDate <= to : true;
 
-       // 2. Text Matching (with null safety)
-       const matchCompany = newFilters.company === '' || 
-         (lead.company || '').toLowerCase().includes(newFilters.company.toLowerCase());
-       const matchLocation = newFilters.location === '' || 
-         ((lead.location || '') + ' ' + (lead.state || '')).toLowerCase().includes(newFilters.location.toLowerCase());
+        // 2. Text Matching (with null safety)
+        const matchCompany = newFilters.company === '' || 
+          (lead.company || '').toLowerCase().includes(newFilters.company.toLowerCase());
+        const matchLocation = newFilters.location === '' || 
+          ((lead.district_city || '') + ' ' + (lead.state || '') + ' ' + (lead.location || '')).toLowerCase().includes(newFilters.location.toLowerCase());
        
-       // 3. Dropdown Matching (with null safety)
-       const matchStatus = newFilters.status === "All" || ((lead.status || '').trim().toLowerCase()) === (newFilters.status || '').trim().toLowerCase();
-       const matchSubStatus = newFilters.subStatus === "All" || ((lead.subStatus || '').trim().toLowerCase()) === (newFilters.subStatus || '').trim().toLowerCase();
-       const matchFranchiseStatus = newFilters.franchiseStatus === "All" || ((lead.franchiseStatus || '').trim().toLowerCase()) === (newFilters.franchiseStatus || '').trim().toLowerCase();
+        // 3. Dropdown Matching (with null safety)
+        const matchStatus = newFilters.status === "All" || ((lead.status || '').trim().toLowerCase()) === (newFilters.status || '').trim().toLowerCase();
+        const matchSubStatus = newFilters.subStatus === "All" || ((lead.subStatus || '').trim().toLowerCase()) === (newFilters.subStatus || '').trim().toLowerCase();
+        const matchFranchiseStatus = newFilters.franchiseStatus === "All" || ((lead.franchiseStatus || '').trim().toLowerCase()) === (newFilters.franchiseStatus || '').trim().toLowerCase();
+        const matchStartup = newFilters.startup === "All" || ((lead.startup || '').trim().toLowerCase()) === (newFilters.startup || '').trim().toLowerCase();
 
-       return isAfterFrom && isBeforeTo && matchCompany && matchLocation && matchStatus && matchSubStatus && matchFranchiseStatus;
+        return isAfterFrom && isBeforeTo && matchCompany && matchLocation && matchStatus && matchSubStatus && matchFranchiseStatus && matchStartup;
      });
 
      setLeads(filtered);
@@ -387,8 +389,8 @@ export default function LeadsTablePage() {
          </button>
        </div>
 
-       {/* 2. FILTERS BAR (Real-time, No Button) */}
-       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-4 grid grid-cols-7 gap-3 items-end">
+        {/* 2. FILTERS BAR (Real-time, No Button) */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-4 grid grid-cols-8 gap-3 items-end">
           
           {/* Filter 1: From Date */}
           <div className="col-span-1">
@@ -491,27 +493,42 @@ export default function LeadsTablePage() {
              </div>
           </div>
 
-          {/* Filter 7: Franchise Status */}
-          <div className="col-span-1">
-             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Franchise Status</label>
-             <div className="relative">
-               <Award className="absolute left-3 top-2.5 text-gray-400" size={14} />
-               <select
-                 className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:border-[#103c7f] outline-none appearance-none cursor-pointer"
-                 onChange={(e) => handleFilterChange("franchiseStatus", e.target.value)}
-               >
-                 <option>All</option>
-                 <option>Application Form Share</option>
-                 <option>No Franchise Discuss</option>
-                 <option>Not Interested</option>
-                 <option>Will Think About It</option>
-                 <option>Form Filled</option>
-                 <option>Form Not Filled</option>
-               </select>
-             </div>
-          </div>
+           {/* Filter 7: Franchise Status */}
+           <div className="col-span-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Franchise Status</label>
+              <div className="relative">
+                <Award className="absolute left-3 top-2.5 text-gray-400" size={14} />
+                <select
+                  className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:border-[#103c7f] outline-none appearance-none cursor-pointer"
+                  onChange={(e) => handleFilterChange("franchiseStatus", e.target.value)}
+                >
+                  <option>All</option>
+                  <option>Application Form Share</option>
+                  <option>No Franchise Discuss</option>
+                  <option>Not Interested</option>
+                  <option>Will Think About It</option>
+                  <option>Form Filled</option>
+                  <option>Form Not Filled</option>
+                </select>
+              </div>
+           </div>
 
-       </div>
+           {/* Filter 8: Startup */}
+           <div className="col-span-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Startup</label>
+              <div className="relative">
+                <select
+                  className="w-full pl-3 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:border-[#103c7f] outline-none appearance-none cursor-pointer"
+                  onChange={(e) => handleFilterChange("startup", e.target.value)}
+                >
+                  <option>All</option>
+                  <option>Yes</option>
+                  <option>No</option>
+                </select>
+              </div>
+           </div>
+
+        </div>
 
        {/* 3. THE TABLE */}
        {/* 3. THE TABLE */}
