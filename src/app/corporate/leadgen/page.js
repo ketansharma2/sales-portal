@@ -4,7 +4,7 @@ import Link from "next/link";
 import { 
   Database, Phone, CheckCircle, Clock, Calendar,
   ArrowRight, Target, Zap, PhoneOutgoing,
-  TrendingUp, Bell, UserCheck, XCircle, FileText, Briefcase, Award,
+  TrendingUp, Bell, UserCheck, XCircle, FileText, Briefcase, Award,Send,
   Rocket, ChevronDown, Filter
 } from "lucide-react";
 
@@ -28,7 +28,7 @@ export default function LeadGenHome() {
     picked: { total: 0, startup: 0 },
     notPicked: { total: 0, startup: 0 },
     contract: { total: 0, startup: 0 },
-    
+    sentToManager: { total: 0, startup: 0 },
     onboarded: { total: 0, startup: 0 },
     interested: { total: 0, startup: 0 },
 
@@ -154,7 +154,7 @@ export default function LeadGenHome() {
         picked: { total: 110, startup: 25 },
         notPicked: { total: 90, startup: 25 },
         contract: { total: 20, startup: 5 },
-        
+        sentToManager: { total: 12, startup: 4 },
         onboarded: { total: 8, startup: 2 },
         interested: { total: 15, startup: 5 },
         
@@ -287,13 +287,14 @@ export default function LeadGenHome() {
         <div className="p-4 flex flex-col gap-5">
           
         {/* ---------------- ROW 1: SUCCESS METRICS (Compact) ---------------- */}
+         {/* ---------------- ROW 1: SUCCESS METRICS (Updated Layout) ---------------- */}
           <div>
             <h4 className="text-xs font-black text-teal-600 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
                <CheckCircle size={14} /> Success Metrics
             </h4>
             
-            {/* Grid Gap kam kiya (gap-3) */}
-            <div className="grid grid-cols-3 gap-3">
+            {/* Changed to grid-cols-4 to fit Performance Card */}
+            <div className="grid grid-cols-4 gap-3">
                 
                 {/* 1. Onboarded */}
                 <BigSuccessCard 
@@ -314,28 +315,45 @@ export default function LeadGenHome() {
                 />
 
                 {/* 3. Franchise Accepted */}
-               {/* 3. Franchise Accepted */}
                 <BigSuccessCard 
                     title="Franchise Accepted" 
-                    total={kpiData.franchise.accepted.total} // Pass Total
-                    startup={kpiData.franchise.accepted.startup} // Pass Startup
+                    total={kpiData.franchise.accepted.total} 
+                    startup={kpiData.franchise.accepted.startup} 
                     icon={<Award size={20}/>} 
                     color="green"
-                    isFranchise={true} // Style ke liye true rakhein
+                    isFranchise={true} 
                 />
+
+                {/* 4. Performance Card (Moved Here) */}
+                <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-all h-full">
+                   <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100 shrink-0"><Target size={18}/></div>
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider leading-tight">Performance</span>
+                   </div>
+                   
+                   <div className="flex flex-col justify-end h-full pb-1">
+                      <div className="flex items-end gap-2 mb-1.5">
+                          <h3 className="text-2xl font-black text-slate-800 leading-none ml-1">{kpiData.performance}%</h3>
+                          <span className="text-[9px] font-bold text-indigo-500 mb-0.5">of Monthly Goal</span>
+                      </div>
+                      {/* Progress Bar */}
+                      <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-indigo-500 rounded-full" style={{width: `${Math.min(kpiData.performance, 100)}%`}}></div>
+                      </div>
+                   </div>
+                </div>
 
             </div>
           </div>
 
          {/* ---------------- ROW 2: COMBINED PIPELINE & OPERATIONS ---------------- */}
 
-          <div>
+         <div>
             <h4 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
                <Database size={14} /> Leads Overview
             </h4>
             
-            {/* 3 Columns Grid -> 3 Rows automatically with 9 items */}
-          {/* Grid */}
+            {/* Grid */}
             <div className="grid grid-cols-3 gap-3">
               
               {/* --- Row 1 --- */}
@@ -348,35 +366,20 @@ export default function LeadGenHome() {
               <KpiCard title="Not Picked" total={kpiData.notPicked.total} startup={kpiData.notPicked.startup} icon={<XCircle size={18}/>} color="red" />
               <KpiCard title="Contracts Shared" total={kpiData.contract.total} startup={kpiData.contract.startup} icon={<FileText size={18}/>} color="orange" />
               
-              {/* --- Row 3 (Franchise Updated + Performance) --- */}
-              {/* Now passing total and startup objects for Franchise */}
+              {/* --- Row 3 --- */}
               <KpiCard title="Franchise Discussed" total={kpiData.franchise.discussed.total} startup={kpiData.franchise.discussed.startup} icon={<Phone size={18}/>} color="purple" />
               <KpiCard title="App. Form Shared" total={kpiData.franchise.formShared.total} startup={kpiData.franchise.formShared.startup} icon={<FileText size={18}/>} color="purple" />
               
-              {/* Performance Card (Remains Custom) */}
-              <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-all h-full">
-                 <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100 shrink-0"><Target size={18}/></div>
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider leading-tight">Performance</span>
-                 </div>
-                 
-                 <div className="flex flex-col justify-end h-full pb-1">
-                    <div className="flex items-end gap-2 mb-1.5">
-                        <h3 className="text-2xl font-black text-slate-800 leading-none ml-1">{kpiData.performance}%</h3>
-                        <span className="text-[9px] font-bold text-indigo-500 mb-0.5">of Monthly Goal</span>
-                    </div>
-                    {/* Progress Bar */}
-                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-indigo-500 rounded-full" style={{width: `${Math.min(kpiData.performance, 100)}%`}}></div>
-                    </div>
-                 </div>
-              </div>
+              {/* Sent to Manager Card (Replaces Performance) */}
+              <KpiCard title="Sent to Manager" total={kpiData.sentToManager.total} startup={kpiData.sentToManager.startup} icon={<Send size={18}/>} color="orange" />
 
             </div>
           </div>
 
         </div>
       </div>
+
+      
 
       {/* ================= RIGHT SECTION (SIDEBAR) ================= */}
      {/* 2. UPDATE SIDEBAR JSX */}

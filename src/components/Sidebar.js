@@ -69,9 +69,9 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     menuItems = [
       { name: "Team Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "FSE Tracking", href: `${roleBaseHref}/team-leads`, icon: <Users size={20} /> },
-{ name: "FSE Onboard", href: `${roleBaseHref}/fse-onboard`, icon: <UserPlus size={20} /> },
+      { name: "FSE Onboard", href: `${roleBaseHref}/fse-onboard`, icon: <UserPlus size={20} /> },
       { name: "Leads", href: `${roleBaseHref}/leadsgen`, icon: <Truck size={20} /> },
-      { name: "Target", href: `${roleBaseHref}/target`, icon: <Target size={20} /> },
+     // { name: "Target", href: `${roleBaseHref}/target`, icon: <Target size={20} /> },
       { name: "Expense Approval", href: `${roleBaseHref}/approvals`, icon: <FileText size={20} /> },
       { name: "My Expenses", href: `${roleBaseHref}/expenses`, icon: <Wallet size={20} /> },
     ];
@@ -82,7 +82,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     menuItems = [
       { name: "My Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "My Leads", href: `${roleBaseHref}/lead`, icon: <Users size={20} /> },
-      { name: "My Weekly Plan", href: `${roleBaseHref}/weekly-plan`, icon: <Calendar size={20} /> },
+      //{ name: "My Weekly Plan", href: `${roleBaseHref}/weekly-plan`, icon: <Calendar size={20} /> },
       { name: "My Expenses", href: `${roleBaseHref}/expenses`, icon: <Wallet size={20} /> },
     ];
   } 
@@ -90,7 +90,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   // 6. LEADGEN
   else if (currentRole === "leadgen") {
     menuItems = [
-      { name: "My Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
+     { name: "My Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       
       // Page 2: Execution (Search, Table, Calling Form)
       { name: "My Leads", href: `${roleBaseHref}/leads`, icon: <Phone size={20} /> },
@@ -103,7 +103,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
 
   else if (currentRole === "crm") {
     menuItems = [
-      { name: "CRM Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
+    { name: "CRM Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "Onboardings", href: `${roleBaseHref}/onboard`, icon: <UserPlus size={20} /> }, // For New Handovers
       
     ];

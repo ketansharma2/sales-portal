@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import {
   Search, Filter, Eye, UserPlus, Truck,
-  MapPin, X, CheckCircle, Calendar, Phone, Mail, CalendarDays, CheckSquare
+  MapPin, X, CheckCircle, Calendar, Phone, Mail, CalendarDays, CheckSquare,MessageSquare
 } from "lucide-react";
 import { supabase } from '@/lib/supabase';
 
@@ -82,6 +82,8 @@ export default function ManagerLeadsPage() {
   const [visitDate, setVisitDate] = useState("");
   const [crmUsers, setCrmUsers] = useState([]);
   const [selectedCrmUser, setSelectedCrmUser] = useState("");
+  const initialConversationState = { remarks: '', status: 'Interested', nextFollowUp: '', interactionDate: '', contactPerson: '', phone: '', email: '', subStatus: '' };
+  const [conversationData, setConversationData] = useState(initialConversationState);
 
   // --- FILTER STATE ---
   const [filters, setFilters] = useState({
@@ -150,6 +152,7 @@ export default function ManagerLeadsPage() {
   };
 
   const handleConfirmAction = async () => {
+   
     if (modalType === 'assign_fse') {
       const fse = fseOptions.find(f => f.name === assignFseName);
       if (!fse || !visitDate) {
@@ -192,7 +195,7 @@ export default function ManagerLeadsPage() {
         console.error(error);
         alert('Error assigning FSE');
       }
-    } else {
+    } else if (modalType === 'pass_delivery') {
       // For pass_delivery, send to API
       if (!selectedCrmUser) {
         alert('Please select a CRM user');
@@ -247,6 +250,59 @@ export default function ManagerLeadsPage() {
       } catch (error) {
         console.error(error);
         alert('Error passing to delivery');
+      }
+    } else if (modalType === 'add_conversation') {
+      // --- NEW LOGIC FOR CONVERSATION ---
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const response = await fetch('/api/domestic/manager/leads/add-interaction', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            client_id: selectedLead.id,
+            remarks: conversationData.remarks,
+            status: conversationData.status,
+            next_followup_date: conversationData.nextFollowUp
+          })
+        });
+
+        if (!response.ok) throw new Error('Failed to add conversation');
+
+        // Optimistic UI Update (Update the local list immediately)
+        const updatedLeads = leads.map(l => {
+          if (l.id === selectedLead.id) {
+            const newInteraction = {
+              date: conversationData.interactionDate || new Date().toLocaleDateString('en-GB'),
+              person: conversationData.contactPerson || '',
+              phone: conversationData.phone || '',
+              email: conversationData.email || '',
+              remarks: conversationData.remarks,
+              status: conversationData.status,
+              subStatus: conversationData.subStatus || ''
+            };
+            return {
+              ...l,
+              latestRemark: conversationData.remarks,
+              status: conversationData.status,
+              interactions: [newInteraction, ...(l.interactions || [])]
+            };
+          }
+          return l;
+        });
+        
+        setLeads(updatedLeads);
+        setFilteredLeads(updatedLeads);
+        setConversationData(initialConversationState);
+        setSelectedLead(null);
+        setIsFormOpen(false);
+        alert("Conversation added successfully!");
+
+      } catch (error) {
+        console.error(error);
+        alert('Error adding conversation');
       }
     }
   };
@@ -455,12 +511,22 @@ export default function ManagerLeadsPage() {
   ) : (
      // Normal Buttons (If NOT processed)
      <div className="flex items-center justify-center gap-3">
-        <button onClick={() => handleAction(lead, 'view')} className="p-2 text-gray-500 hover:text-[#103c7f] hover:bg-white rounded-lg border border-transparent hover:border-gray-200 transition shadow-sm tooltip">
+       {/* View */}
+        <button onClick={() => handleAction(lead, 'view')} className="p-2 text-gray-500 hover:text-[#103c7f] hover:bg-white rounded-lg border border-transparent hover:border-gray-200 transition shadow-sm" title="View Details">
           <Eye size={16} />
         </button>
+
+        {/* NEW: Add Conversation Button */}
+        <button onClick={() => handleAction(lead, 'add_conversation')} className="p-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition shadow-sm" title="Add Conversation">
+          <MessageSquare size={16} />
+        </button>
+
+        {/* Assign FSE */}
         <button onClick={() => handleAction(lead, 'assign_fse')} className="p-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition shadow-sm" title="Assign FSE">
           <UserPlus size={16} />
         </button>
+
+        {/* Pass Delivery */}
         <button onClick={() => handleAction(lead, 'pass_delivery')} className="p-2 bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 transition shadow-sm" title="Pass to Delivery">
           <Truck size={16} />
         </button>
@@ -482,7 +548,7 @@ export default function ManagerLeadsPage() {
       {isFormOpen && (
         <div className="fixed inset-0 bg-[#103c7f]/50 backdrop-blur-sm flex justify-center items-center z-50 p-2">
           <div className={`bg-white rounded-2xl shadow-2xl w-full overflow-hidden animate-in zoom-in-95 duration-200 border-4 border-white ${
-             modalType === 'view' ? 'max-w-5xl' : 'max-w-md'
+             modalType === 'view' ? 'max-w-5xl' : modalType === 'add_conversation' ? 'max-w-2xl max-h-[55vh]' : 'max-w-md'
           }`}>
             
             {/* Header */}
@@ -490,7 +556,8 @@ export default function ManagerLeadsPage() {
                <h3 className="font-bold text-lg uppercase tracking-wide">
                   {modalType === 'view' ? 'Lead Overview & History' : 
                    modalType === 'assign_fse' ? 'Assign Field Executive' : 
-                   'Pass to Delivery'}
+                   modalType === 'pass_delivery' ? 'Pass to Delivery' : 
+                   modalType === 'add_conversation' ? 'Log Interaction' : ''}
                </h3>
                <button onClick={() => setIsFormOpen(false)} className="hover:bg-white/20 p-1.5 rounded-full transition"><X size={20} /></button>
             </div>
@@ -698,10 +765,157 @@ export default function ManagerLeadsPage() {
                </div>
             )}
 
+           {/* === CONTENT: ADD INTERACTION (Redesigned) === */}
+            {modalType === 'add_conversation' && (
+               <div className="flex flex-col h-full bg-white font-['Calibri']">
+                  
+                  
+
+                  {/* 2. Scrollable Body */}
+                  <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+                     
+                     {/* Context Box */}
+                     <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6 flex justify-between items-center shadow-sm">
+                        <div>
+                           <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Last Interaction</label>
+                           <p className="text-xs text-gray-600 italic font-medium">"{selectedLead.latestRemark || 'No previous remarks'}"</p>
+                        </div>
+                        <div className="text-right">
+                           <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Current Status</label>
+                           <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold uppercase bg-white border border-blue-100 text-blue-700 shadow-sm">
+                              {selectedLead.status || 'New'}
+                           </span>
+                        </div>
+                     </div>
+
+                     <div className="space-y-5">
+                        
+                        {/* Interaction Date */}
+                        <div>
+                           <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Interaction Date</label>
+                           <input 
+                              type="date" 
+                              value={conversationData.interactionDate}
+                              onChange={(e) => setConversationData({...conversationData, interactionDate: e.target.value})}
+                              className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-bold text-gray-700 outline-none focus:border-[#103c7f] focus:ring-1 focus:ring-[#103c7f] transition" 
+                           />
+                        </div>
+
+                        {/* Contact Details (3 Columns) */}
+                        <div className="grid grid-cols-3 gap-4">
+                           <div>
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Contact Person</label>
+                              <input 
+                                 type="text" 
+                                 placeholder="Enter name"
+                                 value={conversationData.contactPerson}
+                                 onChange={(e) => setConversationData({...conversationData, contactPerson: e.target.value})}
+                                 className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-[#103c7f] transition placeholder:text-gray-400" 
+                              />
+                           </div>
+                           <div>
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Phone</label>
+                              <input 
+                                 type="text" 
+                                 placeholder="Enter phone number"
+                                 value={conversationData.phone}
+                                 onChange={(e) => setConversationData({...conversationData, phone: e.target.value})}
+                                 className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-[#103c7f] transition placeholder:text-gray-400" 
+                              />
+                           </div>
+                           <div>
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Email</label>
+                              <input 
+                                 type="text" 
+                                 placeholder="Enter email"
+                                 value={conversationData.email}
+                                 onChange={(e) => setConversationData({...conversationData, email: e.target.value})}
+                                 className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-[#103c7f] transition placeholder:text-gray-400" 
+                              />
+                           </div>
+                        </div>
+
+                        {/* Status & Sub-Status (2 Columns) */}
+                        <div className="grid grid-cols-2 gap-4">
+                           <div>
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">New Status</label>
+                              <select 
+                                 value={conversationData.status}
+                                 onChange={(e) => setConversationData({...conversationData, status: e.target.value})}
+                                 className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-[#103c7f] bg-white cursor-pointer"
+                              >
+                                 <option value="Interested">Interested</option>
+                                 <option value="Call Back">Call Back</option>
+                                 <option value="Not Interested">Not Interested</option>
+                                 <option value="Ringing">Ringing</option>
+                                 <option value="Follow Up">Follow Up</option>
+                              </select>
+                           </div>
+                           <div>
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Sub-Status</label>
+                              <select 
+                                 value={conversationData.subStatus}
+                                 onChange={(e) => setConversationData({...conversationData, subStatus: e.target.value})}
+                                 className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-[#103c7f] bg-white cursor-pointer"
+                              >
+                                 <option value="">Select Sub-Status</option>
+                                 <option value="Quotation Sent">Quotation Sent</option>
+                                 <option value="Negotiation">Negotiation</option>
+                                 <option value="Meeting Scheduled">Meeting Scheduled</option>
+                                 <option value="Pending Decision">Pending Decision</option>
+                              </select>
+                           </div>
+                        </div>
+
+                        {/* Remarks */}
+                        <div>
+                           <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Remarks (Conversation Details)</label>
+                           <textarea 
+                              rows="3"
+                              value={conversationData.remarks}
+                              onChange={(e) => setConversationData({...conversationData, remarks: e.target.value})}
+                              placeholder="Client kya bola? Mention key points..."
+                              className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:border-[#103c7f] focus:ring-1 focus:ring-[#103c7f] transition placeholder:text-gray-400 resize-none"
+                           ></textarea>
+                        </div>
+
+                        {/* Next Follow Up */}
+                        <div>
+                           <label className="text-[10px] font-bold text-orange-600 uppercase tracking-wider mb-1.5 block">Next Follow-up Date</label>
+                           <input 
+                              type="date" 
+                              value={conversationData.nextFollowUp}
+                              onChange={(e) => setConversationData({...conversationData, nextFollowUp: e.target.value})}
+                              className="w-full border border-orange-200 rounded-lg p-2.5 text-sm font-bold text-gray-700 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition bg-orange-50/30" 
+                           />
+                        </div>
+
+                     </div>
+                  </div>
+
+                  {/* 3. Footer */}
+                  <div className="p-4 border-t border-gray-100 flex justify-end items-center gap-3 bg-gray-50/50 shrink-0">
+                     <button 
+                        onClick={() => setIsFormOpen(false)}
+                        className="text-gray-500 font-bold text-sm px-4 py-2.5 hover:text-gray-700 transition"
+                     >
+                        Cancel
+                     </button>
+                     <button 
+                        onClick={handleConfirmAction} 
+                        className="bg-[#103c7f] hover:bg-blue-900 text-white py-2.5 px-6 rounded-lg font-bold text-sm shadow-md flex items-center gap-2 transition transform active:scale-95"
+                     >
+                        <CheckCircle size={16} /> Save Record
+                     </button>
+                  </div>
+
+               </div>
+            )}
+
           </div>
         </div>
       )}
-
+      
     </div>
   );
 }

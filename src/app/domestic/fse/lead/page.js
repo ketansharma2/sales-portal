@@ -268,8 +268,8 @@ statesList: [
       "West Bengal"
     ],
         empCountList: ["1-10", "11-50", "51-100", "101-200", "201-500", "500+"],
-    statusList: ["Interested", "Not Interested", "Onboarded", "Not Picked", "Reached Out"],
-    subStatusList: ["Blue Collar", "Call Back", "In Process", "Low Budget", "Proposal Shared", "Ready to Sign" , "Not Ready to Sign"],
+    statusList: ["Interested", "Not Interested", "Onboarded", "Not Picked", "Reached Out","No Status"],
+    subStatusList: ["Blue Collar", "Call Back", "In Process", "Low Budget", "Proposal Shared", "Ready to Sign" , "Not Ready to Sign","NA"],
     projectionList: ["WP > 50", "WP < 50", "MP > 50", "MP < 50", "Not Projected"]
   };
 

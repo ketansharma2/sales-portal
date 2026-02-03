@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import {
   Search, Phone, Filter, X, Save, Plus, Eye,
-  Calendar, MapPin, ListFilter,ArrowRight,Send,Lock,Edit,Award
+  Calendar, MapPin, ListFilter,ArrowRight,Send,Lock,Edit,Award,Users,Briefcase
 } from "lucide-react";
 
 export default function LeadsTablePage() {
@@ -43,6 +43,11 @@ export default function LeadsTablePage() {
 
    const [interactions, setInteractions] = useState([]);
    const [suggestions, setSuggestions] = useState({ persons: [], nos: [], emails: [] });
+
+   const DEFAULT_PAGE_SIZE = 100;
+   const [displayCount, setDisplayCount] = useState(DEFAULT_PAGE_SIZE);
+   const [showAll, setShowAll] = useState(false);
+
    const [districtsList, setDistrictsList] = useState([]);
 
    // --- FULL LISTS ---
@@ -78,8 +83,44 @@ export default function LeadsTablePage() {
        });
        const data = await response.json();
        if (data.success) {
-         setAllLeads(data.data);
-         setLeads(data.data);
+         // Normalize and store initial leads
+         const normalized = data.data.map(item => ({
+           ...item,
+           contact_person: item.contact_person || item.contactPerson || '',
+           contact_no: item.contact_no || item.contactNo || item.phone || item.mobile || '',
+           phone: item.phone || item.contact_no || item.contactNo || item.mobile || '',
+           email: item.email || item.contact_email || item.contactEmail || ''
+         }));
+
+         setAllLeads(normalized);
+         setLeads(normalized);
+
+         // Enrich first N leads with latest interaction contact info (to avoid N+1 overload)
+         const ENRICH_LIMIT = Math.min(normalized.length, DEFAULT_PAGE_SIZE);
+         const enrichPromises = normalized.slice(0, ENRICH_LIMIT).map(async (lead) => {
+           try {
+             const resp = await fetch(`/api/corporate/leadgen/interaction?client_id=${lead.id}`);
+             const d = await resp.json();
+             if (d.success && Array.isArray(d.data) && d.data.length > 0) {
+               const latest = d.data[0]; // assume API returns most recent first
+               return {
+                 ...lead,
+                 contact_person: latest.contact_person || latest.contactPerson || lead.contact_person || '',
+                 contact_no: latest.contact_no || latest.contactNo || latest.phone || lead.contact_no || '',
+                 email: latest.email || latest.contact_email || lead.email || ''
+               };
+             }
+           } catch (err) {
+             // ignore per-lead errors
+           }
+           return lead;
+         });
+
+         Promise.all(enrichPromises).then(enrichedFirst => {
+           const final = [...enrichedFirst, ...normalized.slice(ENRICH_LIMIT)];
+           setAllLeads(final);
+           setLeads(final);
+         }).catch(()=>{});
        }
      } catch (error) {
        console.error('Failed to fetch leads:', error);
@@ -140,6 +181,11 @@ export default function LeadsTablePage() {
      };
      init();
    }, []);
+
+   useEffect(() => {
+     setShowAll(false);
+     setDisplayCount(Math.min(DEFAULT_PAGE_SIZE, leads.length));
+   }, [leads]);
 
     // Fetch suggestions when adding interaction
     useEffect(() => {
@@ -211,6 +257,9 @@ export default function LeadsTablePage() {
      });
 
      setLeads(filtered);
+     // Reset paging when filters change
+     setShowAll(false);
+     setDisplayCount(Math.min(DEFAULT_PAGE_SIZE, filtered.length));
    };
 
   const handleAction = async (lead, type) => {
@@ -370,6 +419,7 @@ export default function LeadsTablePage() {
        console.error('Failed to save interaction:', error);
      }
    };
+   const visibleLeads = leads.slice(0, displayCount);
    return (
        <div className="p-2 h-screen flex flex-col font-['Calibri'] bg-gray-50">
        
@@ -390,10 +440,10 @@ export default function LeadsTablePage() {
        </div>
 
         {/* 2. FILTERS BAR (Real-time, No Button) */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-4 grid grid-cols-8 gap-3 items-end">
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-4 flex flex-row flex-nowrap gap-3 items-end overflow-x-auto whitespace-nowrap">
           
           {/* Filter 1: From Date */}
-          <div className="col-span-1">
+          <div className="flex-shrink-0 w-36">
              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">From Date</label>
              <div className="relative">
                <input 
@@ -405,7 +455,7 @@ export default function LeadsTablePage() {
           </div>
 
           {/* Filter 2: To Date */}
-          <div className="col-span-1">
+          <div className="flex-shrink-0 w-36">
              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">To Date</label>
              <div className="relative">
                <input 
@@ -417,8 +467,8 @@ export default function LeadsTablePage() {
           </div>
 
           {/* Filter 3: Company Name */}
-          <div className="col-span-1">
-             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Company</label>
+          <div className="flex-shrink-0 w-48">
+             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Company/Contact Person</label>
              <div className="relative">
                <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
                <input
@@ -432,7 +482,7 @@ export default function LeadsTablePage() {
           </div>
 
           {/* Filter 4: Location (State/City) */}
-          <div className="col-span-1">
+          <div className="flex-shrink-0 w-48">
              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Location / State</label>
              <div className="relative">
                <MapPin className="absolute left-3 top-2.5 text-gray-400" size={14} />
@@ -447,7 +497,7 @@ export default function LeadsTablePage() {
           </div>
 
           {/* Filter 5: Status */}
-          <div className="col-span-1">
+          <div className="flex-shrink-0 w-36">
              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Status</label>
              <div className="relative">
                <ListFilter className="absolute left-3 top-2.5 text-gray-400" size={14} />
@@ -461,12 +511,13 @@ export default function LeadsTablePage() {
                  <option>Not Picked</option>
                  <option>Onboard</option>
                  <option>Call Later</option>
+                 <option>New</option>
                </select>
              </div>
           </div>
 
           {/* Filter 6: Sub-Status */}
-          <div className="col-span-1">
+          <div className="flex-shrink-0 w-48">
              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Sub-Status</label>
              <div className="relative">
                <Filter className="absolute left-3 top-2.5 text-gray-400" size={14} />
@@ -489,12 +540,13 @@ export default function LeadsTablePage() {
                  <option>Ready To Visit</option>
                  <option>Callback</option>
                  <option>NA</option>
+                 <option>New Lead</option>
                </select>
              </div>
           </div>
 
            {/* Filter 7: Franchise Status */}
-           <div className="col-span-1">
+           <div className="flex-shrink-0 w-48">
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Franchise Status</label>
               <div className="relative">
                 <Award className="absolute left-3 top-2.5 text-gray-400" size={14} />
@@ -514,7 +566,7 @@ export default function LeadsTablePage() {
            </div>
 
            {/* Filter 8: Startup */}
-           <div className="col-span-1">
+           <div className="flex-shrink-0 w-32">
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Startup</label>
               <div className="relative">
                 <select
@@ -542,9 +594,8 @@ export default function LeadsTablePage() {
          <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Company Name</th>
          <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Category</th>
          <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">City/State</th>
-         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Location</th>
-         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Emp. Count</th>
-         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Reference</th>
+         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Contact Person</th>
+         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Contact Info</th>
          
          {/* MERGED COLUMN: Latest Follow-up & Remarks */}
          <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Latest Interaction</th>
@@ -561,12 +612,12 @@ export default function LeadsTablePage() {
      <tbody className="divide-y divide-gray-100 text-xs text-gray-700 font-medium">
     {loading ? (
       <tr key="loading">
-        <td colSpan="13" className="p-8 text-center text-gray-400 font-bold uppercase tracking-widest">
+        <td colSpan="12" className="p-8 text-center text-gray-400 font-bold uppercase tracking-widest">
           Loading leads...
         </td>
       </tr>
     ) : leads.length > 0 ? (
-     leads.map((lead, index) => {
+     visibleLeads.map((lead, index) => {
 
        // 1. CHECK IF ROW IS LOCKED (Sent to Manager)
  const isLocked = lead.isSubmitted;
@@ -577,12 +628,45 @@ export default function LeadsTablePage() {
          >
            
            <td className="px-2 py-2 border-r border-gray-100">{lead.sourcingDate}</td>
-           <td className="px-2 py-2 border-r border-gray-100 font-bold text-[#103c7f]">{lead.company}</td>
+          <td className="px-2 py-2 border-r border-gray-100 font-bold text-[#103c7f] text-left"> {/* Added text-left */}
+  <div className="flex items-center justify-start gap-2 pl-2"> {/* Changed justify-center to justify-start & added padding */}
+    
+    {/* 1. Startup Badge (Fixed at Start) */}
+    {(
+      lead?.startup === true ||
+      String(lead?.startup).toLowerCase() === 'yes' ||
+      String(lead?.startup) === '1' ||
+      String(lead?.startup).toLowerCase() === 'true'
+    ) && (
+      <span className="bg-green-100 text-green-700 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-green-200 shrink-0" title="Startup">
+        S
+      </span>
+    )}
+
+    {/* 2. Company Name */}
+    <span className="truncate">{lead.company}</span>
+    
+  </div>
+</td>
            <td className="px-2 py-2 border-r border-gray-100">{lead.category}</td>
            <td className="px-2 py-2 border-r border-gray-100">{lead.district_city ? `${lead.district_city}, ` : ''}{lead.state}</td>
-           <td className="px-2 py-2 border-r border-gray-100">{lead.location || ''}</td>
-           <td className="px-2 py-2 border-r border-gray-100">{lead.empCount}</td>
-           <td className="px-2 py-2 border-r border-gray-100">{lead.reference}</td>
+
+           {/* NEW: Contact Person */}
+           <td className="px-2 py-2 border-r border-gray-100 font-bold text-gray-600">{lead.contact_person || '-'}</td>
+
+           {/* NEW: Contact Info (Phone + Email) */}
+           <td className="px-2 py-2 border-r border-gray-100 text-left">
+              <div className="flex flex-col gap-0.5">
+                 <span className="font-mono font-bold text-gray-700 text-[10px] flex items-center gap-1">
+                    {(lead.contact_no || lead.phone) ? (
+                      <a href={`tel:${lead.contact_no || lead.phone}`} className="no-underline">📞 {lead.contact_no || lead.phone}</a>
+                    ) : '-'}
+                 </span>
+                 <span className="text-[9px] text-blue-500 lowercase truncate max-w-[140px]" title={lead.email}>
+                    {lead.email ? (<a href={`mailto:${lead.email}`} className="underline">{lead.email}</a>) : '-'}
+                 </span>
+              </div>
+           </td>
            
            {/* MERGED CELL CONTENT */}
            <td className="px-2 py-2 border-r border-gray-100">
@@ -650,7 +734,7 @@ export default function LeadsTablePage() {
      })
    ) : (
      <tr key="no-data">
-       <td colSpan="13" className="p-8 text-center text-gray-400 font-bold uppercase tracking-widest">
+       <td colSpan="12" className="p-8 text-center text-gray-400 font-bold uppercase tracking-widest">
          No records match your filters
        </td>
      </tr>
@@ -658,6 +742,22 @@ export default function LeadsTablePage() {
  </tbody>
    </table>
  </div>
+
+{leads.length > DEFAULT_PAGE_SIZE && (
+  <div className="mt-2 flex justify-center">
+    <button onClick={() => {
+        if (showAll) {
+          setDisplayCount(DEFAULT_PAGE_SIZE);
+          setShowAll(false);
+        } else {
+          setDisplayCount(leads.length);
+          setShowAll(true);
+        }
+      }} className="bg-white border border-gray-300 px-4 py-2 rounded-md text-sm font-bold">
+      {showAll ? 'Show Less' : `View More (${leads.length - displayCount} more)`}
+    </button>
+  </div>
+)}
 
        {/* 4. MODAL SYSTEM */}
        {isFormOpen && (
@@ -936,24 +1036,98 @@ export default function LeadsTablePage() {
  {modalType === 'view' && (
    <div className="flex flex-col h-full max-h-[80vh] font-['Calibri']">
      
-     {/* 1. HEADER: COMPANY PROFILE (Clean & Minimal) */}
-     <div className="flex items-center gap-5 p-1 mb-6">
-       
-       {/* Name & Location */}
-       <div>
-         <h2 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight leading-none">
-           {selectedLead.company}
-         </h2>
-         <div className="flex items-center gap-2 mt-1.5 text-gray-500 font-bold text-xs uppercase tracking-wider">
-           <span className="flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-gray-600">
-               <MapPin size={10} /> {selectedLead.location}, {selectedLead.state}
-           </span>
-           <span className="bg-blue-100 px-2 py-0.5 rounded text-blue-700">
-             Startup: {selectedLead.startup || 'N/A'}
-           </span>
-         </div>
-       </div>
-     </div>
+    
+ {/* 1. HEADER: DETAILED COMPANY PROFILE */}
+    <div className="bg-gray-50 border-b border-gray-200 p-5">
+      
+      <div className="flex items-center gap-6">
+        
+        {/* A. Company Name & Startup Badge */}
+        <div className="shrink-0 min-w-[200px]">
+           <h2 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight leading-none truncate max-w-[250px]" title={selectedLead.company}>
+             {selectedLead.company}
+           </h2>
+           <div className="mt-1.5 flex items-center gap-2">
+             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+               Company Profile
+             </span>
+             {/* Startup Status Badge (Updated) */}
+             <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${
+                (selectedLead?.startup === true || String(selectedLead?.startup).toLowerCase() === 'yes' || String(selectedLead?.startup) === '1' || String(selectedLead?.startup).toLowerCase() === 'true')
+                  ? 'bg-orange-50 text-orange-700 border-orange-100' 
+                  : 'bg-gray-100 text-gray-500 border-gray-200'
+             }`}>
+                Startup: {(selectedLead?.startup === true || String(selectedLead?.startup).toLowerCase() === 'yes' || String(selectedLead?.startup) === '1' || String(selectedLead?.startup).toLowerCase() === 'true') ? 'Yes' : 'No'}
+             </span>
+           </div>
+        </div>
+
+        {/* Vertical Separator */}
+        <div className="h-10 w-px bg-gray-300 shrink-0"></div>
+
+        {/* B. Details Strip (Horizontal Scrollable) */}
+        <div className="flex items-center gap-8 flex-1 overflow-x-auto custom-scrollbar pb-1">
+           
+           {/* 1. Sourcing Date */}
+           <div className="flex flex-col min-w-fit">
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Sourced Date</label>
+              <div className="flex items-center gap-1.5 text-gray-700 font-bold text-xs">
+                 <Calendar size={13} className="text-gray-500 shrink-0"/>
+                 <span className="font-mono">{selectedLead.sourcingDate || 'N/A'}</span>
+              </div>
+           </div>
+
+           {/* 2. Category */}
+           <div className="flex flex-col min-w-fit">
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Category</label>
+              <span className="bg-blue-100 text-[#103c7f] text-[10px] font-bold px-2.5 py-0.5 rounded border border-blue-200 uppercase tracking-wide w-fit">
+                {selectedLead.category || 'General'}
+              </span>
+           </div>
+
+           {/* 3. City / State */}
+           <div className="flex flex-col min-w-fit">
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">City / State</label>
+              <div className="flex items-center gap-1.5 text-gray-700 font-bold text-xs">
+                 <MapPin size={13} className="text-blue-500 shrink-0"/>
+                 <span className="truncate">
+                    {selectedLead.city ? `${selectedLead.city}, ` : ''}{selectedLead.state}
+                 </span>
+              </div>
+           </div>
+
+           {/* 4. Location */}
+           <div className="flex flex-col min-w-fit max-w-[150px]">
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Location</label>
+              <div className="flex items-center gap-1.5 text-gray-700 font-bold text-xs">
+                 <MapPin size={13} className="text-orange-500 shrink-0"/>
+                 <span className="truncate" title={selectedLead.location}>
+                    {selectedLead.location || 'N/A'}
+                 </span>
+              </div>
+           </div>
+
+           {/* 5. Emp Count */}
+           <div className="flex flex-col min-w-fit">
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Employees</label>
+              <div className="flex items-center gap-1.5 text-gray-700 font-bold text-xs">
+                 <Users size={13} className="text-green-600 shrink-0"/>
+                 <span>{selectedLead.empCount || '-'}</span>
+              </div>
+           </div>
+
+           {/* 6. Reference */}
+           <div className="flex flex-col min-w-fit max-w-[120px]">
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Reference</label>
+              <div className="flex items-center gap-1.5 text-gray-700 font-bold text-xs">
+                 <Briefcase size={13} className="text-purple-500 shrink-0"/> 
+                 <span className="truncate" title={selectedLead.reference}>{selectedLead.reference || 'Direct'}</span>
+              </div>
+           </div>
+
+        </div>
+      </div>
+    </div>
 
      {/* 2. INTERACTION HISTORY (Modern Table) */}
      <div className="flex-1 overflow-hidden flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm">

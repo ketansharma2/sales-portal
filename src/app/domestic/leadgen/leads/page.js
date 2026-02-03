@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { 
-  Search, Phone, Filter, X, Save, Plus, Eye, 
-  Calendar, MapPin, ListFilter,ArrowRight,Send,Lock,Edit
+  Search, Phone, Filter, X, Save, Plus, Eye, Briefcase,
+  Calendar, MapPin, ListFilter,ArrowRight,Send,Lock,Edit,Users,LinkIcon
 } from "lucide-react";
 
 export default function LeadsTablePage() {
@@ -40,6 +40,11 @@ export default function LeadsTablePage() {
   });
 
   const [interactions, setInteractions] = useState([]);
+  const [suggestions, setSuggestions] = useState({ persons: [], nos: [], emails: [] });
+
+  const DEFAULT_PAGE_SIZE = 100;
+  const [displayCount, setDisplayCount] = useState(DEFAULT_PAGE_SIZE);
+  const [showAll, setShowAll] = useState(false);
 
   // --- FULL LISTS ---
   const [indianStates, setIndianStates] = useState([]);
@@ -104,6 +109,37 @@ export default function LeadsTablePage() {
     fetchLeads();
   }, []);
 
+  useEffect(() => {
+    // Reset visible display when lead list changes (e.g., new fetch or filters applied)
+    setShowAll(false);
+    setDisplayCount(Math.min(DEFAULT_PAGE_SIZE, leads.length));
+  }, [leads]);
+
+  // Fetch suggestions when adding interaction
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (!selectedLead?.id || modalType !== 'add') return;
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const response = await fetch(`/api/domestic/leadgen/interaction?client_id=${selectedLead.id}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          const persons = [...new Set(data.data.map(i => i.contact_person).filter(Boolean))];
+          const nos = [...new Set(data.data.map(i => i.contact_no).filter(Boolean))];
+          const emails = [...new Set(data.data.map(i => i.email).filter(Boolean))];
+          setSuggestions({ persons, nos, emails });
+        }
+      } catch (error) {
+        console.error('Failed to fetch suggestions');
+      }
+    };
+    fetchSuggestions();
+  }, [selectedLead, modalType]);
+
   // Load states and districts data
   useEffect(() => {
     fetch('/India-State-District.json')
@@ -150,9 +186,10 @@ export default function LeadsTablePage() {
       const isAfterFrom = from ? leadDate >= from : true;
       const isBeforeTo = to ? leadDate <= to : true;
 
-      // 2. Text Matching
-      const matchCompany = lead.company.toLowerCase().includes(newFilters.company.toLowerCase());
-      const matchLocation = (lead.location + lead.state).toLowerCase().includes(newFilters.location.toLowerCase());
+      // 2. Text Matching (company name OR contact person)
+      const query = newFilters.company ? newFilters.company.toLowerCase() : '';
+      const matchCompany = query === '' || ((lead.company || '').toLowerCase().includes(query) || ((lead.contact_person || lead.contactPerson || '').toLowerCase().includes(query)));
+      const matchLocation = ((lead.location || '') + ' ' + (lead.state || '')).toLowerCase().includes(newFilters.location.toLowerCase());
       
       // 3. Dropdown Matching
       const matchStatus = newFilters.status === "All Status" || lead.status === newFilters.status;
@@ -162,6 +199,9 @@ export default function LeadsTablePage() {
     });
 
     setLeads(filtered);
+    // Reset paging when filters change
+    setShowAll(false);
+    setDisplayCount(Math.min(DEFAULT_PAGE_SIZE, filtered.length));
   };
 
   const handleAction = async (lead, type) => {
@@ -310,6 +350,7 @@ export default function LeadsTablePage() {
       console.error('Failed to update lead:', error);
     }
   };
+  const visibleLeads = leads.slice(0, displayCount);
   return (
       <div className="p-2 h-screen flex flex-col font-['Calibri'] bg-gray-50">
       
@@ -317,7 +358,12 @@ export default function LeadsTablePage() {
 <div className="flex justify-between items-center mb-2 px-2 mt-1">
           <div>
           <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight">Leads Database</h1>
-          <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Manage & Track Client Interactions</p>
+          <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">
+            Manage & Track Client Interactions
+            <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200">
+              {leads.length} rows
+            </span>
+          </p>
         </div>
         <button onClick={handleCreateNew} className="bg-[#103c7f] hover:bg-blue-900 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-transform active:scale-95">
            <Plus size={18} /> Add New Lead
@@ -353,7 +399,7 @@ export default function LeadsTablePage() {
 
          {/* Filter 3: Company Name */}
          <div className="col-span-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Company</label>
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Company/Contact Person</label>
             <div className="relative">
               <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
               <input 
@@ -422,7 +468,6 @@ export default function LeadsTablePage() {
       </div>
 
       {/* 3. THE TABLE */}
-      {/* 3. THE TABLE */}
 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex-1 overflow-x-auto overflow-y-auto">
   <table className="w-full table-auto border-collapse text-center">
     
@@ -433,9 +478,10 @@ export default function LeadsTablePage() {
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Company Name</th>
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Category</th>
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">City/State</th>
-        <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Location</th>
-        <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Emp. Count</th>
-        <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Reference</th>
+        
+        {/* NEW COLUMNS */}
+        <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Contact Person</th>
+        <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Contact Info</th>
         
         {/* MERGED COLUMN: Latest Follow-up & Remarks */}
         <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">Latest Interaction</th>
@@ -449,17 +495,17 @@ export default function LeadsTablePage() {
 
     {/* --- BODY --- */}
     <tbody className="divide-y divide-gray-100 text-xs text-gray-700 font-medium">
-   {loading ? (
-     <tr key="loading">
-       <td colSpan="13" className="p-8 text-center text-gray-400 font-bold uppercase tracking-widest">
-         Loading leads...
-       </td>
-     </tr>
-   ) : leads.length > 0 ? (
-    leads.map((lead, index) => {
+    {loading ? (
+      <tr key="loading">
+        <td colSpan="11" className="p-8 text-center text-gray-400 font-bold uppercase tracking-widest">
+          Loading leads...
+        </td>
+      </tr>
+    ) : leads.length > 0 ? (
+      visibleLeads.map((lead, index) => {
 
       // 1. CHECK IF ROW IS LOCKED (Sent to Manager)
-const isLocked = lead.isSubmitted;
+      const isLocked = lead.isSubmitted;
       return (
         <tr
           key={index}
@@ -470,13 +516,27 @@ const isLocked = lead.isSubmitted;
           <td className="px-2 py-2 border-r border-gray-100 font-bold text-[#103c7f]">{lead.company}</td>
           <td className="px-2 py-2 border-r border-gray-100">{lead.category}</td>
           <td className="px-2 py-2 border-r border-gray-100">{lead.district_city ? `${lead.district_city}, ${lead.state}` : lead.state}</td>
-          <td className="px-2 py-2 border-r border-gray-100">{lead.location}</td>
-          <td className="px-2 py-2 border-r border-gray-100">{lead.empCount}</td>
-          <td className="px-2 py-2 border-r border-gray-100">{lead.reference}</td>
+          
+          {/* NEW: Contact Person */}
+          <td className="px-2 py-2 border-r border-gray-100 font-bold text-gray-600">
+            {lead.contact_person || '-'}
+          </td>
+
+          {/* NEW: Contact Info (Phone + Email) */}
+          <td className="px-2 py-2 border-r border-gray-100 text-left">
+             <div className="flex flex-col gap-0.5">
+                <span className="font-mono font-bold text-gray-700 text-[10px] flex items-center gap-1">
+                   {lead.phone ? `📞 ${lead.phone}` : '-'}
+                </span>
+                <span className="text-[9px] text-blue-500 lowercase truncate max-w-[140px]" title={lead.email}>
+                   {lead.email || '-'}
+                </span>
+             </div>
+          </td>
           
           {/* MERGED CELL CONTENT */}
           <td className="px-2 py-2 border-r border-gray-100">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 items-center">
               <span className="font-bold text-[#103c7f] text-[10px] bg-blue-50 px-1.5 rounded w-fit">
                 {lead.latestFollowup}
               </span>
@@ -501,36 +561,34 @@ const isLocked = lead.isSubmitted;
           </td>
           <td className="px-2 py-2 border-r border-gray-100">{lead.subStatus}</td>
           
-         {/* 👉 CHANGE 3: Action Column ko update karein */}
+          {/* ACTION COLUMN */}
           <td className="px-2 py-2 text-center sticky right-0 bg-white group-hover:bg-blue-50/30 border-l border-gray-200 z-10 whitespace-nowrap">
             {isLocked ? (
-               // Agar Locked hai to ye dikhega
                <div className="flex items-center justify-center gap-1 text-gray-400 font-bold text-[10px] bg-gray-50 py-1 px-2 rounded border border-gray-100">
                   <Lock size={12} /> Sent
                </div>
             ) : (
-               // Agar nahi hai to purane buttons dikhenge
                <div className="flex items-center justify-center gap-1">
-  {/* View Button */}
-  <button onClick={() => handleAction(lead, 'view')} className="p-1 text-gray-500 hover:text-[#103c7f] hover:bg-blue-100 rounded tooltip">
-    <Eye size={16} />
-  </button>
+                  {/* View Button */}
+                  <button onClick={() => handleAction(lead, 'view')} className="p-1 text-gray-500 hover:text-[#103c7f] hover:bg-blue-100 rounded tooltip">
+                    <Eye size={16} />
+                  </button>
 
-  {/* 👇 NEW: Edit Button (Orange Theme) */}
-  <button onClick={() => handleAction(lead, 'edit')} className="p-1 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 font-bold shadow-sm">
-    <Edit size={16} />
-  </button>
+                  {/* Edit Button */}
+                  <button onClick={() => handleAction(lead, 'edit')} className="p-1 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 font-bold shadow-sm">
+                    <Edit size={16} />
+                  </button>
 
-  {/* Phone Button */}
-  <button onClick={() => handleAction(lead, 'add')} className="p-1 bg-[#a1db40] text-[#103c7f] rounded hover:bg-[#8cc430] font-bold shadow-sm">
-    <Phone size={16} />
-  </button>
+                  {/* Phone Button */}
+                  <button onClick={() => handleAction(lead, 'add')} className="p-1 bg-[#a1db40] text-[#103c7f] rounded hover:bg-[#8cc430] font-bold shadow-sm">
+                    <Phone size={16} />
+                  </button>
 
-  {/* Send Button */}
-  <button onClick={() => handleAction(lead, 'send_to_manager')} className="p-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 font-bold shadow-sm">
-    <Send size={16} />
-  </button>
-</div>
+                  {/* Send Button */}
+                  <button onClick={() => handleAction(lead, 'send_to_manager')} className="p-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 font-bold shadow-sm">
+                    <Send size={16} />
+                  </button>
+               </div>
             )}
           </td>
 
@@ -539,14 +597,30 @@ const isLocked = lead.isSubmitted;
     })
   ) : (
     <tr key="no-data">
-      <td colSpan="13" className="p-8 text-center text-gray-400 font-bold uppercase tracking-widest">
+      <td colSpan="11" className="p-8 text-center text-gray-400 font-bold uppercase tracking-widest">
         No records match your filters
       </td>
     </tr>
   )}
-</tbody>
+  </tbody>
   </table>
 </div>
+
+{leads.length > DEFAULT_PAGE_SIZE && (
+  <div className="mt-2 flex justify-center">
+    <button onClick={() => {
+        if (showAll) {
+          setDisplayCount(DEFAULT_PAGE_SIZE);
+          setShowAll(false);
+        } else {
+          setDisplayCount(leads.length);
+          setShowAll(true);
+        }
+      }} className="bg-white border border-gray-300 px-4 py-2 rounded-md text-sm font-bold">
+      {showAll ? 'Show Less' : `View More (${leads.length - displayCount} more)`}
+    </button>
+  </div>
+)}
 
       {/* 4. MODAL SYSTEM */}
       {isFormOpen && (
@@ -771,18 +845,86 @@ const isLocked = lead.isSubmitted;
 {modalType === 'view' && (
   <div className="flex flex-col h-full max-h-[80vh] font-['Calibri']">
     
-    {/* 1. HEADER: COMPANY PROFILE (Clean & Minimal) */}
-    <div className="flex items-center gap-5 p-1 mb-6">
+    {/* 1. HEADER: DETAILED COMPANY PROFILE */}
+  {/* 1. HEADER: SINGLE ROW LAYOUT (Refined) */}
+    <div className="bg-gray-50 border-b border-gray-200 p-5">
       
-      {/* Name & Location */}
-      <div>
-        <h2 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight leading-none">
-          {selectedLead.company}
-        </h2>
-        <div className="flex items-center gap-2 mt-1.5 text-gray-500 font-bold text-xs uppercase tracking-wider">
-          <span className="flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-gray-600">
-             <MapPin size={10} /> {selectedLead.location}, {selectedLead.state}
-          </span>
+      <div className="flex items-center gap-8">
+        
+        {/* A. Company Name Block */}
+        <div className="shrink-0 min-w-[220px]">
+           <h2 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight leading-none truncate" title={selectedLead.company}>
+             {selectedLead.company}
+           </h2>
+           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1.5 block">
+             Company Profile
+           </span>
+        </div>
+
+        {/* Vertical Separator */}
+        <div className="h-10 w-px bg-gray-300 shrink-0"></div>
+
+        {/* B. Details Strip (Horizontal) */}
+        <div className="flex items-center justify-start gap-10 flex-1 overflow-x-auto custom-scrollbar pb-1">
+           
+           {/* 1. Category */}
+           <div className="flex flex-col min-w-fit">
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Category</label>
+              <span className="bg-blue-100 text-[#103c7f] text-[10px] font-bold px-2.5 py-0.5 rounded border border-blue-200 uppercase tracking-wide w-fit">
+                {selectedLead.category || 'General'}
+              </span>
+           </div>
+
+           {/* 2. City & State (Combined) */}
+           <div className="flex flex-col min-w-fit">
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">City / State</label>
+              <div className="flex items-center gap-1.5 text-gray-700 font-bold text-xs">
+                 <MapPin size={13} className="text-blue-500 shrink-0"/>
+                 {/* Logic handles if City exists or just State */}
+                 <span className="truncate">
+                    {selectedLead.city ? `${selectedLead.city}, ` : ''}{selectedLead.state}
+                 </span>
+              </div>
+           </div>
+
+           {/* 3. Location (Specific Area) */}
+           <div className="flex flex-col min-w-fit max-w-[200px]">
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Location</label>
+              <div className="flex items-center gap-1.5 text-gray-700 font-bold text-xs">
+                 <MapPin size={13} className="text-orange-500 shrink-0"/>
+                 <span className="truncate" title={selectedLead.location}>
+                    {selectedLead.location || 'N/A'}
+                 </span>
+              </div>
+           </div>
+
+           {/* 4. Sourced Date */}
+           <div className="flex flex-col min-w-fit">
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Sourced Date</label>
+              <div className="flex items-center gap-1.5 text-gray-700 font-bold text-xs">
+                 <Calendar size={13} className="text-gray-500 shrink-0"/>
+                 <span className="font-mono">{selectedLead.sourcingDate || 'N/A'}</span>
+              </div>
+           </div>
+
+           {/* 5. Emp Count */}
+           <div className="flex flex-col min-w-fit">
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Employees</label>
+              <div className="flex items-center gap-1.5 text-gray-700 font-bold text-xs">
+                 <Users size={13} className="text-green-600 shrink-0"/>
+                 <span>{selectedLead.empCount || '-'}</span>
+              </div>
+           </div>
+
+           {/* 6. Reference */}
+           <div className="flex flex-col min-w-fit max-w-[150px]">
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Reference</label>
+              <div className="flex items-center gap-1.5 text-gray-700 font-bold text-xs">
+                 <Briefcase size={13} className="text-purple-500 shrink-0"/> 
+                 <span className="truncate" title={selectedLead.reference}>{selectedLead.reference || 'Direct'}</span>
+              </div>
+           </div>
+
         </div>
       </div>
     </div>
@@ -868,9 +1010,6 @@ const isLocked = lead.isSubmitted;
 {modalType === 'send_to_manager' && (
   <div className="flex flex-col items-center justify-center py-2 px-2 text-center">
      
-    
-
-     {/* 2. Heading */}
      
 
      {/* 3. Text Data */}
