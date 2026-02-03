@@ -20,10 +20,10 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
     }
 
-    // Fetch leads from corporate_leadgen_leads table
+    // Fetch all leads for the user
     const { data: leadsData, error: leadsError } = await supabaseServer
       .from('corporate_leadgen_leads')
-      .select('*')
+      .select('startup, sent_to_sm')
       .eq('leadgen_id', user.id);
 
     if (leadsError) {
@@ -31,26 +31,33 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: leadsError.message }, { status: 500 });
     }
 
-    // Count total leads
-    const totalLeads = leadsData?.length || 0;
-    
-    // Count startup leads (handle both boolean true and string "YES"/"yes")
-    const startupLeads = leadsData?.filter(lead => 
-      lead.startup === true || 
+    // Filter leads where sent_to_sm is true (case insensitive - boolean or string)
+    const sentToManagerLeads = (leadsData || []).filter(lead => {
+      const sentToSm = lead.sent_to_sm;
+      return sentToSm === true ||
+             String(sentToSm).toLowerCase() === 'true' ||
+             String(sentToSm).toLowerCase() === 'yes' ||
+             String(sentToSm) === '1';
+    });
+
+    // Count total and startups
+    const totalSentToManager = sentToManagerLeads.length;
+    const startupSentToManager = sentToManagerLeads.filter(lead =>
+      lead.startup === true ||
       String(lead.startup).toLowerCase() === 'yes' ||
       String(lead.startup) === '1' ||
       String(lead.startup).toLowerCase() === 'true'
-    ).length || 0;
+    ).length;
 
     return NextResponse.json({
       success: true,
       data: {
-        searched: { total: totalLeads, startup: startupLeads }
+        sentToManager: { total: totalSentToManager, startup: startupSentToManager }
       }
     });
 
   } catch (error) {
-    console.error('Leads count API error:', error);
+    console.error('Sent to manager count API error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

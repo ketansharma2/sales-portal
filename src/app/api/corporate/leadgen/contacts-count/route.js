@@ -31,27 +31,33 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: interactionsError.message }, { status: 500 });
     }
 
-    // Count total interactions
-    const totalInteractions = interactionsData?.length || 0;
+    // Count unique contact persons
+    const uniqueContactPersons = new Set(interactionsData?.map(i => i.contact_person).filter(cp => cp));
+    const totalContacts = uniqueContactPersons.size;
 
-    // Count startup interactions (handle both boolean and string)
-    const startupInteractions = interactionsData?.filter(i => {
-      const startup = i.corporate_leadgen_leads?.startup;
-      return startup === true || 
-             String(startup).toLowerCase() === 'yes' ||
-             String(startup) === '1' ||
-             String(startup).toLowerCase() === 'true';
-    }).length || 0;
+    // Count startup contacts (unique contact persons from startup companies - handle both boolean and string)
+    const startupContactPersons = new Set(
+      interactionsData
+        ?.filter(i => {
+          const startup = i.corporate_leadgen_leads?.startup;
+          return startup === true || 
+                 String(startup).toLowerCase() === 'yes' ||
+                 String(startup) === '1' ||
+                 String(startup).toLowerCase() === 'true';
+        })
+        ?.map(i => i.contact_person)
+    );
+    const startupContacts = startupContactPersons.size;
 
     return NextResponse.json({
       success: true,
       data: {
-        calls: { total: totalInteractions, startup: startupInteractions }
+        contacts: { total: totalContacts, startup: startupContacts }
       }
     });
 
   } catch (error) {
-    console.error('Interactions count API error:', error);
+    console.error('Contacts count API error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

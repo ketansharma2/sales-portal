@@ -153,55 +153,97 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Fetch leads for the user
-    const { data: leadsData, error: leadsError } = await supabaseServer
-      .from('corporate_leadgen_leads')
-      .select('*')
-      .eq('leadgen_id', user.id)
-      .order('created_at', { ascending: false })
+    // Use a single optimized query with LEFT JOIN and ROW_NUMBER to get latest interaction for all leads at once
+    const { data: formattedLeads, error: queryError } = await supabaseServer
+      .rpc('get_corporate_leads_with_latest_interaction', { 
+        leadgen_user_id: user.id 
+      })
 
-    if (leadsError) {
-      console.error('Leads fetch error:', leadsError)
-      return NextResponse.json({
-        error: 'Failed to fetch leads',
-        details: leadsError.message
-      }, { status: 500 })
-    }
-
-    // Format the data to match the expected structure with latest interaction
-    const formattedLeads = await Promise.all(leadsData?.map(async (lead) => {
-      const { data: latestInteraction } = await supabaseServer
-        .from('corporate_leads_interaction')
-        .select('*')
-        .eq('client_id', lead.client_id)
+    // If RPC function doesn't exist, use raw SQL query as fallback
+    if (queryError) {
+      const { data: rawData, error: rawError } = await supabaseServer
+        .from('corporate_leadgen_leads')
+        .select(`
+          client_id,
+          company,
+          category,
+          state,
+          location,
+          district_city,
+          emp_count,
+          reference,
+          startup,
+          sourcing_date,
+          sent_to_sm,
+          created_at,
+          corporate_leads_interaction!left (
+            id,
+            date,
+            status,
+            sub_status,
+            remarks,
+            next_follow_up,
+            contact_person,
+            contact_no,
+            email,
+            franchise_status,
+            created_at
+          )
+        `)
+        .eq('leadgen_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
 
-      return {
-        id: lead.client_id,
-        sourcingDate: lead.sourcing_date,
-        company: lead.company,
-        category: lead.category,
-        state: lead.state,
-        location: lead.location,
-        district_city: lead.district_city || '',
-        empCount: lead.emp_count,
-        reference: lead.reference,
-        startup: lead.startup,
-        status: latestInteraction?.status || 'New', // Status from latest interaction
-        subStatus: latestInteraction?.sub_status || 'New Lead', // Sub-status from latest interaction
-        franchiseStatus: latestInteraction?.franchise_status || '', // Franchise status from latest interaction
-        latestFollowup: (latestInteraction && latestInteraction.date) ? new Date(latestInteraction.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : 'N/A',
-        remarks: latestInteraction?.remarks || '',
-        nextFollowup: latestInteraction?.next_follow_up ? new Date(latestInteraction.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : 'N/A',
-        isSubmitted: lead.sent_to_sm || false
+      if (rawError) {
+        console.error('Leads fetch error:', rawError)
+        return NextResponse.json({
+          error: 'Failed to fetch leads',
+          details: rawError.message
+        }, { status: 500 })
       }
-    }) || [])
+
+      // Format the data - now with contact_person, contact_no, email from latest interaction
+      const formattedLeads = rawData?.map((lead) => {
+        const latestInteraction = lead.corporate_leads_interaction?.[0] || null
+        
+        return {
+          id: lead.client_id,
+          sourcingDate: lead.sourcing_date,
+          company: lead.company,
+          category: lead.category,
+          state: lead.state,
+          location: lead.location,
+          district_city: lead.district_city || '',
+          empCount: lead.emp_count,
+          reference: lead.reference,
+          startup: lead.startup,
+          status: latestInteraction?.status || 'New',
+          subStatus: latestInteraction?.sub_status || 'New Lead',
+          franchiseStatus: latestInteraction?.franchise_status || '',
+          latestFollowup: (latestInteraction && latestInteraction.date) 
+            ? new Date(latestInteraction.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) 
+            : 'N/A',
+          remarks: latestInteraction?.remarks || '',
+          nextFollowup: latestInteraction?.next_follow_up 
+            ? new Date(latestInteraction.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) 
+            : 'N/A',
+          // NEW: Contact info from latest interaction
+          contact_person: latestInteraction?.contact_person || '',
+          contact_no: latestInteraction?.contact_no || latestInteraction?.phone || '',
+          email: latestInteraction?.email || '',
+          phone: latestInteraction?.contact_no || latestInteraction?.phone || '',
+          isSubmitted: lead.sent_to_sm || false
+        }
+      }) || []
+
+      return NextResponse.json({
+        success: true,
+        data: formattedLeads
+      })
+    }
 
     return NextResponse.json({
       success: true,
-      data: formattedLeads
+      data: formattedLeads || []
     })
 
   } catch (error) {

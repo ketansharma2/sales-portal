@@ -20,8 +20,7 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
     }
 
-    // Get leads owned by this user, with their latest interaction
-    // Same logic as leads page API
+    // Get leads owned by this user, with their interactions
     const { data: rawData, error: queryError } = await supabase
       .from('corporate_leadgen_leads')
       .select(`
@@ -30,14 +29,7 @@ export async function GET(request) {
         corporate_leads_interaction!left (
           id,
           date,
-          status,
           sub_status,
-          remarks,
-          next_follow_up,
-          contact_person,
-          contact_no,
-          email,
-          franchise_status,
           created_at
         )
       `)
@@ -49,7 +41,7 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: queryError.message }, { status: 500 });
     }
 
-    // Find latest interaction for each client_id (same logic as leads page)
+    // Find latest interaction for each client (same logic as leads page)
     const latestInteractionsMap = new Map();
     rawData?.forEach(lead => {
       const interaction = lead.corporate_leads_interaction?.[0] || null;
@@ -64,15 +56,15 @@ export async function GET(request) {
       }
     });
 
-    // Count companies where latest interaction status = 'Interested' (case insensitive, exact match)
+    // Count clients where latest interaction sub_status = 'Contract Share' (case insensitive)
     const latestInteractions = Array.from(latestInteractionsMap.values());
-    const interestedLatest = latestInteractions.filter(i =>
-      String(i.status).trim().toLowerCase() === 'interested'
+    const contractLatest = latestInteractions.filter(i =>
+      String(i.sub_status).trim().toLowerCase() === 'contract share'
     );
-    const totalInterested = interestedLatest.length;
+    const totalContract = contractLatest.length;
 
     // Count startup companies
-    const startupInterested = interestedLatest.filter(i => {
+    const startupContract = contractLatest.filter(i => {
       const startup = i.startup;
       return startup === true || 
              String(startup).toLowerCase() === 'yes' ||
@@ -83,12 +75,12 @@ export async function GET(request) {
     return NextResponse.json({
       success: true,
       data: {
-        interested: { total: totalInterested, startup: startupInterested }
+        contract: { total: totalContract, startup: startupContract }
       }
     });
 
   } catch (error) {
-    console.error('Interested count API error:', error);
+    console.error('Contract count API error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

@@ -17,7 +17,34 @@ export async function POST(request) {
     const body = await request.json()
     const { client_id } = body
 
-    // Validate required fields
+    // Get manager name (works with or without client_id)
+    let managerName = 'Manager'
+    const { data: userProfile, error: profileError } = await supabaseServer
+      .from('users')
+      .select('manager_id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!profileError && userProfile?.manager_id) {
+      const { data: manager, error: managerError } = await supabaseServer
+        .from('users')
+        .select('name')
+        .eq('user_id', userProfile.manager_id)
+        .single()
+      if (!managerError && manager?.name) {
+        managerName = manager.name
+      }
+    }
+
+    // If client_id is 0 or not provided, just return manager info
+    if (!client_id || client_id === 0) {
+      return NextResponse.json({
+        success: true,
+        data: { managerName }
+      })
+    }
+
+    // Validate required fields for sending lead
     if (!client_id) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 })
     }
@@ -46,7 +73,10 @@ export async function POST(request) {
 
     return NextResponse.json({
       success: true,
-      data: updatedLead
+      data: {
+        ...updatedLead,
+        managerName
+      }
     })
 
   } catch (error) {

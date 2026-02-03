@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { 
   Database, Phone, CheckCircle, Clock, Calendar,
-  ArrowRight, Target, Zap, PhoneOutgoing,
+  ArrowRight, Zap, PhoneOutgoing,
   TrendingUp, Bell, UserCheck, XCircle, FileText, Briefcase, Award,Send,
   Rocket, ChevronDown, Filter
 } from "lucide-react";
@@ -11,8 +11,8 @@ import {
 export default function LeadGenHome() {
   
   // --- STATE ---
-  const [fromDate, setFromDate] = useState(new Date().toISOString().split('T')[0]);
-  const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   
   // Filter Dropdown State
   const [activeDropdown, setActiveDropdown] = useState(null); // 'year', 'month', 'week' or null
@@ -32,12 +32,10 @@ export default function LeadGenHome() {
     onboarded: { total: 0, startup: 0 },
     interested: { total: 0, startup: 0 },
 
-    performance: 0, 
-
     franchise: {
         discussed: { total: 0, startup: 0 },
         formShared: { total: 0, startup: 0 },
-        accepted: { total: 0, startup: 0 } // 
+        accepted: { total: 0, startup: 0 } //
     }
   });
 
@@ -144,54 +142,110 @@ export default function LeadGenHome() {
     fetchFollowUps();
   }, [fromDate, toDate]);
 
- const fetchDashboardData = async () => {
-    // Simulate API Call
-    setTimeout(() => {
+  const fetchDashboardData = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+
+      // Fetch all KPI data in parallel
+      const [searchedRes, contactsRes, callsRes, notPickedRes,
+              contractRes, onboardedRes, interestedRes, franchiseDiscussedRes,
+              franchiseFormSharedRes, franchiseAcceptedRes, sentToManagerRes] = await Promise.all([
+        fetch('/api/corporate/leadgen/leads-count', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        }),
+        fetch('/api/corporate/leadgen/contacts-count', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        }),
+        fetch('/api/corporate/leadgen/interactions-count', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        }),
+        fetch('/api/corporate/leadgen/not-picked-count', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        }),
+        fetch('/api/corporate/leadgen/contract-count', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        }),
+        fetch('/api/corporate/leadgen/onboarded', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        }),
+        fetch('/api/corporate/leadgen/interested-count', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        }),
+        fetch('/api/corporate/leadgen/franchise-discussed', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        }),
+        fetch('/api/corporate/leadgen/franchise-form-shared', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        }),
+        fetch('/api/corporate/leadgen/franchise-accepted', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        }),
+        fetch('/api/corporate/leadgen/sent-to-manager-count', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        }),
+      ]);
+
+      // Parse all responses
+      const [searchedData, contactsData, callsData, notPickedData,
+              contractData, onboardedData, interestedData, franchiseDiscussedData,
+              franchiseFormSharedData, franchiseAcceptedData, sentToManagerData] = await Promise.all([
+        searchedRes.json(),
+        contactsRes.json(),
+        callsRes.json(),
+        notPickedRes.json(),
+        contractRes.json(),
+        onboardedRes.json(),
+        interestedRes.json(),
+        franchiseDiscussedRes.json(),
+        franchiseFormSharedRes.json(),
+        franchiseAcceptedRes.json(),
+        sentToManagerRes.json(),
+      ]);
+
+      // Set KPI data from responses
       setKpiData({
-        searched: { total: 150, startup: 40 },
-        contacts: { total: 120, startup: 30 },
-        calls: { total: 200, startup: 50 },
-        picked: { total: 110, startup: 25 },
-        notPicked: { total: 90, startup: 25 },
-        contract: { total: 20, startup: 5 },
-        sentToManager: { total: 12, startup: 4 },
-        onboarded: { total: 8, startup: 2 },
-        interested: { total: 15, startup: 5 },
-        
-        performance: 78,
+        searched: { total: searchedData.data?.searched?.total || 0, startup: searchedData.data?.searched?.startup || 0 },
+        contacts: { total: contactsData.data?.contacts?.total || 0, startup: contactsData.data?.contacts?.startup || 0 },
+        calls: { total: callsData.data?.calls?.total || 0, startup: callsData.data?.calls?.startup || 0 },
+        picked: {
+          total: (callsData.data?.calls?.total || 0) - (notPickedData.data?.notPicked?.total || 0),
+          startup: (callsData.data?.calls?.startup || 0) - (notPickedData.data?.notPicked?.startup || 0)
+        },
+        notPicked: { total: notPickedData.data?.notPicked?.total || 0, startup: notPickedData.data?.notPicked?.startup || 0 },
+        contract: { total: contractData.data?.contract?.total || 0, startup: contractData.data?.contract?.startup || 0 },
+        sentToManager: { total: sentToManagerData.data?.sentToManager?.total || 0, startup: sentToManagerData.data?.sentToManager?.startup || 0 },
+        onboarded: { total: onboardedData.data?.onboarded?.total || 0, startup: onboardedData.data?.onboarded?.startup || 0 },
+        interested: { total: interestedData.data?.interested?.total || 0, startup: interestedData.data?.interested?.startup || 0 },
 
         franchise: {
-            discussed: { total: 12, startup: 3 },
-            formShared: { total: 4, startup: 1 },
-            accepted: { total: 1, startup: 0 } // 👈 YE BHI UPDATE KAREIN
+          discussed: { total: franchiseDiscussedData.data?.discussed?.total || 0, startup: franchiseDiscussedData.data?.discussed?.startup || 0 },
+          formShared: { total: franchiseFormSharedData.data?.formShared?.total || 0, startup: franchiseFormSharedData.data?.formShared?.startup || 0 },
+          accepted: { total: franchiseAcceptedData.data?.accepted?.total || 0, startup: franchiseAcceptedData.data?.accepted?.startup || 0 }
         }
       });
-    }, 500);
+    } catch (error) {
+      console.error('Dashboard API error:', error);
+    }
   };
   const fetchFollowUps = async () => {
-    // API call simulation
-    // Ensure 'contact_person' is present in each object
-    setFollowUps([
-      { 
-        id: 1, 
-        company: "Tech Solutions", 
-        contact_person: "Rahul Sharma", // Added Name
-        remark: "Interested in incubation", 
-      },
-      { 
-        id: 2, 
-        company: "Alpha Traders", 
-        contact_person: "Amit Verma", // Added Name
-        remark: "Contract negotiation", 
-      },
-      { 
-        id: 3, 
-        company: "NextGen Foods", 
-        contact_person: "Priya Singh", // Added Name
-        remark: "Call back for funding", 
-      },
-    ]);
-  };
+  try {
+    const session = JSON.parse(localStorage.getItem('session') || '{}');
+    const response = await fetch('/api/corporate/leadgen/today-followups', {
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`
+      }
+    });
+    const data = await response.json();
+    if (data.success) {
+      setFollowUps(data.data);
+    } else {
+      setFollowUps([]);
+    }
+  } catch (error) {
+    console.error('Failed to fetch follow-ups:', error);
+    setFollowUps([]);
+  }
+};;
   return (
     <div className="flex h-screen bg-[#f8fafc] overflow-hidden font-['Calibri'] text-slate-800">
       
@@ -293,57 +347,37 @@ export default function LeadGenHome() {
                <CheckCircle size={14} /> Success Metrics
             </h4>
             
-            {/* Changed to grid-cols-4 to fit Performance Card */}
-            <div className="grid grid-cols-4 gap-3">
-                
-                {/* 1. Onboarded */}
-                <BigSuccessCard 
-                    title="Total Onboarded" 
-                    total={kpiData.onboarded.total} 
-                    startup={kpiData.onboarded.startup} 
-                    icon={<Briefcase size={20}/>} 
-                    color="teal"
-                />
+             <div className="grid grid-cols-3 gap-3">
 
-                {/* 2. Interested */}
-                <BigSuccessCard 
-                    title="Interested Pipeline" 
-                    total={kpiData.interested.total} 
-                    startup={kpiData.interested.startup} 
-                    icon={<TrendingUp size={20}/>} 
-                    color="blue"
-                />
+                 {/* 1. Onboarded */}
+                 <BigSuccessCard
+                     title="Total Onboarded"
+                     total={kpiData.onboarded.total}
+                     startup={kpiData.onboarded.startup}
+                     icon={<Briefcase size={20}/>}
+                     color="teal"
+                 />
 
-                {/* 3. Franchise Accepted */}
-                <BigSuccessCard 
-                    title="Franchise Accepted" 
-                    total={kpiData.franchise.accepted.total} 
-                    startup={kpiData.franchise.accepted.startup} 
-                    icon={<Award size={20}/>} 
-                    color="green"
-                    isFranchise={true} 
-                />
+                 {/* 2. Interested */}
+                 <BigSuccessCard
+                     title="Interested Pipeline"
+                     total={kpiData.interested.total}
+                     startup={kpiData.interested.startup}
+                     icon={<TrendingUp size={20}/>}
+                     color="blue"
+                 />
 
-                {/* 4. Performance Card (Moved Here) */}
-                <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-all h-full">
-                   <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100 shrink-0"><Target size={18}/></div>
-                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider leading-tight">Performance</span>
-                   </div>
-                   
-                   <div className="flex flex-col justify-end h-full pb-1">
-                      <div className="flex items-end gap-2 mb-1.5">
-                          <h3 className="text-2xl font-black text-slate-800 leading-none ml-1">{kpiData.performance}%</h3>
-                          <span className="text-[9px] font-bold text-indigo-500 mb-0.5">of Monthly Goal</span>
-                      </div>
-                      {/* Progress Bar */}
-                      <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-indigo-500 rounded-full" style={{width: `${Math.min(kpiData.performance, 100)}%`}}></div>
-                      </div>
-                   </div>
-                </div>
+                  {/* 3. Form Filled */}
+                  <BigSuccessCard
+                      title="Franchise Accepted"
+                      total={kpiData.franchise.accepted.total}
+                      startup={kpiData.franchise.accepted.startup}
+                      icon={<Award size={20}/>}
+                      color="green"
+                      isFranchise={true}
+                  />
 
-            </div>
+             </div>
           </div>
 
          {/* ---------------- ROW 2: COMBINED PIPELINE & OPERATIONS ---------------- */}
@@ -362,9 +396,9 @@ export default function LeadGenHome() {
               <KpiCard title="Total Calls" total={kpiData.calls.total} startup={kpiData.calls.startup} icon={<Phone size={18}/>} color="purple" />
 
               {/* --- Row 2 --- */}
-              <KpiCard title="Calls Picked" total={kpiData.picked.total} startup={kpiData.picked.startup} icon={<PhoneOutgoing size={18}/>} color="green" />
-              <KpiCard title="Not Picked" total={kpiData.notPicked.total} startup={kpiData.notPicked.startup} icon={<XCircle size={18}/>} color="red" />
-              <KpiCard title="Contracts Shared" total={kpiData.contract.total} startup={kpiData.contract.startup} icon={<FileText size={18}/>} color="orange" />
+                <KpiCard title="Calls Picked" total={kpiData.picked.total} startup={kpiData.picked.startup} icon={<PhoneOutgoing size={18}/>} color="green" />
+                <KpiCard title="Not Picked" total={kpiData.notPicked.total} startup={kpiData.notPicked.startup} icon={<XCircle size={18}/>} color="red" />
+                <KpiCard title="Contracts Share" total={kpiData.contract.total} startup={kpiData.contract.startup} icon={<FileText size={18}/>} color="orange" />
               
               {/* --- Row 3 --- */}
               <KpiCard title="Franchise Discussed" total={kpiData.franchise.discussed.total} startup={kpiData.franchise.discussed.startup} icon={<Phone size={18}/>} color="purple" />
@@ -514,20 +548,16 @@ function KpiCard({ title, total, startup, icon, color }) {
                 {/* Total Count */}
                 <h3 className="text-2xl font-black text-slate-800 leading-none ml-1">{total}</h3>
                 
-                {/* Startup Breakdown Section */}
-                {startup > 0 && (
-                    <div className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-lg px-2 py-1">
-                        <div className="flex items-center gap-1.5">
-                            <div className="bg-white p-0.5 rounded-full shadow-sm">
-                                <Rocket size={8} className="text-orange-600"/>
-                            </div>
-                            <span className="text-[9px] font-bold text-orange-700 uppercase tracking-tight">Startup</span>
-                        </div>
-                        <span className="text-xs font-black text-orange-600">{startup}</span>
-                    </div>
-                )}
-                {/* Placeholder to keep height consistent if no startup data */}
-                {startup === 0 && <div className="h-[26px]"></div>}
+                 {/* Startup Breakdown Section (Always Visible) */}
+                 <div className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-lg px-2 py-1">
+                     <div className="flex items-center gap-1.5">
+                         <div className="bg-white p-0.5 rounded-full shadow-sm">
+                             <Rocket size={8} className="text-orange-600"/>
+                         </div>
+                         <span className="text-[9px] font-bold text-orange-700 uppercase tracking-tight">Startup</span>
+                     </div>
+                     <span className="text-xs font-black text-orange-600">{startup}</span>
+                 </div>
             </div>
         </div>
     );
