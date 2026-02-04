@@ -31,14 +31,28 @@ export async function GET(request) {
       );
     }
 
+    /* ---------------- DATE PARAMS ---------------- */
+    const { searchParams } = new URL(request.url);
+    const fromDate = searchParams.get('fromDate');
+    const toDate = searchParams.get('toDate');
+
     /* ---------------- FETCH DATA ---------------- */
-    const { data: interactionsData, error } = await supabaseServer
+    let query = supabaseServer
       .from('corporate_leads_interaction')
       .select(`
         *,
         corporate_leadgen_leads!inner(startup)
       `)
       .eq('leadgen_id', user.id);
+
+    // Add date filtering if provided
+    if (fromDate && toDate) {
+      query = query
+        .gte('date', fromDate)
+        .lte('date', toDate);
+    }
+
+    const { data: interactionsData, error } = await query;
 
     if (error) {
       console.error('Fetch error:', error);

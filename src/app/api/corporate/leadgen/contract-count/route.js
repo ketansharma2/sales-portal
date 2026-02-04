@@ -20,7 +20,12 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
     }
 
-    // Get leads owned by this user, with their interactions
+    // Get date range from query params
+    const { searchParams } = new URL(request.url);
+    const fromDate = searchParams.get('fromDate');
+    const toDate = searchParams.get('toDate');
+
+    // Get all leads with their interactions
     const { data: rawData, error: queryError } = await supabase
       .from('corporate_leadgen_leads')
       .select(`
@@ -41,9 +46,24 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: queryError.message }, { status: 500 });
     }
 
-    // Find latest interaction for each client (same logic as leads page)
+    // Filter leads based on date range if provided
+    let leadsToConsider = rawData || [];
+    if (fromDate && toDate) {
+      // Get client_ids that have interactions in the date range
+      const { data: interactionsInRange } = await supabase
+        .from('corporate_leads_interaction')
+        .select('client_id')
+        .eq('leadgen_id', user.id)
+        .gte('date', fromDate)
+        .lte('date', toDate);
+      
+      const clientIdsInRange = new Set(interactionsInRange?.map(i => i.client_id) || []);
+      leadsToConsider = (rawData || []).filter(lead => clientIdsInRange.has(lead.client_id));
+    }
+
+    // Find latest interaction for each client
     const latestInteractionsMap = new Map();
-    rawData?.forEach(lead => {
+    leadsToConsider.forEach(lead => {
       const interaction = lead.corporate_leads_interaction?.[0] || null;
       if (interaction) {
         const existing = latestInteractionsMap.get(lead.client_id);
@@ -56,7 +76,7 @@ export async function GET(request) {
       }
     });
 
-    // Count clients where latest interaction sub_status = 'Contract Share' (case insensitive)
+    // Count clients where latest interaction sub_status = 'Contract Share'
     const latestInteractions = Array.from(latestInteractionsMap.values());
     const contractLatest = latestInteractions.filter(i =>
       String(i.sub_status).trim().toLowerCase() === 'contract share'

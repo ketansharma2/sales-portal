@@ -13,6 +13,9 @@ export default function LeadGenHome() {
   // --- STATE ---
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [isAllData, setIsAllData] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [latestInteractionDate, setLatestInteractionDate] = useState(null);
   
   // Filter Dropdown State
   const [activeDropdown, setActiveDropdown] = useState(null); // 'year', 'month', 'week' or null
@@ -128,6 +131,7 @@ export default function LeadGenHome() {
         start = '2024-01-01'; // Static start
         end = new Date().toISOString().split('T')[0];
         setSelectedLabel('All Data');
+        setIsAllData(true);
     }
 
     setFromDate(start);
@@ -136,51 +140,101 @@ export default function LeadGenHome() {
   };
 
 
-  // --- FETCH DATA ---
+  // Fetch latest interaction date on mount
   useEffect(() => {
-    fetchDashboardData();
-    fetchFollowUps();
-  }, [fromDate, toDate]);
+    const fetchLatestInteractionDate = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const response = await fetch('/api/corporate/leadgen/latest-interaction-date', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        });
+        const data = await response.json();
+        if (data.success && data.rawDate) {
+          setLatestInteractionDate(data.rawDate);
+          setFromDate(data.rawDate);
+          setToDate(data.rawDate);
+          setSelectedLabel(`Latest: ${data.latestDate}`);
+        } else {
+          // Fallback: use today's date if no interaction data
+          const today = new Date().toISOString().split('T')[0];
+          setLatestInteractionDate(today);
+          setFromDate(today);
+          setToDate(today);
+          setSelectedLabel('Today');
+        }
+        setIsInitialLoading(false);
+      } catch (error) {
+        console.error('Failed to fetch latest interaction date:', error);
+        // Fallback: use today's date
+        const today = new Date().toISOString().split('T')[0];
+        setLatestInteractionDate(today);
+        setFromDate(today);
+        setToDate(today);
+        setSelectedLabel('Today');
+        setIsInitialLoading(false);
+      }
+    };
+    
+    fetchLatestInteractionDate();
+  }, []);
+
+  // Fetch dashboard data when dates change
+  useEffect(() => {
+    if (!isInitialLoading) {
+      fetchDashboardData();
+      fetchFollowUps();
+    }
+  }, [fromDate, toDate, isAllData, isInitialLoading]);
 
   const fetchDashboardData = async () => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
+      
+      // Build query params
+      const params = new URLSearchParams();
+      // Only add date params when NOT "All" mode
+      if (!isAllData && fromDate && toDate) {
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      }
+
+      const queryString = params.toString();
 
       // Fetch all KPI data in parallel
       const [searchedRes, contactsRes, callsRes, notPickedRes,
               contractRes, onboardedRes, interestedRes, franchiseDiscussedRes,
               franchiseFormSharedRes, franchiseAcceptedRes, sentToManagerRes] = await Promise.all([
-        fetch('/api/corporate/leadgen/leads-count', {
+        fetch(`/api/corporate/leadgen/leads-count${queryString ? '?' + queryString : ''}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         }),
-        fetch('/api/corporate/leadgen/contacts-count', {
+        fetch(`/api/corporate/leadgen/contacts-count${queryString ? '?' + queryString : ''}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         }),
-        fetch('/api/corporate/leadgen/interactions-count', {
+        fetch(`/api/corporate/leadgen/interactions-count${queryString ? '?' + queryString : ''}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         }),
-        fetch('/api/corporate/leadgen/not-picked-count', {
+        fetch(`/api/corporate/leadgen/not-picked-count${queryString ? '?' + queryString : ''}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         }),
-        fetch('/api/corporate/leadgen/contract-count', {
+        fetch(`/api/corporate/leadgen/contract-count${queryString ? '?' + queryString : ''}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         }),
-        fetch('/api/corporate/leadgen/onboarded', {
+        fetch(`/api/corporate/leadgen/onboarded${queryString ? '?' + queryString : ''}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         }),
-        fetch('/api/corporate/leadgen/interested-count', {
+        fetch(`/api/corporate/leadgen/interested-count${queryString ? '?' + queryString : ''}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         }),
-        fetch('/api/corporate/leadgen/franchise-discussed', {
+        fetch(`/api/corporate/leadgen/franchise-discussed${queryString ? '?' + queryString : ''}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         }),
-        fetch('/api/corporate/leadgen/franchise-form-shared', {
+        fetch(`/api/corporate/leadgen/franchise-form-shared${queryString ? '?' + queryString : ''}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         }),
-        fetch('/api/corporate/leadgen/franchise-accepted', {
+        fetch(`/api/corporate/leadgen/franchise-accepted${queryString ? '?' + queryString : ''}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         }),
-        fetch('/api/corporate/leadgen/sent-to-manager-count', {
+        fetch(`/api/corporate/leadgen/sent-to-manager-count${queryString ? '?' + queryString : ''}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         }),
       ]);
@@ -254,12 +308,18 @@ export default function LeadGenHome() {
         
         {/* HEADER & FILTERS */}
         <div className="bg-white px-6 py-2 border-b border-gray-200 sticky top-0 z-10 shadow-sm flex flex-col md:flex-row justify-between items-center gap-3">
-          <div>
+          <div className="flex items-center gap-4">
             <h1 className="text-2xl font-black text-[#103c7f] tracking-tight uppercase italic">Lead Dashboard</h1>
           </div>
           
-          {/* RIGHT SIDE FILTERS */}
-          <div className="flex items-center gap-4" ref={wrapperRef}>
+          {/* RIGHT SIDE - LATEST DATE BADGE & FILTERS */}
+          <div className="flex items-center gap-4">
+            {latestInteractionDate && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 border border-orange-200 rounded-lg">
+                <Clock size={12} className="text-orange-500" />
+                <span className="text-xs font-bold text-orange-700">Latest Date : {latestInteractionDate}</span>
+              </div>
+            )}
               
               {/* Quick Filters Group */}
               <div className="flex bg-gray-100 p-1 rounded-lg relative">

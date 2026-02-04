@@ -20,11 +20,25 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
     }
 
+  // Get date range from query params
+    const { searchParams } = new URL(request.url);
+    const fromDate = searchParams.get('fromDate');
+    const toDate = searchParams.get('toDate');
+
     // Fetch interactions with leads data
-    const { data: interactionsData, error: interactionsError } = await supabaseServer
+    let query = supabaseServer
       .from('corporate_leads_interaction')
       .select('*, corporate_leadgen_leads!inner(startup)')
       .eq('leadgen_id', user.id);
+
+    // Add date filtering if provided
+    if (fromDate && toDate) {
+      query = query
+        .gte('date', fromDate)
+        .lte('date', toDate);
+    }
+
+    const { data: interactionsData, error: interactionsError } = await query;
 
     if (interactionsError) {
       console.error('Interactions fetch error:', interactionsError);

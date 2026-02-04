@@ -20,22 +20,36 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
     }
 
-    // Fetch leads from corporate_leadgen_leads table
-    const { data: leadsData, error: leadsError } = await supabaseServer
+    // Get date range from query params
+    const { searchParams } = new URL(request.url);
+    const fromDate = searchParams.get('fromDate');
+    const toDate = searchParams.get('toDate');
+
+    // Build query for leads
+    let query = supabaseServer
       .from('corporate_leadgen_leads')
       .select('*')
       .eq('leadgen_id', user.id);
 
+    // If date range is provided, filter by sourcing_date (creation date)
+    if (fromDate && toDate) {
+      query = query
+        .gte('sourcing_date', fromDate)
+        .lte('sourcing_date', toDate);
+    }
+
+    const { data: filteredLeadsData, error: leadsError } = await query;
+
     if (leadsError) {
-      console.error('Leads fetch error:', leadsError);
+      console.error('Leads query error:', leadsError);
       return NextResponse.json({ success: false, error: leadsError.message }, { status: 500 });
     }
 
     // Count total leads
-    const totalLeads = leadsData?.length || 0;
+    const totalLeads = filteredLeadsData?.length || 0;
     
     // Count startup leads (handle both boolean true and string "YES"/"yes")
-    const startupLeads = leadsData?.filter(lead => 
+    const startupLeads = filteredLeadsData?.filter(lead => 
       lead.startup === true || 
       String(lead.startup).toLowerCase() === 'yes' ||
       String(lead.startup) === '1' ||
