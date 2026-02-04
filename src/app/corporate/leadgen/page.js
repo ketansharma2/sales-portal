@@ -486,7 +486,7 @@ export default function LeadGenHome() {
 
     <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
         {followUps.map((item) => (
-            <div key={item.id} className="p-3 bg-white border border-gray-200 rounded-xl hover:shadow-md hover:border-blue-300 transition-all group relative">
+            <div key={item.client_id} className="p-3 bg-white border border-gray-200 rounded-xl hover:shadow-md hover:border-blue-300 transition-all group relative">
               {/* Color Bar based on Type */}
               
               <div className="pl-2.5">
@@ -514,7 +514,7 @@ export default function LeadGenHome() {
                         <FileText size={10}/> Last Discussion
                      </p>
                      <p className="text-xs text-slate-600 italic leading-snug">
-                        "{item.remark}"
+                        "{item.remarks}"
                      </p>
                   </div>
 
