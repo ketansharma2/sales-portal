@@ -74,6 +74,73 @@ export async function POST(request) {
   }
 }
 
+export async function PUT(request) {
+  try {
+    // Authentication
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    // Get request body
+    const body = await request.json()
+
+    // Validate required fields
+    if (!body.interaction_id) {
+      return NextResponse.json({
+        error: 'interaction_id is required'
+      }, { status: 400 })
+    }
+
+    // Prepare data for update
+    const updateData = {}
+    if (body.contact_person !== undefined) updateData.contact_person = body.contact_person
+    if (body.contact_no !== undefined) updateData.contact_no = body.contact_no || null
+    if (body.email !== undefined) updateData.email = body.email || null
+    if (body.contact_mode !== undefined) updateData.contact_mode = body.contact_mode
+    if (body.contact_date !== undefined) updateData.contact_date = body.contact_date
+    if (body.next_follow_up !== undefined) updateData.next_follow_up = body.next_follow_up || null
+    if (body.status !== undefined) updateData.status = body.status
+    if (body.sub_status !== undefined) updateData.sub_status = body.sub_status || null
+    if (body.remarks !== undefined) updateData.remarks = body.remarks || null
+
+    // Update interaction record
+    const { data, error } = await supabaseServer
+      .from('domestic_clients_interaction')
+      .update(updateData)
+      .eq('interaction_id', body.interaction_id)
+      .eq('user_id', user.id)  // Ensure user can only update their own records
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Supabase error:', error)
+      return NextResponse.json({
+        error: 'Failed to update interaction record',
+        details: error.message
+      }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: data,
+      message: 'Interaction record updated successfully'
+    })
+
+  } catch (error) {
+    console.error('API error:', error)
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: error.message
+    }, { status: 500 })
+  }
+}
+
 export async function GET(request) {
   try {
     // Authentication

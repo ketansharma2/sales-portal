@@ -27,6 +27,10 @@ export default function LeadsMasterPage() {
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [nonFieldDays, setNonFieldDays] = useState([]);
 
+  // Edit Interaction Modal State
+  const [isEditInteractionModalOpen, setIsEditInteractionModalOpen] = useState(false);
+  const [editingInteraction, setEditingInteraction] = useState(null);
+
    // Filters State (Robust Initialization)
    const [filters, setFilters] = useState({
      company: '',
@@ -189,6 +193,36 @@ export default function LeadsMasterPage() {
       }
     } catch (err) {
       alert('Error saving interaction');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateInteraction = async (formData) => {
+    try {
+      setSaving(true);
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+
+      const response = await fetch('/api/domestic/fse/lead/interaction', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('Interaction record updated successfully');
+        setIsEditInteractionModalOpen(false);
+        // Trigger refresh - we need to call the fetch inside ClientFullViewModal
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('refreshInteractionHistory'));
+        }
+      }
+    } catch (err) {
+      alert('Error updating interaction');
     } finally {
       setSaving(false);
     }
@@ -700,6 +734,25 @@ statesList: [
   <ClientFullViewModal 
     lead={selectedLead} 
     onClose={() => setIsFullViewOpen(false)} 
+    onEditInteraction={(interaction) => {
+      setEditingInteraction(interaction);
+      setIsEditInteractionModalOpen(true);
+    }}
+  />
+)}
+
+{/* EDIT INTERACTION MODAL */}
+{isEditInteractionModalOpen && editingInteraction && (
+  <EditInteractionModal
+    interaction={editingInteraction}
+    lead={selectedLead}
+    onClose={() => {
+      setIsEditInteractionModalOpen(false);
+      setEditingInteraction(null);
+    }}
+    onSave={updateInteraction}
+    saving={saving}
+    statusList={dropdowns.statusList}
   />
 )}
 
@@ -1241,7 +1294,7 @@ function EditLeadModal({ lead, onUpdate, onClose, saving, ...lists }) {
   );
 }
 
-function ClientFullViewModal({ lead, onClose }) {
+function ClientFullViewModal({ lead, onClose, onEditInteraction }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -1360,17 +1413,18 @@ function ClientFullViewModal({ lead, onClose }) {
                     <th className="px-4 py-4 w-[35%]">Discussion Remarks</th>
                     <th className="px-4 py-4 w-[13%]">Next Followup</th>
                     <th className="px-4 py-4 w-[15%]">Status & Sub-status</th>
+                    <th className="px-4 py-4 w-[10%]">Action</th>
                   </tr>
                 </thead>
                 
                 <tbody className="divide-y divide-gray-50 bg-white">
                   {loading ? (
-                    <tr><td colSpan="6" className="p-10 text-center"><Loader2 className="animate-spin mx-auto text-[#103c7f]" size={24}/></td></tr>
+                    <tr><td colSpan="7" className="p-10 text-center"><Loader2 className="animate-spin mx-auto text-[#103c7f]" size={24}/></td></tr>
                   ) : history.length === 0 ? (
-                    <tr><td colSpan="6" className="p-10 text-center text-gray-400 font-bold italic">No history available</td></tr>
+                    <tr><td colSpan="7" className="p-10 text-center text-gray-400 font-bold italic">No history available</td></tr>
                   ) : (
-                    history.map((item) => (
-                      <tr key={item.interaction_id} className="hover:bg-blue-50/30 transition group">
+                    history.map((item, index) => (
+                      <tr key={item.interaction_id} className="hover:bg-blue-50/30 transition group relative">
                         
                         <td className="px-4 py-4 align-top">
                           <div className="flex flex-col gap-1">
@@ -1416,7 +1470,17 @@ function ClientFullViewModal({ lead, onClose }) {
                           </div>
                         </td>
 
-                        
+                        <td className="px-4 py-4 align-top">
+                          {index === 0 && (
+                            <button
+                              onClick={() => onEditInteraction(item)}
+                              className="p-2 bg-blue-50 text-[#103c7f] rounded-lg hover:bg-blue-100 hover:shadow-md transition-all border border-blue-100 active:scale-95"
+                              title="Edit Latest Interaction"
+                            >
+                              <Pencil size={14} strokeWidth={2.5} />
+                            </button>
+                          )}
+                        </td>
 
                       </tr>
                     ))
@@ -1534,3 +1598,157 @@ function LeaveModal({ onClose, onSave }) {
     </div>
   );
 }
+
+function EditInteractionModal({ interaction, lead, onClose, onSave, saving, statusList }) {
+  const [formData, setFormData] = useState({
+    interaction_id: interaction?.interaction_id || null,
+    client_id: lead?.client_id || null,
+    contact_person: interaction?.contact_person || '',
+    contact_no: interaction?.contact_no || '',
+    email: interaction?.email || '',
+    contact_mode: interaction?.contact_mode || 'Visit',
+    contact_date: interaction?.contact_date || new Date().toISOString().split('T')[0],
+    remarks: interaction?.remarks || '',
+    next_follow_up: interaction?.next_follow_up || '',
+    status: interaction?.status || '',
+    sub_status: interaction?.sub_status || '',
+  });
+
+  const updateField = (f, v) => setFormData(p => ({ ...p, [f]: v }));
+  
+  const inputStyle = `w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-800 outline-none focus:ring-2 focus:ring-[#103c7f]/20 transition shadow-sm`;
+
+  const subStatusList = ["Blue Collar", "Call Back", "In Process", "Low Budget", "Proposal Shared", "Ready to Sign", "Not Ready to Sign", "NA"];
+
+  return (
+    <div className="fixed inset-0 bg-[#103c7f]/60 backdrop-blur-md flex items-center justify-center z-[110] p-4 font-['Calibri']">
+      <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl max-h-[90dvh] overflow-hidden flex flex-col border border-white/50">
+        
+        {/* HEADER */}
+        <div className="px-6 md:px-10 py-4 border-b flex justify-between items-center bg-gray-50/50">
+          <div>
+            <h2 className="text-xl font-black text-[#103c7f] uppercase italic tracking-tight flex items-center gap-2">
+              <Pencil size={22} strokeWidth={2.5} /> Edit Interaction
+            </h2>
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1 ml-1">
+              Editing for: <span className="text-orange-600">{lead?.company_name}</span>
+            </p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-red-50 hover:text-red-500 transition rounded-full text-gray-400"><X size={24}/></button>
+        </div>
+
+        {/* FORM CONTENT */}
+        <div className="p-4 md:p-6 overflow-y-auto custom-scrollbar flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 md:gap-y-6">
+            
+            {/* 1. Contact Person */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Contact Person</label>
+              <input type="text" value={formData.contact_person} onChange={e => updateField('contact_person', e.target.value)} className={inputStyle} placeholder="Name..." />
+            </div>
+
+            {/* 2. Contact No */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Contact No.</label>
+              <input type="tel" value={formData.contact_no} onChange={e => updateField('contact_no', e.target.value)} className={inputStyle} placeholder="10 digit..." />
+            </div>
+
+            {/* 3. Email */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
+              <input type="email" value={formData.email} onChange={e => updateField('email', e.target.value)} className={inputStyle} placeholder="client@email.com" />
+            </div>
+
+            {/* 4. Interaction Mode */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Interaction Mode</label>
+              <div className="flex p-1 bg-gray-100 rounded-xl gap-1">
+                {['Call', 'Visit'].map(m => (
+                  <button 
+                    key={m} 
+                    type="button" 
+                    onClick={() => updateField('contact_mode', m)} 
+                    className={`flex-1 py-2 rounded-lg font-black text-[10px] uppercase transition ${formData.contact_mode === m ? 'bg-[#103c7f] text-white shadow-md' : 'text-gray-400'}`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 5. Date */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Date</label>
+              <input type="date" value={formData.contact_date} onChange={e => updateField('contact_date', e.target.value)} className={inputStyle} />
+            </div>
+
+            {/* 6. Next Follow-up Date */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-orange-600 uppercase tracking-widest ml-1">Next Follow-up Date</label>
+              <input 
+                type="date" 
+                value={formData.next_follow_up} 
+                onChange={e => updateField('next_follow_up', e.target.value)} 
+                className={`${inputStyle} bg-orange-50 border-orange-200 text-orange-700 focus:ring-orange-200`} 
+              />
+            </div>
+
+            {/* 7. Status */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Status</label>
+              <select value={formData.status} onChange={e => updateField('status', e.target.value)} className={inputStyle}>
+                <option value="">Select Status</option>
+                {statusList?.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            {/* 8. Sub-Status */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sub-Status</label>
+              <select value={formData.sub_status} onChange={e => updateField('sub_status', e.target.value)} className={inputStyle}>
+                <option value="">Select Sub-Status</option>
+                {subStatusList.map(ss => <option key={ss} value={ss}>{ss}</option>)}
+              </select>
+            </div>
+
+            {/* 9. Remarks */}
+            <div className="space-y-1 md:col-span-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Remarks</label>
+              <input 
+                type="text" 
+                value={formData.remarks} 
+                onChange={e => updateField('remarks', e.target.value)} 
+                className={inputStyle} 
+                placeholder="Meeting summary..."
+              />
+            </div>
+
+          </div>
+
+          {/* ACTION BUTTONS */}
+          <div className="pt-6 flex flex-col md:flex-row gap-4 border-t mt-6">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="flex-1 py-3.5 font-bold text-gray-400 uppercase text-xs hover:bg-gray-100 transition rounded-2xl"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onSave(formData)}
+              disabled={saving}
+              className="flex-1 py-3.5 bg-[#103c7f] text-white rounded-2xl font-black uppercase text-xs shadow-xl shadow-blue-900/20 active:scale-95 transition flex items-center justify-center gap-2 hover:bg-blue-900 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? <Loader2 className="animate-spin" size={16}/> : <CheckCircle size={18} strokeWidth={2.5}/>}
+              Update Interaction
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
