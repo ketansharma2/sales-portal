@@ -22,8 +22,8 @@ export async function POST(request) {
 
     // First, check if the expense exists and is pending for this manager's team
     const { data: expenseCheck, error: checkError } = await supabaseServer
-      .from('corporate_expenses')
-      .select('exp_id, users!corporate_expenses_user_id_fkey(manager_id)')
+      .from('expenses')
+      .select('exp_id, users!expenses_user_id_fkey(manager_id)')
       .eq('exp_id', exp_id)
       .eq('status', 'Pending (Manager)')
       .eq('submitted', true)
@@ -36,7 +36,7 @@ export async function POST(request) {
 
     // Update the expense status to Rejected
     const { data: updatedExpense, error: updateError } = await supabaseServer
-      .from('corporate_expenses')
+      .from('expenses')
       .update({
         status: 'Rejected',
         approved_by: user.id,

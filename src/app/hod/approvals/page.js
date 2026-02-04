@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { 
   Check, X, ShieldCheck, UserCircle, Search, Download, 
-  Clock, FileText, CheckCircle, ArrowRightCircle, Building2 
+  Clock, FileText, CheckCircle, ArrowRightCircle, Building2, Send
 } from "lucide-react";
 
 export default function HODApprovals() {
@@ -74,6 +74,26 @@ export default function HODApprovals() {
     }
   };
 
+  const handleSendToHR = async (exp_id) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/hod/send-to-hr', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ exp_id })
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchPendingExpenses(); // Refresh the list
+      }
+    } catch (error) {
+      console.error('Failed to send to HR:', error);
+    }
+  };
+
   return (
     <div className="h-[calc(100vh-4rem)] bg-[#f8fafc] w-full font-['Calibri'] p-2 flex flex-col overflow-hidden">      
       {/* HEADER SECTION */}
@@ -134,6 +154,11 @@ export default function HODApprovals() {
                           <span className={`w-1 h-1 rounded-full ${item.source === 'corporate' ? 'bg-green-500' : 'bg-[#a1db40]'}`}></span>
                           {item.role} {item.source === 'corporate' && <span className="text-[8px] text-green-600 font-bold">(Corp)</span>}
                         </p>
+                        {item.sector && (
+                          <span className="text-[8px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded mt-1 inline-block font-bold">
+                            {item.sector}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -180,11 +205,21 @@ export default function HODApprovals() {
                     {item.status === "Pending (HOD)" ? (
                       // Active Buttons for Pending
                       <div className="flex justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => handleApprove(item.id)} className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Approve & Forward to HR">
+                        <button onClick={() => handleApprove(item.id)} className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Approve">
                           <Check size={16} strokeWidth={3}/>
                         </button>
                         <button onClick={() => handleReject(item.id)} className="bg-red-50 text-red-600 p-2 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Reject">
                           <X size={16} strokeWidth={3}/>
+                        </button>
+                        <button onClick={() => { setPreviewExpense(item); setIsPreviewOpen(true); }} className="bg-gray-100 text-[#103c7f] p-2 rounded-lg hover:bg-[#103c7f] hover:text-white transition-all shadow-sm" title="View Bill Proof">
+                          <FileText size={16} strokeWidth={2}/>
+                        </button>
+                      </div>
+                    ) : item.status === "Approved" ? (
+                      // Approved - Show Send to HR button
+                      <div className="flex justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleSendToHR(item.id)} className="bg-indigo-50 text-indigo-600 p-2 rounded-lg hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Send to HR">
+                          <Send size={16} strokeWidth={2}/>
                         </button>
                         <button onClick={() => { setPreviewExpense(item); setIsPreviewOpen(true); }} className="bg-gray-100 text-[#103c7f] p-2 rounded-lg hover:bg-[#103c7f] hover:text-white transition-all shadow-sm" title="View Bill Proof">
                           <FileText size={16} strokeWidth={2}/>
@@ -200,14 +235,6 @@ export default function HODApprovals() {
                          <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">
                            HR Dept
                          </span>
-                      </div>
-                    ) : item.status === "Approved" ? (
-                      // Approved State
-                      <div className="flex justify-center items-center gap-2 opacity-80">
-                        <CheckCircle size={16} className="text-green-600" />
-                        <button onClick={() => { setPreviewExpense(item); setIsPreviewOpen(true); }} className="text-[#103c7f] hover:text-[#a1db40] transition-colors" title="View Bill Proof">
-                          <FileText size={16} strokeWidth={2}/>
-                        </button>
                       </div>
                     ) : item.status === "Rejected" ? (
                       // Rejected State

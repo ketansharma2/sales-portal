@@ -21,7 +21,7 @@ export async function GET(request) {
     const statusFilter = searchParams.get('status')
 
     let query = supabaseServer
-      .from('corporate_expenses')
+      .from('expenses')
       .select(`
         exp_id,
         date,
@@ -30,7 +30,7 @@ export async function GET(request) {
         notes,
         status,
         created_at,
-        users!corporate_expenses_user_id_fkey (
+        users!expenses_user_id_fkey (
           user_id,
           name,
           role,

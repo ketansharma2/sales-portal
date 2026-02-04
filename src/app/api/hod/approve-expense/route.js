@@ -35,36 +35,24 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Expense ID is required' }, { status: 400 })
     }
 
-    // Check both tables for the expense
-    const [domesticCheck, corporateCheck] = await Promise.all([
-      supabaseServer
-        .from('expenses')
-        .select('exp_id')
-        .eq('exp_id', exp_id)
-        .eq('status', 'Pending (HOD)')
-        .eq('submitted', true)
-        .single(),
-      supabaseServer
-        .from('corporate_expenses')
-        .select('exp_id')
-        .eq('exp_id', exp_id)
-        .eq('status', 'Pending (HOD)')
-        .eq('submitted', true)
-        .single()
-    ])
+    // Check expenses table for the expense
+    const { data: expenseCheck, error: checkError } = await supabaseServer
+      .from('expenses')
+      .select('exp_id')
+      .eq('exp_id', exp_id)
+      .eq('status', 'Pending (HOD)')
+      .eq('submitted', true)
+      .single()
 
-    const expenseExists = domesticCheck.data || corporateCheck.data
-    const tableName = domesticCheck.data ? 'expenses' : 'corporate_expenses'
-
-    if (!expenseExists) {
+    if (checkError || !expenseCheck) {
       return NextResponse.json({ error: 'Expense not found or not authorized' }, { status: 404 })
     }
 
-    // Update the expense status to Sent to HR in the appropriate table
+    // Update the expense status to Approved
     const { data: updatedExpense, error: updateError } = await supabaseServer
-      .from(tableName)
+      .from('expenses')
       .update({
-        status: 'Sent to HR',
+        status: 'Approved',
         approved_by: user.id,
         approved_at: new Date().toISOString()
       })

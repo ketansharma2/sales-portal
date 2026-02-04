@@ -22,7 +22,7 @@ export async function POST(request) {
 
     // Update the expense to submitted
     const { data: updatedExpense, error: updateError } = await supabaseServer
-      .from('corporate_expenses')
+      .from('expenses')
       .update({
         submitted: true,
         status: 'Pending (HOD)'

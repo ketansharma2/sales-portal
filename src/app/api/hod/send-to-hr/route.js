@@ -35,35 +35,33 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Expense ID is required' }, { status: 400 })
     }
 
-    // Check expenses table for the expense
+    // Check expenses table for the expense with Approved status
     const { data: expenseCheck, error: checkError } = await supabaseServer
       .from('expenses')
       .select('exp_id')
       .eq('exp_id', exp_id)
-      .eq('status', 'Pending (HOD)')
-      .eq('submitted', true)
+      .eq('status', 'Approved')
+      .eq('approved_by', user.id)
       .single()
 
     if (checkError || !expenseCheck) {
-      return NextResponse.json({ error: 'Expense not found or not authorized' }, { status: 404 })
+      return NextResponse.json({ error: 'Expense not found, not authorized, or not in Approved status' }, { status: 404 })
     }
 
-    // Update the expense status to Rejected
+    // Update the expense status to Sent to HR
     const { data: updatedExpense, error: updateError } = await supabaseServer
       .from('expenses')
       .update({
-        status: 'Rejected',
-        approved_by: user.id,
-        approved_at: new Date().toISOString()
+        status: 'Sent to HR'
       })
       .eq('exp_id', exp_id)
       .select()
       .single()
 
     if (updateError) {
-      console.error('Expense rejection error:', updateError)
+      console.error('Send to HR error:', updateError)
       return NextResponse.json({
-        error: 'Failed to reject expense',
+        error: 'Failed to send expense to HR',
         details: updateError.message
       }, { status: 500 })
     }
@@ -74,7 +72,7 @@ export async function POST(request) {
     })
 
   } catch (error) {
-    console.error('HOD reject expense API error:', error)
+    console.error('HOD send to HR API error:', error)
     return NextResponse.json({
       error: 'Internal server error',
       details: error.message

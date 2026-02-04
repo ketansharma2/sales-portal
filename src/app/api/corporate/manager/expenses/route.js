@@ -20,7 +20,7 @@ export async function GET(request) {
 
     // Fetch expenses for the user
     let query = supabaseServer
-      .from('corporate_expenses')
+      .from('expenses')
       .select('exp_id, user_id, date, category, amount, notes, file_link, status, approved_by, approved_at, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
@@ -111,7 +111,7 @@ export async function POST(request) {
 
     // Insert new expense
     const { data: newExpense, error: insertError } = await supabaseServer
-      .from('corporate_expenses')
+      .from('expenses')
       .insert({
         user_id: user.id,
         date,
@@ -177,7 +177,7 @@ export async function DELETE(request) {
 
     // Delete the expense (only if it's DRAFT and belongs to user)
     const { data: deletedExpense, error: deleteError } = await supabaseServer
-      .from('corporate_expenses')
+      .from('expenses')
       .delete()
       .eq('exp_id', exp_id)
       .eq('user_id', user.id)

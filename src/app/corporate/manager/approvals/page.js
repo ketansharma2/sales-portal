@@ -93,6 +93,29 @@ export default function ManagerApprovals() {
     }
   };
 
+  const handleSendToHR = async (exp_id) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/corporate/manager/approvals/send-to-hr', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ exp_id })
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchPendingExpenses(); // Refresh the list
+      } else {
+        alert(data.error || 'Failed to send to HR');
+      }
+    } catch (error) {
+      console.error('Failed to send to HR:', error);
+      alert('Failed to send to HR');
+    }
+  };
+
   return (
 <div className="h-[calc(100vh-4rem)] bg-[#f8fafc] w-full font-['Calibri'] p-2 flex flex-col overflow-hidden">      
       {/* HEADER SECTION */}
@@ -215,9 +238,11 @@ export default function ManagerApprovals() {
                          </button>
                       </div>
                     ) : item.status === "Approved" ? (
-                      // Approved State
-                      <div className="flex justify-center items-center gap-2 opacity-60">
-                        <CheckCircle size={16} className="text-green-600" />
+                      // Approved State - Can Send to HR or View Bill
+                      <div className="flex justify-center items-center gap-2 opacity-80">
+                        <button onClick={() => handleSendToHR(item.id)} className="bg-indigo-50 text-indigo-600 p-2 rounded-lg hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Send to HR">
+                          <Building2 size={16} strokeWidth={2}/>
+                        </button>
                         <button onClick={() => { setPreviewExpense(item); setIsPreviewOpen(true); }} className="bg-gray-100 text-[#103c7f] p-2 rounded-lg hover:bg-[#103c7f] hover:text-white transition-all shadow-sm" title="View Bill Proof">
                           <FileText size={16} strokeWidth={2}/>
                         </button>

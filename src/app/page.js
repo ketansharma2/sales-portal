@@ -75,13 +75,24 @@ export default function LoginPage() {
 
     // Redirect based on sector and selectedRole
     let redirectPath;
-    if (selectedRole.toLowerCase() === 'hod') {
+    const role = selectedRole.toLowerCase();
+    
+    if (role === 'hod') {
       redirectPath = '/hod';
+    } else if (role === 'operation_head' || role === 'operations') {
+      redirectPath = '/operations/reimbursement';
+    } else if (role === 'manager' || role === 'fse' || role === 'leadgen' || role === 'crm') {
+      // Map generic roles to their dashboard pages
+      redirectPath = userData.sector 
+        ? `/${userData.sector.toLowerCase()}/${role}`
+        : `/${role}`;
     } else {
-      redirectPath = userData.sector
-        ? `/${userData.sector.toLowerCase()}/${selectedRole.toLowerCase()}`
-        : `/${selectedRole.toLowerCase()}`;
+      // For other roles, use the role name in the path
+      redirectPath = userData.sector 
+        ? `/${userData.sector.toLowerCase()}/${role}`
+        : `/${role}`;
     }
+    
     router.push(redirectPath);
   };
 

@@ -26,6 +26,7 @@ export async function GET(request) {
         file_link,
         status,
         created_at,
+        approved_by,
         users!expenses_user_id_fkey (
           user_id,
           name,
@@ -45,8 +46,28 @@ export async function GET(request) {
       }, { status: 500 })
     }
 
+    // Get unique approver user_ids to fetch their names
+    const approverIds = [...new Set(pendingExpenses?.map(e => e.approved_by).filter(Boolean))];
+    let approverNamesMap = {};
+    
+    if (approverIds.length > 0) {
+      const { data: approverUsers } = await supabaseServer
+        .from('users')
+        .select('user_id, name')
+        .in('user_id', approverIds);
+      
+      if (approverUsers) {
+        approverNamesMap = approverUsers.reduce((acc, user) => {
+          acc[user.user_id] = user.name;
+          return acc;
+        }, {});
+      }
+    }
+
     // Format the data
     const formattedExpenses = pendingExpenses?.map(expense => {
+      // Get approver name from the map or show pending
+      const approverName = expense.approved_by ? (approverNamesMap[expense.approved_by] || 'Pending HR Review') : 'Pending HR Review';
       return {
         id: expense.exp_id,
         empName: expense.users.name,
@@ -58,7 +79,8 @@ export async function GET(request) {
         date: new Date(expense.date).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-'),
         status: expense.status,
         file_link: expense.file_link,
-        approver: 'Pending HR Review'
+        approver: approverName,
+        approved_by: expense.approved_by
       };
     }) || []
 

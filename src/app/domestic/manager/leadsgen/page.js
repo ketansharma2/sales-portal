@@ -23,6 +23,7 @@ export default function ManagerLeadsPage() {
   const [filteredLeads, setFilteredLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sourcedByOptions, setSourcedByOptions] = useState([]);
+  const [leadgenUsers, setLeadgenUsers] = useState([]);
   const [fseOptions, setFseOptions] = useState([]);
 
   useEffect(() => {
@@ -41,8 +42,11 @@ export default function ManagerLeadsPage() {
           const fseTeam = data.fseTeam || [];
           setLeads(leadsArray);
           setFilteredLeads(leadsArray);
+          
+          // Get unique sourcedBy names from leads
           const uniqueSourcedBy = [...new Set(leadsArray.map(l => l.sourcedBy))];
           setSourcedByOptions(uniqueSourcedBy);
+          
           setFseOptions(fseTeam.map(f => ({ id: f.user_id, name: f.name })));
           if (fseTeam.length > 0) {
             setAssignFseName(fseTeam[0].name);
@@ -71,8 +75,29 @@ export default function ManagerLeadsPage() {
       }
     };
 
+    const fetchLeadgenUsers = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const response = await fetch('/api/domestic/manager/leadgen-users', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setLeadgenUsers(data.data);
+          // Also update sourcedByOptions with all leadgen names
+          const leadgenNames = data.data.map(u => u.name);
+          setSourcedByOptions(leadgenNames);
+        }
+      } catch (error) {
+        console.error('Failed to fetch leadgen users:', error);
+      }
+    };
+
     fetchLeads();
     fetchCrmUsers();
+    fetchLeadgenUsers();
   }, []);
   
   const [isFormOpen, setIsFormOpen] = useState(false);
