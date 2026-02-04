@@ -179,7 +179,7 @@ export default function OnboardPage() {
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2 relative w-fit p-1.5 rounded hover:bg-yellow-50 transition-colors border border-transparent hover:border-yellow-100">
                           <MessageSquare size={14} className="text-gray-400" />
-                          <span className="text-[11px] font-medium text-gray-600 truncate max-w-[150px]">{item.remarks}</span>
+                          <span className="text-[11px] font-medium text-gray-600 truncate max-w-[150px]" title={item.remarks}>{item.remarks}</span>
                         </div>
                       </td>
 

@@ -789,7 +789,7 @@ return (
                            <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50/30 flex justify-between items-center">
                               <div className="flex items-center gap-2 overflow-hidden">
                                  <span className="text-[9px] font-bold text-gray-400 uppercase shrink-0">Feedback:</span>
-                                 <p className="text-[10px] text-gray-600 font-medium italic truncate max-w-[150px]">"{t.feedback}"</p>
+                                 <p className="text-[10px] text-gray-600 font-medium italic truncate max-w-[150px]" title={t.feedback}>"{t.feedback}"</p>
                               </div>
                            </div>
                         </div>
