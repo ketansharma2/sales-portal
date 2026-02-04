@@ -41,15 +41,23 @@ export default function LeadsMasterPage() {
      toDate: ''    // New
    });
 
-   useEffect(() => {
-     const projection = localStorage.getItem('projectionFilter');
-     if (projection) {
-       console.log('Setting projection from localStorage:', projection);
-       setFilters(prev => ({ ...prev, projection }));
-       setShowAll(true);
-       localStorage.removeItem('projectionFilter');
-     }
-   }, []);
+    useEffect(() => {
+      const projection = localStorage.getItem('projectionFilter');
+      if (projection) {
+        console.log('Setting projection from localStorage:', projection);
+        setFilters(prev => ({ ...prev, projection }));
+        setShowAll(true);
+        localStorage.removeItem('projectionFilter');
+      }
+      
+      const statusFilter = localStorage.getItem('statusFilter');
+      if (statusFilter) {
+        console.log('Setting statusFilter from localStorage:', statusFilter);
+        setFilters(prev => ({ ...prev, statusSearch: statusFilter }));
+        setShowAll(true);
+        localStorage.removeItem('statusFilter');
+      }
+    }, []);
 
    useEffect(() => { setMounted(true); }, []);
 
@@ -707,7 +715,7 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
     company: '',
     client_type: 'Standard',
     category: '',
-    state: '',
+    state: 'Haryana',
     location: '',
     employee_count: '',
     reference: '',
@@ -728,7 +736,7 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
       company: lead?.company_name || '',
       client_type: lead?.client_type || 'Standard',
       category: lead?.category || '',
-      state: lead?.state || '',
+      state: lead?.state || 'Haryana',
       location: lead?.location || '',
       employee_count: lead?.emp_count || '',
       reference: lead?.reference || '',
@@ -901,17 +909,17 @@ function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
      contact_person: lead?.contact_person || '',
      contact_no: lead?.contact_no || '',
      email: lead?.email || '',
-     latest_contact_mode: 'Call',
+     latest_contact_mode: 'Visit',
      latest_contact_date: new Date().toISOString().split('T')[0],
      remarks: '',
      next_follow_up: '',
-     status: lead?.status || '',
-     sub_status: lead?.sub_status || '',
+     status: '',
+     sub_status: '',
    });
 
    const [suggestions, setSuggestions] = useState({ persons: [], nos: [], emails: [] });
 
-  const subStatusList = ["Blue Collar", "Call Back", "In Process", "Low Budget", "Proposal Shared", "Ready to Sign","Not Ready to Sign"];
+  const subStatusList = ["Blue Collar", "Call Back", "In Process", "Low Budget", "Proposal Shared", "Ready to Sign", "Not Ready to Sign", "NA"];
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -1267,13 +1275,13 @@ function ClientFullViewModal({ lead, onClose }) {
 
   // Helper for Compact Basic Info
   const StatCard = ({ icon: Icon, label, value, colorClass = "bg-blue-50 text-[#103c7f]" }) => (
-    <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm min-w-[160px] flex-1">
-      <div className={`p-2.5 rounded-xl ${colorClass}`}>
-        {Icon && <Icon size={18} strokeWidth={2.5} />}
+    <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-gray-100 shadow-sm min-w-[120px] max-w-[150px] flex-1">
+      <div className={`p-2 rounded-lg ${colorClass}`}>
+        {Icon && <Icon size={16} strokeWidth={2.5} />}
       </div>
       <div>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">{label}</p>
-        <p className="text-sm font-black text-gray-800 truncate max-w-[140px]" title={value}>{value || '--'}</p>
+        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">{label}</p>
+        <p className="text-sm font-black text-gray-800 truncate max-w-[120px]" title={value}>{value || '--'}</p>
       </div>
     </div>
   );
@@ -1314,14 +1322,15 @@ function ClientFullViewModal({ lead, onClose }) {
         {/* SCROLLABLE CONTENT (Main Modal Body) */}
         <div className="overflow-y-auto custom-scrollbar flex-1 p-6 md:p-8 space-y-6">
           
-          {/* 2. BASIC INFO STRIP */}
-          <div className="flex flex-wrap gap-3">
+           {/* 2. BASIC INFO STRIP */}
+          <div className="flex flex-wrap gap-2">
             <StatCard label="Sourcing Date" value={lead?.sourcing_date} icon={Calendar} />
             <StatCard label="Category" value={lead?.category} icon={Zap} />
             <StatCard label="Sourcing Mode" value={lead?.sourcing_mode} icon={Phone} />
             <StatCard label="Emp Count" value={lead?.emp_count} icon={User} />
             <StatCard label="Reference" value={lead?.reference} icon={MessageSquarePlus} />
             <StatCard label="Current Status" value={lead?.status} icon={CheckCircle} colorClass="bg-green-50 text-green-600"/>
+            <StatCard label="Projection" value={lead?.projection} icon={Zap} colorClass="bg-purple-50 text-purple-600 "/>
           </div>
 
           {/* 3. INTERACTION HISTORY TABLE */}
@@ -1351,7 +1360,6 @@ function ClientFullViewModal({ lead, onClose }) {
                     <th className="px-4 py-4 w-[35%]">Discussion Remarks</th>
                     <th className="px-4 py-4 w-[13%]">Next Followup</th>
                     <th className="px-4 py-4 w-[15%]">Status & Sub-status</th>
-                    <th className="px-4 py-4 w-[10%] text-right">Projection</th>
                   </tr>
                 </thead>
                 
@@ -1408,11 +1416,7 @@ function ClientFullViewModal({ lead, onClose }) {
                           </div>
                         </td>
 
-                        <td className="px-4 py-4 align-top text-right">
-                          <span className="inline-block px-2 py-1 bg-gray-100 rounded text-[9px] font-bold text-gray-600 border border-gray-200">
-                            {lead.projection}
-                          </span>
-                        </td>
+                        
 
                       </tr>
                     ))

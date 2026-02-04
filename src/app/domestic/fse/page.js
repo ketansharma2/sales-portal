@@ -141,7 +141,7 @@ export default function FSEDashboard() {
         {/* --- ROW 1: GLOBAL STATS --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StatCard title="Total Clients in Database" value={stats.global.totalClients} icon={<Users size={20} />} accentColor="text-[#103c7f]" bgColor="bg-[#103c7f]/10" />
-          <StatCard title="Total Onboarded" value={stats.global.totalOnboard} icon={<CheckCircle size={20} />} accentColor="text-[#a1db40]" bgColor="bg-[#a1db40]/10" />
+          <ClickableStatCard title="Total Onboarded" value={stats.global.totalOnboard} icon={<CheckCircle size={20} />} accentColor="text-[#a1db40]" bgColor="bg-[#a1db40]/10" />
           <StatCard title="Total Visits" value={stats.global.totalVisits} icon={<MapPin size={20} />} accentColor="text-[#1a4da1]" bgColor="bg-[#1a4da1]/10" />
         </div>
 
@@ -296,6 +296,25 @@ function StatCard({ title, value, icon, accentColor, bgColor }) {
         <p className="text-xl font-black text-slate-800 leading-none">{(value || 0).toLocaleString()}</p>
       </div>
     </div>
+  );
+}
+
+function ClickableStatCard({ title, value, icon, accentColor, bgColor }) {
+  const router = useRouter();
+
+  const handleClick = () => {
+    localStorage.setItem('statusFilter', 'Onboarded');
+    router.push('/domestic/fse/lead');
+  };
+
+  return (
+    <button onClick={handleClick} className="bg-white border border-gray-100 p-3 px-4 rounded-xl shadow-sm flex items-center gap-4 transition-all hover:shadow-md hover:border-[#a1db40]/50 w-full text-left cursor-pointer">
+      <div className={`p-2.5 rounded-lg ${bgColor} ${accentColor} shrink-0`}>{icon}</div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-0.5 truncate">{title}</p>
+        <p className="text-xl font-black text-slate-800 leading-none">{(value || 0).toLocaleString()}</p>
+      </div>
+    </button>
   );
 }
 
