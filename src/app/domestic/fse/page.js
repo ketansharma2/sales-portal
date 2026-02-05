@@ -5,7 +5,7 @@ import { Link } from "next/link";
 import {
   Users, CheckCircle, MapPin, Target,
   TrendingUp, Calendar, Filter,
-  ArrowRight, Search, Activity
+  ArrowRight, Search, Activity,Phone, Ghost, AlertCircle,Copy
 } from "lucide-react";
 
 export default function FSEDashboard() {
@@ -138,12 +138,137 @@ export default function FSEDashboard() {
     <div className="p-1 bg-[#f8fafc] font-['Calibri'] h-full text-slate-800 flex flex-col">
       <div className="max-w-8xl mx-auto space-y-4 w-full">
         
-        {/* --- ROW 1: GLOBAL STATS --- */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard title="Total Clients in Database" value={stats.global.totalClients} icon={<Users size={20} />} accentColor="text-[#103c7f]" bgColor="bg-[#103c7f]/10" />
-          <ClickableStatCard title="Total Onboarded" value={stats.global.totalOnboard} icon={<CheckCircle size={20} />} accentColor="text-[#a1db40]" bgColor="bg-[#a1db40]/10" />
-          <StatCard title="Total Visits" value={stats.global.totalVisits} icon={<MapPin size={20} />} accentColor="text-[#1a4da1]" bgColor="bg-[#1a4da1]/10" />
-        </div>
+       
+        {/* lg:grid-cols-5 ka matlab hai laptop se upar sab ek line me 5 cards */}
+       {/* DATABASE HEALTH GRID - 6 CARDS SINGLE ROW (UNIFORM DESIGN) */}
+      {/* DATABASE HEALTH GRID - 6 CARDS SINGLE ROW (UNIFORM DESIGN) */}
+<div className="flex flex-row flex-nowrap gap-2 mb-6 w-full items-stretch">
+
+  {/* 1. TOTAL CLIENTS */}
+  <div className="flex-1 min-w-0 bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px] hover:shadow-md transition-all">
+    <div className="flex justify-between items-start min-w-0">
+      <div className="overflow-hidden min-w-0">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">
+          Total Clients
+        </p>
+        <h3 className="text-xl font-black text-[#103c7f] leading-none mt-1 truncate">
+          {stats.global.totalClients}
+        </h3>
+      </div>
+      <div className="p-1.5 bg-blue-50 text-[#103c7f] rounded-lg shrink-0">
+        <Users size={16} />
+      </div>
+    </div>
+    <div className="flex items-center gap-1.5 mt-1 min-w-0">
+      <div className="w-1.5 h-1.5 rounded-full bg-[#103c7f] shrink-0" />
+      <span className="text-[9px] font-bold text-gray-400 truncate">
+        Database Size
+      </span>
+    </div>
+  </div>
+
+  {/* 2. ONBOARDED */}
+  <div className="flex-1 min-w-0 bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px] hover:shadow-md transition-all">
+    <div className="flex justify-between items-start min-w-0">
+      <div className="overflow-hidden min-w-0">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">
+          Onboarded
+        </p>
+        <h3 className="text-xl font-black text-slate-800 leading-none mt-1 truncate">
+          {stats.global.totalOnboard}
+        </h3>
+      </div>
+      <div className="p-1.5 bg-[#a1db40]/20 text-[#8cc530] rounded-lg shrink-0">
+        <CheckCircle size={16} />
+      </div>
+    </div>
+    <div className="flex items-center gap-2 mt-1 min-w-0">
+      <span className="flex items-center gap-1 bg-blue-50 px-1.5 py-0.5 rounded text-[8px] font-bold text-blue-600 border border-blue-100 truncate">
+        <Phone size={8} className="shrink-0" /> {stats.global.onboardCall || 0}
+      </span>
+      <span className="flex items-center gap-1 bg-purple-50 px-1.5 py-0.5 rounded text-[8px] font-bold text-purple-600 border border-purple-100 truncate">
+        <MapPin size={8} className="shrink-0" /> {stats.global.onboardVisit || 0}
+      </span>
+    </div>
+  </div>
+
+  {/* 3. NEVER VISITED */}
+  <div className="flex-1 min-w-0 bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px] hover:shadow-md transition-all">
+    <div className="flex justify-between items-start min-w-0">
+      <div className="overflow-hidden min-w-0">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">
+          Never Visited
+        </p>
+        <h3 className="text-xl font-black text-red-600 leading-none mt-1 truncate">
+          {stats.global.untouched || 0}
+        </h3>
+      </div>
+      <div className="p-1.5 bg-red-50 text-red-500 rounded-lg shrink-0">
+        <Ghost size={16} />
+      </div>
+    </div>
+   
+  </div>
+
+  {/* 4. NO STATUS */}
+  <div className="flex-1 min-w-0 bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px] hover:shadow-md transition-all">
+    <div className="flex justify-between items-start min-w-0">
+      <div className="overflow-hidden min-w-0">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">
+          No Status
+        </p>
+        <h3 className="text-xl font-black text-orange-600 leading-none mt-1 truncate">
+          {stats.global.noStatus || 0}
+        </h3>
+      </div>
+      <div className="p-1.5 bg-orange-50 text-orange-500 rounded-lg shrink-0">
+        <AlertCircle size={16} />
+      </div>
+    </div>
+   
+  </div>
+
+  {/* 5. DUPLICATES */}
+  <div className="flex-1 min-w-0 bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px] hover:shadow-md transition-all">
+    <div className="flex justify-between items-start min-w-0">
+      <div className="overflow-hidden min-w-0">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">
+          Duplicates
+        </p>
+        <h3 className="text-xl font-black text-indigo-600 leading-none mt-1 truncate">
+          {stats.global.duplicate || 0}
+        </h3>
+      </div>
+      <div className="p-1.5 bg-indigo-50 text-indigo-500 rounded-lg shrink-0">
+        <Copy size={16} />
+      </div>
+    </div>
+    
+  </div>
+
+  {/* 6. TOTAL VISITS */}
+  <div className="flex-1 min-w-0 bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px] hover:shadow-md transition-all">
+    <div className="flex justify-between items-start min-w-0">
+      <div className="overflow-hidden min-w-0">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">
+          Total Visits
+        </p>
+        <h3 className="text-xl font-black text-[#1a4da1] leading-none mt-1 truncate">
+          {stats.global.totalVisits}
+        </h3>
+      </div>
+      <div className="p-1.5 bg-[#1a4da1]/10 text-[#1a4da1] rounded-lg shrink-0">
+        <MapPin size={16} />
+      </div>
+    </div>
+    <div className="flex items-center gap-1.5 mt-1 min-w-0">
+      <div className="w-1.5 h-1.5 rounded-full bg-[#1a4da1] shrink-0" />
+      
+    </div>
+  </div>
+
+</div>
+
 
         {/* --- ROW 2: KPIs & PROJECTION --- */}
         {/* Fixed: h-21 invalid tha, h-28 kiya. items-stretch rakha taaki height same rahe */}

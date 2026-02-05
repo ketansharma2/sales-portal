@@ -68,7 +68,7 @@ export default function LeadsMasterPage() {
   // Robust Dependency Array
   useEffect(() => {
     if (mounted) fetchLeads();
-  }, [mounted, filters.company, filters.category, filters.status, filters.locationSearch, filters.statusSearch, filters.subStatusSearch, filters.projection, filters.clientType, filters.fromDate, filters.toDate, showAll]);
+  }, [mounted, filters.company, filters.category, filters.status, filters.locationSearch, filters.statusSearch, filters.subStatusSearch, filters.projection, filters.clientType, filters.fromDate, filters.toDate, filters.latestMode, showAll]);
 
   const fetchLeads = async () => {
     try {
@@ -312,7 +312,8 @@ statesList: [
         empCountList: ["1-10", "11-50", "51-100", "101-200", "201-500", "500+"],
     statusList: ["Interested", "Not Interested", "Onboarded", "Not Picked", "Reached Out","No Status"],
     subStatusList: ["Blue Collar", "Call Back", "In Process", "Low Budget", "Proposal Shared", "Ready to Sign" , "Not Ready to Sign","NA"],
-    projectionList: ["WP > 50", "WP < 50", "MP > 50", "MP < 50", "Not Projected"]
+    projectionList: ["WP > 50", "WP < 50", "MP > 50", "MP < 50", "Not Projected"],
+    latestModeList: ["Call", "Visit"]
   };
 
   return (
@@ -447,22 +448,24 @@ statesList: [
             </select>
           </div>
 
+          {/* 5. SUB-STATUS */}
           <div className="col-span-2">
             <select 
               value={filters.subStatusSearch || ''} 
               onChange={(e) => setFilters({...filters, subStatusSearch: e.target.value})} 
-              className="w-full px-3 py-2.5 bg-gray-50/50 border border-gray-100 rounded-xl text-[10px] font-bold text-[#103c7f] uppercase outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer appearance-none"
+              className="w-full px-3 py-2 bg-gray-50/50 border border-gray-100 rounded-xl text-[10px] font-bold text-[#103c7f] uppercase outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer appearance-none"
             >
               <option value="">SUB-STATUS</option>
               {dropdowns.subStatusList.map(ss => <option key={ss} value={ss}>{ss}</option>)}
             </select>
           </div>
 
-          <div className="col-span-2">
+          {/* 6. CLIENT TYPE */}
+          <div className="col-span-1">
             <select 
               value={filters.clientType || ''} 
               onChange={(e) => setFilters({...filters, clientType: e.target.value})} 
-              className="w-full px-3 py-2.5 bg-gray-50/50 border border-gray-100 rounded-xl text-[10px] font-bold text-[#103c7f] uppercase outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer appearance-none"
+              className="w-full px-3 py-2 bg-gray-50/50 border border-gray-100 rounded-xl text-[10px] font-bold text-[#103c7f] uppercase outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer appearance-none"
             >
               <option value="">CLIENT TYPE</option>
               <option value="Standard">STANDARD</option>
@@ -470,7 +473,7 @@ statesList: [
             </select>
           </div>
 
-          {/* 5. PROJECTION */}
+          {/* 7. PROJECTION */}
           <div className="col-span-1">
             <select 
               value={filters.projection || ''} 
@@ -479,6 +482,18 @@ statesList: [
             >
               <option value="">PROJECTION</option>
               {dropdowns.projectionList.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+
+          {/* 8. LATEST MODE */}
+          <div className="col-span-1">
+            <select 
+              value={filters.latestMode || ''} 
+              onChange={(e) => setFilters({...filters, latestMode: e.target.value})}
+              className="w-full px-3 py-2 bg-gray-50/50 border border-gray-100 rounded-xl text-[10px] font-bold text-[#103c7f] uppercase outline-none cursor-pointer focus:ring-2 focus:ring-blue-100 appearance-none"
+            >
+              <option value="">LATEST MODE</option>
+              {dropdowns.latestModeList.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
 
@@ -1750,5 +1765,6 @@ function EditInteractionModal({ interaction, lead, onClose, onSave, saving, stat
     </div>
   );
 }
+
 
 
