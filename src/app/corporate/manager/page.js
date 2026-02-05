@@ -1,14 +1,19 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation"; // 👈 1. IMPORT ROUTER
+import { useRouter } from "next/navigation"; 
 import {
   Users, Briefcase, AlertCircle, MapPin, Filter, Calendar,
-  UserCheck, Activity, CalendarClock, CalendarRange, Eye, UserPlus, X
+  UserCheck, Activity, CalendarClock, CalendarRange, Eye, UserPlus, X,
+  LayoutGrid, Phone, CheckCircle, TrendingUp, Award, Database, 
+  PhoneOutgoing, XCircle, FileText, Send, Rocket, Search as SearchIcon
 } from "lucide-react";
 
 export default function ManagerHome() {
 
-  const router = useRouter(); // 👈 2. INITIALIZE ROUTER
+  const router = useRouter();
+
+  // --- TAB STATE (NEW) ---
+  const [activeTab, setActiveTab] = useState("FSE"); // Default to FSE
 
   // --- FILTER STATE ---
   const [filters, setFilters] = useState({
@@ -64,6 +69,24 @@ export default function ManagerHome() {
 
   // --- PENDING ACTIONS COUNT ---
   const [pendingCount, setPendingCount] = useState(0);
+  // --- LEADGEN DATA (MOCK) ---
+  // --- LEADGEN DATA (UPDATED WITH EXAMPLE) ---
+  const [leadGenData] = useState({
+    onboarded: { total: 12, startup: 4 },
+    interested: { total: 45, startup: 15 },
+    franchise: { 
+        accepted: { total: 5, startup: 2 },
+        discussed: { total: 20, startup: 8 },
+        formShared: { total: 12, startup: 5 }
+    },
+    searched: { total: 850, startup: 120 },
+    contacts: { total: 600, startup: 90 },
+    calls: { total: 240, startup: 40 }, // 👈 Aapka Example: 240 Total, 40 Startups
+    picked: { total: 110, startup: 25 },
+    notPicked: { total: 130, startup: 15 },
+    contract: { total: 35, startup: 10 },
+    sentToManager: { total: 18, startup: 6 }
+  });
 
   // Fetch FSE team on mount
   useEffect(() => {
@@ -353,153 +376,386 @@ export default function ManagerHome() {
     }
   ];
 
-  // 2. TEAM PERFORMANCE TABLE - now using todayActivity
-
-  // 3. PENDING ACTIONS
-  const [pendingActions] = useState([]);
-
   return (
     <div className="h-[calc(100vh-2rem)] bg-[#f8fafc] w-full font-['Calibri'] p-6 flex flex-col overflow-hidden">
 
-      {/* HEADER & FILTERS */}
-      <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-6 shrink-0 gap-4">
-        <div>
-           <h1 className="text-2xl font-black text-[#103c7f] tracking-tight uppercase italic leading-none">Manager Command Center</h1>
-           <div className="flex items-center gap-2 mt-1.5">
-              <span className="w-2 h-2 bg-[#a1db40] rounded-full animate-pulse shadow-[0_0_5px_#a1db40]"></span>
-              <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest leading-none">Live Performance Dashboard</p>
-           </div>
+      {/* HEADER WITH TITLE & TABS */}
+      {/* HEADER WITH TITLE, TABS & FILTERS */}
+     {/* HEADER: STRICTLY ONE ROW (Title Left - Controls Right) */}
+      <div className="flex items-center justify-between gap-4 mb-6 w-full shrink-0">
+
+        {/* 1. LEFT: TITLE & LIVE BADGE */}
+        <div className="shrink-0">
+            <h1 className="text-2xl font-black text-[#103c7f] tracking-tight uppercase italic leading-none whitespace-nowrap">
+              Manager Command Center
+            </h1>
+            <div className="flex items-center gap-2 mt-1.5">
+                <span className="w-2 h-2 bg-[#a1db40] rounded-full animate-pulse shadow-[0_0_5px_#a1db40]"></span>
+                <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest leading-none">Live Performance Dashboard</p>
+            </div>
         </div>
-        <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-gray-200 shadow-sm">
-           <div className="relative group"><div className="absolute inset-y-0 left-2 flex items-center pointer-events-none text-gray-400"><Calendar size={14} /></div><input type="date" value={filters.fromDate || ''} className="pl-8 pr-2 py-2 bg-gray-50 border-none rounded-lg text-xs font-bold text-[#103c7f] focus:ring-2 focus:ring-[#103c7f]/20 outline-none uppercase tracking-wide cursor-pointer hover:bg-gray-100 transition-colors" onChange={(e) => handleFilterChange('fromDate', e.target.value)}/></div>
-           <span className="text-gray-300 font-bold">-</span>
-           <div className="relative group"><div className="absolute inset-y-0 left-2 flex items-center pointer-events-none text-gray-400"><Calendar size={14} /></div><input type="date" value={filters.toDate || ''} className="pl-8 pr-2 py-2 bg-gray-50 border-none rounded-lg text-xs font-bold text-[#103c7f] focus:ring-2 focus:ring-[#103c7f]/20 outline-none uppercase tracking-wide cursor-pointer hover:bg-gray-100 transition-colors" onChange={(e) => handleFilterChange('toDate', e.target.value)}/></div>
-           <button onClick={() => { handleFilterChange('fromDate', ''); handleFilterChange('toDate', ''); }} className="p-2 text-gray-400 hover:text-[#103c7f] hover:bg-blue-50 rounded-lg transition-all" title="Clear Date Filters"><X size={16} /></button>
-           <div className="w-[1px] h-6 bg-gray-200 mx-1"></div>
-           <div className="relative"><div className="absolute inset-y-0 left-2 flex items-center pointer-events-none text-gray-400"><Filter size={14} /></div><select className="pl-8 pr-4 py-2 bg-[#103c7f] text-white rounded-lg text-xs font-bold focus:ring-2 focus:ring-[#a1db40] outline-none appearance-none cursor-pointer hover:bg-[#0d2e61] transition-colors uppercase tracking-wide" value={filters.selectedFse} onChange={(e) => handleFilterChange('selectedFse', e.target.value)}><option value="All">All Team Members</option>{fseTeam.map((fse, idx) => (<option key={idx} value={fse.user_id} className="bg-white text-gray-800">{fse.name}</option>))}</select></div>
+
+        {/* 2. RIGHT: TABS & FILTERS (Merged Group) */}
+        <div className="flex items-center gap-3 shrink-0">
+            
+            {/* A. TAB SWITCHER */}
+            <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200 shadow-sm shrink-0">
+                <button 
+                    onClick={() => setActiveTab('FSE')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === 'FSE' ? 'bg-[#103c7f] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
+                >
+                    <Briefcase size={14} /> FSE Team
+                </button>
+                <button 
+                    onClick={() => setActiveTab('LeadGen')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === 'LeadGen' ? 'bg-[#103c7f] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
+                >
+                    <Phone size={14} /> LeadGen
+                </button>
+            </div>
+
+            {/* B. FILTERS (Date & Team) */}
+            <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-gray-200 shadow-sm shrink-0">
+                
+                {/* Date Inputs */}
+                <div className="relative group">
+                    <div className="absolute inset-y-0 left-2 flex items-center pointer-events-none text-gray-400"><Calendar size={14} /></div>
+                    <input type="date" value={filters.fromDate || ''} className="pl-8 pr-2 py-2 bg-gray-50 border-none rounded-lg text-xs font-bold text-[#103c7f] focus:ring-2 focus:ring-[#103c7f]/20 outline-none uppercase tracking-wide cursor-pointer hover:bg-gray-100 transition-colors w-[110px]" onChange={(e) => handleFilterChange('fromDate', e.target.value)}/>
+                </div>
+                <span className="text-gray-300 font-bold">-</span>
+                <div className="relative group">
+                    <div className="absolute inset-y-0 left-2 flex items-center pointer-events-none text-gray-400"><Calendar size={14} /></div>
+                    <input type="date" value={filters.toDate || ''} className="pl-8 pr-2 py-2 bg-gray-50 border-none rounded-lg text-xs font-bold text-[#103c7f] focus:ring-2 focus:ring-[#103c7f]/20 outline-none uppercase tracking-wide cursor-pointer hover:bg-gray-100 transition-colors w-[110px]" onChange={(e) => handleFilterChange('toDate', e.target.value)}/>
+                </div>
+                
+                {/* Clear Dates Button */}
+                <button onClick={() => { handleFilterChange('fromDate', ''); handleFilterChange('toDate', ''); }} className="p-2 text-gray-400 hover:text-[#103c7f] hover:bg-blue-50 rounded-lg transition-all" title="Clear Date Filters"><X size={16} /></button>
+
+                {/* Vertical Divider */}
+                <div className="w-[1px] h-6 bg-gray-200 mx-1"></div>
+
+                {/* Team Selector */}
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-2 flex items-center pointer-events-none text-white/70"><Filter size={14} /></div>
+                    <select 
+                        className="pl-8 pr-4 py-2 bg-[#103c7f] text-white rounded-lg text-xs font-bold focus:ring-2 focus:ring-[#a1db40] outline-none appearance-none cursor-pointer hover:bg-[#0d2e61] transition-colors uppercase tracking-wide min-w-[140px]" 
+                        value={filters.selectedFse} 
+                        onChange={(e) => handleFilterChange('selectedFse', e.target.value)}
+                    >
+                        <option value="All">All {activeTab} Members</option>
+                        {fseTeam.map((fse, idx) => (
+                            <option key={idx} value={fse.user_id} className="bg-white text-gray-800">{fse.name}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
         </div>
       </div>
 
-      {/* KPI GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 shrink-0">
-        {stats.map((stat, idx) => (
-          <div key={idx} className={`p-5 rounded-[20px] border shadow-sm transition-all hover:-translate-y-1 bg-white border-gray-100`}>
-            <div className="flex justify-between items-start mb-3">
-               <div className={`p-3 rounded-xl ${stat.color}`}>{stat.icon}</div>
-             { /* {stat.type === 'projection' && <span className="text-[9px] font-bold bg-gray-100 px-2 py-1 rounded text-gray-500 uppercase">Pipeline</span>}*/}
+      {/* === CONTENT AREA === */}
+      
+      {/* 1. FSE DASHBOARD (EXISTING CODE) */}
+      {/* 1. FSE DASHBOARD (COMPACT & OPTIMIZED) */}
+    {/* 1. FSE DASHBOARD (SINGLE ROW CARDS & COMPACT TABLE) */}
+      {activeTab === 'FSE' && (
+        <div className="flex-1 flex flex-col min-h-0 animate-in fade-in zoom-in-95 duration-300">
+            
+            {/* KPI GRID: LG screens par 6 columns (Ek Hi Row) */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4 shrink-0">
+                {/* 1. Onboarded */}
+                <CompactKpiCard title="Onboarded" value={monthlyData.loading ? "..." : monthlyData.total}  icon={<UserCheck size={16}/>} color="blue" />
+                {/* 2. Avg Visits */}
+                <CompactKpiCard title="Avg Visits" value={avgVisits}  icon={<MapPin size={16}/>} color="teal" />
+                {/* 3. WP > 50 */}
+                <CompactKpiCard title="WP > 50%" value={weeklyData.loading ? "..." : weeklyData.wpGreater50}  icon={<CalendarClock size={16}/>} color="purple" />
+                {/* 4. WP < 50 */}
+                <CompactKpiCard title="WP < 50%" value={weeklyData.loading ? "..." : weeklyData.wpLess50}  icon={<AlertCircle size={16}/>} color="red" />
+                {/* 5. MP > 50 */}
+                <CompactKpiCard title="MP > 50%" value={monthlyProjData.loading ? "..." : monthlyProjData.mpGreater50}  icon={<CalendarRange size={16}/>} color="green" />
+                {/* 6. MP < 50 */}
+                <CompactKpiCard title="MP < 50%" value={monthlyProjData.loading ? "..." : monthlyProjData.mpLess50}  icon={<AlertCircle size={16}/>} color="orange" />
             </div>
-            <div>
-               <h3 className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">{stat.title}</h3>
-               {stat.type === 'projection' ? (
-                 <div className="mt-2 flex items-center justify-between">
-                    <div><p className={`text-3xl font-black tracking-tight text-gray-800`}>{stat.value}</p><p className="text-[9px] font-bold text-gray-400">Total Leads</p></div>
-                    <div className="flex flex-col gap-1 text-right">{stat.breakdown.map((item, bIdx) => (<div key={bIdx} className="flex items-center gap-2 justify-end"><span className={`text-xs font-black ${item.color}`}>{item.count}</span><span className="text-[9px] font-bold text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">{item.label}</span></div>))}</div>
-                 </div>
-               ) : (
-                 <><p className={`text-3xl font-black mt-0.5 tracking-tight ${idx === 0 ? 'text-[#103c7f]' : 'text-gray-800'}`}>{stat.value}</p><p className="text-[10px] font-bold text-gray-500 mt-1 flex items-center gap-1">{stat.subtext}</p></>
-               )}
+
+            {/* MAIN CONTENT SPLIT */}
+            <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0 pb-1">
+
+                {/* LEFT: COMPACT ACTIVITY TABLE (Status Column Removed) */}
+                <div className="flex-1 bg-white rounded-xl border border-gray-100 shadow-sm flex flex-col overflow-hidden">
+                    <div className="px-4 py-2.5 border-b border-gray-50 flex justify-between items-center shrink-0 bg-gray-50/50">
+                        <h2 className="text-xs font-black text-[#103c7f] uppercase tracking-wider">Today's Activity</h2>
+                        <button onClick={() => { const today = new Date().toISOString().split('T')[0]; router.push(`/corporate/manager/team-leads?from_date=${today}&to_date=${today}`); }} className="text-[9px] font-bold text-blue-600 hover:underline">View Full Report</button>
+                    </div>
+                    <div className="overflow-y-auto flex-1 custom-scrollbar p-0">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="sticky top-0 bg-white text-[9px] uppercase font-bold text-gray-400 tracking-wider z-10 border-b border-gray-100">
+                                <tr>
+                                    <th className="px-3 py-2">Member</th>
+                                    <th className="px-3 py-2 text-center">Visits</th>
+                                    <th className="px-3 py-2 text-center">Onboarded</th>
+                                    <th className="px-3 py-2 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="text-xs">
+                                {activityLoading ? (
+                                    <tr><td colSpan="4" className="p-4 text-center text-gray-400 text-xs">Loading activity...</td></tr>
+                                ) : todayActivity.length === 0 ? (
+                                    <tr><td colSpan="4" className="p-4 text-center text-gray-400 text-xs">No activity logged today</td></tr>
+                                ) : (
+                                    todayActivity.map((member) => (
+                                        <tr key={member.id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors group">
+                                            <td className="px-3 py-2">
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[9px] border ${member.status === 'Absent' ? 'bg-red-50 border-red-100 text-red-500' : 'bg-blue-50 border-blue-100 text-blue-600'}`}>{member.avatar}</div>
+                                                    <div>
+                                                        <p className="font-bold text-gray-700 text-[11px] group-hover:text-blue-700 leading-tight">{member.name}</p>
+                                                        {/* Status is shown here as subtitle instead of separate column */}
+                                                        <p className="text-[8px] text-gray-400 uppercase leading-none mt-0.5">{member.status}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-3 py-2 text-center"><span className="font-bold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded text-[10px]">{member.visitsToday}</span></td>
+                                            <td className="px-3 py-2 text-center">
+                                                {member.onboardedToday > 0 ? (
+                                                    <span className="font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 flex items-center justify-center gap-1 w-fit mx-auto text-[10px]">
+                                                        <UserPlus size={10}/> {member.onboardedToday}
+                                                    </span>
+                                                ) : <span className="text-gray-300 text-[10px]">-</span>}
+                                            </td>
+                                            <td className="px-3 py-2 text-center">
+                                                <button onClick={() => { const today = new Date().toISOString().split('T')[0]; router.push(`/corporate/manager/team-leads?from_date=${today}&to_date=${today}&selectedFse=${member.id}`); }} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all" title="View Details">
+                                                    <Eye size={14} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* RIGHT: ACTION & TARGET (Ultra Compact) */}
+                <div className="w-full md:w-1/3 flex flex-col gap-3">
+                    
+                    {/* Action Center */}
+                    <div className="bg-[#103c7f] text-white rounded-xl p-4 shadow-md relative overflow-hidden shrink-0">
+                        <div className="relative z-10 flex justify-between items-center">
+                            <div>
+                                <h3 className="text-lg font-black italic tracking-tight">{pendingCount} Pending</h3>
+                                <p className="text-[9px] text-blue-200 mt-0.5">Claims require approval.</p>
+                            </div>
+                            <button onClick={() => router.push('/corporate/manager/approvals')} className="bg-white text-[#103c7f] px-3 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-widest hover:bg-[#a1db40] transition-colors shadow-sm">
+                                Review
+                            </button>
+                        </div>
+                        <div className="absolute -right-4 -top-8 w-20 h-20 bg-white/10 rounded-full blur-xl"></div>
+                    </div>
+
+                    {/* Target Widget */}
+                   
+                </div>
+            </div>
+        </div>
+      )}
+
+   
+    {/* 2. LEADGEN DASHBOARD (2-PART SPLIT CARDS) */}
+      {activeTab === 'LeadGen' && (
+        <div className="flex-1 grid grid-cols-2 gap-6 overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+          
+          {/* LEFT HALF: DASHBOARD */}
+          <div className="w-full md:w-1/2 overflow-y-auto custom-scrollbar p-1 pr-2">
+            
+            <div className="flex flex-col gap-5">
+              
+              {/* ---------------- SECTION 1: SUCCESS METRICS ---------------- */}
+              <div>
+                <h4 className="text-[10px] font-black text-teal-700 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                   <CheckCircle size={12} /> Success Metrics
+                </h4>
+                
+                <div className="grid grid-cols-3 xl:grid-cols-3 gap-3"> 
+                    <BigSuccessCard 
+                        title="Onboarded" 
+                        total={leadGenData.onboarded.total} 
+                        startup={leadGenData.onboarded.startup} 
+                        icon={<Briefcase size={14}/>} 
+                        color="teal"
+                    />
+                    <BigSuccessCard 
+                        title="Interested" 
+                        total={leadGenData.interested.total} 
+                        startup={leadGenData.interested.startup} 
+                        icon={<TrendingUp size={14}/>} 
+                        color="blue"
+                    />
+                    <BigSuccessCard 
+                        title="Accepted" 
+                        total={leadGenData.franchise.accepted.total} 
+                        startup={leadGenData.franchise.accepted.startup} 
+                        icon={<Award size={14}/>} 
+                        color="green"
+                        isFranchise={true} 
+                    />
+                </div>
+              </div>
+
+             {/* ---------------- SECTION 2: LEADS OVERVIEW ---------------- */}
+              <div>
+                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2 mt-1">
+                   <Database size={12} /> Overview
+                </h4>
+                
+                <div className="grid grid-cols-3 xl:grid-cols-3 gap-3">
+                  
+                  {/* Row 1 */}
+                  <KpiCard title="Searched" total={leadGenData.searched.total} startup={leadGenData.searched.startup} icon={<SearchIcon size={14}/>} color="blue" />
+                  <KpiCard title="Contacts" total={leadGenData.contacts.total} startup={leadGenData.contacts.startup} icon={<UserCheck size={14}/>} color="blue" />
+                  <KpiCard title="Total Calls" total={leadGenData.calls.total} startup={leadGenData.calls.startup} icon={<Phone size={14}/>} color="purple" />
+
+                  {/* Row 2 */}
+                  <KpiCard title="Picked" total={leadGenData.picked.total} startup={leadGenData.picked.startup} icon={<PhoneOutgoing size={14}/>} color="green" />
+                  <KpiCard title="Not Picked" total={leadGenData.notPicked.total} startup={leadGenData.notPicked.startup} icon={<XCircle size={14}/>} color="red" />
+                  <KpiCard title="Contracts" total={leadGenData.contract.total} startup={leadGenData.contract.startup} icon={<FileText size={14}/>} color="orange" />
+                  
+                  {/* Row 3 */}
+                  <KpiCard title="Discussed" total={leadGenData.franchise.discussed.total} startup={leadGenData.franchise.discussed.startup} icon={<Phone size={14}/>} color="purple" />
+                  <KpiCard title="Forms Shared" total={leadGenData.franchise.formShared.total} startup={leadGenData.franchise.formShared.startup} icon={<FileText size={14}/>} color="purple" />
+                  
+                  {/* Sent to Manager */}
+                  <KpiCard 
+                      title="Sent to Mgr" 
+                      total={leadGenData.sentToManager.total} 
+                      startup={leadGenData.sentToManager.startup} 
+                      icon={<Send size={14}/>} 
+                      color="orange" 
+                  />
+
+                </div>
+              </div>
+
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* MAIN CONTENT SPLIT */}
-      <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0 pb-2">
-
-        {/* LEFT: TEAM PERFORMANCE TABLE */}
-        <div className="flex-1 bg-white rounded-[24px] border border-gray-100 shadow-sm flex flex-col overflow-hidden">
-           <div className="p-5 border-b border-gray-50 flex justify-between items-center shrink-0">
-              <h2 className="text-lg font-black text-[#103c7f] uppercase italic tracking-tight">Today's Field Activity</h2>
-              <button onClick={() => { const today = new Date().toISOString().split('T')[0]; router.push(`/corporate/manager/team-leads?from_date=${today}&to_date=${today}`); }} className="text-[10px] font-black text-[#103c7f] uppercase bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-[#103c7f] hover:text-white transition-all">View Full Report</button>
-           </div>
-           <div className="overflow-y-auto flex-1 custom-scrollbar p-2">
-              <table className="w-full text-left border-collapse">
-                 <thead className="sticky top-0 bg-white text-[9px] uppercase font-black text-gray-400 tracking-widest z-10 border-b border-gray-100">
-                    <tr>
-                       <th className="px-4 py-3">Team Member</th>
-                       <th className="px-4 py-3 text-center">Visits Today</th>
-                       <th className="px-4 py-3 text-center">Onboarded</th>
-                       <th className="px-4 py-3 text-center">Status</th>
-                       <th className="px-4 py-3 text-center">Action</th>
-                    </tr>
-                 </thead>
-                 <tbody className="text-sm">
-                    {activityLoading ? (
-                       <tr>
-                          <td colSpan="5" className="px-4 py-8 text-center text-gray-500">Loading today's activity...</td>
-                       </tr>
-                    ) : todayActivity.length === 0 ? (
-                       <tr>
-                          <td colSpan="5" className="px-4 py-8 text-center text-gray-500">No activity data available</td>
-                       </tr>
-                    ) : (
-                       todayActivity.map((member) => (
-                          <tr key={member.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors group">
-                             <td className="px-4 py-3">
-                                <div className="flex items-center gap-3">
-                                   <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-xs border-2 ${member.status === 'Absent' ? 'bg-red-50 border-red-100 text-red-500' : 'bg-blue-50 border-blue-100 text-[#103c7f]'}`}>{member.avatar}</div>
-                                   <div><p className="font-bold text-gray-800 text-xs group-hover:text-[#103c7f] transition-colors">{member.name}</p><p className="text-[9px] font-bold text-gray-400 uppercase">{member.role}</p></div>
-                                </div>
-                             </td>
-                             <td className="px-4 py-3 text-center"><span className="font-black text-gray-700 bg-gray-100 px-2 py-1 rounded text-xs">{member.visitsToday}</span></td>
-                             <td className="px-4 py-3 text-center">{member.onboardedToday === 'N/A' ? (<span className="text-gray-400 text-xs font-bold">N/A</span>) : member.onboardedToday > 0 ? (<span className="font-bold text-green-600 bg-green-50 px-2 py-1 rounded text-xs border border-green-100 flex items-center justify-center gap-1 w-fit mx-auto"><UserPlus size={12}/> {member.onboardedToday}</span>) : (<span className="text-gray-300 text-xs font-bold">-</span>)}</td>
-                             <td className="px-4 py-3 text-center"><span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border ${member.status === 'Absent' ? 'bg-red-50 text-red-600 border-red-100' : member.status === 'No Data' ? 'bg-gray-50 text-gray-600 border-gray-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>{member.status}</span></td>
-                             <td className="px-4 py-3 text-center"><button onClick={() => { const today = new Date().toISOString().split('T')[0]; router.push(`/corporate/manager/team-leads?from_date=${today}&to_date=${today}&selectedFse=${member.id}`); }} className="p-1.5 text-gray-400 hover:text-[#103c7f] hover:bg-blue-50 rounded-lg transition-all" title="View Detailed Log"><Eye size={16} /></button></td>
-                          </tr>
-                       ))
-                    )}
-                 </tbody>
-              </table>
-           </div>
-        </div>
-
-        {/* RIGHT: ACTION CENTER & TARGET WIDGET */}
-        <div className="w-full md:w-1/3 flex flex-col gap-4">
-           {/* Urgent Actions */}
-           <div className="bg-[#103c7f] text-white rounded-[24px] p-6 shadow-lg shadow-[#103c7f]/20 relative overflow-hidden shrink-0">
-              <div className="relative z-10">
-                 <h3 className="text-2xl font-black italic tracking-tight">{pendingCount} Pending Actions</h3>
-                 <p className="text-[11px] font-medium text-blue-200 mt-1">Claims Approvals require your attention.</p>
-
-                 {/* 👈 3. NAVIGATION BUTTON */}
-                 <button
-                    onClick={() => router.push('/corporate/manager/approvals')}
-                    className="mt-4 w-full bg-white text-[#103c7f] py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-[#a1db40] transition-colors"
-                 >
-                    Review Now
-                 </button>
-
+          {/* RIGHT HALF: BLANK PLACEHOLDER */}
+          <div className="hidden md:flex h-full bg-white rounded-[24px] border border-gray-100 shadow-sm items-center justify-center flex-col gap-3 w-1/2">
+              <div className="w-14 h-14 bg-gray-50 rounded-full flex items-center justify-center text-gray-300">
+                  <LayoutGrid size={24} />
               </div>
-              <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
-           </div>
-
-           {/* TARGET WIDGET (Unchanged) */}
-           {/* TARGET WIDGET */}
-           {/* 👇 Change: Added 'mb-6' to give space from bottom */}
-           <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm flex-1 p-6 flex flex-col justify-center mb-8">
-              <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Team Onboarding Goal</h3>
-                  <span className="text-[10px] font-bold bg-blue-50 text-[#103c7f] px-2 py-0.5 rounded">Target: {totalTeamTarget}</span>
-              </div>
-
-              <div className="relative w-full h-5 bg-gray-100 rounded-full overflow-hidden mb-2 shadow-inner">
-                 <div
-                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#103c7f] to-blue-400 rounded-full transition-all duration-1000 ease-out"
-                    style={{ width: `${progressPercent}%` }}
-                 ></div>
-              </div>
-
-              <div className="flex justify-between text-xs font-black text-[#103c7f]">
-                 <span>{achievedOnboarding} Onboarded</span>
-                 <span>{Math.round(progressPercent)}% Done</span>
-              </div>
-
-              <p className="text-[10px] text-gray-400 mt-3 italic text-center border-t border-gray-50 pt-2">
-                 "Team needs <span className="text-[#103c7f] font-bold">{totalTeamTarget - achievedOnboarding} more</span> to hit monthly goal"
+              <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">
+                  Detailed Report / Logs
               </p>
-           </div>
+          </div>
+
         </div>
-      </div>
+      )}
     </div>
   );
+}
+
+
+// --- COMPACT CENTERED CARDS (WITH "STARTUPS" LABEL) ---
+
+// --- 2-PART SPLIT CARDS (Top: Total, Bottom: Startups) ---
+
+// --- 2-PART SPLIT CARDS (Top: Total, Bottom: Startups) ---
+
+function BigSuccessCard({ title, total, startup, icon, color, isFranchise = false }) {
+    const colors = {
+        teal: "bg-teal-50 text-teal-600 border-teal-100",
+        blue: "bg-blue-50 text-blue-600 border-blue-100",
+        green: "bg-emerald-50 text-emerald-600 border-emerald-100"
+    };
+    const style = colors[color] || colors.blue;
+
+    return (
+        <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden flex flex-col justify-between h-[120px] hover:shadow-md transition-all">
+            
+            {/* PART 1: TOP (Main Data) */}
+            <div className="p-3 flex-1 flex flex-col justify-between">
+                <div className="flex justify-between items-start">
+                    <p className={`text-[11px] font-extrabold uppercase tracking-wider ${isFranchise ? 'text-green-700' : 'text-gray-400'}`}>{title}</p>
+                    <div className={`p-1.5 rounded-lg ${style}`}>
+                        {icon}
+                    </div>
+                </div>
+                <h3 className="text-3xl font-black text-slate-800 leading-none mt-1">{total}</h3>
+            </div>
+
+            {/* PART 2: BOTTOM (Startup Strip) */}
+            <div className="bg-orange-50 px-3 py-1.5 border-t border-orange-100 flex items-center gap-2">
+                <Rocket size={10} className="text-orange-600"/>
+                <span className="text-[10px] font-bold text-orange-700">
+                    {startup} <span className="opacity-70 text-[9px] uppercase tracking-wide">Startups</span>
+                </span>
+            </div>
+        </div>
+    )
+}
+
+function KpiCard({ title, total, startup, icon, color }) {
+    // Icon colors
+    const iconColors = {
+        blue: "text-blue-600 bg-blue-50",
+        purple: "text-purple-600 bg-purple-50",
+        green: "text-emerald-600 bg-emerald-50",
+        red: "text-red-600 bg-red-50",
+        orange: "text-orange-600 bg-orange-50",
+    };
+    const activeClass = iconColors[color] || iconColors.blue;
+
+    return (
+        <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden flex flex-col justify-between h-[100px] hover:shadow-md transition-all">
+            
+            {/* PART 1: TOP (Main Data) */}
+            <div className="p-2.5 flex-1 flex flex-col justify-between">
+                <div className="flex justify-between items-start">
+                    <p className="text-[11px] font-bold uppercase text-gray-400 tracking-wide truncate w-[70%]" title={title}>{title}</p>
+                    <div className={`p-1 rounded-md ${activeClass}`}>
+                        {icon}
+                    </div>
+                </div>
+                <h3 className="text-2xl font-black text-slate-800 leading-none mt-[-2px]">{total}</h3>
+            </div>
+
+            {/* PART 2: BOTTOM (Startup Strip) */}
+            {startup > 0 ? (
+                <div className="bg-orange-50 px-2.5 py-1 border-t border-orange-100 flex items-center gap-1.5">
+                    <Rocket size={8} className="text-orange-600"/>
+                    <span className="text-[9px] font-bold text-orange-700">
+                        {startup} <span className="opacity-70 text-[8px] uppercase">Startups</span>
+                    </span>
+                </div>
+            ) : (
+                // Empty strip to keep height consistent if needed, or hide it
+                <div className="h-[2px] bg-gray-50"></div>
+            )}
+        </div>
+    );
+}
+// --- COMPACT FSE KPI CARD ---
+function CompactKpiCard({ title, value, subtitle, icon, color }) {
+    const colors = {
+        blue: "bg-blue-50 text-blue-600",
+        teal: "bg-teal-50 text-teal-600",
+        purple: "bg-purple-50 text-purple-600",
+        red: "bg-red-50 text-red-600",
+        green: "bg-emerald-50 text-emerald-600",
+        orange: "bg-orange-50 text-orange-600",
+    };
+    const activeColor = colors[color] || colors.blue;
+
+    return (
+        <div className="bg-white border border-gray-100 p-3 rounded-xl shadow-sm hover:shadow-md transition-all flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${activeColor} shrink-0`}>
+                {icon}
+            </div>
+            <div className="overflow-hidden">
+                <p className="text-[9px] font-bold uppercase text-gray-400 tracking-wider truncate">{title}</p>
+                <h4 className="text-lg font-black text-slate-800 leading-none mt-0.5">{value}</h4>
+                <p className="text-[8px] text-gray-300 font-medium truncate">{subtitle}</p>
+            </div>
+        </div>
+    );
 }
