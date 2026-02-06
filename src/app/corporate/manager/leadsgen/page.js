@@ -43,9 +43,20 @@ export default function ManagerLeadsPage() {
           setLeads(leadsArray);
           setFilteredLeads(leadsArray);
           
-          // Get unique sourcedBy names from leads
-          const uniqueSourcedBy = [...new Set(leadsArray.map(l => l.sourcedBy))];
-          setSourcedByOptions(uniqueSourcedBy);
+          // Only update sourcedByOptions if there are leads with sourcedBy names
+          if (leadsArray.length > 0) {
+            const uniqueSourcedBy = [...new Set(leadsArray.map(l => l.sourcedBy).filter(Boolean))];
+            if (uniqueSourcedBy.length > 0) {
+              setSourcedByOptions(prev => {
+                // Merge with existing options if different
+                if (prev.length > 0) {
+                  const merged = [...new Set([...prev, ...uniqueSourcedBy])];
+                  return merged;
+                }
+                return uniqueSourcedBy;
+              });
+            }
+          }
           
           setFseOptions(fseTeam.map(f => ({ id: f.user_id, name: f.name })));
           if (fseTeam.length > 0) {
@@ -83,17 +94,17 @@ export default function ManagerLeadsPage() {
           }
         });
         const data = await response.json();
-        console.log('Leadgen users API response:', data);
-        if (data.success) {
-          console.log('Leadgen users data:', data.data);
-          setLeadgenUsers(data.data);
-          // Also update sourcedByOptions with all leadgen names
+        if (data.success && data.data && data.data.length > 0) {
           const leadgenNames = data.data.map(u => u.name);
-          console.log('Leadgen names:', leadgenNames);
-          setSourcedByOptions(leadgenNames);
+          setSourcedByOptions(prev => {
+            // Merge with existing options if leadgen names are different
+            const merged = [...new Set([...prev, ...leadgenNames])];
+            return merged;
+          });
         }
       } catch (error) {
         console.error('Failed to fetch leadgen users:', error);
+        // Don't clear sourcedByOptions on error - keep existing data
       }
     };
 
