@@ -42,7 +42,10 @@ export default function LeadsMasterPage() {
      status: '' ,
      clientType: '',
      fromDate: '', // New
-     toDate: ''    // New
+     toDate: '',    // New
+     visitFilter: '',
+     duplicateFilter: '',
+     latestMode: ''
    });
 
     useEffect(() => {
@@ -61,6 +64,31 @@ export default function LeadsMasterPage() {
         setShowAll(true);
         localStorage.removeItem('statusFilter');
       }
+      
+      const visitFilter = localStorage.getItem('visitFilter');
+      if (visitFilter === 'never') {
+        console.log('Setting visitFilter from localStorage:', visitFilter);
+        setFilters(prev => ({ ...prev, visitFilter: 'never' }));
+        setShowAll(true);
+        localStorage.removeItem('visitFilter');
+      }
+
+      // Handle duplicate filter
+      const duplicateFilter = localStorage.getItem('duplicateFilter');
+      if (duplicateFilter === 'true') {
+        console.log('Setting duplicateFilter from localStorage:', duplicateFilter);
+        setFilters(prev => ({ ...prev, duplicateFilter: 'true' }));
+        setShowAll(true);
+        localStorage.removeItem('duplicateFilter');
+      }
+
+      // Handle view all click
+      const viewAllClicked = localStorage.getItem('viewAllClicked');
+      if (viewAllClicked === 'true') {
+        console.log('Setting showAll from localStorage:', viewAllClicked);
+        setShowAll(true);
+        localStorage.removeItem('viewAllClicked');
+      }
     }, []);
 
    useEffect(() => { setMounted(true); }, []);
@@ -68,7 +96,7 @@ export default function LeadsMasterPage() {
   // Robust Dependency Array
   useEffect(() => {
     if (mounted) fetchLeads();
-  }, [mounted, filters.company, filters.category, filters.status, filters.locationSearch, filters.statusSearch, filters.subStatusSearch, filters.projection, filters.clientType, filters.fromDate, filters.toDate, filters.latestMode, showAll]);
+  }, [mounted, filters.company, filters.category, filters.status, filters.locationSearch, filters.statusSearch, filters.subStatusSearch, filters.projection, filters.clientType, filters.fromDate, filters.toDate, filters.latestMode, filters.visitFilter, filters.duplicateFilter, showAll]);
 
   const fetchLeads = async () => {
     try {
@@ -90,6 +118,9 @@ export default function LeadsMasterPage() {
       // 👇 DATE FILTERS (Agar pehle miss ho gaye the toh ye bhi zaroori hain)
       if (filters.fromDate) queryParams.append('fromDate', filters.fromDate);
       if (filters.toDate) queryParams.append('toDate', filters.toDate);
+      if (filters.visitFilter) queryParams.append('visitFilter', filters.visitFilter);
+      if (filters.duplicateFilter) queryParams.append('duplicateFilter', filters.duplicateFilter);
+      if (filters.latestMode) queryParams.append('latestMode', filters.latestMode);
       const limit = showAll ? 10000 : 100;
       queryParams.append('limit', limit);
 
@@ -271,7 +302,7 @@ export default function LeadsMasterPage() {
 
   const dropdowns = {
     categoryList: ["Architect/ID", "Banquet", "Club/Store","Hospitality","IT","Multi Media","Non-IT","Real estate","Trading","Retail", "Manufacturing"],
-statesList: [
+  statesList: [
       "Andaman and Nicobar Islands",
       "Andhra Pradesh",
       "Arunachal Pradesh",
@@ -319,15 +350,15 @@ statesList: [
   return (
     // h-[100dvh] ensures full height on mobile browsers with address bars
     <div className="w-full h-[100dvh] flex flex-col overflow-hidden font-['Calibri'] p-1 md:p-2 bg-[#f8fafc]">
-      
+       
      {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-2 gap-4">
         
         {/* LEFT: TITLE & COUNT */}
         <div className="flex flex-col md:flex-row items-center gap-3 shrink-0">
           <h1 className="text-2xl md:text-3xl font-black text-[#103c7f] uppercase italic tracking-tight whitespace-nowrap shrink-0">
-  Leads Master Database
-</h1>
+   Leads Master Database
+ </h1>
           
           {/* ROW COUNTER BADGE */}
           <span className="bg-blue-50 border border-blue-100 text-[#103c7f] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
@@ -738,7 +769,7 @@ statesList: [
     {...dropdowns}
   />
 )}
-{/* 👇 ADD THIS BLOCK (Missing) */}
+  {/* 👇 ADD THIS BLOCK (Missing) */}
       {isLeaveModalOpen && (
         <LeaveModal 
           onClose={() => setIsLeaveModalOpen(false)} 
@@ -756,7 +787,7 @@ statesList: [
   />
 )}
 
-{/* EDIT INTERACTION MODAL */}
+  {/* EDIT INTERACTION MODAL */}
 {isEditInteractionModalOpen && editingInteraction && (
   <EditInteractionModal
     interaction={editingInteraction}
@@ -774,6 +805,8 @@ statesList: [
     </div>
   );
 }
+
+
 
 
 
@@ -968,7 +1001,7 @@ function LeadModal({ lead, isViewMode, onSave, onClose, saving, ...lists }) {
       </div>
     </div>
   );
-}
+ }
 
 
 function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
@@ -1161,7 +1194,7 @@ function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
       </div>
     </div>
   );
-}
+ }
 
 function EditLeadModal({ lead, onUpdate, onClose, saving, ...lists }) {
   // State initialize with existing lead data directly
@@ -1440,62 +1473,62 @@ function ClientFullViewModal({ lead, onClose, onEditInteraction }) {
                   ) : (
                     history.map((item, index) => (
                       <tr key={item.interaction_id} className="hover:bg-blue-50/30 transition group relative">
-                        
-                        <td className="px-4 py-4 align-top">
-                          <div className="flex flex-col gap-1">
-                            <span className="font-bold text-[#103c7f] text-sm">{item.contact_date}</span>
-                            <span className={`w-fit px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wide border ${item.contact_mode === 'Visit' ? 'bg-purple-50 text-purple-600 border-purple-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                              {item.contact_mode}
-                            </span>
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-4 align-top">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-gray-700 text-sm">{item.contact_person}</span>
-                            <div className="flex flex-col mt-1 text-gray-400 text-[10px] font-medium space-y-0.5">
-                              {item.contact_no !== 'N/A' && <span className="flex items-center gap-1"><Phone size={10}/> {item.contact_no}</span>}
-                              {item.email !== 'N/A' && <span className="flex items-center gap-1"><Mail size={10}/> {item.email}</span>}
+                          
+                          <td className="px-4 py-4 align-top">
+                            <div className="flex flex-col gap-1">
+                              <span className="font-bold text-[#103c7f] text-sm">{item.contact_date}</span>
+                              <span className={`w-fit px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wide border ${item.contact_mode === 'Visit' ? 'bg-purple-50 text-purple-600 border-purple-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
+                                {item.contact_mode}
+                              </span>
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        <td className="px-4 py-4 align-top">
-                           <p className="text-gray-600 font-medium leading-relaxed" title={item.remarks}>
-                             {item.remarks}
-                           </p>
-                        </td>
+                          <td className="px-4 py-4 align-top">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-gray-700 text-sm">{item.contact_person}</span>
+                              <div className="flex flex-col mt-1 text-gray-400 text-[10px] font-medium space-y-0.5">
+                                {item.contact_no !== 'N/A' && <span className="flex items-center gap-1"><Phone size={10}/> {item.contact_no}</span>}
+                                {item.email !== 'N/A' && <span className="flex items-center gap-1"><Mail size={10}/> {item.email}</span>}
+                              </div>
+                            </div>
+                          </td>
 
-                        <td className="px-4 py-4 align-top">
-                          <div className="flex flex-col gap-1">
-                            <span className="font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-lg w-fit text-xs border border-orange-100">
-                               {item.next_follow_up}
-                            </span>
-                          </div>
-                        </td>
+                          <td className="px-4 py-4 align-top">
+                             <p className="text-gray-600 font-medium leading-relaxed" title={item.remarks}>
+                               {item.remarks}
+                             </p>
+                          </td>
 
-                        <td className="px-4 py-4 align-top">
-                          <div className="flex flex-col gap-1">
-                            <span className="font-black text-[#103c7f] text-[11px] uppercase">
-                              {item.status}
-                            </span>
-                            <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded w-fit">
-                              {item.sub_status || '--'}
-                            </span>
-                          </div>
-                        </td>
+                          <td className="px-4 py-4 align-top">
+                            <div className="flex flex-col gap-1">
+                              <span className="font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-lg w-fit text-xs border border-orange-100">
+                                 {item.next_follow_up}
+                              </span>
+                            </div>
+                          </td>
 
-                        <td className="px-4 py-4 align-top">
-                          {index === 0 && (
-                            <button
-                              onClick={() => onEditInteraction(item)}
-                              className="p-2 bg-blue-50 text-[#103c7f] rounded-lg hover:bg-blue-100 hover:shadow-md transition-all border border-blue-100 active:scale-95"
-                              title="Edit Latest Interaction"
-                            >
-                              <Pencil size={14} strokeWidth={2.5} />
-                            </button>
-                          )}
-                        </td>
+                          <td className="px-4 py-4 align-top">
+                            <div className="flex flex-col gap-1">
+                              <span className="font-black text-[#103c7f] text-[11px] uppercase">
+                                {item.status}
+                              </span>
+                              <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded w-fit">
+                                {item.sub_status || '--'}
+                              </span>
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-4 align-top">
+                            {index === 0 && (
+                              <button
+                                onClick={() => onEditInteraction(item)}
+                                className="p-2 bg-blue-50 text-[#103c7f] rounded-lg hover:bg-blue-100 hover:shadow-md transition-all border border-blue-100 active:scale-95"
+                                title="Edit Latest Interaction"
+                              >
+                                <Pencil size={14} strokeWidth={2.5} />
+                              </button>
+                            )}
+                          </td>
 
                       </tr>
                     ))
@@ -1765,6 +1798,4 @@ function EditInteractionModal({ interaction, lead, onClose, onSave, saving, stat
     </div>
   );
 }
-
-
 

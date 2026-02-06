@@ -14,6 +14,7 @@ export default function FSEDashboard() {
   const [toDate, setToDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [latestDate, setLatestDate] = useState("");
+  const router = useRouter();
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -22,7 +23,7 @@ export default function FSEDashboard() {
 
   // Initial stats with defaults
   const [stats, setStats] = useState({
-    global: { totalClients: 0, totalOnboard: 0, totalVisits: 0 },
+    global: { totalClients: 0, totalOnboard: 0, totalVisits: 0, onboardCall: 0, onboardVisit: 0, untouched: 0, noStatus: 0, duplicate: 0 },
     monthly: { visitTarget: 0 , individualVisits: 0, onboardMtd: "0/0", avgVisit: 0, visitGoal: 0, onboardGoal: 0 },
     projections: { mpLess50: 0, mpGreater50: 0, wpLess50: 0, wpGreater50: 0 },
     dynamicMetrics: { total: 0, individual: 0, repeat: 0, interested: 0, notInterested: 0, reachedOut: 0, onboard: 0 },
@@ -89,7 +90,12 @@ export default function FSEDashboard() {
             ...prev.global,
             totalClients: data.data.totalClients,
             totalOnboard: data.data.totalOnboarded,
-            totalVisits: data.data.totalVisits
+            totalVisits: data.data.totalVisits,
+            onboardCall: data.data.onboardCall || 0,
+            onboardVisit: data.data.onboardVisit || 0,
+            untouched: data.data.neverVisited || 0,
+            noStatus: data.data.noStatus || 0,
+            duplicate: data.data.duplicate || 0
           },
           monthly: {
             ...prev.monthly,
@@ -107,6 +113,8 @@ export default function FSEDashboard() {
           dynamicMetrics: {
             ...prev.dynamicMetrics,
             total: data.data.latestActivity.total,
+            totalVisitsCalls: data.data.latestActivity.totalVisitsCalls,
+            calls: data.data.latestActivity.calls,
             individual: data.data.latestActivity.individual,
             repeat: data.data.latestActivity.repeat,
             interested: data.data.latestActivity.interested,
@@ -168,7 +176,14 @@ export default function FSEDashboard() {
   </div>
 
   {/* 2. ONBOARDED */}
-  <div className="flex-1 min-w-0 bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px] hover:shadow-md transition-all">
+  <button 
+    onClick={() => {
+      localStorage.setItem('statusFilter', 'Onboarded');
+      localStorage.setItem('viewAllClicked', 'true');
+      router.push('/domestic/fse/lead');
+    }}
+    className="flex-1 min-w-0 bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px] hover:shadow-md transition-all cursor-pointer text-left w-full"
+  >
     <div className="flex justify-between items-start min-w-0">
       <div className="overflow-hidden min-w-0">
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">
@@ -190,10 +205,17 @@ export default function FSEDashboard() {
         <MapPin size={8} className="shrink-0" /> {stats.global.onboardVisit || 0}
       </span>
     </div>
-  </div>
+  </button>
 
   {/* 3. NEVER VISITED */}
-  <div className="flex-1 min-w-0 bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px] hover:shadow-md transition-all">
+  <button
+    onClick={() => {
+      localStorage.setItem('visitFilter', 'never');
+      localStorage.setItem('viewAllClicked', 'true');
+      router.push('/domestic/fse/lead');
+    }}
+    className="flex-1 min-w-0 bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px] hover:shadow-md transition-all cursor-pointer text-left w-full"
+  >
     <div className="flex justify-between items-start min-w-0">
       <div className="overflow-hidden min-w-0">
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">
@@ -207,15 +229,14 @@ export default function FSEDashboard() {
         <Ghost size={16} />
       </div>
     </div>
-   
-  </div>
+  </button>
 
   {/* 4. NO STATUS */}
   <div className="flex-1 min-w-0 bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px] hover:shadow-md transition-all">
     <div className="flex justify-between items-start min-w-0">
       <div className="overflow-hidden min-w-0">
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">
-          No Status
+          No Status 
         </p>
         <h3 className="text-xl font-black text-orange-600 leading-none mt-1 truncate">
           {stats.global.noStatus || 0}
@@ -229,11 +250,18 @@ export default function FSEDashboard() {
   </div>
 
   {/* 5. DUPLICATES */}
-  <div className="flex-1 min-w-0 bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px] hover:shadow-md transition-all">
+  <button
+    onClick={() => {
+      localStorage.setItem('duplicateFilter', 'true');
+      localStorage.setItem('viewAllClicked', 'true');
+      router.push('/domestic/fse/lead');
+    }}
+    className="flex-1 min-w-0 bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px] hover:shadow-md transition-all cursor-pointer text-left w-full"
+  >
     <div className="flex justify-between items-start min-w-0">
       <div className="overflow-hidden min-w-0">
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">
-          Duplicates
+          Company Name Duplicates
         </p>
         <h3 className="text-xl font-black text-indigo-600 leading-none mt-1 truncate">
           {stats.global.duplicate || 0}
@@ -244,14 +272,14 @@ export default function FSEDashboard() {
       </div>
     </div>
     
-  </div>
+  </button>
 
   {/* 6. TOTAL VISITS */}
   <div className="flex-1 min-w-0 bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px] hover:shadow-md transition-all">
     <div className="flex justify-between items-start min-w-0">
       <div className="overflow-hidden min-w-0">
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">
-          Total Visits
+          Total Clients Visited
         </p>
         <h3 className="text-xl font-black text-[#1a4da1] leading-none mt-1 truncate">
           {stats.global.totalVisits}
@@ -361,7 +389,7 @@ export default function FSEDashboard() {
 
         {/* --- ROW 4: DYNAMIC METRICS --- */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-          <DynamicCard label="Total Visit" value={stats.dynamicMetrics.total} color="border-l-[#103c7f]" />
+          <DynamicCard label="Total Visits/Calls" value={stats.dynamicMetrics.totalVisitsCalls || '-'} color="border-l-[#103c7f]" />
           <DynamicCard label="Individual" value={stats.dynamicMetrics.individual} color="border-l-[#1a4da1]" />
           <DynamicCard label="Repeat" value={stats.dynamicMetrics.repeat} color="border-l-blue-400" />
           <DynamicCard label="Interested" value={stats.dynamicMetrics.interested} color="border-l-[#a1db40]" />

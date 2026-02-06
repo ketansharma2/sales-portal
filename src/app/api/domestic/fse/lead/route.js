@@ -99,6 +99,9 @@ export async function GET(request) {
     const client_type = searchParams.get('client_type')
     const fromDate = searchParams.get('fromDate')
     const toDate = searchParams.get('toDate')
+    const visitFilter = searchParams.get('visitFilter')
+    const duplicateFilter = searchParams.get('duplicateFilter')
+    const latestMode = searchParams.get('latestMode')
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')) : null
 
     // Fetch clients in batches to bypass 1000 limit
@@ -225,6 +228,44 @@ export async function GET(request) {
         if (!client.latest_contact_date) return false;
         return client.latest_contact_date >= fromDate && client.latest_contact_date <= toDate;
       });
+    }
+    
+    // Filter for "Never Visited" - clients with NO interactions OR have interactions but NO 'visit' mode in any interaction
+    if (visitFilter === 'never') {
+      filteredData = filteredData.filter(client => {
+        // Clients with NO interactions at all
+        if (client.interactions.length === 0) return true;
+        // Clients with interactions but NO 'visit' mode in any interaction (case-insensitive)
+        return !client.interactions.some(int => 
+          int.contact_mode && int.contact_mode.toLowerCase() === 'visit'
+        );
+      });
+    }
+
+    // Filter for duplicates - clients with duplicate company names
+    if (duplicateFilter === 'true') {
+      // Group clients by lowercase trimmed company_name
+      const companyGroups = {};
+      filteredData.forEach(client => {
+        const key = client.company_name?.toLowerCase().trim() || '';
+        if (!companyGroups[key]) {
+          companyGroups[key] = [];
+        }
+        companyGroups[key].push(client);
+      });
+
+      // Keep only companies with duplicates (more than 1 client)
+      filteredData = Object.values(companyGroups)
+        .filter(group => group.length > 1)
+        .flat();
+    }
+
+    // Filter by latest interaction mode (case-insensitive)
+    if (latestMode) {
+      const modeLower = latestMode.toLowerCase();
+      filteredData = filteredData.filter(client => 
+        client.latest_contact_mode?.toLowerCase() === modeLower
+      );
     }
 
     return NextResponse.json({

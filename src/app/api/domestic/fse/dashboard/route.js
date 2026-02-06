@@ -24,7 +24,7 @@ export async function POST(request) {
     const currentYear = new Date().getFullYear()
     const startDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`
 
-    // Get monthly visits from interactions
+    // Get monthly visits from interactions (convert contact_mode to lowercase first)
     const { count: monthlyTotalVisitsCount, error: monthlyVisitsError } = await supabaseServer
       .from('domestic_clients_interaction')
       .select('*', { count: 'exact', head: true })
@@ -225,15 +225,57 @@ export async function POST(request) {
       console.error('Total onboarded count error:', onboardError)
     }
 
-    // Process to get latest status per client
-    const latestStatuses = new Map()
+    // Process to get latest status per client along with contact_mode
+    const latestClientData = new Map()
     allInteractions?.forEach(interaction => {
-      if (!latestStatuses.has(interaction.client_id)) {
-        latestStatuses.set(interaction.client_id, interaction.status)
+      if (!latestClientData.has(interaction.client_id)) {
+        latestClientData.set(interaction.client_id, {
+          status: interaction.status,
+          contactMode: interaction.contact_mode
+        })
       }
     })
 
-    const totalOnboarded = Array.from(latestStatuses.values()).filter(status => status === 'Onboarded').length
+    const totalOnboarded = Array.from(latestClientData.values())
+      .filter(d => d.status === 'Onboarded').length
+
+    // Count onboarded by contact mode (visit vs call)
+    const onboardVisit = Array.from(latestClientData.values())
+      .filter(d => d.status === 'Onboarded' && d.contactMode?.toLowerCase() === 'visit').length
+
+    const onboardCall = Array.from(latestClientData.values())
+      .filter(d => d.status === 'Onboarded' && d.contactMode?.toLowerCase() === 'call').length
+
+    // Count clients with no status (empty/null status)
+    const noStatus = Array.from(latestClientData.values())
+      .filter(d => !d.status || d.status === '' || d.status === null).length
+
+    // Get unique client IDs that have at least 1 interaction
+    // NEW LOGIC: Clients with NO interactions OR have interactions but NO 'visit' mode in any interaction
+    const clientsWithInteractions = new Set(allInteractions?.map(i => i.client_id) || [])
+    
+    // Group interactions by client_id and check if any interaction has 'visit' mode
+    const interactionsByClient = {}
+    allInteractions?.forEach(interaction => {
+      if (!interactionsByClient[interaction.client_id]) {
+        interactionsByClient[interaction.client_id] = []
+      }
+      interactionsByClient[interaction.client_id].push(interaction)
+    })
+    
+    // Count clients who have NO interactions OR have interactions but NO 'visit' mode in any interaction
+    let neverVisited = 0
+    
+    // Add clients with NO interactions at all
+    neverVisited += (totalClients || 0) - clientsWithInteractions.size
+    
+    // Add clients with interactions but NO 'visit' mode in any interaction
+    Object.entries(interactionsByClient).forEach(([clientId, interactions]) => {
+      const hasVisit = interactions.some(int => int.contact_mode?.toLowerCase() === 'visit')
+      if (!hasVisit) {
+        neverVisited++
+      }
+    })
 
     // Get latest contact date
     const latestContactDate = allInteractions?.reduce((max, interaction) => interaction.contact_date > max ? interaction.contact_date : max, '') || today
@@ -247,12 +289,27 @@ export async function POST(request) {
     let latestNotInterested = 0
     let latestReachedOut = 0
     let latestRepeat = 0
+    let latestCalls = 0
 
     if (from && to) {
-      // For range, calculate totals for the range
+      // For range, calculate totals for the range - Count UNIQUE clients with visit mode
       const rangeInteractions = allInteractions?.filter(interaction => interaction.contact_date >= from && interaction.contact_date <= to) || []
       latestActivityDate = to // Use the end date as the display date
-      latestTotalVisits = rangeInteractions.filter(i => i.contact_mode?.toLowerCase() === 'visit').length
+      // Get unique client_ids from visit interactions in the range
+      const rangeVisitClientIds = new Set(
+        rangeInteractions
+          .filter(i => i.contact_mode?.toLowerCase() === 'visit')
+          .map(i => i.client_id)
+      )
+      latestTotalVisits = rangeVisitClientIds.size
+      
+      // Get unique client_ids from call interactions in the range
+      const rangeCallClientIds = new Set(
+        rangeInteractions
+          .filter(i => i.contact_mode?.toLowerCase() === 'call')
+          .map(i => i.client_id)
+      )
+      latestCalls = rangeCallClientIds.size
       // Individual: clients sourced within the range
       const { count: rangeIndividualCount, error: rangeIndividualError } = await supabaseServer
         .from('domestic_clients')
@@ -267,9 +324,16 @@ export async function POST(request) {
 
       latestIndividualVisits = rangeIndividualCount || 0
 
-      // Count unique clients per status
+      // Count unique clients per status - Use LATEST status per client
+      // Sort interactions by date and time to get latest first
+      const sortedRangeInteractions = rangeInteractions.sort((a, b) => {
+        // Sort by created_at descending (latest first)
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+      
       const rangeStatusMap = new Map()
-      rangeInteractions.forEach(interaction => {
+      sortedRangeInteractions.forEach(interaction => {
+        // Keep the first (latest) status for each client
         if (!rangeStatusMap.has(interaction.client_id)) {
           rangeStatusMap.set(interaction.client_id, interaction.status)
         }
@@ -279,11 +343,25 @@ export async function POST(request) {
       latestInterested = rangeStatuses.filter(status => status === 'Interested').length
       latestNotInterested = rangeStatuses.filter(status => status === 'Not Interested').length
       latestReachedOut = rangeStatuses.filter(status => status === 'Reached Out').length
-      latestRepeat = latestTotalVisits - latestIndividualVisits
+      latestRepeat = (latestTotalVisits + latestCalls) - latestIndividualVisits
     } else {
-      // For latest date
+      // For latest date - Count UNIQUE clients with visit mode per date
       const latestDateInteractions = allInteractions?.filter(interaction => interaction.contact_date === latestContactDate) || []
-      latestTotalVisits = latestDateInteractions.filter(i => i.contact_mode?.toLowerCase() === 'visit').length
+      // Get unique client_ids from visit interactions
+      const latestVisitClientIds = new Set(
+        latestDateInteractions
+          .filter(i => i.contact_mode?.toLowerCase() === 'visit')
+          .map(i => i.client_id)
+      )
+      latestTotalVisits = latestVisitClientIds.size
+      
+      // Get unique client_ids from call interactions
+      const latestCallClientIds = new Set(
+        latestDateInteractions
+          .filter(i => i.contact_mode?.toLowerCase() === 'call')
+          .map(i => i.client_id)
+      )
+      latestCalls = latestCallClientIds.size
       const { count: latestIndividualCount, error: latestIndividualError } = await supabaseServer
         .from('domestic_clients')
         .select('*', { count: 'exact', head: true })
@@ -296,9 +374,15 @@ export async function POST(request) {
 
       latestIndividualVisits = latestIndividualCount || 0
 
-      // Count unique clients per status
+      // Count unique clients per status - Use LATEST status per client
+      // Sort interactions by date and time to get latest first
+      const sortedLatestDateInteractions = latestDateInteractions.sort((a, b) => {
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+      
       const latestStatusMap = new Map()
-      latestDateInteractions.forEach(interaction => {
+      sortedLatestDateInteractions.forEach(interaction => {
+        // Keep the first (latest) status for each client
         if (!latestStatusMap.has(interaction.client_id)) {
           latestStatusMap.set(interaction.client_id, interaction.status)
         }
@@ -308,19 +392,46 @@ export async function POST(request) {
       latestInterested = latestStatuses.filter(status => status === 'Interested').length
       latestNotInterested = latestStatuses.filter(status => status === 'Not Interested').length
       latestReachedOut = latestStatuses.filter(status => status === 'Reached Out').length
-      latestRepeat = latestTotalVisits - latestIndividualVisits
+      latestRepeat = (latestTotalVisits + latestCalls) - latestIndividualVisits
     }
 
-    // Get total visits count from interactions
-    const { count: totalVisitsEver, error: visitsError } = await supabaseServer
-      .from('domestic_clients_interaction')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .ilike('contact_mode', 'visit')
+    // Format: visits/calls (e.g., "10/5")
+    const latestTotalVisitsCalls = `${latestTotalVisits}/${latestCalls}`
+
+    // Get total visits count - count UNIQUE clients with at least 1 visit
+    // First get all interactions with contact_mode = 'visit' (case-insensitive)
+    let visitInteractions = []
+    let visitOffset = 0
+    const visitBatchSize = 1000
+    let visitsError = null
+
+    while (true) {
+      const { data, error } = await supabaseServer
+        .from('domestic_clients_interaction')
+        .select('client_id')
+        .eq('user_id', user.id)
+        .ilike('contact_mode', 'visit')
+        .range(visitOffset, visitOffset + visitBatchSize - 1)
+
+      if (error) {
+        visitsError = error
+        break
+      }
+
+      if (!data || data.length === 0) break
+
+      visitInteractions.push(...data)
+      visitOffset += visitBatchSize
+
+      if (data.length < visitBatchSize) break
+    }
 
     if (visitsError) {
       console.error('Total visits count error:', visitsError)
     }
+
+    // Count unique client_ids from visit interactions
+    const totalVisitsEver = new Set(visitInteractions.map(i => i.client_id)).size
 
     // Get projection counts from domestic_clients
     const { data: clientsData, error: clientsError } = await supabaseServer
@@ -340,6 +451,33 @@ export async function POST(request) {
       const count = clientsData?.filter(client => client.projection === projectionTypes[i]).length || 0
       projections[projectionKeys[i]] = count
     }
+
+    // Count duplicates using SQL-like logic (LOWER(TRIM(company_name)))
+    const { data: allClients, error: allClientsError } = await supabaseServer
+      .from('domestic_clients')
+      .select('client_id, company_name')
+      .eq('user_id', user.id)
+
+    if (allClientsError) {
+      console.error('All clients error:', allClientsError)
+    }
+
+    // Group clients by lowercase trimmed company_name to find duplicates
+    const companyGroups = {}
+    allClients?.forEach(client => {
+      const lowerTrimmedName = client.company_name?.toLowerCase().trim() || ''
+      if (lowerTrimmedName && lowerTrimmedName !== '') {
+        if (!companyGroups[lowerTrimmedName]) {
+          companyGroups[lowerTrimmedName] = []
+        }
+        companyGroups[lowerTrimmedName].push(client.client_id)
+      }
+    })
+
+    // Count duplicates (companies that appear more than once)
+    const duplicateCountManual = Object.values(companyGroups)
+      .filter(group => group.length > 1)
+      .reduce((sum, group) => sum + group.length, 0)
 
     // Get clients with interactions on the latest date
     let recentLeads
@@ -423,6 +561,11 @@ export async function POST(request) {
     const dashboardData = {
       totalClients: totalClients || 0,
       totalOnboarded: totalOnboarded || 0,
+      onboardCall: onboardCall || 0,
+      onboardVisit: onboardVisit || 0,
+      neverVisited: neverVisited || 0,
+      noStatus: noStatus || 0,
+      duplicate: duplicateCountManual || 0,
       totalVisits: totalVisitsEver || 0,
       projections: projections,
       monthlyStats: {
@@ -436,6 +579,8 @@ export async function POST(request) {
       latestActivity: {
         date: latestContactDate ? new Date(latestContactDate).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'), // DD/MM/YYYY format
         total: latestTotalVisits,
+        totalVisitsCalls: latestTotalVisitsCalls,
+        calls: latestCalls,
         individual: latestIndividualVisits,
         repeat: latestRepeat,
         interested: latestInterested,
