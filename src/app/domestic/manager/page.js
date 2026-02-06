@@ -22,26 +22,26 @@ export default function ManagerHome() {
   // FSE team members for dropdown
   const [fseTeam, setFseTeam] = useState([]);
   const [fseLoading, setFseLoading] = useState(true);
+  
+  // LeadGen team members for dropdown
+  const [leadgenTeam, setLeadgenTeam] = useState([]);
+  const [leadgenLoading, setLeadgenLoading] = useState(true);
 
   // --- TAB STATE ---
   const [activeTab, setActiveTab] = useState("FSE"); // FSE or LeadGen
 
-  // --- LEADGEN MOCK DATA ---
-  const [leadGenData] = useState({
-    onboarded: { total: 12, startup: 4 },
-    interested: { total: 45, startup: 15 },
-    franchise: { 
-        accepted: { total: 5, startup: 2 },
-        discussed: { total: 20, startup: 8 },
-        formShared: { total: 12, startup: 5 }
-    },
-    searched: { total: 850, startup: 120 },
-    contacts: { total: 600, startup: 90 },
-    calls: { total: 240, startup: 40 },
-    picked: { total: 110, startup: 25 },
-    notPicked: { total: 130, startup: 15 },
-    contract: { total: 35, startup: 10 },
-    sentToManager: { total: 18, startup: 6 }
+  // --- LEADGEN METRICS ---
+  const [leadgenMetrics, setLeadgenMetrics] = useState({
+    searched: 0,
+    contacts: 0,
+    calls: 0,
+    picked: 0,
+    notPicked: 0,
+    onboarded: 0,
+    interested: 0,
+    contracts: 0,
+    sentToManager: 0,
+    loading: true
   });
 
   const handleFilterChange = (key, value) => {
@@ -88,19 +88,31 @@ export default function ManagerHome() {
   // --- PENDING ACTIONS COUNT ---
   const [pendingCount, setPendingCount] = useState(0);
 
-  // Fetch FSE team on mount
+  // Fetch team data on mount
   useEffect(() => {
     fetchFseTeam();
+    fetchLeadgenTeam();
   }, []);
 
-  // Fetch monthly and weekly data on mount and when filters change
+  // Fetch FSE data only when FSE tab is active
   useEffect(() => {
+    if (activeTab !== 'FSE') {
+      // Reset FSE data when LeadGen tab is active
+      setMonthlyData(prev => ({ ...prev, loading: false }));
+      setWeeklyData(prev => ({ ...prev, loading: false }));
+      setMonthlyProjData(prev => ({ ...prev, loading: false }));
+      setTodayActivity([]);
+      setActivityLoading(false);
+      setAvgVisits("-");
+      return;
+    }
+    
     fetchMonthlyOnboarded();
     fetchWeeklyProjections();
     fetchMonthlyProjections();
     fetchTodayActivity();
     fetchAvgVisits();
-  }, [filters.selectedFse, filters.fromDate, filters.toDate]);
+  }, [filters.selectedFse, filters.fromDate, filters.toDate, activeTab]);
 
   // Fetch pending count on mount and periodically
   useEffect(() => {
@@ -108,6 +120,13 @@ export default function ManagerHome() {
     const interval = setInterval(fetchPendingCount, 10000); // Refresh every 10 seconds
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch LeadGen metrics when LeadGen tab is active
+  useEffect(() => {
+    if (activeTab === 'LeadGen') {
+      fetchLeadgenMetrics();
+    }
+  }, [activeTab, filters.selectedFse, filters.fromDate, filters.toDate]);
 
   const fetchFseTeam = async () => {
     try {
@@ -125,6 +144,25 @@ export default function ManagerHome() {
       console.error('Failed to fetch FSE team:', error);
     } finally {
       setFseLoading(false);
+    }
+  };
+
+  const fetchLeadgenTeam = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/manager/leadgen-users', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setLeadgenTeam(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch LeadGen team:', error);
+    } finally {
+      setLeadgenLoading(false);
     }
   };
 
@@ -329,6 +367,40 @@ export default function ManagerHome() {
     }
   }
 
+  const fetchLeadgenMetrics = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      let params = [];
+      if (filters.selectedFse !== 'All') params.push(`leadgen_id=${filters.selectedFse}`);
+      if (filters.fromDate) params.push(`from_date=${filters.fromDate}`);
+      if (filters.toDate) params.push(`to_date=${filters.toDate}`);
+      const query = params.length > 0 ? `?${params.join('&')}` : '';
+      const response = await fetch(`/api/domestic/manager/leadgen-metrics${query}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setLeadgenMetrics({
+          searched: data.data.searched || 0,
+          contacts: data.data.contacts || 0,
+          calls: data.data.calls || 0,
+          picked: data.data.picked || 0,
+          notPicked: data.data.notPicked || 0,
+          onboarded: data.data.onboarded || 0,
+          interested: data.data.interested || 0,
+          contracts: data.data.contracts || 0,
+          sentToManager: data.data.sentToManager || 0,
+          loading: false
+        });
+      } else {
+        setLeadgenMetrics(prev => ({ ...prev, loading: false }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch LeadGen metrics:', error);
+      setLeadgenMetrics(prev => ({ ...prev, loading: false }));
+    }
+  };
+
   // --- LOGIC FOR TARGET WIDGET ---
   const targetPerFse = 12;
   const teamSize = fseTeam.length || 15; // Default to 15 if not loaded
@@ -444,9 +516,9 @@ export default function ManagerHome() {
                 value={filters.selectedFse} 
                 onChange={(e) => handleFilterChange('selectedFse', e.target.value)}
               >
-                <option value="All">All Team Members</option>
-                {fseTeam.map((fse, idx) => (
-                  <option key={idx} value={fse.user_id} className="bg-white text-gray-800">{fse.name}</option>
+                <option value="All">All {activeTab === 'LeadGen' ? 'LeadGen' : 'FSE'} Members</option>
+                {(activeTab === 'LeadGen' ? leadgenTeam : fseTeam).map((member, idx) => (
+                  <option key={idx} value={member.user_id} className="bg-white text-gray-800">{member.name}</option>
                 ))}
               </select>
             </div>
@@ -557,9 +629,10 @@ export default function ManagerHome() {
       )}
 
       {activeTab === 'LeadGen' && (
-        <div className="flex-1 grid grid-cols-2 gap-6 overflow-hidden animate-in fade-in zoom-in-95 duration-300">
-          {/* LEFT HALF: DASHBOARD */}
-          <div className="w-full md:w-1/2 overflow-y-auto custom-scrollbar p-1 pr-2">
+        <div className="flex-1 flex gap-6 overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+          
+          {/* LEFT HALF: DASHBOARD CARDS */}
+          <div className="w-1/2 overflow-y-auto custom-scrollbar p-1 pr-2">
             
             <div className="flex flex-col gap-5">
               
@@ -572,15 +645,13 @@ export default function ManagerHome() {
                 <div className="grid grid-cols-3 xl:grid-cols-3 gap-3"> 
                     <BigSuccessCard 
                         title="Onboarded" 
-                        total={leadGenData.onboarded.total} 
-                        startup={leadGenData.onboarded.startup} 
+                        total={leadgenMetrics.loading ? '...' : leadgenMetrics.onboarded} 
                         icon={<Briefcase size={14}/>} 
                         color="teal"
                     />
                     <BigSuccessCard 
                         title="Interested" 
-                        total={leadGenData.interested.total} 
-                        startup={leadGenData.interested.startup} 
+                        total={leadgenMetrics.loading ? '...' : leadgenMetrics.interested} 
                         icon={<TrendingUp size={14}/>} 
                         color="blue"
                     />
@@ -597,21 +668,20 @@ export default function ManagerHome() {
                 <div className="grid grid-cols-3 xl:grid-cols-3 gap-3">
                   
                   {/* Row 1 */}
-                  <KpiCard title="Searched" total={leadGenData.searched.total} startup={leadGenData.searched.startup} icon={<SearchIcon size={14}/>} color="blue" />
-                  <KpiCard title="Contacts" total={leadGenData.contacts.total} startup={leadGenData.contacts.startup} icon={<UserCheck size={14}/>} color="blue" />
-                  <KpiCard title="Total Calls" total={leadGenData.calls.total} startup={leadGenData.calls.startup} icon={<Phone size={14}/>} color="purple" />
+                  <KpiCard title="Searched" total={leadgenMetrics.loading ? '...' : leadgenMetrics.searched} icon={<SearchIcon size={14}/>} color="blue" />
+                  <KpiCard title="Contacts" total={leadgenMetrics.loading ? '...' : leadgenMetrics.contacts} icon={<UserCheck size={14}/>} color="blue" />
+                  <KpiCard title="Total Calls" total={leadgenMetrics.loading ? '...' : leadgenMetrics.calls} icon={<Phone size={14}/>} color="purple" />
 
                   {/* Row 2 */}
-                  <KpiCard title="Picked" total={leadGenData.picked.total} startup={leadGenData.picked.startup} icon={<PhoneOutgoing size={14}/>} color="green" />
-                  <KpiCard title="Not Picked" total={leadGenData.notPicked.total} startup={leadGenData.notPicked.startup} icon={<XCircle size={14}/>} color="red" />
+                  <KpiCard title="Picked" total={leadgenMetrics.loading ? '...' : leadgenMetrics.picked} icon={<PhoneOutgoing size={14}/>} color="green" />
+                  <KpiCard title="Not Picked" total={leadgenMetrics.loading ? '...' : leadgenMetrics.notPicked} icon={<XCircle size={14}/>} color="red" />
                   
                   {/* Row 3 */}
                   
                   {/* Sent to Manager */}
                   <KpiCard 
                       title="Sent to Mgr" 
-                      total={leadGenData.sentToManager.total} 
-                      startup={leadGenData.sentToManager.startup} 
+                      total={leadgenMetrics.loading ? '...' : leadgenMetrics.sentToManager} 
                       icon={<Send size={14}/>} 
                       color="orange" 
                   />
@@ -622,14 +692,21 @@ export default function ManagerHome() {
             </div>
           </div>
 
-          {/* RIGHT HALF: BLANK PLACEHOLDER */}
-          <div className="hidden md:flex h-full bg-white rounded-[24px] border border-gray-100 shadow-sm items-center justify-center flex-col gap-3 w-1/2">
-              <div className="w-14 h-14 bg-gray-50 rounded-full flex items-center justify-center text-gray-300">
-                  <LayoutGrid size={24} />
+          {/* RIGHT HALF: DETAILED REPORT / LOGS */}
+          <div className="w-1/2 h-full bg-white rounded-[24px] border border-gray-100 shadow-sm flex flex-col overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center shrink-0 bg-gray-50/50">
+                  <h2 className="text-xs font-black text-[#103c7f] uppercase tracking-wider">Detailed Report / Logs</h2>
+                  <button className="text-[9px] font-bold text-blue-600 hover:underline">Export</button>
               </div>
-              <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">
-                  Detailed Report / Logs
-              </p>
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+                  <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                      <div className="w-14 h-14 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                          <LayoutGrid size={24} />
+                      </div>
+                      <p className="text-xs font-bold uppercase tracking-widest">Detailed Report / Logs</p>
+                      <p className="text-[10px] text-gray-300 mt-1">Content will appear here</p>
+                  </div>
+              </div>
           </div>
 
         </div>
@@ -646,7 +723,7 @@ export default function ManagerHome() {
 
 // --- 2-PART SPLIT CARDS (Top: Total, Bottom: Startups) ---
 
-function BigSuccessCard({ title, total, startup, icon, color, isFranchise = false }) {
+function BigSuccessCard({ title, total, icon, color, showStartup = false }) {
     const colors = {
         teal: "bg-teal-50 text-teal-600 border-teal-100",
         blue: "bg-blue-50 text-blue-600 border-blue-100",
@@ -660,7 +737,7 @@ function BigSuccessCard({ title, total, startup, icon, color, isFranchise = fals
             {/* PART 1: TOP (Main Data) */}
             <div className="p-3 flex-1 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
-                    <p className={`text-[11px] font-extrabold uppercase tracking-wider ${isFranchise ? 'text-green-700' : 'text-gray-400'}`}>{title}</p>
+                    <p className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400">{title}</p>
                     <div className={`p-1.5 rounded-lg ${style}`}>
                         {icon}
                     </div>
@@ -668,18 +745,20 @@ function BigSuccessCard({ title, total, startup, icon, color, isFranchise = fals
                 <h3 className="text-3xl font-black text-slate-800 leading-none mt-1">{total}</h3>
             </div>
 
-            {/* PART 2: BOTTOM (Startup Strip) */}
-            <div className="bg-orange-50 px-3 py-1.5 border-t border-orange-100 flex items-center gap-2">
-                <Rocket size={10} className="text-orange-600"/>
-                <span className="text-[10px] font-bold text-orange-700">
-                    {startup} <span className="opacity-70 text-[9px] uppercase tracking-wide">Startups</span>
-                </span>
-            </div>
+            {/* PART 2: BOTTOM (Startup Strip) - Only show if showStartup is true */}
+            {showStartup && (
+                <div className="bg-orange-50 px-3 py-1.5 border-t border-orange-100 flex items-center gap-2">
+                    <Rocket size={10} className="text-orange-600"/>
+                    <span className="text-[10px] font-bold text-orange-700">
+                        Startups
+                    </span>
+                </div>
+            )}
         </div>
     )
 }
 
-function KpiCard({ title, total, startup, icon, color }) {
+function KpiCard({ title, total, icon, color }) {
     // Icon colors
     const iconColors = {
         blue: "text-blue-600 bg-blue-50",
@@ -704,18 +783,6 @@ function KpiCard({ title, total, startup, icon, color }) {
                 <h3 className="text-2xl font-black text-slate-800 leading-none mt-[-2px]">{total}</h3>
             </div>
 
-            {/* PART 2: BOTTOM (Startup Strip) */}
-            {startup > 0 ? (
-                <div className="bg-orange-50 px-2.5 py-1 border-t border-orange-100 flex items-center gap-1.5">
-                    <Rocket size={8} className="text-orange-600"/>
-                    <span className="text-[9px] font-bold text-orange-700">
-                        {startup} <span className="opacity-70 text-[8px] uppercase">Startups</span>
-                    </span>
-                </div>
-            ) : (
-                // Empty strip to keep height consistent if needed, or hide it
-                <div className="h-[2px] bg-gray-50"></div>
-            )}
         </div>
     );
 }

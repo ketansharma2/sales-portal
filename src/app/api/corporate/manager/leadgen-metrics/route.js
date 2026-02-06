@@ -255,10 +255,18 @@ export async function GET(request) {
     const pickedStartup = callsStartup - notPickedStartup
 
     // Count accepted - matching franchise-accepted API
-    const { data: acceptedInteractionsData } = await supabaseServer
+    let acceptedQuery = supabaseServer
       .from('corporate_leads_interaction')
       .select('client_id, franchise_status, created_at, corporate_leadgen_leads(startup)')
       .in('leadgen_id', leadgenIdsToQuery)
+
+    if (fromDate && toDate) {
+      acceptedQuery = acceptedQuery
+        .gte('date', fromDate)
+        .lte('date', toDate)
+    }
+
+    const { data: acceptedInteractionsData } = await acceptedQuery
 
     const acceptedMap = new Map()
     acceptedInteractionsData?.forEach(i => {
@@ -309,11 +317,17 @@ export async function GET(request) {
     const contractsStartup = contractsInteractions.filter(i => isStartup(i.startup)).length
 
     // Count discussed - matching franchise-discussed API
-    const { data: discussedInteractionsData } = await supabaseServer
+    // IMPORTANT: This is an "ever" metric - count all clients that EVER had franchise discussed
+    // regardless of the selected date range
+    let discussedQuery = supabaseServer
       .from('corporate_leads_interaction')
-      .select('client_id, franchise_status')
+      .select('client_id, franchise_status, created_at, corporate_leadgen_leads(startup)')
       .in('leadgen_id', leadgenIdsToQuery)
       .not('franchise_status', 'ilike', 'No Franchise Discuss')
+
+    // NOTE: No date filter here - this is an "ever" metric
+
+    const { data: discussedInteractionsData } = await discussedQuery
 
     const discussedClientIds = new Set(
       discussedInteractionsData?.map(i => i.client_id) || []
@@ -332,10 +346,16 @@ export async function GET(request) {
     const discussedStartup = startupClientIds.size
 
     // Count form shared - matching franchise-form-shared API
-    const { data: formSharedInteractionsData } = await supabaseServer
+    // IMPORTANT: This is an "ever" metric - count all clients that EVER had application form shared
+    // regardless of the selected date range
+    let formSharedQuery = supabaseServer
       .from('corporate_leads_interaction')
-      .select('client_id, franchise_status, created_at, corporate_leadgen_leads(startup)')
+      .select('client_id, franchise_status, created_at, date, corporate_leadgen_leads(startup)')
       .in('leadgen_id', leadgenIdsToQuery)
+
+    // NOTE: No date filter here - this is an "ever" metric
+
+    const { data: formSharedInteractionsData } = await formSharedQuery
 
     const formSharedMap = new Map()
     formSharedInteractionsData?.forEach(i => {
