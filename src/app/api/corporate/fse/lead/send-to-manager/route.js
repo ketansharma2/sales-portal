@@ -22,28 +22,72 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 })
     }
 
-    // Update the lead: set sent_to_sm to true
-    const { data: updatedLead, error: updateError } = await supabaseServer
-      .from('corporate_clients')
-      .update({
-        sent_to_sm: true
-      })
+    // First, fetch the lead from corporate_leadgen_leads
+    const { data: leadData, error: fetchError } = await supabaseServer
+      .from('corporate_leadgen_leads')
+      .select('*')
       .eq('client_id', client_id)
-      .eq('user_id', user.id) // Ensure the user owns the lead
+      .single()
+
+    if (fetchError || !leadData) {
+      console.error('Lead not found for client_id:', client_id)
+      return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
+    }
+
+    // Debug: Log the fetched lead data
+    console.log('Fetched lead data:', JSON.stringify(leadData, null, 2))
+
+    // Prepare insert data
+    const insertData = {
+      client_id: leadData.client_id,
+      user_id: user.id,
+      company: leadData.company,
+      category: leadData.category,
+      state: leadData.state,
+      city: leadData.district_city,
+      location: leadData.location,
+      contact_person: leadData.contact_person,
+      phone: leadData.phone,
+      email: leadData.email,
+      emp_count: leadData.empCount,
+      reference: leadData.reference,
+      startup: leadData.startup,
+      sourcing_date: leadData.sourcingDate,
+      status: leadData.status ,
+      sub_status: leadData.subStatus,
+      franchise_status: leadData.franchiseStatus,
+      remarks: leadData.remarks,
+      next_follow_up: leadData.nextFollowup,
+    }
+    console.log('Insert data:', JSON.stringify(insertData, null, 2))
+
+    // Insert into corporate_manager_leads with all fields
+    const { data: newLead, error: insertError } = await supabaseServer
+      .from('corporate_manager_leads')
+      .insert(insertData)
       .select()
       .single()
 
-    if (updateError) {
-      console.error('Send to manager update error:', updateError)
+    // Also update corporate_leadgen_leads to mark as sent and lock
+    const { error: lockError } = await supabaseServer
+      .from('corporate_leadgen_leads')
+      .update({
+        sent_to_sm: true,
+        lock_date: new Date().toISOString().split('T')[0],
+      })
+      .eq('client_id', client_id)
+
+    if (insertError) {
+      console.error('Send to manager insert error:', insertError)
       return NextResponse.json({
         error: 'Failed to send to manager',
-        details: updateError.message
+        details: insertError.message
       }, { status: 500 })
     }
 
     return NextResponse.json({
       success: true,
-      data: updatedLead
+      data: newLead
     })
 
   } catch (error) {

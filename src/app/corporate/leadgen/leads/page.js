@@ -1081,7 +1081,7 @@ export default function LeadsTablePage() {
                    ? 'bg-orange-50 text-orange-700 border-orange-100' 
                    : 'bg-gray-100 text-gray-500 border-gray-200'
               }`}>
-                 Startup: {(selectedLead?.startup === true || String(selectedLead?.startup).toLowerCase() === 'yes' || String(selectedLead?.startup) === '1' || String(selectedLead?.startup).toLowerCase() === 'true') ? 'Yes' : 'No'}
+                 Startup: {selectedLead?.startup || 'N/A'}
               </span>
             </div>
          </div>

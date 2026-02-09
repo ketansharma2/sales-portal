@@ -113,7 +113,7 @@ export default function FSEDashboard() {
           dynamicMetrics: {
             ...prev.dynamicMetrics,
             total: data.data.latestActivity.total,
-            totalVisitsCalls: data.data.latestActivity.totalVisitsCalls,
+            totalVisits: data.data.latestActivity.totalVisits,
             calls: data.data.latestActivity.calls,
             individual: data.data.latestActivity.individual,
             repeat: data.data.latestActivity.repeat,
@@ -389,8 +389,9 @@ export default function FSEDashboard() {
 
         {/* --- ROW 4: DYNAMIC METRICS --- */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-          <DynamicCard label="Total Visits/Calls" value={stats.dynamicMetrics.totalVisitsCalls || '-'} color="border-l-[#103c7f]" />
-          <DynamicCard label="Individual" value={stats.dynamicMetrics.individual} color="border-l-[#1a4da1]" />
+          <DynamicCard label="Total Visits" value={stats.dynamicMetrics.totalVisits || '-'} color="border-l-[#103c7f]" />
+          <DynamicCard label="Calls" value={stats.dynamicMetrics.calls || '-'} color="border-l-[#1a4da1]" />
+          <DynamicCard label="Individual" value={stats.dynamicMetrics.individual} color="border-l-blue-400" />
           <DynamicCard label="Repeat" value={stats.dynamicMetrics.repeat} color="border-l-blue-400" />
           <DynamicCard label="Interested" value={stats.dynamicMetrics.interested} color="border-l-[#a1db40]" />
           <DynamicCard label="Not Interested" value={stats.dynamicMetrics.notInterested} color="border-l-red-400" />

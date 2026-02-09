@@ -29,11 +29,11 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Access denied. Manager role required.' }, { status: 403 })
     }
 
-    // Get CRM team members under this manager
+    // Get all CRM users for Corporate sector
     const { data: crmUsers, error: crmError } = await supabaseServer
       .from('users')
       .select('user_id, name, email')
-      .eq('manager_id', user.id)
+      .eq('sector', 'Corporate')
       .contains('role', ['CRM'])
       .order('name', { ascending: true })
 

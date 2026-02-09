@@ -22,10 +22,15 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 })
     }
 
-    // Fetch interactions for the client
+    // Fetch interactions for the client with user name
     const { data: interactionsData, error: interactionsError } = await supabaseServer
       .from('corporate_leads_interaction')
-      .select('*')
+      .select(`
+        *,
+        users!corporate_leads_interaction_leadgen_id_fkey (
+          name
+        )
+      `)
       .eq('client_id', clientId)
       .order('created_at', { ascending: false })
 
@@ -49,7 +54,8 @@ export async function GET(request) {
       sub_status: interaction.sub_status,
       next_follow_up: interaction.next_follow_up,
       franchise_status: interaction.franchise_status,
-      created_at: interaction.created_at
+      created_at: interaction.created_at,
+      user_name: interaction.users?.name || null
     })) || []
 
     return NextResponse.json({

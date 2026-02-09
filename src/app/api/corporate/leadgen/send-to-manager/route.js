@@ -17,7 +17,8 @@ export async function POST(request) {
     const body = await request.json()
     const { client_id } = body
 
-    // Get manager name (works with or without client_id)
+    // Get manager info (user_id and name)
+    let managerId = null
     let managerName = 'Manager'
     const { data: userProfile, error: profileError } = await supabaseServer
       .from('users')
@@ -28,10 +29,11 @@ export async function POST(request) {
     if (!profileError && userProfile?.manager_id) {
       const { data: manager, error: managerError } = await supabaseServer
         .from('users')
-        .select('name')
+        .select('user_id, name')
         .eq('user_id', userProfile.manager_id)
         .single()
-      if (!managerError && manager?.name) {
+      if (!managerError && manager) {
+        managerId = manager.user_id
         managerName = manager.name
       }
     }
@@ -49,9 +51,68 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 })
     }
 
-    // Update the lead: set sent_to_sm to true and lock_date to today
-    const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
+    // Fetch the lead details with latest interaction
+    const { data: lead, error: leadError } = await supabaseServer
+      .from('corporate_leadgen_leads')
+      .select('*')
+      .eq('client_id', client_id)
+      .single()
 
+    if (leadError || !lead) {
+      console.error('Lead fetch error:', leadError)
+      return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
+    }
+
+    // Fetch latest interaction for contact info
+    const { data: interactions } = await supabaseServer
+      .from('corporate_leads_interaction')
+      .select('*')
+      .eq('client_id', client_id)
+      .order('date', { ascending: false })
+      .limit(1)
+
+    const latestInteraction = interactions?.[0] || {}
+
+    const today = new Date().toISOString().split('T')[0]
+
+    // Insert into corporate_manager_leads table
+    const { data: managerLead, error: insertError } = await supabaseServer
+      .from('corporate_manager_leads')
+      .insert({
+        client_id: lead.client_id,
+        user_id: managerId,
+        sourced_by: user.id,
+        sourcing_date: lead.sourcing_date || null,
+        arrived_date: today,
+        company: lead.company,
+        category: lead.category,
+        city: lead.district_city || null,
+        state: lead.state,
+        location: lead.location || null,
+        contact_person: latestInteraction.contact_person || lead.contact_person || null,
+        phone: latestInteraction.contact_no || lead.phone || null,
+        email: latestInteraction.email || lead.email || null,
+        emp_count: lead.emp_count || lead.empCount || null,
+        reference: lead.reference || null,
+        startup: lead.startup || null,
+        remarks: latestInteraction.remarks || null,
+        next_follow_up: latestInteraction.next_follow_up || null,
+        status: latestInteraction.status || lead.status || 'Sent to Manager',
+        sub_status: latestInteraction.sub_status || lead.sub_status || null,
+        franchise_status: latestInteraction.franchise_status || lead.franchise_status || null
+      })
+      .select()
+      .single()
+
+    if (insertError) {
+      console.error('Insert to corporate_manager_leads error:', insertError)
+      return NextResponse.json({
+        error: 'Failed to send lead to manager',
+        details: insertError.message
+      }, { status: 500 })
+    }
+
+    // Update the original lead: set sent_to_sm to true and lock_date to today
     const { data: updatedLead, error: updateError } = await supabaseServer
       .from('corporate_leadgen_leads')
       .update({
@@ -66,7 +127,7 @@ export async function POST(request) {
     if (updateError) {
       console.error('Send to manager update error:', updateError)
       return NextResponse.json({
-        error: 'Failed to send to manager',
+        error: 'Failed to update lead',
         details: updateError.message
       }, { status: 500 })
     }
@@ -75,7 +136,8 @@ export async function POST(request) {
       success: true,
       data: {
         ...updatedLead,
-        managerName
+        managerName,
+        managerLeadId: managerLead?.id
       }
     })
 
