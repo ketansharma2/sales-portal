@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   Users, Wallet, LayoutGrid, ShieldCheck, 
-  Settings, FileText, Target, Search, BarChart, Phone,Calendar,MapPin,Truck,UserPlus
+  Settings, FileText, Target, Search, BarChart, Phone,Calendar,MapPin,Truck,UserPlus,IndianRupee,UserCheck,Edit,Plus,
 } from "lucide-react";
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
@@ -13,8 +13,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   // --- 1. SMART URL PARSING LOGIC ---
   const segments = pathname.split('/').filter(Boolean);
   
-  // Check if we are in a Sector Folder (Corporate/Domestic)
-  const isSectorPath = segments[0] === "corporate" || segments[0] === "domestic";
+  // Check if we are in a Sector Folder (Corporate/Domestic/DeliveryCorporate)
+  const isSectorPath = segments[0] === "corporate" || segments[0] === "domestic" || segments[0] === "deliverycorporate";
   
   // Define Context
   const currentSector = isSectorPath ? segments[0] : null; 
@@ -105,7 +105,22 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     menuItems = [
     { name: "CRM Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "Onboardings", href: `${roleBaseHref}/onboard`, icon: <UserPlus size={20} /> }, // For New Handovers
-      
+      { name: "Billing & Revenue", href: `${roleBaseHref}/revenue`, icon: <IndianRupee size={20} /> }, // Direct Access to Finance
+    ];
+  }
+  else if (currentRole === "recruiter") {
+    menuItems = [
+      { name: "Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
+      { name: "My Placements", href: `${roleBaseHref}/placement`, icon: <IndianRupee size={20} /> }, 
+    ];
+  }
+
+  // --- DELIVERY (UPDATED FOR 'deliverycorporate' FOLDER) ---
+  else if (currentRole === "deliverycorporate") {
+    menuItems = [
+      { name: "Delivery Board", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
+      { name: "Active Handovers", href: `${roleBaseHref}/handovers`, icon: <Truck size={20} /> },
+      { name: "Team Performance", href: `${roleBaseHref}/team`, icon: <BarChart size={20} /> },
     ];
   }
 

@@ -82,6 +82,14 @@ export default function Header() {
       roleLabel = "CRM Manager";
       pageSubtitle = "RELATIONSHIP MGMT";
       break;
+    case "recruiter":
+      roleLabel = "Recruiter";
+      pageSubtitle = "TALENT ACQUISITION";
+      break;
+      case "delivery":
+      roleLabel = "Delivery Manager";
+      pageSubtitle = "DELIVERY OPERATIONS";
+      break;
     case "operations":
     case "operation_head":
       roleLabel = "Operation Head";
