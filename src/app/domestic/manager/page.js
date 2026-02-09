@@ -458,17 +458,14 @@ export default function ManagerHome() {
     <div className="h-[calc(100vh-2rem)] bg-[#f8fafc] w-full font-['Calibri'] p-6 flex flex-col overflow-hidden">
 
       {/* HEADER & FILTERS */}
-        <div className="flex items-center justify-between gap-4 mb-6 w-full shrink-0">
+        <div className="flex items-center justify-between gap-4 mb-3 w-full shrink-0">
 
         {/* 1. LEFT: TITLE & LIVE BADGE */}
         <div className="shrink-0">
           <h1 className="text-2xl font-black text-[#103c7f] tracking-tight uppercase italic leading-none whitespace-nowrap">
             Manager Command Center
           </h1>
-          <div className="flex items-center gap-2 mt-1.5">
-            <span className="w-2 h-2 bg-[#a1db40] rounded-full animate-pulse shadow-[0_0_5px_#a1db40]"></span>
-            <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest leading-none">Live Performance Dashboard</p>
-          </div>
+         
         </div>
 
         {/* 2. RIGHT: TABS & FILTERS (Merged Group) */}
