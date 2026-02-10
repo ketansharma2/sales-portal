@@ -388,7 +388,7 @@ export default function FSEDashboard() {
         </div>
 
         {/* --- ROW 4: DYNAMIC METRICS --- */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
           <DynamicCard label="Total Visits" value={stats.dynamicMetrics.totalVisits || '-'} color="border-l-[#103c7f]" />
           <DynamicCard label="Calls" value={stats.dynamicMetrics.calls || '-'} color="border-l-[#1a4da1]" />
           <DynamicCard label="Individual" value={stats.dynamicMetrics.individual} color="border-l-blue-400" />
@@ -548,7 +548,7 @@ function ProjItem({ label, value }) {
 
 function DynamicCard({ label, value, color }) {
   return (
-    <div className={`bg-white p-3 rounded-xl border border-gray-100 border-l-4 ${color} shadow-sm text-center`}>
+    <div className={`bg-white p-2 rounded-xl border border-gray-100 border-l-4 ${color} shadow-sm text-center`}>
       <p className="text-[12px] font-black text-gray-400 uppercase mb-1 truncate">{label}</p>
       <p className="text-lg font-black text-[#103c7f]">{value}</p>
     </div>

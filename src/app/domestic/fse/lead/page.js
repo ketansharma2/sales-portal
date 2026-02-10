@@ -4,7 +4,7 @@ import {
   Pencil, Plus, X, Search, Loader2, Eye, Star,
   Calendar, Phone, MapPin, User, Building2, CheckCircle,
   ArrowRight, MessageSquarePlus, Mail, Zap,CalendarOff,
-  HistoryIcon, Send, Lock
+  HistoryIcon, Send, Lock, AlertCircle
 } from "lucide-react";
 
 export default function LeadsMasterPage() {
@@ -171,6 +171,37 @@ export default function LeadsMasterPage() {
       setSaving(true);
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const isEdit = !!formData.client_id;
+
+      // Check for duplicate company name (case-insensitive) when creating new client
+      if (!isEdit && formData.company) {
+        try {
+          const checkResponse = await fetch(`/api/domestic/fse/lead?company=${encodeURIComponent(formData.company)}&limit=100`, {
+            headers: { 'Authorization': `Bearer ${session.access_token}` }
+          });
+          const checkData = await checkResponse.json();
+          if (checkData.success && checkData.data.length > 0) {
+            // Check if any existing company name matches (case-insensitive)
+            const duplicate = checkData.data.find(
+              lead => lead.company_name.toLowerCase() === formData.company.toLowerCase()
+            );
+            if (duplicate) {
+              const shouldContinue = confirm(
+                `⚠️ A company with similar name already exists:\n\n` +
+                `"${duplicate.company_name}"\n` +
+                `Location: ${duplicate.location}, ${duplicate.state}\n` +
+                `Status: ${duplicate.status || 'No Status'}\n\n` +
+                `Do you want to continue adding this new client?`
+              );
+              if (!shouldContinue) {
+                setSaving(false);
+                return;
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error checking for duplicate company:', err);
+        }
+      }
 
       const response = await fetch('/api/domestic/fse/lead', {
         method: isEdit ? 'PUT' : 'POST',
@@ -820,6 +851,9 @@ export default function LeadsMasterPage() {
      projection: '' // Added projection to initial state
    });
 
+   const [companySuggestions, setCompanySuggestions] = useState([]);
+   const [showSuggestions, setShowSuggestions] = useState(false);
+
    // Check: Are we editing? (Agar ID hai toh Edit hai)
    const isEditing = !!lead?.client_id;
 
@@ -841,6 +875,41 @@ export default function LeadsMasterPage() {
        projection: lead?.projection || '' // Set projection from lead data
      });
    }, [lead]);
+
+   // Fetch company suggestions when company name changes
+   useEffect(() => {
+     const fetchCompanySuggestions = async () => {
+       if (!formData.company || formData.company.length < 2) {
+         setCompanySuggestions([]);
+         setShowSuggestions(false);
+         return;
+       }
+
+       try {
+         const session = JSON.parse(localStorage.getItem('session') || '{}');
+         const response = await fetch(`/api/domestic/fse/lead?company=${encodeURIComponent(formData.company)}&limit=10`, {
+           headers: { 'Authorization': `Bearer ${session.access_token}` }
+         });
+         const data = await response.json();
+         if (data.success && data.data.length > 0) {
+           // Filter out the current lead if editing
+           const suggestions = data.data.filter(l => l.client_id !== lead?.client_id);
+           setCompanySuggestions(suggestions);
+           setShowSuggestions(suggestions.length > 0);
+         } else {
+           setCompanySuggestions([]);
+           setShowSuggestions(false);
+         }
+       } catch (err) {
+         console.error('Failed to fetch company suggestions');
+         setCompanySuggestions([]);
+         setShowSuggestions(false);
+       }
+     };
+
+     const debounceTimer = setTimeout(fetchCompanySuggestions, 150);
+     return () => clearTimeout(debounceTimer);
+   }, [formData.company, lead?.client_id]);
 
    const updateField = (f, v) => setFormData(p => ({ ...p, [f]: v }));
    
@@ -880,11 +949,58 @@ export default function LeadsMasterPage() {
                <input type="date" disabled={isViewMode} value={formData.sourcing_date} onChange={e => updateField('sourcing_date', e.target.value)} className={inputStyle} />
              </div>
 
-             {/* Company Name */}
-             <div className="space-y-1">
-               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Company Name</label>
-               <input type="text" disabled={isViewMode} value={formData.company} onChange={e => updateField('company', e.target.value)} className={inputStyle} placeholder="Enter company..." />
-             </div>
+              {/* Company Name */}
+              <div className="space-y-1 relative">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Company Name</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    disabled={isViewMode}
+                    value={formData.company}
+                    onChange={e => updateField('company', e.target.value)}
+                    onFocus={() => setShowSuggestions(companySuggestions.length > 0)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    className={inputStyle}
+                    placeholder="Enter company..."
+                  />
+                  {/* Suggestions Dropdown */}
+                  {showSuggestions && companySuggestions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto">
+                      <div className="p-2 bg-orange-50 border-b border-orange-100">
+                        <p className="text-[10px] font-bold text-orange-700 flex items-center gap-1">
+                          <AlertCircle size={12} /> Similar companies found - check before adding!
+                        </p>
+                      </div>
+                      {companySuggestions.map((suggestion) => (
+                        <div
+                          key={suggestion.client_id}
+                          className="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors"
+                          onClick={() => {
+                            updateField('company', suggestion.company_name);
+                            setShowSuggestions(false);
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-[#103c7f] text-sm">{suggestion.company_name}</span>
+                            <span className="text-[10px] text-gray-400">{suggestion.location}, {suggestion.state}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                              suggestion.status === 'Onboarded' ? 'bg-green-100 text-green-700' :
+                              suggestion.status === 'Interested' ? 'bg-blue-100 text-blue-700' :
+                              suggestion.status === 'Not Interested' ? 'bg-red-100 text-red-700' :
+                              'bg-gray-100 text-gray-600'
+                            }`}>
+                              {suggestion.status || 'No Status'}
+                            </span>
+                            <span className="text-[9px] text-gray-400">{suggestion.category || ''}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
              
              {/* Client Type */}
              <div className="space-y-1">

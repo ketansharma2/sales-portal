@@ -635,32 +635,32 @@ export default function FseOnboardPage() {
                             </span>
                             
                           ) : (
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                onClick={() =>
-                                  handleAction(
-                                    lead.client_id || lead.id,
-                                    "view",
-                                  )
-                                }
-                                className="p-1.5 text-gray-500 bg-white border border-gray-200 hover:text-blue-600 hover:border-blue-200 rounded transition-colors shadow-sm"
-                                title="View Details"
-                              >
-                                <Eye size={16} />
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleAction(
-                                    lead.client_id || lead.id,
-                                    "delivery",
-                                  )
-                                }
-                                className="p-1.5 text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 rounded transition-colors shadow-sm"
-                                title="Sent to Delivery"
-                              >
-                                <Truck size={16} />
-                              </button>
-                            </div>
+                             <div className="flex items-center justify-center gap-2">
+                               <button
+                                 onClick={() =>
+                                   handleAction(
+                                     lead.client_id || lead.id,
+                                     "view",
+                                   )
+                                 }
+                                 className="p-1.5 text-gray-500 bg-white border border-gray-200 hover:text-blue-600 hover:border-blue-200 rounded transition-colors shadow-sm"
+                                 title="View Details"
+                               >
+                                 <Eye size={16} />
+                               </button>
+                               <button
+                                 onClick={() =>
+                                   handleAction(
+                                     lead.client_id || lead.id,
+                                     "delivery",
+                                   )
+                                 }
+                                 className="p-1.5 text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 rounded transition-colors shadow-sm"
+                                 title="Sent to Delivery"
+                               >
+                                 <Truck size={16} />
+                               </button>
+                             </div>
                           )}
                         </td>
                       </>
@@ -905,10 +905,10 @@ export default function FseOnboardPage() {
                 </div>
                 <div>
                   <h2 className="text-2xl font-black text-[#103c7f] italic uppercase tracking-tight">
-                    {selectedLead.company}
+                    {selectedLead.company_name || selectedLead.company || "Unknown Company"}
                   </h2>
                   <div className="flex items-center gap-1 text-xs font-bold text-gray-400 mt-0.5 uppercase tracking-wide">
-                    <MapPin size={12} /> {selectedLead.location}
+                    <MapPin size={12} /> {selectedLead.location || "Unknown Location"}
                   </div>
                 </div>
               </div>

@@ -68,7 +68,6 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   else if (currentRole === "manager") {
     menuItems = [
       { name: "Team Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
-      { name: "FSE Tracking", href: `${roleBaseHref}/team-leads`, icon: <Users size={20} /> },
       { name: "FSE Onboard", href: `${roleBaseHref}/fse-onboard`, icon: <UserPlus size={20} /> },
       { name: "Leads", href: `${roleBaseHref}/leadsgen`, icon: <Truck size={20} /> },
      // { name: "Target", href: `${roleBaseHref}/target`, icon: <Target size={20} /> },
