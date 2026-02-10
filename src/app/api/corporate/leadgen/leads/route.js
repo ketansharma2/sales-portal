@@ -219,13 +219,9 @@ export async function GET(request) {
           status: latestInteraction?.status || 'New',
           subStatus: latestInteraction?.sub_status || 'New Lead',
           franchiseStatus: latestInteraction?.franchise_status || '',
-          latestFollowup: (latestInteraction && latestInteraction.date) 
-            ? new Date(latestInteraction.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) 
-            : 'N/A',
+          latestFollowup: latestInteraction?.date || null,
           remarks: latestInteraction?.remarks || '',
-          nextFollowup: latestInteraction?.next_follow_up 
-            ? new Date(latestInteraction.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) 
-            : 'N/A',
+          nextFollowup: latestInteraction?.next_follow_up || null,
           // NEW: Contact info from latest interaction
           contact_person: latestInteraction?.contact_person || '',
           contact_no: latestInteraction?.contact_no || latestInteraction?.phone || '',

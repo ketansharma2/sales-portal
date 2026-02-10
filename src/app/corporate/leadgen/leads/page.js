@@ -49,16 +49,42 @@ export default function LeadsTablePage() {
 
    // --- FULL LISTS ---
    const [indianStates, setIndianStates] = useState([]);
-   const [stateDistrictData, setStateDistrictData] = useState({});
+   const [stateDistrictData, setStateDistrictData] = useState({});    
+     // Helper to format date for display (YYYY-MM-DD -> DD MMM YY)
+     const formatDateForDisplay = (dateStr) => {
+       if (!dateStr) return 'N/A';
+       const date = new Date(dateStr);
+       if (isNaN(date)) return 'N/A';
+       return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
+     };
 
-   const industryCategories = [
+     // Helper to convert date string to Date object for comparison
+     // HTML date input returns YYYY-MM-DD format (e.g., "2026-02-09")
+     // Creates date at midnight UTC to avoid timezone issues
+     const formatDateForCompare = (dateStr) => {
+       if (!dateStr) return null;
+       // Handle YYYY-MM-DD format (from HTML date input)
+       const parts = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+       if (parts) {
+         // Create date at midnight UTC to avoid timezone issues
+         return new Date(Date.UTC(parseInt(parts[1]), parseInt(parts[2]) - 1, parseInt(parts[3])));
+       }
+       // Fallback to standard parsing
+       const parsed = new Date(dateStr);
+       return isNaN(parsed) ? null : parsed;
+     };
+
+    const industryCategories = [
      "Information Technology (IT)", "Finance & Banking", "Healthcare", "Education", "Manufacturing",
      "Construction & Real Estate", "Retail & Consumer Goods", "Travel & Hospitality", "Energy & Utilities",
      "Media & Communications", "Transportation & Logistics", "Agriculture", "Automotive",
      "Telecommunications", "Pharmaceuticals", "Textiles", "Mining", "Non-Profit / NGO", "Government / Public Sector",
      "Consulting", "Legal Services", "Marketing & Advertising", "Insurance", "Entertainment", "Other"
    ];
-   const employeeCounts = [
+   
+    
+
+    const employeeCounts = [
      "1 - 10",
      "11 - 50",
      "51 - 200",
@@ -157,20 +183,22 @@ export default function LeadsTablePage() {
        }
      };
 
-   useEffect(() => {
-      const init = async () => {
-        await fetchStateDistrictData();
-        await fetchLeads();
-        await fetchManagerName();
-        // Check for search query param
-        const urlParams = new URLSearchParams(window.location.search);
-        const searchCompany = urlParams.get('search');
-        if (searchCompany) {
-          handleFilterChange("company", searchCompany);
-        }
-      };
-      init();
-    }, []);
+    useEffect(() => {
+       const init = async () => {
+         // Check for search query param FIRST (before fetching leads)
+         const urlParams = new URLSearchParams(window.location.search);
+         const searchCompany = urlParams.get('search');
+         if (searchCompany) {
+           // Set the filter state directly before fetching leads
+           setFilters(prev => ({ ...prev, company: searchCompany }));
+         }
+
+         await fetchStateDistrictData();
+         await fetchLeads();
+         await fetchManagerName();
+       };
+       init();
+     }, []);
 
      // Fetch suggestions when adding interaction
      useEffect(() => {
@@ -217,53 +245,65 @@ export default function LeadsTablePage() {
       startup: "All"
     });
 
-   // --- REAL-TIME FILTER LOGIC ---
-   const handleFilterChange = (key, value) => {
-     const newFilters = { ...filters, [key]: value };
-     setFilters(newFilters);
+    // --- REAL-TIME FILTER LOGIC ---
+    const handleFilterChange = (key, value) => {
+      const newFilters = { ...filters, [key]: value };
+      setFilters(newFilters);
 
-     // Filter Logic
-     const filtered = allLeads.filter(lead => {
-       // 1. Date Range Check (with null safety)
-       const leadDateStr = lead.sourcingDate || '';
-       const leadDate = leadDateStr ? new Date(leadDateStr) : null;
-       const from = newFilters.fromDate ? new Date(newFilters.fromDate) : null;
-       const to = newFilters.toDate ? new Date(newFilters.toDate) : null;
+      // Filter Logic
+      const filtered = allLeads.filter(lead => {
+        // 1. Date Range Check - API now returns YYYY-MM-DD format
+        const leadDateStr = lead.latestFollowup || '';
+        // Parse lead date at midnight UTC to avoid timezone issues
+        const leadDate = leadDateStr ? new Date(leadDateStr + 'T00:00:00Z') : null;
+        const from = newFilters.fromDate ? formatDateForCompare(newFilters.fromDate) : null;
+        const to = newFilters.toDate ? formatDateForCompare(newFilters.toDate) : null;
 
-       const isAfterFrom = from && leadDate ? leadDate >= from : true;
-       const isBeforeTo = to && leadDate ? leadDate <= to : true;
+        // If date filter is active, only include rows with actual dates
+        if (from || to) {
+          if (!leadDate) return false;  // Exclude rows with null dates when filter is active
+        }
 
-        // 2. Text Matching (with null safety)
-        const matchCompany = newFilters.company === '' ||
-          ((lead.company || '').toLowerCase().includes(newFilters.company.toLowerCase()) ||
-           (lead.contact_person || '').toLowerCase().includes(newFilters.company.toLowerCase()));
-        const matchLocation = newFilters.location === '' ||
-          ((lead.district_city || '') + ' ' + (lead.state || '') + ' ' + (lead.location || '')).toLowerCase().includes(newFilters.location.toLowerCase());
+        const isAfterFrom = from && leadDate ? leadDate >= from : true;
+        const isBeforeTo = to && leadDate ? leadDate <= to : true;
 
-         // 3. Dropdown Matching (with null safety)
-         const matchStatus = newFilters.status === "All" ||
-           ((lead.status || '').trim().toLowerCase() === (newFilters.status || '').trim().toLowerCase());
-         const matchSubStatus = newFilters.subStatus === "All" || ((lead.subStatus || '').trim().toLowerCase()) === (newFilters.subStatus || '').trim().toLowerCase();
-         const matchFranchiseStatus = newFilters.franchiseStatus === "All" || ((lead.franchiseStatus || '').trim().toLowerCase()) === (newFilters.franchiseStatus || '').trim().toLowerCase();
-         const matchStartup = newFilters.startup === "All" || ((lead.startup || '').trim().toLowerCase()) === (newFilters.startup || '').trim().toLowerCase();
+         // 2. Text Matching (with null safety)
+         const matchCompany = newFilters.company === '' ||
+           ((lead.company || '').toLowerCase().includes(newFilters.company.toLowerCase()) ||
+            (lead.contact_person || '').toLowerCase().includes(newFilters.company.toLowerCase()));
+         const matchLocation = newFilters.location === '' ||
+           ((lead.district_city || '') + ' ' + (lead.state || '') + ' ' + (lead.location || '')).toLowerCase().includes(newFilters.location.toLowerCase());
 
-        return isAfterFrom && isBeforeTo && matchCompany && matchLocation && matchStatus && matchSubStatus && matchFranchiseStatus && matchStartup;
-     });
+          // 3. Dropdown Matching (with null safety)
+          const matchStatus = newFilters.status === "All" ||
+            ((lead.status || '').trim().toLowerCase() === (newFilters.status || '').trim().toLowerCase());
+          const matchSubStatus = newFilters.subStatus === "All" || ((lead.subStatus || '').trim().toLowerCase()) === (newFilters.subStatus || '').trim().toLowerCase();
+          const matchFranchiseStatus = newFilters.franchiseStatus === "All" || ((lead.franchiseStatus || '').trim().toLowerCase()) === (newFilters.franchiseStatus || '').trim().toLowerCase();
+          const matchStartup = newFilters.startup === "All" || ((lead.startup || '').trim().toLowerCase()) === (newFilters.startup || '').trim().toLowerCase();
 
-     setLeads(filtered);
-   };
+         return isAfterFrom && isBeforeTo && matchCompany && matchLocation && matchStatus && matchSubStatus && matchFranchiseStatus && matchStartup;
+      });
+
+      setLeads(filtered);
+    };
 
    // --- APPLY CURRENT FILTERS TO ALL LEADS ---
-   const applyCurrentFilters = () => {
-     const filtered = allLeads.filter(lead => {
-       // 1. Date Range Check (with null safety)
-       const leadDateStr = lead.sourcingDate || '';
-       const leadDate = leadDateStr ? new Date(leadDateStr) : null;
-       const from = filters.fromDate ? new Date(filters.fromDate) : null;
-       const to = filters.toDate ? new Date(filters.toDate) : null;
+    const applyCurrentFilters = () => {
+      const filtered = allLeads.filter(lead => {
+        // 1. Date Range Check - API now returns YYYY-MM-DD format
+        const leadDateStr = lead.latestFollowup || '';
+        // Parse lead date at midnight UTC to avoid timezone issues
+        const leadDate = leadDateStr ? new Date(leadDateStr + 'T00:00:00Z') : null;
+        const from = filters.fromDate ? formatDateForCompare(filters.fromDate) : null;
+        const to = filters.toDate ? formatDateForCompare(filters.toDate) : null;
 
-       const isAfterFrom = from && leadDate ? leadDate >= from : true;
-       const isBeforeTo = to && leadDate ? leadDate <= to : true;
+        // If date filter is active, only include rows with actual dates
+        if (from || to) {
+          if (!leadDate) return false;  // Exclude rows with null dates when filter is active
+        }
+
+        const isAfterFrom = from && leadDate ? leadDate >= from : true;
+        const isBeforeTo = to && leadDate ? leadDate <= to : true;
 
         // 2. Text Matching (with null safety)
         const matchCompany = filters.company === '' ||
@@ -714,19 +754,19 @@ export default function LeadsTablePage() {
             </div>
          </td>
          
-         {/* MERGED CELL CONTENT */}
-         <td className="px-2 py-2 border-r border-gray-100">
-           <div className="flex flex-col gap-1">
-             <span className="font-bold text-[#103c7f] text-[10px] bg-blue-50 px-1.5 rounded w-fit">
-               {lead.latestFollowup}
-             </span>
-             <span className="text-gray-600 italic truncate max-w-[200px]" title={lead.remarks}>
-               "{lead.remarks}"
-             </span>
-           </div>
-         </td>
+          {/* MERGED CELL CONTENT */}
+          <td className="px-2 py-2 border-r border-gray-100">
+            <div className="flex flex-col gap-1">
+              <span className="font-bold text-[#103c7f] text-[10px] bg-blue-50 px-1.5 rounded w-fit">
+                {formatDateForDisplay(lead.latestFollowup)}
+              </span>
+              <span className="text-gray-600 italic truncate max-w-[200px]" title={lead.remarks}>
+                "{lead.remarks}"
+              </span>
+            </div>
+          </td>
 
-         <td className="px-2 py-2 border-r border-gray-100 font-bold text-orange-600">{lead.nextFollowup}</td>
+          <td className="px-2 py-2 border-r border-gray-100 font-bold text-orange-600">{formatDateForDisplay(lead.nextFollowup)}</td>
          
          <td className="px-2 py-2 border-r border-gray-100 text-center">
            {/* STATUS BADGE: Purple if Locked */}
@@ -1092,14 +1132,14 @@ export default function LeadsTablePage() {
          {/* B. Details Strip (Horizontal Scrollable) */}
          <div className="flex items-center gap-8 flex-1 overflow-x-auto custom-scrollbar pb-1">
             
-            {/* 1. Sourcing Date */}
-            <div className="flex flex-col min-w-fit">
-               <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Sourced Date</label>
-               <div className="flex items-center gap-1.5 text-gray-700 font-bold text-xs">
-                  <Calendar size={13} className="text-gray-500 shrink-0"/>
-                  <span className="font-mono">{selectedLead.sourcingDate || 'N/A'}</span>
-               </div>
-            </div>
+             {/* 1. Sourcing Date */}
+             <div className="flex flex-col min-w-fit">
+                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Sourced Date</label>
+                <div className="flex items-center gap-1.5 text-gray-700 font-bold text-xs">
+                   <Calendar size={13} className="text-gray-500 shrink-0"/>
+                   <span className="font-mono">{selectedLead?.latestFollowup || 'N/A'}</span>
+                </div>
+             </div>
 
             {/* 2. Category */}
             <div className="flex flex-col min-w-fit">

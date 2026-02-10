@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
   Database, Phone, CheckCircle, Clock, Calendar,
   ArrowRight, Zap, PhoneOutgoing,
@@ -9,6 +10,7 @@ import {
 } from "lucide-react";
 
 export default function LeadGenHome() {
+  const router = useRouter();
   
   // --- STATE ---
   const [fromDate, setFromDate] = useState('');
@@ -519,11 +521,12 @@ export default function LeadGenHome() {
                   </div>
 
                   {/* Call Action Button */}
-                  <Link href="/corporate/leadgen/leads">
-                    <button className="w-full bg-blue-50 border border-blue-100 text-[#103c7f] text-[10px] font-bold py-2 rounded-lg hover:bg-[#103c7f] hover:text-white transition-colors flex items-center justify-center gap-1.5 group-hover:shadow-sm">
-                      <Phone size={12} className="fill-current"/> Call Now
-                    </button>
-                  </Link>
+                  <button
+                    onClick={() => router.push(`/corporate/leadgen/leads?search=${encodeURIComponent(item.company)}`)}
+                    className="w-full bg-blue-50 border border-blue-100 text-[#103c7f] text-[10px] font-bold py-2 rounded-lg hover:bg-[#103c7f] hover:text-white transition-colors flex items-center justify-center gap-1.5 group-hover:shadow-sm"
+                  >
+                    <Phone size={12} className="fill-current"/> Call Now
+                  </button>
               </div>
             </div>
         ))}
