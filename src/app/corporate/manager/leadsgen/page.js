@@ -721,10 +721,10 @@ export default function ManagerLeadsPage() {
                   Next Follow Up
                 </th>
                 <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap text-center">
-                  Status
+                  Status/Substatus
                 </th>
                 <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap text-center">
-                  Franchise
+                  Franchise Status
                 </th>
                 <th className="px-4 py-3 text-center bg-[#0d316a] sticky right-0 z-50 min-w-[200px] shadow-lg">
                   Action
