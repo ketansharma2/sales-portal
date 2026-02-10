@@ -55,6 +55,18 @@ export async function GET(request) {
       }, { status: 500 })
     }
 
+    // Step 1b: Fetch CRM users (sector=domestic, role contains CRM)
+    const { data: crmList, error: crmError } = await supabaseServer
+      .from('users')
+      .select('user_id, name')
+      .ilike('sector', 'domestic')
+      .contains('role', ['CRM'])
+
+    if (crmError) {
+      console.error('CRM list fetch error:', crmError)
+      // Continue without CRM users - don't fail the whole request
+    }
+
     // If filtering by specific FSE, use only that FSE's user_id
     const fseUserIds = fseId 
       ? fseList.filter(fse => fse.user_id === fseId).map(fse => fse.user_id)
@@ -208,6 +220,7 @@ export async function GET(request) {
       success: true,
       data: clientsWithLatest,
       fse_list: fseList,
+      crm_list: crmList || [],
       total_count: clientsWithLatest.length
     })
 
