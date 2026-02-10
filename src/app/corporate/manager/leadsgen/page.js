@@ -572,6 +572,9 @@ export default function ManagerLeadsPage() {
           <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight">
             Leads Overview
           </h1>
+          <span className="bg-blue-50 border border-blue-100 text-[#103c7f] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm w-fit">
+            {filteredLeads.length} Records Found
+          </span>
         </div>
         <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200 gap-1">
           <button
@@ -695,7 +698,10 @@ export default function ManagerLeadsPage() {
         </div>
       ) : activeTab === "actionable" ? (
         // === ACTIONABLE TAB TABLE ===
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex-1 flex flex-col overflow-x-auto">
+        <div
+          className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex-1 flex flex-col overflow-x-auto overflow-y-auto"
+          style={{ maxHeight: "calc(100vh - 280px)" }}
+        >
           <table className="w-full table-auto border-collapse text-left sticky">
             <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-50 shadow-md">
               <tr>
@@ -827,50 +833,52 @@ export default function ManagerLeadsPage() {
                       </td>
                       <td className="px-4 py-3 text-center sticky right-0 bg-white group-hover:bg-blue-50/20 border-l border-gray-200 z-10 whitespace-nowrap shadow-[-4px_0px_8px_-4px_rgba(0,0,0,0.05)]">
                         <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => handleAction(lead, "view")}
-                            className="p-1.5 text-gray-500 hover:text-blue-600 bg-white border border-gray-200 rounded hover:shadow-sm"
-                            title="View"
-                          >
-                            <Eye size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleAction(lead, "edit_basic")}
-                            className="p-1.5 text-gray-500 hover:text-orange-600 bg-white border border-gray-200 rounded hover:shadow-sm"
-                            title="Edit Detail"
-                          >
-                            <Edit size={14} />
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleAction(lead, "add_conversation")
-                            }
-                            className="p-1.5 text-gray-500 hover:text-blue-600 bg-white border border-gray-200 rounded hover:shadow-sm"
-                            title="Add Log"
-                          >
-                            <MessageSquare size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleAction(lead, "assign_fse")}
-                            className="p-1.5 text-gray-500 hover:text-indigo-600 bg-white border border-gray-200 rounded hover:shadow-sm"
-                            title="Assign FSE"
-                          >
-                            <UserPlus size={14} />
-                          </button>
                           {lead.sentToCrm ? (
                             <span className="px-2 py-1 bg-gray-100 text-gray-400 text-xs font-bold rounded border border-gray-200">
                               LOCKED
                             </span>
                           ) : (
-                            <button
-                              onClick={() =>
-                                handleAction(lead, "pass_delivery")
-                              }
-                              className="p-1.5 text-gray-500 hover:text-green-600 bg-white border border-gray-200 rounded hover:shadow-sm"
-                              title="Pass Delivery"
-                            >
-                              <Truck size={14} />
-                            </button>
+                            <>
+                              <button
+                                onClick={() => handleAction(lead, "view")}
+                                className="p-1.5 text-gray-500 hover:text-blue-600 bg-white border border-gray-200 rounded hover:shadow-sm"
+                                title="View"
+                              >
+                                <Eye size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleAction(lead, "edit_basic")}
+                                className="p-1.5 text-gray-500 hover:text-orange-600 bg-white border border-gray-200 rounded hover:shadow-sm"
+                                title="Edit Detail"
+                              >
+                                <Edit size={14} />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleAction(lead, "add_conversation")
+                                }
+                                className="p-1.5 text-gray-500 hover:text-blue-600 bg-white border border-gray-200 rounded hover:shadow-sm"
+                                title="Add Log"
+                              >
+                                <MessageSquare size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleAction(lead, "assign_fse")}
+                                className="p-1.5 text-gray-500 hover:text-indigo-600 bg-white border border-gray-200 rounded hover:shadow-sm"
+                                title="Assign FSE"
+                              >
+                                <UserPlus size={14} />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleAction(lead, "pass_delivery")
+                                }
+                                className="p-1.5 text-gray-500 hover:text-green-600 bg-white border border-gray-200 rounded hover:shadow-sm"
+                                title="Pass Delivery"
+                              >
+                                <Truck size={14} />
+                              </button>
+                            </>
                           )}
                         </div>
                       </td>
@@ -1202,7 +1210,7 @@ export default function ManagerLeadsPage() {
                   </div>
 
                   <div className="bg-white border border-gray-200 rounded-xl overflow-hidden flex-1 shadow-sm flex flex-col">
-                    <div className="overflow-y-auto flex-1 custom-scrollbar">
+                    <div className="overflow-y-auto flex-1 custom-scrollbar max-h-[400px]">
                       <table className="w-full text-left border-collapse">
                         <thead className="bg-white text-[10px] font-bold text-gray-400 uppercase sticky top-0 z-10 border-b border-gray-100 shadow-sm">
                           <tr>
