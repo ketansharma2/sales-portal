@@ -241,15 +241,19 @@ export default function ManagerLeadsPage() {
     if (filters.location) {
       result = result.filter(
         (l) =>
-          l.location.toLowerCase().includes(filters.location.toLowerCase()) ||
-          l.state.toLowerCase().includes(filters.location.toLowerCase()),
+          (l.city && l.city.toLowerCase().includes(filters.location.toLowerCase())) ||
+          (l.districtCity && l.districtCity.toLowerCase().includes(filters.location.toLowerCase())) ||
+          (l.state && l.state.toLowerCase().includes(filters.location.toLowerCase())),
       );
     }
     if (filters.status !== "All") {
       result = result.filter((l) => l.status === filters.status);
     }
     if (filters.subStatus !== "All") {
-      result = result.filter((l) => l.sub_status === filters.subStatus);
+      result = result.filter((l) => 
+        (l.sub_status && l.sub_status === filters.subStatus) ||
+        (l.subStatus && l.subStatus === filters.subStatus)
+      );
     }
     if (filters.sourcedBy !== "All") {
       result = result.filter((l) => l.sourcedBy === filters.sourcedBy);
@@ -578,13 +582,35 @@ export default function ManagerLeadsPage() {
         </div>
         <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200 gap-1">
           <button
-            onClick={() => setActiveTab("actionable")}
+            onClick={() => {
+              setActiveTab("actionable");
+              setFilters({
+                fromDate: "",
+                toDate: "",
+                company: "",
+                location: "",
+                status: "All",
+                subStatus: "All",
+                sourcedBy: "All",
+              });
+            }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "actionable" ? "bg-[#103c7f] text-white shadow-md" : "text-gray-500 hover:bg-gray-50"}`}
           >
             <ListChecks size={16} /> Interested/Onboard Leads
           </button>
           <button
-            onClick={() => setActiveTab("database")}
+            onClick={() => {
+              setActiveTab("database");
+              setFilters({
+                fromDate: "",
+                toDate: "",
+                company: "",
+                location: "",
+                status: "All",
+                subStatus: "All",
+                sourcedBy: "All",
+              });
+            }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "database" ? "bg-[#103c7f] text-white shadow-md" : "text-gray-500 hover:bg-gray-50"}`}
           >
             <Database size={16} /> All Leads Database
@@ -600,6 +626,7 @@ export default function ManagerLeadsPage() {
           </label>
           <input
             type="date"
+            value={filters.fromDate}
             className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] transition"
             onChange={(e) => handleFilterChange("fromDate", e.target.value)}
           />
@@ -610,6 +637,7 @@ export default function ManagerLeadsPage() {
           </label>
           <input
             type="date"
+            value={filters.toDate}
             className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] transition"
             onChange={(e) => handleFilterChange("toDate", e.target.value)}
           />
@@ -626,6 +654,7 @@ export default function ManagerLeadsPage() {
             <input
               type="text"
               placeholder="Name..."
+              value={filters.company}
               className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] transition"
               onChange={(e) => handleFilterChange("company", e.target.value)}
             />
@@ -638,6 +667,7 @@ export default function ManagerLeadsPage() {
           <input
             type="text"
             placeholder="Delhi..."
+            value={filters.location}
             className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] transition"
             onChange={(e) => handleFilterChange("location", e.target.value)}
           />
@@ -647,15 +677,17 @@ export default function ManagerLeadsPage() {
             Status
           </label>
           <select
+            value={filters.status}
             className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] transition cursor-pointer"
             onChange={(e) => handleFilterChange("status", e.target.value)}
           >
             <option value="All">All</option>
-            <option>Sent to Manager</option>
             <option>Interested</option>
-            <option>Onboard</option>
-            <option>Call Back</option>
             <option>Not Interested</option>
+            <option>Not Picked</option>
+            <option>Onboard</option>
+            <option>Call Later</option>
+            <option>New</option>
           </select>
         </div>
         <div className="col-span-1">
@@ -663,12 +695,26 @@ export default function ManagerLeadsPage() {
             Sub-Status
           </label>
           <select
+            value={filters.subStatus}
             className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] transition cursor-pointer"
             onChange={(e) => handleFilterChange("subStatus", e.target.value)}
           >
             <option value="All">All</option>
-            <option>Pending Approval</option>
-            <option>Ready for Onboard</option>
+            <option>2nd time not picked</option>
+            <option>Contract Share</option>
+            <option>Enough Vendor Empanelment</option>
+            <option>Hiring Sealed</option>
+            <option>Manager Ask</option>
+            <option>Meeting Align</option>
+            <option>Misaligned T&C</option>
+            <option>Not Right Person</option>
+            <option>Official Mail Ask</option>
+            <option>Reference Ask</option>
+            <option>Self Hiring</option>
+            <option>Ready to Visit</option>
+            <option>Callback</option>
+            <option>NA</option>
+            <option>New Lead</option>
           </select>
         </div>
         <div className="col-span-1">
@@ -676,6 +722,7 @@ export default function ManagerLeadsPage() {
             Sourced By
           </label>
           <select
+            value={filters.sourcedBy}
             className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] transition cursor-pointer"
             onChange={(e) => handleFilterChange("sourcedBy", e.target.value)}
           >

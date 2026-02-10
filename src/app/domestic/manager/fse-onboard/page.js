@@ -540,8 +540,13 @@ export default function FseOnboardPage() {
                               {lead.fse_name || lead.fseName || "Unknown"}
                             </span>
                             <span className="text-[10px] text-gray-400 font-bold">
-                              {lead.sent_date || lead.lock_date || "N/A"}
+                              Sent: {lead.sent_date || lead.lock_date || "N/A"}
                             </span>
+                            {lead.sent_to_crm && lead.crm_lock_date && (
+                              <span className="text-[10px] text-green-600 font-bold">
+                                CRM: {lead.crm_lock_date}
+                              </span>
+                            )}
                           </div>
                         </td>
 
