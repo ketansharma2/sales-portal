@@ -108,6 +108,17 @@ export default function ManagerLeadsPage() {
   const [latestInteractionForDelivery, setLatestInteractionForDelivery] =
     useState({});
 
+  // Contact suggestions state
+  const [contactSuggestions, setContactSuggestions] = useState({
+    contactPersons: [],
+    emails: [],
+    contactNos: [],
+  });
+  const [showContactPersonSuggestions, setShowContactPersonSuggestions] =
+    useState(false);
+  const [showEmailSuggestions, setShowEmailSuggestions] = useState(false);
+  const [showPhoneSuggestions, setShowPhoneSuggestions] = useState(false);
+
   // --- FILTER STATE ---
   const [filters, setFilters] = useState({
     fromDate: "",
@@ -272,6 +283,11 @@ export default function ManagerLeadsPage() {
     setModalType(type);
     setIsFormOpen(true);
 
+    // Fetch contact suggestions when opening add_conversation modal
+    if (type === "add_conversation") {
+      fetchContactSuggestions(lead.id);
+    }
+
     // Pre-fill Edit Form
     if (type === "edit_basic") {
       setNewLeadData({
@@ -361,6 +377,24 @@ export default function ManagerLeadsPage() {
   const fetchDistricts = (state) => {
     // Mock district fetch
     setDistrictsList(["District 1", "District 2", "District 3"]);
+  };
+
+  const fetchContactSuggestions = async (clientId) => {
+    try {
+      const session = JSON.parse(localStorage.getItem("session") || "{}");
+      const response = await fetch(
+        `/api/corporate/manager/contact-suggestions?client_id=${clientId}`,
+        {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }
+      );
+      const data = await response.json();
+      if (data.success) {
+        setContactSuggestions(data.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch contact suggestions:", error);
+    }
   };
 
   const handleConfirmAction = async () => {
@@ -1555,7 +1589,7 @@ export default function ManagerLeadsPage() {
 
                     {/* Row 2: Contact Person, Phone, Email */}
                     <div className="grid grid-cols-3 gap-4">
-                      <div>
+                      <div className="relative">
                         <label className="text-[10px] font-bold text-gray-500 uppercase">
                           Contact Person
                         </label>
@@ -1569,10 +1603,32 @@ export default function ManagerLeadsPage() {
                               contactPerson: e.target.value,
                             })
                           }
+                          onFocus={() => setShowContactPersonSuggestions(true)}
+                          onBlur={() => setTimeout(() => setShowContactPersonSuggestions(false), 200)}
                           className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
                         />
+                        {showContactPersonSuggestions && contactSuggestions.contactPersons.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                            {contactSuggestions.contactPersons.map((name, idx) => (
+                              <div
+                                key={idx}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setConversationData({
+                                    ...conversationData,
+                                    contactPerson: name,
+                                  });
+                                  setShowContactPersonSuggestions(false);
+                                }}
+                                className="px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer text-gray-700"
+                              >
+                                {name}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <div>
+                      <div className="relative">
                         <label className="text-[10px] font-bold text-gray-500 uppercase">
                           Phone
                         </label>
@@ -1586,10 +1642,32 @@ export default function ManagerLeadsPage() {
                               phone: e.target.value,
                             })
                           }
+                          onFocus={() => setShowPhoneSuggestions(true)}
+                          onBlur={() => setTimeout(() => setShowPhoneSuggestions(false), 200)}
                           className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
                         />
+                        {showPhoneSuggestions && contactSuggestions.contactNos.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                            {contactSuggestions.contactNos.map((phone, idx) => (
+                              <div
+                                key={idx}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setConversationData({
+                                    ...conversationData,
+                                    phone: phone,
+                                  });
+                                  setShowPhoneSuggestions(false);
+                                }}
+                                className="px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer text-gray-700"
+                              >
+                                {phone}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <div>
+                      <div className="relative">
                         <label className="text-[10px] font-bold text-gray-500 uppercase">
                           Email
                         </label>
@@ -1603,8 +1681,30 @@ export default function ManagerLeadsPage() {
                               email: e.target.value,
                             })
                           }
+                          onFocus={() => setShowEmailSuggestions(true)}
+                          onBlur={() => setTimeout(() => setShowEmailSuggestions(false), 200)}
                           className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
                         />
+                        {showEmailSuggestions && contactSuggestions.emails.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                            {contactSuggestions.emails.map((email, idx) => (
+                              <div
+                                key={idx}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setConversationData({
+                                    ...conversationData,
+                                    email: email,
+                                  });
+                                  setShowEmailSuggestions(false);
+                                }}
+                                className="px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer text-gray-700"
+                              >
+                                {email}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
