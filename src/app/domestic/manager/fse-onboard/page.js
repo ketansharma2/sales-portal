@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Eye,
@@ -21,7 +21,7 @@ import {
   ArrowRightCircle as ArrowRightCircleIcon,
 } from "lucide-react";
 
-export default function FseOnboardPage() {
+function FseOnboardContent() {
   const searchParams = useSearchParams();
   
   // --- STATE ---
@@ -1203,5 +1203,16 @@ export default function FseOnboardPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Default export with Suspense boundary for useSearchParams
+export default function FseOnboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
+      <div className="text-gray-400 font-bold">Loading...</div>
+    </div>}>
+      <FseOnboardContent />
+    </Suspense>
   );
 }
