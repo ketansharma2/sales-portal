@@ -1,7 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
-export async function POST(request) {
+export async function PUT(request) {
   try {
     // Authentication
     const authHeader = request.headers.get('authorization')
@@ -16,58 +16,62 @@ export async function POST(request) {
 
     const body = await request.json()
     const {
+      id,
       client_id,
-      company_name,
+      company,
       category,
-      location,
+      city,
       state,
+      location,
       contact_person,
-      email,
       phone,
+      email,
       remarks,
+      next_follow_up,
       status,
-      user_id,
+      sub_status,
+      emp_count,
+      reference,
+      sourcing_date,
     } = body
 
-    // Insert into domestic_crm_clients table
+    if (!id && !client_id) {
+      return NextResponse.json({ success: false, error: 'Lead ID or Client ID is required' }, { status: 400 })
+    }
+
+    // Update domestic_manager_leads
     const { data, error } = await supabaseServer
-      .from('domestic_crm_clients')
-      .insert({
+      .from('domestic_manager_leads')
+      .update({
         client_id,
-        company_name,
+        company,
         category,
-        location,
+        city,
         state,
+        location,
         contact_person,
-        email,
         phone,
+        email,
         remarks,
-        status: status || 'Handover',
-        user_id: user_id,
-        onboarding_date: new Date().toISOString().split('T')[0],
+        next_follow_up,
+        status,
+        sub_status,
+        emp_count,
+        reference,
+        sourcing_date,
       })
+      .eq('client_id', client_id || id)
       .select()
       .single()
 
     if (error) {
-      console.error('Insert error:', error)
+      console.error('Update error:', error)
       return NextResponse.json({ success: false, error: error.message }, { status: 400 })
-    }
-
-    // Update domestic_manager_leads status - use client_id column
-    const { error: updateError } = await supabaseServer
-      .from('domestic_manager_leads')
-      .update({sent_to_crm: true })
-      .eq('client_id', client_id)
-
-    if (updateError) {
-      console.error('Update error:', updateError)
-      return NextResponse.json({ success: false, error: updateError.message }, { status: 400 })
     }
 
     return NextResponse.json({ success: true, data })
   } catch (error) {
-    console.error('Error in pass-to-delivery:', error)
+    console.error('Error updating lead:', error)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }

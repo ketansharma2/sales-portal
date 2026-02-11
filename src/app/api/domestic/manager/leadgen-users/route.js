@@ -37,6 +37,8 @@ export async function GET(request) {
       .contains('role', ['LEADGEN'])
       .order('name', { ascending: true })
 
+    console.log('Leadgen query result:', { leadgenUsers, leadgenError });
+
     if (leadgenError) {
       console.error('Leadgen users fetch error:', leadgenError)
       return NextResponse.json({ error: 'Failed to fetch leadgen users' }, { status: 500 })

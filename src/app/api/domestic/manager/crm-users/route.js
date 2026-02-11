@@ -1,5 +1,5 @@
-import { supabaseServer } from '@/lib/supabase-server'
-import { NextResponse } from 'next/server'
+import { supabaseServer } from '@/lib/supabase-server';
+import { NextResponse } from 'next/server';
 
 export async function GET(request) {
   try {
@@ -14,33 +14,37 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Fetch CRM users in Domestic sector
+    // Check if user has MANAGER role
+    const { data: userProfile, error: profileError } = await supabaseServer
+      .from('users')
+      .select('role')
+      .eq('user_id', user.id)
+      .single()
+
+    if (profileError || !userProfile) {
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+    }
+
+    if (!userProfile.role || !userProfile.role.includes('MANAGER')) {
+      return NextResponse.json({ error: 'Access denied. Manager role required.' }, { status: 403 })
+    }
+
+    // Get all CRM users for Domestic sector
     const { data: crmUsers, error: crmError } = await supabaseServer
       .from('users')
-      .select('user_id, name, email, role, sector')
-      .contains('role', ['CRM'])
+      .select('user_id, name, email')
       .eq('sector', 'Domestic')
+      .contains('role', ['CRM'])
       .order('name', { ascending: true })
 
     if (crmError) {
-      console.error('Fetch CRM users error:', crmError)
-      return NextResponse.json({
-        error: 'Failed to fetch CRM users',
-        details: crmError.message
-      }, { status: 500 })
+      console.error('CRM users fetch error:', crmError)
+      return NextResponse.json({ error: 'Failed to fetch CRM users' }, { status: 500 })
     }
 
-    return NextResponse.json({
-      success: true,
-      data: crmUsers || [],
-      count: crmUsers?.length || 0
-    })
-
+    return NextResponse.json({ success: true, data: crmUsers || [] });
   } catch (error) {
-    console.error('CRM users API error:', error)
-    return NextResponse.json({
-      error: 'Internal server error',
-      details: error.message
-    }, { status: 500 })
+    console.error('Server error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

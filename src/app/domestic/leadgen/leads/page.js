@@ -16,6 +16,7 @@ export default function LeadsTablePage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   const [modalType, setModalType] = useState("");
+  const [managerName, setManagerName] = useState("Manager");
 
   const [newLeadData, setNewLeadData] = useState({
     company: '',
@@ -105,8 +106,29 @@ export default function LeadsTablePage() {
     }
   };
 
+  const fetchManagerName = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/leadgen/send-to-manager', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ client_id: 0 }) // Just to get manager info
+      });
+      const data = await response.json();
+      if (data.success && data.data?.managerName) {
+        setManagerName(data.data.managerName);
+      }
+    } catch (error) {
+      console.error('Failed to fetch manager name:', error);
+    }
+  };
+
   useEffect(() => {
     fetchLeads();
+    fetchManagerName();
   }, []);
 
   useEffect(() => {
@@ -634,10 +656,11 @@ export default function LeadsTablePage() {
             {/* Modal Header */}
             <div className="bg-[#103c7f] p-4 flex justify-between items-center text-white">
               <div>
-                <h3 className="font-bold text-lg uppercase tracking-wide">
-                  {modalType === 'create' ? 'Sourcing New Lead' : 
-                   modalType === 'add' ? 'Add Interaction' : 'Lead Details'}
-                </h3>
+                 <h3 className="font-bold text-lg uppercase tracking-wide">
+                   {modalType === 'create' ? 'Sourcing New Lead' :
+                    modalType === 'add' ? 'Add Interaction' :
+                    modalType === 'send_to_manager' ? 'Send to Manager' : 'Lead Details'}
+                 </h3>
                 {selectedLead && (
                     <p className="text-xs opacity-70 font-mono mt-1">{selectedLead.company}</p>
                 )}
@@ -1006,19 +1029,16 @@ export default function LeadsTablePage() {
     </div>
   </div>
 )}
-{/* === MODE 4: SEND TO MANAGER (Body Content) === */}
+ {/* === MODE 4: SEND TO MANAGER (Body Content) === */}
 {modalType === 'send_to_manager' && (
   <div className="flex flex-col items-center justify-center py-2 px-2 text-center">
-     
-     
-
      {/* 3. Text Data */}
      <p className="text-sm text-gray-500 leading-relaxed max-w-[80%] mx-auto">
-        Are you sure you want to send 
+        Are you sure you want to send
         <span className="font-bold text-[#103c7f] block my-1 text-base">
           {selectedLead?.company}
         </span>
-       to Manager ? 
+       to Manager <span className="font-bold text-purple-600">({managerName})</span>?
        This will lock the lead.
      </p>
 
@@ -1059,46 +1079,47 @@ export default function LeadsTablePage() {
      </button>
    )}
 
-   {/* 4. Button for SEND TO MANAGER Mode (ONLY ONE BUTTON) */}
-   {/* === MODE 4: SEND TO MANAGER (Footer Button Only) === */}
+    {/* 4. Button for SEND TO MANAGER Mode (ONLY ONE BUTTON) */}
+    {/* === MODE 4: SEND TO MANAGER (Footer Button Only) === */}
 {modalType === 'send_to_manager' && (
-   <button
-     onClick={async () => {
-       try {
-         console.log('Sending lead to manager:', { client_id: selectedLead.id });
-         const session = JSON.parse(localStorage.getItem('session') || '{}');
-         const response = await fetch('/api/domestic/leadgen/send-to-manager', {
-           method: 'POST',
-           headers: {
-             'Content-Type': 'application/json',
-             'Authorization': `Bearer ${session.access_token}`
-           },
-           body: JSON.stringify({ client_id: selectedLead.id })
-         });
-          const data = await response.json();
-          if (data.success) {
-            // 1. Update State: Set 'isSubmitted' to true
-            const updatedLeads = leads.map(l =>
-               l.id === selectedLead.id
-               ? { ...l, isSubmitted: true }
-               : l
-            );
-            setLeads(updatedLeads);
+    <button
+      onClick={async () => {
+        try {
+          console.log('Sending lead to manager:', { client_id: selectedLead.id });
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const response = await fetch('/api/domestic/leadgen/send-to-manager', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ client_id: selectedLead.id })
+          });
+           const data = await response.json();
+           if (data.success) {
+             // 1. Update State: Set 'isSubmitted' to true
+             const updatedLeads = leads.map(l =>
+                l.id === selectedLead.id
+                ? { ...l, isSubmitted: true }
+                : l
+             );
+             setLeads(updatedLeads);
+             setAllLeads(updatedLeads);
 
-            // 2. Close Modal
-            setIsFormOpen(false);
-          } else {
-            alert('Failed to send to manager');
-          }
-        } catch (error) {
-          console.error('Failed to send to manager:', error);
-        }
-     }}
-     // Button Style: Centered, Purple
-     className="bg-purple-600 hover:bg-purple-700 text-white px-10 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-purple-200 flex items-center gap-2 transition transform active:scale-95"
-   >
-     <Send size={16} /> Yes, Confirm
-   </button>
+             // 2. Close Modal
+             setIsFormOpen(false);
+           } else {
+             alert('Failed to send to manager');
+           }
+         } catch (error) {
+           console.error('Failed to send to manager:', error);
+         }
+      }}
+      // Button Style: Centered, Purple
+      className="bg-purple-600 hover:bg-purple-700 text-white px-10 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-purple-200 flex items-center gap-2 transition transform active:scale-95"
+    >
+      <Send size={16} /> Yes, Confirm
+    </button>
 )}
 {/* 5. Button for EDIT Mode */}
    {modalType === 'edit' && (
