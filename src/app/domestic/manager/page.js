@@ -530,17 +530,62 @@ export default function ManagerHome() {
             {/* KPI GRID: LG screens par 6 columns (Ek Hi Row) */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4 shrink-0">
                 {/* 1. Onboarded */}
-                <CompactKpiCard title="Onboarded" value={monthlyData.loading ? "..." : monthlyData.total}  icon={<UserCheck size={16}/>} color="blue" />
+                <CompactKpiCard 
+                    title="Onboarded" 
+                    value={monthlyData.loading ? "..." : monthlyData.total}  
+                    icon={<UserCheck size={16}/>} 
+                    color="blue"
+                    onClick={() => {
+                        // If no date filter is selected, use current month's 1st and last day
+                        let fromDate = filters.fromDate;
+                        let toDate = filters.toDate;
+                        
+                        if (!fromDate || !toDate) {
+                            const now = new Date();
+                            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                            // Use local date methods to avoid timezone issues
+                            fromDate = `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(2, '0')}-${String(firstDay.getDate()).padStart(2, '0')}`;
+                            toDate = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
+                        }
+                        
+                        router.push(`/domestic/manager/fse-onboard?status=Onboarded&from=${fromDate}&to=${toDate}`);
+                    }}
+                />
                 {/* 2. Avg Visits */}
                 <CompactKpiCard title="Avg Visits" value={avgVisits}  icon={<MapPin size={16}/>} color="teal" />
                 {/* 3. WP > 50 */}
-                <CompactKpiCard title="WP > 50%" value={weeklyData.loading ? "..." : weeklyData.wpGreater50}  icon={<CalendarClock size={16}/>} color="purple" />
+                <CompactKpiCard 
+                    title="WP > 50%" 
+                    value={weeklyData.loading ? "..." : weeklyData.wpGreater50}  
+                    icon={<CalendarClock size={16}/>} 
+                    color="purple"
+                    onClick={() => router.push('/domestic/manager/fse-onboard?projection=WP%20%3E%2050')}
+                />
                 {/* 4. WP < 50 */}
-                <CompactKpiCard title="WP < 50%" value={weeklyData.loading ? "..." : weeklyData.wpLess50}  icon={<AlertCircle size={16}/>} color="red" />
+                <CompactKpiCard 
+                    title="WP < 50%" 
+                    value={weeklyData.loading ? "..." : weeklyData.wpLess50}  
+                    icon={<AlertCircle size={16}/>} 
+                    color="red"
+                    onClick={() => router.push('/domestic/manager/fse-onboard?projection=WP%20%3C%2050')}
+                />
                 {/* 5. MP > 50 */}
-                <CompactKpiCard title="MP > 50%" value={monthlyProjData.loading ? "..." : monthlyProjData.mpGreater50}  icon={<CalendarRange size={16}/>} color="green" />
+                <CompactKpiCard 
+                    title="MP > 50%" 
+                    value={monthlyProjData.loading ? "..." : monthlyProjData.mpGreater50}  
+                    icon={<CalendarRange size={16}/>} 
+                    color="green"
+                    onClick={() => router.push('/domestic/manager/fse-onboard?projection=MP%20%3E%2050')}
+                />
                 {/* 6. MP < 50 */}
-                <CompactKpiCard title="MP < 50%" value={monthlyProjData.loading ? "..." : monthlyProjData.mpLess50}  icon={<AlertCircle size={16}/>} color="orange" />
+                <CompactKpiCard 
+                    title="MP < 50%" 
+                    value={monthlyProjData.loading ? "..." : monthlyProjData.mpLess50}  
+                    icon={<AlertCircle size={16}/>} 
+                    color="orange"
+                    onClick={() => router.push('/domestic/manager/fse-onboard?projection=MP%20%3C%2050')}
+                />
             </div>
 
             {/* MAIN CONTENT SPLIT */}
@@ -784,7 +829,7 @@ function KpiCard({ title, total, icon, color }) {
     );
 }
 // --- COMPACT FSE KPI CARD ---
-function CompactKpiCard({ title, value, subtitle, icon, color }) {
+function CompactKpiCard({ title, value, subtitle, icon, color, onClick, projectionValue }) {
     const colors = {
         blue: "bg-blue-50 text-blue-600",
         teal: "bg-teal-50 text-teal-600",
@@ -796,7 +841,10 @@ function CompactKpiCard({ title, value, subtitle, icon, color }) {
     const activeColor = colors[color] || colors.blue;
 
     return (
-        <div className="bg-white border border-gray-100 p-3 rounded-xl shadow-sm hover:shadow-md transition-all flex items-center gap-3">
+        <div 
+            className={`bg-white border border-gray-100 p-3 rounded-xl shadow-sm hover:shadow-md transition-all flex items-center gap-3 cursor-pointer ${onClick ? 'hover:border-blue-300' : ''}`}
+            onClick={onClick}
+        >
             <div className={`p-2 rounded-lg ${activeColor} shrink-0`}>
                 {icon}
             </div>

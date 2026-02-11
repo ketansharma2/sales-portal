@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Eye,
   Search,
@@ -21,6 +22,8 @@ import {
 } from "lucide-react";
 
 export default function FseOnboardPage() {
+  const searchParams = useSearchParams();
+  
   // --- STATE ---
   const [activeTab, setActiveTab] = useState("onboard"); // 'onboard' or 'database'
   const [leads, setLeads] = useState([]);
@@ -29,6 +32,7 @@ export default function FseOnboardPage() {
   const [crmList, setCrmList] = useState([]); // CRM users for delivery manager dropdown
   const [totalCount, setTotalCount] = useState(0);
   const [showAll, setShowAll] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false); // Track if URL params have been processed
 
   // Modal State
   const [modalType, setModalType] = useState(null);
@@ -45,12 +49,44 @@ export default function FseOnboardPage() {
     status: "All",
     subStatus: "All",
     sourcedBy: "All Agents",
+    projection: "All",
   });
+
+  // Read projection, status, and date filters from URL on mount
+  useEffect(() => {
+    const projectionParam = searchParams.get('projection');
+    const statusParam = searchParams.get('status');
+    const fromParam = searchParams.get('from');
+    const toParam = searchParams.get('to');
+    
+    if (projectionParam) {
+      setFilters(prev => ({ ...prev, projection: projectionParam }));
+      setActiveTab('database'); // Switch to database tab when projection is selected
+    }
+    
+    if (statusParam) {
+      setFilters(prev => ({ ...prev, status: statusParam }));
+      setActiveTab('database'); // Switch to database tab when status is selected
+    }
+    
+    if (fromParam) {
+      setFilters(prev => ({ ...prev, from: fromParam }));
+    }
+    
+    if (toParam) {
+      setFilters(prev => ({ ...prev, to: toParam }));
+    }
+    
+    setIsInitialized(true); // Mark as initialized after processing URL params
+  }, [searchParams]);
 
   // --- FETCH DATA ---
   useEffect(() => {
-    fetchData();
-  }, [activeTab, filters, showAll]);
+    // Only fetch after URL params have been processed
+    if (isInitialized) {
+      fetchData();
+    }
+  }, [activeTab, filters, showAll, isInitialized]);
 
   const fetchData = async () => {
     try {
@@ -78,8 +114,22 @@ export default function FseOnboardPage() {
           queryParams.append("status", filters.status);
         if (filters.subStatus && filters.subStatus !== "All")
           queryParams.append("sub_status", filters.subStatus);
-        // Fetch all or limited to 100
-        queryParams.append("limit", showAll ? "all" : "100");
+        if (filters.projection && filters.projection !== "All")
+          queryParams.append("projection", filters.projection);
+        
+        // Check if any filter is active (excluding default values)
+        const hasActiveFilter = 
+          (filters.sourcedBy && filters.sourcedBy !== "All Agents") ||
+          filters.from ||
+          filters.to ||
+          filters.company ||
+          filters.location ||
+          (filters.status && filters.status !== "All") ||
+          (filters.subStatus && filters.subStatus !== "All") ||
+          (filters.projection && filters.projection !== "All");
+        
+        // Fetch all if any filter is active or showAll is true, otherwise limit to 100
+        queryParams.append("limit", (hasActiveFilter || showAll) ? "all" : "100");
 
         const response = await fetch(
           `/api/domestic/manager/all-clients-database?${queryParams.toString()}`,
@@ -201,6 +251,7 @@ export default function FseOnboardPage() {
     const status = (lead.status || "").toLowerCase();
     const subStatus = (lead.sub_status || "").toLowerCase();
     const fseName = lead.fse_name || "";
+    const projection = lead.projection || "";
 
     // Get the FSE name from list for comparison
     const selectedFseName =
@@ -230,6 +281,7 @@ export default function FseOnboardPage() {
       (filters.status === "All" || status === filters.status.toLowerCase()) &&
       (filters.subStatus === "All" ||
         subStatus === filters.subStatus.toLowerCase()) &&
+      (filters.projection === "All" || projection === filters.projection) &&
       (!filters.from || !filterDate || filterDate >= filters.from) &&
       (!filters.to || !filterDate || filterDate <= filters.to)
     );
@@ -264,6 +316,7 @@ export default function FseOnboardPage() {
                 status: "All",
                 subStatus: "All",
                 sourcedBy: "All Agents",
+                projection: "All",
               });
               setShowAll(false);
             }}
@@ -291,6 +344,7 @@ export default function FseOnboardPage() {
                 status: "All",
                 subStatus: "All",
                 sourcedBy: "All Agents",
+                projection: "All",
               });
               setShowAll(false);
             }}
@@ -432,6 +486,25 @@ export default function FseOnboardPage() {
               ))}
             </select>
           </div>
+
+          <div className="w-[140px]">
+            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
+              Projection
+            </label>
+            <select
+              name="projection"
+              value={filters.projection}
+              onChange={handleFilterChange}
+              className="w-full bg-gray-50 border border-gray-100 text-xs font-bold text-gray-700 rounded-lg px-2 py-2 outline-none focus:border-blue-300 cursor-pointer"
+            >
+              <option value="All">All</option>
+              <option value="WP &gt; 50">WP &gt; 50</option>
+              <option value="WP &lt; 50">WP &lt; 50</option>
+              <option value="MP &gt; 50">MP &gt; 50</option>
+              <option value="MP &lt; 50">MP &lt; 50</option>
+              <option value="Not Projected">Not Projected</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -443,58 +516,58 @@ export default function FseOnboardPage() {
               <tr className="bg-[#103c7f] text-white text-[11px] font-bold uppercase tracking-wide">
                 {activeTab === "onboard" ? (
                   <>
-                    <th className="px-6 py-4 whitespace-nowrap border-r border-blue-800">
+                    <th className="px-4 py-2 whitespace-nowrap border-r border-blue-800">
                       FSE Name & Sent Date
                     </th>
-                    <th className="px-6 py-4 border-r border-blue-800 whitespace-nowrap">
+                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap">
                       Company & Type
                     </th>
-                    <th className="px-6 py-4 border-r border-blue-800 whitespace-nowrap">
+                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap">
                       State & Location
                     </th>
-                    <th className="px-6 py-4 border-r border-blue-800 whitespace-nowrap">
+                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap">
                       LatestContact Info
                     </th>
-                    <th className="px-6 py-4 border-r border-blue-800 whitespace-nowrap">
+                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap">
                       Latest Followup
                     </th>
-                    <th className="px-6 py-4 border-r border-blue-800 whitespace-nowrap w-1/4">
+                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap w-1/4">
                       Remarks
                     </th>
-                    <th className="px-6 py-4 border-r border-blue-800 text-center whitespace-nowrap">
+                    <th className="px-4 py-2 border-r border-blue-800 text-center whitespace-nowrap">
                       Status / Sub-Status
                     </th>
-                    <th className="px-6 py-4 text-center whitespace-nowrap bg-[#0d316a] sticky right-0 z-20">
+                    <th className="px-4 py-2 text-center whitespace-nowrap bg-[#0d316a] sticky right-0 z-20">
                       Action
                     </th>
                   </>
                 ) : (
                   <>
-                    <th className="px-6 py-4 whitespace-nowrap border-r border-blue-800">
+                    <th className="px-3 py-2 border-r border-blue-800 text-center">
                       Sourcing Date & Mode
                     </th>
-                    <th className="px-6 py-4 border-r border-blue-800 whitespace-nowrap">
+                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap">
                       Company & Category
                     </th>
-                    <th className="px-6 py-4 border-r border-blue-800 whitespace-nowrap">
+                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap">
                       State & Location
                     </th>
-                    <th className="px-6 py-4 border-r border-blue-800 whitespace-nowrap">
+                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap">
                       Latest Contact Info
                     </th>
-                    <th className="px-6 py-4 border-r border-blue-800 whitespace-nowrap">
+                    <th className="px-3 py-2 border-r border-blue-800 text-center">
                       Followup date & Mode
                     </th>
-                    <th className="px-6 py-4 border-r border-blue-800 whitespace-nowrap w-1/4">
+                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap w-1/4">
                       Remarks
                     </th>
-                    <th className="px-6 py-4 border-r border-blue-800 text-center whitespace-nowrap">
+                    <th className="px-4 py-2 border-r border-blue-800 text-center whitespace-nowrap">
                       Status / Sub-Status
                     </th>
-                    <th className="px-6 py-4 border-r border-blue-800 text-center whitespace-nowrap">
+                    <th className="px-4 py-2 border-r border-blue-800 text-center whitespace-nowrap">
                       Projection
                     </th>
-                    <th className="px-6 py-4 text-center whitespace-nowrap bg-[#0d316a] sticky right-0 z-20">
+                    <th className="px-4 py-2 text-center whitespace-nowrap bg-[#0d316a] sticky right-0 z-20">
                       Action
                     </th>
                   </>
@@ -507,7 +580,7 @@ export default function FseOnboardPage() {
                 <tr>
                   <td
                     colSpan={activeTab === "onboard" ? 8 : 9}
-                    className="py-12 text-center text-gray-400"
+                    className="py-8 text-center text-gray-400"
                   >
                     Loading data...
                   </td>
@@ -516,7 +589,7 @@ export default function FseOnboardPage() {
                 <tr>
                   <td
                     colSpan={activeTab === "onboard" ? 8 : 9}
-                    className="py-16 text-center"
+                    className="py-12 text-center"
                   >
                     <div className="flex flex-col items-center justify-center text-gray-300">
                       <Search size={40} className="mb-2 opacity-50" />
@@ -534,7 +607,7 @@ export default function FseOnboardPage() {
                   >
                     {activeTab === "onboard" && (
                       <>
-                        <td className="px-6 py-4 border-r border-gray-100 whitespace-nowrap">
+                        <td className="px-4 py-2 border-r border-gray-100 whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="font-bold text-[#103c7f]">
                               {lead.fse_name || lead.fseName || "Unknown"}
@@ -550,7 +623,7 @@ export default function FseOnboardPage() {
                           </div>
                         </td>
 
-                        <td className="px-6 py-4 border-r border-gray-100 whitespace-nowrap">
+                        <td className="px-4 py-2 border-r border-gray-100 whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="font-bold text-gray-800">
                               {lead.company_name || lead.company}
@@ -561,7 +634,7 @@ export default function FseOnboardPage() {
                           </div>
                         </td>
 
-                        <td className="px-6 py-4 border-r border-gray-100 whitespace-nowrap">
+                        <td className="px-4 py-2 border-r border-gray-100 whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="font-bold text-gray-700">
                               {lead.location}
@@ -572,7 +645,7 @@ export default function FseOnboardPage() {
                           </div>
                         </td>
 
-                        <td className="px-6 py-4 border-r border-gray-100 whitespace-nowrap">
+                        <td className="px-4 py-2 border-r border-gray-100 whitespace-nowrap">
                           <div className="flex flex-col gap-0.5">
                             <span className="font-bold text-gray-700">
                               {lead.contact_person || lead.name || "N/A"}
@@ -587,9 +660,9 @@ export default function FseOnboardPage() {
                           </div>
                         </td>
 
-                        <td className="px-6 py-4 border-r border-gray-100 whitespace-nowrap">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-orange-600">
+                        <td className="px-3 py-2 border-r border-gray-100 text-center">
+                          <div className="flex flex-col items-start">
+                            <span className="font-bold text-orange-600 whitespace-nowrap">
                               {lead.latest_contact_date ||
                                 lead.followupDate ||
                                 "-"}
@@ -601,13 +674,13 @@ export default function FseOnboardPage() {
                         </td>
 
                         <td
-                          className="px-6 py-4 border-r border-gray-100 text-gray-500 italic truncate max-w-xs"
+                          className="px-4 py-2 border-r border-gray-100 text-gray-500 italic truncate max-w-xs"
                           title={lead.remarks || lead.remark}
                         >
                           "{lead.remarks || lead.remark || "No remarks"}"
                         </td>
 
-                        <td className="px-6 py-4 border-r border-gray-100 text-center">
+                        <td className="px-4 py-2 border-r border-gray-100 text-center">
                           <div className="flex flex-col items-center gap-1">
                             <span
                               className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
@@ -628,7 +701,7 @@ export default function FseOnboardPage() {
                           </div>
                         </td>
 
-                        <td className="px-6 py-4 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_10px_rgba(0,0,0,0.05)]">
+                        <td className="px-4 py-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_10px_rgba(0,0,0,0.05)]">
                           {lead.sent_to_crm ? (
                             <span className="px-2 py-1 text-center bg-gray-100 text-gray-400 text-[10px] font-bold rounded border border-gray-200 uppercase tracking-wider">
                               LOCKED  
@@ -668,9 +741,9 @@ export default function FseOnboardPage() {
 
                     {activeTab === "database" && (
                       <>
-                        <td className="px-6 py-4 border-r border-gray-100 whitespace-nowrap">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-gray-600">
+                        <td className="px-3 py-2 border-r border-gray-100 text-center">
+                          <div className="flex flex-col items-start">
+                            <span className="font-bold text-gray-600 whitespace-nowrap">
                               {lead.sourcing_date || lead.sourcingDate}
                             </span>
                             <span className="text-[10px] text-gray-400 font-bold uppercase">
@@ -679,7 +752,7 @@ export default function FseOnboardPage() {
                           </div>
                         </td>
 
-                        <td className="px-6 py-4 border-r border-gray-100 whitespace-nowrap">
+                        <td className="px-4 py-2 border-r border-gray-100 whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="font-bold text-[#103c7f]">
                               {lead.company_name || lead.company}
@@ -693,7 +766,7 @@ export default function FseOnboardPage() {
                           </div>
                         </td>
 
-                        <td className="px-6 py-4 border-r border-gray-100 whitespace-nowrap">
+                        <td className="px-4 py-2 border-r border-gray-100 whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="font-bold text-gray-700">
                               {lead.location}
@@ -704,7 +777,7 @@ export default function FseOnboardPage() {
                           </div>
                         </td>
 
-                        <td className="px-6 py-4 border-r border-gray-100 whitespace-nowrap">
+                        <td className="px-4 py-2 border-r border-gray-100 whitespace-nowrap">
                           <div className="flex flex-col gap-0.5">
                             <span className="font-bold text-gray-700">
                               {lead.contact_person || "N/A"}
@@ -718,9 +791,9 @@ export default function FseOnboardPage() {
                           </div>
                         </td>
 
-                        <td className="px-6 py-4 border-r border-gray-100 whitespace-nowrap">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-orange-600">
+                        <td className="px-3 py-2 border-r border-gray-100 text-center">
+                          <div className="flex flex-col items-start">
+                            <span className="font-bold text-orange-600 whitespace-nowrap">
                               {lead.latest_contact_date ||
                                 lead.followupDate ||
                                 "-"}
@@ -732,13 +805,13 @@ export default function FseOnboardPage() {
                         </td>
 
                         <td
-                          className="px-6 py-4 border-r border-gray-100 text-gray-500 italic truncate max-w-xs"
+                          className="px-4 py-2 border-r border-gray-100 text-gray-500 italic truncate max-w-xs"
                           title={lead.remarks || lead.remark}
                         >
                           "{lead.remarks || lead.remark || "No remarks"}"
                         </td>
 
-                        <td className="px-6 py-4 border-r border-gray-100 text-center">
+                        <td className="px-4 py-2 border-r border-gray-100 text-center">
                           <div className="flex flex-col items-center gap-1">
                             <span
                               className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
@@ -761,7 +834,7 @@ export default function FseOnboardPage() {
                           </div>
                         </td>
 
-                        <td className="px-6 py-4 border-r border-gray-100 text-center">
+                        <td className="px-4 py-2 border-r border-gray-100 text-center">
                           <span
                             className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${
                               lead.projection &&
@@ -779,7 +852,7 @@ export default function FseOnboardPage() {
                           </span>
                         </td>
 
-                        <td className="px-6 py-4 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_10px_rgba(0,0,0,0.05)]">
+                        <td className="px-4 py-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_10px_rgba(0,0,0,0.05)]">
                           <button
                             onClick={() =>
                               handleAction(lead.client_id || lead.id, "view")
@@ -800,7 +873,7 @@ export default function FseOnboardPage() {
                 <tr>
                   <td
                     colSpan={activeTab === "onboard" ? 8 : 9}
-                    className="py-4 text-center bg-gray-50"
+                    className="py-2 text-center bg-gray-50"
                   >
                     <button
                       onClick={() => setShowAll(true)}
@@ -816,7 +889,7 @@ export default function FseOnboardPage() {
                 <tr>
                   <td
                     colSpan={activeTab === "onboard" ? 8 : 9}
-                    className="py-2 px-6 text-xs text-gray-400 font-bold bg-gray-50"
+                    className="py-1 px-4 text-xs text-gray-400 font-bold bg-gray-50"
                   >
                     Showing {displayedCount} of {totalCount} rows
                   </td>
