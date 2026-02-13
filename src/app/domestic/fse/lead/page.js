@@ -374,7 +374,7 @@ export default function LeadsMasterPage() {
       ],
         empCountList: ["1-10", "11-50", "51-100", "101-200", "201-500", "500+"],
     statusList: ["Interested", "Not Interested", "Onboarded", "Not Picked", "Reached Out","No Status"],
-    subStatusList: ["Blue Collar", "Call Back", "In Process", "Low Budget", "Proposal Shared", "Ready to Sign" , "Not Ready to Sign","NA"],
+    subStatusList: ["Blue Collar", "Call Back", "In Process", "Low Budget", "Proposal Shared", "Ready to Sign" , "Not Ready to Sign", "NA", "T&C Basic", "T&C Standard", "T&C Premium", "T&C Pro"],
     projectionList: ["WP > 50", "WP < 50", "MP > 50", "MP < 50", "Not Projected"],
     latestModeList: ["Call", "Visit"]
   };
@@ -1133,6 +1133,15 @@ export default function LeadsMasterPage() {
     const [suggestions, setSuggestions] = useState({ persons: [], nos: [], emails: [] });
 
    const subStatusList = ["Blue Collar", "Call Back", "In Process", "Low Budget", "Proposal Shared", "Ready to Sign", "Not Ready to Sign", "NA"];
+   const onboardedSubStatusList = ["T&C Basic", "T&C Standard", "T&C Premium", "T&C Pro"];
+
+   // Get sub-status options based on selected status
+   const getSubStatusOptions = () => {
+     if (formData.status === 'Onboarded') {
+       return onboardedSubStatusList;
+     }
+     return subStatusList;
+   };
 
    useEffect(() => {
      const fetchSuggestions = async () => {
@@ -1261,10 +1270,12 @@ export default function LeadsMasterPage() {
 
              {/* 8. Sub-Status */}
              <div className="space-y-1">
-               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sub-Status</label>
+               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                 Sub-Status {formData.status === 'Onboarded' && <span className="text-green-600">(Onboarded)</span>}
+               </label>
                <select value={formData.sub_status} onChange={e => updateField('sub_status', e.target.value)} className={inputStyle}>
                  <option value="">Select Sub-Status</option>
-                 {subStatusList.map(ss => <option key={ss} value={ss}>{ss}</option>)}
+                 {getSubStatusOptions().map(ss => <option key={ss} value={ss}>{ss}</option>)}
                </select>
              </div>
 
@@ -1779,6 +1790,15 @@ export default function LeadsMasterPage() {
    const inputStyle = `w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-800 outline-none focus:ring-2 focus:ring-[#103c7f]/20 transition shadow-sm`;
 
    const subStatusList = ["Blue Collar", "Call Back", "In Process", "Low Budget", "Proposal Shared", "Ready to Sign", "Not Ready to Sign", "NA"];
+   const onboardedSubStatusList = ["T&C Basic", "T&C Standard", "T&C Premium", "T&C Pro"];
+
+   // Get sub-status options based on selected status
+   const getSubStatusOptions = () => {
+     if (formData.status === 'Onboarded') {
+       return onboardedSubStatusList;
+     }
+     return subStatusList;
+   };
 
    return (
      <div className="fixed inset-0 bg-[#103c7f]/60 backdrop-blur-md flex items-center justify-center z-[110] p-4 font-['Calibri']">
@@ -1864,10 +1884,12 @@ export default function LeadsMasterPage() {
 
              {/* 8. Sub-Status */}
              <div className="space-y-1">
-               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sub-Status</label>
+               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                 Sub-Status {formData.status === 'Onboarded' && <span className="text-green-600">(Onboarded)</span>}
+               </label>
                <select value={formData.sub_status} onChange={e => updateField('sub_status', e.target.value)} className={inputStyle}>
                  <option value="">Select Sub-Status</option>
-                 {subStatusList.map(ss => <option key={ss} value={ss}>{ss}</option>)}
+                 {getSubStatusOptions().map(ss => <option key={ss} value={ss}>{ss}</option>)}
                </select>
              </div>
 
