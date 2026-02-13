@@ -226,8 +226,11 @@ export default function ManagerLeadsPage() {
     // 1. Apply User Selected Filters
     if (filters.fromDate) {
       result = result.filter((l) => {
-        // Use sourcingDate for database tab, arrivedDate for actionable tab
-        const dateToFilter = activeTab === "database" ? l.sourcingDate : l.arrivedDate;
+        // Use latest interaction date for database tab, arrivedDate for actionable tab
+        const latestInteraction = l.interactions && l.interactions.length > 0 ? l.interactions[0] : null;
+        const dateToFilter = activeTab === "database" 
+          ? (latestInteraction?.date || l.sourcingDate) 
+          : (l.arrivedDate || l.sourcingDate);
         if (!dateToFilter) return false;
         const [day, month, year] = dateToFilter.split("/");
         const filterDate = new Date(`${year}-${month}-${day}`);
@@ -236,8 +239,11 @@ export default function ManagerLeadsPage() {
     }
     if (filters.toDate) {
       result = result.filter((l) => {
-        // Use sourcingDate for database tab, arrivedDate for actionable tab
-        const dateToFilter = activeTab === "database" ? l.sourcingDate : l.arrivedDate;
+        // Use latest interaction date for database tab, arrivedDate for actionable tab
+        const latestInteraction = l.interactions && l.interactions.length > 0 ? l.interactions[0] : null;
+        const dateToFilter = activeTab === "database" 
+          ? (latestInteraction?.date || l.sourcingDate) 
+          : (l.arrivedDate || l.sourcingDate);
         if (!dateToFilter) return false;
         const [day, month, year] = dateToFilter.split("/");
         const filterDate = new Date(`${year}-${month}-${day}`);

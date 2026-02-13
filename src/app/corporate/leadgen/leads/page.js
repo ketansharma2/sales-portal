@@ -43,6 +43,7 @@ export default function LeadsTablePage() {
    });
 
    const [interactions, setInteractions] = useState([]);
+   const [editingInteractionId, setEditingInteractionId] = useState(null);
    const [suggestions, setSuggestions] = useState({ persons: [], nos: [], emails: [] });
 
    const [districtsList, setDistrictsList] = useState([]);
@@ -79,7 +80,7 @@ export default function LeadsTablePage() {
      "Construction & Real Estate", "Retail & Consumer Goods", "Travel & Hospitality", "Energy & Utilities",
      "Media & Communications", "Transportation & Logistics", "Agriculture", "Automotive",
      "Telecommunications", "Pharmaceuticals", "Textiles", "Mining", "Non-Profit / NGO", "Government / Public Sector",
-     "Consulting", "Legal Services", "Marketing & Advertising", "Insurance", "Entertainment", "Other"
+     "Consulting", "Legal Services", "Marketing & Advertising", "Insurance", "Entertainment","Commerce", "Other"
    ];
    
     
@@ -344,6 +345,12 @@ export default function LeadsTablePage() {
      setSelectedLead(lead);
      setModalType(type);
      setIsFormOpen(true);
+     setEditingInteractionId(null); // Reset editing state when opening modal
+     
+     // Reset interactionData when opening add interaction form
+     if (type === 'add') {
+       setInteractionData({ date: new Date().toISOString().split('T')[0], status: '', sub_status: '', remarks: '', next_follow_up: '', contact_person: '', contact_no: '', email: '', franchise_status: '' });
+     }
      
      if (type === 'view') {
        await fetchInteractions(lead.id);
@@ -474,22 +481,28 @@ export default function LeadsTablePage() {
    const handleSaveInteraction = async () => {
      try {
        const session = JSON.parse(localStorage.getItem('session') || '{}');
+       const method = editingInteractionId ? 'PUT' : 'POST';
+       const bodyData = editingInteractionId 
+         ? { id: editingInteractionId, client_id: selectedLead.id, ...interactionData }
+         : { client_id: selectedLead.id, ...interactionData };
+       
        const response = await fetch('/api/corporate/leadgen/interaction', {
-         method: 'POST',
+         method: method,
          headers: {
            'Content-Type': 'application/json',
            'Authorization': `Bearer ${session.access_token}`
          },
-         body: JSON.stringify({
-           client_id: selectedLead.id,
-           ...interactionData
-         })
+         body: JSON.stringify(bodyData)
        });
        const data = await response.json();
        if (data.success) {
          setIsFormOpen(false);
          setInteractionData({ date: new Date().toISOString().split('T')[0], status: '', sub_status: '', remarks: '', next_follow_up: '', contact_person: '', contact_no: '', email: '', franchise_status: '' });
+         setEditingInteractionId(null);
          fetchLeads(); // Refresh the leads list to update latest interaction
+         if (selectedLead?.id) {
+           fetchInteractions(selectedLead.id); // Refresh interactions in view modal
+         }
        } else {
          alert('Failed to save interaction');
        }
@@ -841,7 +854,7 @@ export default function LeadsTablePage() {
                 <div>
                   <h3 className="font-bold text-lg uppercase tracking-wide">
                     {modalType === 'create' ? 'Sourcing New Lead' : 
-                     modalType === 'add' ? 'Add Interaction' : 'Lead Details'}
+                     modalType === 'add' ? (editingInteractionId ? 'Edit Interaction' : 'Add Interaction') : 'Lead Details'}
                   </h3>
                   {selectedLead && (
                       <p className="text-xs opacity-70 font-mono mt-1">{selectedLead.company}</p>
@@ -1214,6 +1227,7 @@ export default function LeadsTablePage() {
                  <th className="p-4 border-b border-gray-100">Status</th>
                  <th className="p-4 border-b border-gray-100">Franchise Status</th>
                  <th className="p-4 border-b border-gray-100">Next Follow-up Date</th>
+                  <th className="p-4 border-b border-gray-100 text-center">Action</th>
                </tr>
             </thead>
             <tbody className="text-xs divide-y divide-gray-50">
@@ -1268,6 +1282,31 @@ export default function LeadsTablePage() {
                        {interaction.next_follow_up ? new Date(interaction.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : 'N/A'}
                        </div>
                        </td>
+                       <td className="p-4 text-center">
+                         {index === 0 && (
+                           <button 
+                             onClick={() => {
+                               setInteractionData({
+                                 date: interaction.date || '',
+                                 status: interaction.status || '',
+                                 sub_status: interaction.sub_status || '',
+                                 remarks: interaction.remarks || '',
+                                 next_follow_up: interaction.next_follow_up || '',
+                                 contact_person: interaction.contact_person || '',
+                                 contact_no: interaction.contact_no || '',
+                                 email: interaction.email || '',
+                                 franchise_status: interaction.franchise_status || ''
+                               });
+                               setEditingInteractionId(interaction.id);
+                               setModalType('add');
+                             }} 
+                             className="p-1.5 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 font-bold shadow-sm"
+                             title="Edit Interaction"
+                           >
+                             <Edit size={14} />
+                           </button>
+                         )}
+                       </td>
                   </tr>
                )) : (
                  <tr>
@@ -1303,7 +1342,7 @@ export default function LeadsTablePage() {
 
        {/* 1. Standard Cancel (Show for everyone EXCEPT 'send_to_manager') */}
        {modalType !== 'send_to_manager' && (
-         <button onClick={() => setIsFormOpen(false)} className="px-4 py-2 text-gray-500 font-bold hover:text-gray-700 text-sm">
+         <button onClick={() => { setIsFormOpen(false); setEditingInteractionId(null); setInteractionData({ date: new Date().toISOString().split('T')[0], status: '', sub_status: '', remarks: '', next_follow_up: '', contact_person: '', contact_no: '', email: '', franchise_status: '' }); }} className="px-4 py-2 text-gray-500 font-bold hover:text-gray-700 text-sm">
            Cancel
          </button>
        )}
@@ -1326,7 +1365,7 @@ export default function LeadsTablePage() {
        {/* 3. Button for ADD FOLLOWUP Mode */}
        {modalType === 'add' && (
          <button onClick={handleSaveInteraction} className="bg-[#103c7f] hover:bg-blue-900 text-white px-2 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-2">
-           <Save size={16} /> Save Record
+           <Save size={16} /> {editingInteractionId ? 'Update Record' : 'Save Record'}
          </button>
        )}
 

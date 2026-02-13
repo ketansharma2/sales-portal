@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { 
   Users, Wallet, LayoutGrid, ShieldCheck, 
   Settings, FileText, Target, Search, BarChart, Phone,Calendar,MapPin,Truck,UserPlus,IndianRupee,UserCheck,Edit,Plus,
+  Package
 } from "lucide-react";
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
@@ -49,8 +50,9 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     menuItems = [
       { name: "Dept. Overview", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "Sector Targets", href: `${roleBaseHref}/targets`, icon: <Target size={20} /> },
-      { name: "Expense Approval", href: `${roleBaseHref}/approvals`, icon: <FileText size={20} /> }, 
+      { name: "Expense Approval", href: `${roleBaseHref}/approvals`, icon: <FileText size={20} /> },
       { name: "My Expenses", href: `${roleBaseHref}/expenses`, icon: <Wallet size={20} /> },
+      { name: "Packages", href: `${roleBaseHref}/packages`, icon: <Package size={20} /> },
     ];
   } 
 
@@ -139,7 +141,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     <aside 
       onMouseEnter={() => setIsCollapsed(false)}
       onMouseLeave={() => setIsCollapsed(true)}
-      className={`bg-[#103c7f] text-white min-h-screen flex flex-col fixed left-0 top-0 h-full z-50 font-['Calibri'] border-r border-white/10 shadow-2xl transition-all duration-500 ease-in-out cursor-default ${
+      className={`bg-[#103c7f] text-white min-h-screen flex flex-col fixed left-0 top-0 h-full z-50 font-['Calibri'] border-r border-white/10 shadow-2xl transition-all duration-500 ease-in-out cursor-default print:hidden ${
         isCollapsed ? "w-20" : "w-72"
       }`}
     >

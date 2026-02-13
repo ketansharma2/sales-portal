@@ -122,7 +122,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-8 sticky top-0 z-40 shadow-sm font-['Calibri']">
+      <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-8 sticky top-0 z-40 shadow-sm font-['Calibri'] print:hidden">
         
         {/* --- BRANDING --- */}
         <div className="flex items-center gap-8">

@@ -133,3 +133,65 @@ export async function POST(request) {
     }, { status: 500 })
   }
 }
+
+export async function PUT(request) {
+  try {
+    // Authentication
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { client_id, interaction_id, date, status, sub_status, remarks, next_follow_up, contact_person, contact_no, email, franchise_status } = body
+
+    // Validate required fields
+    if (!client_id || !interaction_id) {
+      return NextResponse.json({ error: 'Client ID and interaction ID are required' }, { status: 400 })
+    }
+
+    // Update the interaction
+    const { data: updatedInteraction, error: updateError } = await supabaseServer
+      .from('corporate_leads_interaction')
+      .update({
+        date,
+        status,
+        sub_status,
+        remarks,
+        next_follow_up,
+        contact_person,
+        contact_no,
+        email,
+        franchise_status
+      })
+      .eq('id', interaction_id)
+      .eq('client_id', client_id)
+      .select()
+      .single()
+
+    if (updateError) {
+      console.error('Interaction update error:', updateError)
+      return NextResponse.json({
+        error: 'Failed to update interaction',
+        details: updateError.message
+      }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: updatedInteraction
+    })
+
+  } catch (error) {
+    console.error('Update interaction API error:', error)
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: error.message
+    }, { status: 500 })
+  }
+}

@@ -161,6 +161,7 @@ export async function GET(request) {
 
     // If RPC function doesn't exist, use raw SQL query as fallback
     if (queryError) {
+      // Fetch leads with their interactions ordered by date descending
       const { data: rawData, error: rawError } = await supabaseServer
         .from('corporate_leadgen_leads')
         .select(`
@@ -175,7 +176,6 @@ export async function GET(request) {
           startup,
           sourcing_date,
           sent_to_sm,
-          created_at,
           corporate_leads_interaction!left (
             id,
             date,
@@ -186,12 +186,10 @@ export async function GET(request) {
             contact_person,
             contact_no,
             email,
-            franchise_status,
-            created_at
+            franchise_status
           )
         `)
         .eq('leadgen_id', user.id)
-        .order('created_at', { ascending: false })
 
       if (rawError) {
         console.error('Leads fetch error:', rawError)
@@ -201,9 +199,15 @@ export async function GET(request) {
         }, { status: 500 })
       }
 
-      // Format the data - now with contact_person, contact_no, email from latest interaction
+      // Format the data - sort interactions by date descending to get latest first
       const formattedLeads = rawData?.map((lead) => {
-        const latestInteraction = lead.corporate_leads_interaction?.[0] || null
+        // Sort interactions by date descending (latest first)
+        const sortedInteractions = lead.corporate_leads_interaction?.sort((a, b) => {
+          if (!a.date) return 1
+          if (!b.date) return -1
+          return new Date(b.date) - new Date(a.date)
+        }) || []
+        const latestInteraction = sortedInteractions[0] || null
         
         return {
           id: lead.client_id,
@@ -222,7 +226,6 @@ export async function GET(request) {
           latestFollowup: latestInteraction?.date || null,
           remarks: latestInteraction?.remarks || '',
           nextFollowup: latestInteraction?.next_follow_up || null,
-          // NEW: Contact info from latest interaction
           contact_person: latestInteraction?.contact_person || '',
           contact_no: latestInteraction?.contact_no || latestInteraction?.phone || '',
           email: latestInteraction?.email || '',
