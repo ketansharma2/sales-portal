@@ -89,7 +89,13 @@ export async function GET(request) {
 
     // Format the data - same structure as leadgen leads API
     const formattedLeads = rawData?.map((lead) => {
-      const latestInteraction = lead.corporate_leads_interaction?.[0] || null
+      // Sort interactions by date descending (latest first), pushing null dates to end
+      const sortedInteractions = lead.corporate_leads_interaction?.sort((a, b) => {
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return new Date(b.date) - new Date(a.date);
+      }) || [];
+      const latestInteraction = sortedInteractions[0] || null
       
       // Find the leadgen name who sourced this lead
       const leadgenUser = team.find(t => t.user_id === lead.leadgen_id)

@@ -128,6 +128,7 @@ export default function ManagerLeadsPage() {
     status: "All",
     subStatus: "All",
     sourcedBy: "All",
+    franchiseStatus: "All",
   });
 
   // --- API CALLS ---
@@ -226,11 +227,11 @@ export default function ManagerLeadsPage() {
     // 1. Apply User Selected Filters
     if (filters.fromDate) {
       result = result.filter((l) => {
-        // Use latest interaction date for database tab, arrivedDate for actionable tab
+        // Use arrivedDate for actionable tab, latest interaction date for database tab
         const latestInteraction = l.interactions && l.interactions.length > 0 ? l.interactions[0] : null;
         const dateToFilter = activeTab === "database" 
-          ? (latestInteraction?.date || l.sourcingDate) 
-          : (l.arrivedDate || l.sourcingDate);
+          ? latestInteraction?.date 
+          : l.arrivedDate;
         if (!dateToFilter) return false;
         const [day, month, year] = dateToFilter.split("/");
         const filterDate = new Date(`${year}-${month}-${day}`);
@@ -239,11 +240,11 @@ export default function ManagerLeadsPage() {
     }
     if (filters.toDate) {
       result = result.filter((l) => {
-        // Use latest interaction date for database tab, arrivedDate for actionable tab
+        // Use arrivedDate for actionable tab, latest interaction date for database tab
         const latestInteraction = l.interactions && l.interactions.length > 0 ? l.interactions[0] : null;
         const dateToFilter = activeTab === "database" 
-          ? (latestInteraction?.date || l.sourcingDate) 
-          : (l.arrivedDate || l.sourcingDate);
+          ? latestInteraction?.date 
+          : l.arrivedDate;
         if (!dateToFilter) return false;
         const [day, month, year] = dateToFilter.split("/");
         const filterDate = new Date(`${year}-${month}-${day}`);
@@ -274,6 +275,11 @@ export default function ManagerLeadsPage() {
     }
     if (filters.sourcedBy !== "All") {
       result = result.filter((l) => l.sourcedBy === filters.sourcedBy);
+    }
+    if (filters.franchiseStatus !== "All") {
+      result = result.filter((l) => 
+        (l.franchiseStatus && l.franchiseStatus === filters.franchiseStatus)
+      );
     }
 
     setFilteredLeads(result);
@@ -632,6 +638,7 @@ export default function ManagerLeadsPage() {
                 status: "All",
                 subStatus: "All",
                 sourcedBy: "All",
+                franchiseStatus: "All",
               });
             }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "actionable" ? "bg-[#103c7f] text-white shadow-md" : "text-gray-500 hover:bg-gray-50"}`}
@@ -649,6 +656,7 @@ export default function ManagerLeadsPage() {
                 status: "All",
                 subStatus: "All",
                 sourcedBy: "All",
+                franchiseStatus: "All",
               });
             }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "database" ? "bg-[#103c7f] text-white shadow-md" : "text-gray-500 hover:bg-gray-50"}`}
@@ -659,7 +667,7 @@ export default function ManagerLeadsPage() {
       </div>
 
       {/* 2. FILTERS */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-4 grid grid-cols-7 gap-3 items-end">
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-4 grid grid-cols-8 gap-3 items-end">
         <div className="col-span-1">
           <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
             From
@@ -772,6 +780,24 @@ export default function ManagerLeadsPage() {
                 {name}
               </option>
             ))}
+          </select>
+        </div>
+        <div className="col-span-1">
+          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
+            Franchise
+          </label>
+          <select
+            value={filters.franchiseStatus}
+            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] transition cursor-pointer"
+            onChange={(e) => handleFilterChange("franchiseStatus", e.target.value)}
+          >
+            <option value="All">All</option>
+            <option>Application Form Share</option>
+            <option>No Franchise Discuss</option>
+            <option>Not Interested</option>
+            <option>Will Think About It</option>
+            <option>Form Filled</option>
+            <option>Form Not Filled</option>
           </select>
         </div>
       </div>

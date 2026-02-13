@@ -122,9 +122,14 @@ export async function GET(request) {
           interactionsByClient[interaction.client_id].push(interaction)
         })
 
-        // Sort each client's interactions by date (newest first)
+        // Sort each client's interactions by date (newest first), pushing null dates to end
         Object.keys(interactionsByClient).forEach(clientId => {
-          interactionsByClient[clientId].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          interactionsByClient[clientId].sort((a, b) => {
+            // Push null/undefined dates to end
+            if (!a.date) return 1;
+            if (!b.date) return -1;
+            return new Date(b.date) - new Date(a.date);
+          });
         })
 
         // Attach interactions to each lead
