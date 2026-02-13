@@ -44,6 +44,8 @@ export default function LeadsTablePage() {
 
    const [interactions, setInteractions] = useState([]);
    const [editingInteractionId, setEditingInteractionId] = useState(null);
+   const [companySuggestions, setCompanySuggestions] = useState([]);
+   const [showCompanySuggestions, setShowCompanySuggestions] = useState(false);
    const [suggestions, setSuggestions] = useState({ persons: [], nos: [], emails: [] });
 
    const [districtsList, setDistrictsList] = useState([]);
@@ -116,7 +118,13 @@ export default function LeadsTablePage() {
               email: item.email || item.contact_email || item.contactEmail || ''
             }));
 
-            setAllLeads(normalized);
+            // Sort by sourcing date (newest first)
+            const sortedLeads = [...normalized].sort((a, b) => {
+              const dateA = a.sourcingDate ? new Date(a.sourcingDate) : new Date(0);
+              const dateB = b.sourcingDate ? new Date(b.sourcingDate) : new Date(0);
+              return dateB - dateA; // Descending order (newest first)
+            });
+            setAllLeads(sortedLeads);
           }
         } catch (error) {
           console.error('Failed to fetch leads:', error);
@@ -225,6 +233,40 @@ export default function LeadsTablePage() {
        };
        fetchSuggestions();
      }, [selectedLead, modalType]);
+
+     // Fetch company suggestions when company name changes (for create form)
+     useEffect(() => {
+       const fetchCompanySuggestions = async () => {
+         // Only fetch when modal is open for create mode and company name has at least 2 chars
+         if (modalType !== 'create' || !newLeadData.company || newLeadData.company.length < 2) {
+           setCompanySuggestions([]);
+           setShowCompanySuggestions(false);
+           return;
+         }
+
+         try {
+           const session = JSON.parse(localStorage.getItem('session') || '{}');
+           const response = await fetch(`/api/corporate/leadgen/leads?company=${encodeURIComponent(newLeadData.company)}&limit=10`, {
+             headers: { 'Authorization': `Bearer ${session.access_token}` }
+           });
+           const data = await response.json();
+           if (data.success && data.data && data.data.length > 0) {
+             setCompanySuggestions(data.data);
+             setShowCompanySuggestions(data.data.length > 0);
+           } else {
+             setCompanySuggestions([]);
+             setShowCompanySuggestions(false);
+           }
+         } catch (err) {
+           console.error('Failed to fetch company suggestions:', err);
+           setCompanySuggestions([]);
+           setShowCompanySuggestions(false);
+         }
+       };
+
+       const debounceTimer = setTimeout(fetchCompanySuggestions, 150);
+       return () => clearTimeout(debounceTimer);
+     }, [newLeadData.company, modalType]);
 
      // Apply filters whenever allLeads changes (to preserve filters after data refresh)
      useEffect(() => {
@@ -394,6 +436,36 @@ export default function LeadsTablePage() {
    const handleSaveOnly = async () => {
      try {
        const session = JSON.parse(localStorage.getItem('session') || '{}');
+       
+       // Check for duplicate company name
+       if (newLeadData.company) {
+         try {
+           const checkResponse = await fetch(`/api/corporate/leadgen/leads?company=${encodeURIComponent(newLeadData.company)}&limit=100`, {
+             headers: { 'Authorization': `Bearer ${session.access_token}` }
+           });
+           const checkData = await checkResponse.json();
+           if (checkData.success && checkData.data && checkData.data.length > 0) {
+             const duplicate = checkData.data.find(
+               lead => lead.company && lead.company.toLowerCase() === newLeadData.company.toLowerCase()
+             );
+             if (duplicate) {
+               const shouldContinue = confirm(
+                 `⚠️ A company with similar name already exists:\n\n` +
+                 `"${duplicate.company}"\n` +
+                 `Location: ${duplicate.district_city || ''}, ${duplicate.state || ''}\n` +
+                 `Status: ${duplicate.status || 'No Status'}\n\n` +
+                 `Do you want to continue adding this new client?`
+               );
+               if (!shouldContinue) {
+                 return;
+               }
+             }
+           }
+         } catch (err) {
+           console.error('Error checking for duplicate company:', err);
+         }
+       }
+
        const response = await fetch('/api/corporate/leadgen/leadscreation', {
          method: 'POST',
          headers: {
@@ -418,6 +490,36 @@ export default function LeadsTablePage() {
    const handleSaveAndFollowup = async () => {
      try {
        const session = JSON.parse(localStorage.getItem('session') || '{}');
+       
+       // Check for duplicate company name
+       if (newLeadData.company) {
+         try {
+           const checkResponse = await fetch(`/api/corporate/leadgen/leads?company=${encodeURIComponent(newLeadData.company)}&limit=100`, {
+             headers: { 'Authorization': `Bearer ${session.access_token}` }
+           });
+           const checkData = await checkResponse.json();
+           if (checkData.success && checkData.data && checkData.data.length > 0) {
+             const duplicate = checkData.data.find(
+               lead => lead.company && lead.company.toLowerCase() === newLeadData.company.toLowerCase()
+             );
+             if (duplicate) {
+               const shouldContinue = confirm(
+                 `⚠️ A company with similar name already exists:\n\n` +
+                 `"${duplicate.company}"\n` +
+                 `Location: ${duplicate.district_city || ''}, ${duplicate.state || ''}\n` +
+                 `Status: ${duplicate.status || 'No Status'}\n\n` +
+                 `Do you want to continue adding this new client?`
+               );
+               if (!shouldContinue) {
+                 return;
+               }
+             }
+           }
+         } catch (err) {
+           console.error('Error checking for duplicate company:', err);
+         }
+       }
+
        const response = await fetch('/api/corporate/leadgen/leads', {
          method: 'POST',
          headers: {
@@ -483,7 +585,7 @@ export default function LeadsTablePage() {
        const session = JSON.parse(localStorage.getItem('session') || '{}');
        const method = editingInteractionId ? 'PUT' : 'POST';
        const bodyData = editingInteractionId 
-         ? { id: editingInteractionId, client_id: selectedLead.id, ...interactionData }
+         ? { interaction_id: editingInteractionId, client_id: selectedLead.id, ...interactionData }
          : { client_id: selectedLead.id, ...interactionData };
        
        const response = await fetch('/api/corporate/leadgen/interaction', {
@@ -873,9 +975,39 @@ export default function LeadsTablePage() {
                   <div className="space-y-4">
                       {/* Row 1: Company & Category */}
                       <div className="grid grid-cols-3 gap-4">
-                          <div>
+                          <div className="relative">
                               <label className="text-[10px] font-bold text-gray-400 uppercase">Company Name <span className="text-red-500">*</span></label>
-                              <input type="text" placeholder="Enter full name" value={newLeadData.company} onChange={(e) => setNewLeadData({...newLeadData, company: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none" />
+                              <input type="text" placeholder="Enter full name" value={newLeadData.company} onChange={(e) => { setNewLeadData({...newLeadData, company: e.target.value}); setShowCompanySuggestions(true); }} onBlur={() => setTimeout(() => setShowCompanySuggestions(false), 200)} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none" />
+                              {showCompanySuggestions && companySuggestions.length > 0 && modalType === 'create' && (
+                                <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
+                                  {companySuggestions.map((suggestion) => (
+                                    <div
+                                      key={suggestion.id}
+                                      className="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors"
+                                      onClick={() => {
+                                        setNewLeadData({...newLeadData, company: suggestion.company});
+                                        setShowCompanySuggestions(false);
+                                      }}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span className="font-bold text-[#103c7f] text-sm">{suggestion.company}</span>
+                                        <span className="text-[10px] text-gray-400">{suggestion.district_city}, {suggestion.state}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                                          suggestion.status === 'Onboard' ? 'bg-green-100 text-green-700' :
+                                          suggestion.status === 'Interested' ? 'bg-blue-100 text-blue-700' :
+                                          suggestion.status === 'Not Interested' ? 'bg-red-100 text-red-700' :
+                                          'bg-gray-100 text-gray-600'
+                                        }`}>
+                                          {suggestion.status || 'No Status'}
+                                        </span>
+                                        <span className="text-[9px] text-gray-400">{suggestion.category || ''}</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                           </div>
                           <div>
                               <label className="text-[10px] font-bold text-gray-400 uppercase">Category</label>

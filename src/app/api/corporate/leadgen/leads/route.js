@@ -78,7 +78,7 @@ export async function PUT(request) {
     }
 
     const body = await request.json();
-    const { client_id, company, category, state, location, emp_count, reference, sourcing_date } = body;
+    const { client_id, company, category, state, location, emp_count, reference, sourcing_date, district_city, startup } = body;
 
     if (!client_id) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
@@ -108,7 +108,9 @@ export async function PUT(request) {
         location,
         emp_count,
         reference,
-        sourcing_date
+        sourcing_date,
+        district_city,
+        startup
       })
       .eq('client_id', client_id)
       .select()
