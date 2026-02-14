@@ -75,10 +75,6 @@ export default function SalesPackagesPage() {
     { id: 17, name: "Replacement Time", p1: "30 days", p2: "14 days", p3: "14 days", p4: "14 days" },
   ]);
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   // Helper to get included items (true or string values)
   const getIncludedFeatures = (pkgId) => {
     return features.filter(f => f[pkgId] === true || (typeof f[pkgId] === 'string' && f[pkgId].length > 0));
@@ -93,7 +89,7 @@ export default function SalesPackagesPage() {
     <div className="min-h-screen bg-[#f8fafc] font-['Cambria'] p-4 md:p-8 w-full">
         
       {/* --- HEADER --- */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 print:hidden">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
          <div className="text-center md:text-left">
              <h1 className="text-3xl font-black text-[#103c7f] uppercase tracking-tight">Pricing & Packages</h1>
              <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mt-1">Maven Jobs Service Plans</p>
@@ -235,123 +231,6 @@ export default function SalesPackagesPage() {
               <p className="text-[14px] font-bold text-gray-700/80 uppercase tracking-widest">Confidential & Proprietary - Maven Jobs India</p>
           </div>
       </div>
-
-       {/* Print CSS */}
-      <style jsx global>{`
-        @media print {
-            @page { 
-                size: A4 landscape; 
-                margin: 0; 
-                padding: 0;
-            }
-            @page :left {
-                @bottom-left { content: none; }
-                @bottom-center { content: none; }
-                @bottom-right { content: none; }
-            }
-            @page :right {
-                @bottom-left { content: none; }
-                @bottom-center { content: none; }
-                @bottom-right { content: none; }
-            }
-            
-            body { 
-                background: white; 
-                margin: 0; 
-                padding: 0; 
-            }
-            
-            /* Hide everything by default */
-            * { visibility: hidden; }
-            
-            /* Show only the PDF content container - fill full page */
-            #pdf-content { 
-                visibility: visible;
-                position: fixed;
-                left: 5mm;
-                top: 5mm;
-                width: calc(100% - 10mm);
-                height: calc(100% - 10mm);
-                margin: 0;
-                padding: 0 !important;
-                // transform: scale(1.05);
-                // transform-origin: top left;
-            }
-            
-            /* Show all children of PDF content */
-            #pdf-content * {
-                visibility: visible;
-            }
-            
-            /* Layout Adjustments - Fit in single page */
-            #pdf-content .grid { 
-                display: grid !important; 
-                grid-template-columns: repeat(4, 1fr) !important; 
-                gap: 16px !important; 
-            }
-            
-            /* Card styling */
-            #pdf-content .overflow-hidden {
-                overflow: visible !important;
-            }
-            
-            #pdf-content .rounded-2xl {
-                border-radius: 12px !important;
-            }
-            
-            #pdf-content .rounded-t-xl {
-                border-top-left-radius: 12px !important;
-                border-top-right-radius: 12px !important;
-            }
-            
-            #pdf-content .rounded-b-xl {
-                border-bottom-left-radius: 12px !important;
-                border-bottom-right-radius: 12px !important;
-            }
-            
-            #pdf-content .text-lg {
-                font-size: 14px !important;
-            }
-            
-            #pdf-content .text-\[15px\] {
-                font-size: 11px !important;
-            }
-            
-            #pdf-content .text-\[16px\] {
-                font-size: 15px !important;
-            }
-            
-            /* Feature items spacing (not divider) */
-            #pdf-content .space-y-3 > li[class*="flex"] {
-                margin-top: 2px !important;
-                margin-bottom: 2px !important;
-                min-height: 16px !important;
-            }
-            
-            #pdf-content .mt-8 {
-                margin-top: 24px !important;
-            }
-            
-            #pdf-content .mb-6 {
-                margin-bottom: 24px !important;
-            }
-            
-            #pdf-content .pb-4 {
-                padding-bottom: 8px !important;
-            }
-            
-            #pdf-content .p-4 {
-                padding: 16px !important;
-            }
-            
-            #pdf-content .pt-4 {
-                padding-top: 12px !important;
-            }
-            
-            /* Color Fidelity */
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        }
-      `}</style>
 
     </div>
   );
