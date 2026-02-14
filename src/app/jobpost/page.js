@@ -5,5 +5,4 @@ function Page() {
     </div>
   )
 }
-ss
 export default Page
