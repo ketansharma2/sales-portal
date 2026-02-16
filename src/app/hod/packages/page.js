@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { 
-  Download, CheckCircle2, XCircle, Clock
+  Download, CheckCircle2, XCircle, Clock, Printer
 } from "lucide-react";
 
 export default function SalesPackagesPage() {
@@ -63,13 +63,13 @@ export default function SalesPackagesPage() {
     { id: 5, name: "Generic Hiring", p1: true, p2: true, p3: false, p4: true },
     { id: 6, name: "Mid Level Hiring", p1: false, p2: true, p3: true, p4: true },
     { id: 7, name: "Senior Level Hiring", p1: false, p2: false, p3: true, p4: true },
-    { id: 8, name: "CEO / Industry focus hiring", p1: false, p2: false, p3: false, p4: true },
+    { id: 8, name: "CEO level/ Industry focus hiring", p1: false, p2: false, p3: false, p4: true },
     { id: 9, name: "JD Preparation", p1: true, p2: true, p3: true, p4: true },
     { id: 10, name: "JD Optimization", p1: false, p2: true, p3: true, p4: true },
     { id: 11, name: "Job Posting", p1: true, p2: true, p3: true, p4: true },
     { id: 12, name: "Virtual Screening 1st round", p1: true, p2: true, p3: true, p4: true },
     { id: 13, name: "Virtual Screening 2nd round", p1: false, p2: true, p3: true, p4: true },
-    { id: 14, name: "Customized Screening", p1: false, p2: false, p3: true, p4: true },
+    { id: 14, name: "Customised Screening", p1: false, p2: false, p3: true, p4: true },
     { id: 15, name: "Document Verification", p1: false, p2: true, p3: true, p4: true },
     { id: 16, name: "Background Verification", p1: false, p2: false, p3: true, p4: true },
     { id: 17, name: "Replacement Time", p1: "30 days", p2: "14 days", p3: "14 days", p4: "14 days" },
@@ -77,16 +77,6 @@ export default function SalesPackagesPage() {
 
   const handlePrint = () => {
     window.print();
-  };
-
-  // Helper to get included items (true or string values)
-  const getIncludedFeatures = (pkgId) => {
-    return features.filter(f => f[pkgId] === true || (typeof f[pkgId] === 'string' && f[pkgId].length > 0));
-  };
-
-  // Helper to get excluded items (false)
-  const getExcludedFeatures = (pkgId) => {
-    return features.filter(f => f[pkgId] === false);
   };
 
   return (
@@ -98,13 +88,21 @@ export default function SalesPackagesPage() {
              <h1 className="text-3xl font-black text-[#103c7f] uppercase tracking-tight">Pricing & Packages</h1>
              <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mt-1">Maven Jobs Service Plans</p>
          </div>
-         <a 
-            href="/maven-packages.pdf" 
-            download="Maven-Packages.pdf"
-            className="bg-[#103c7f] text-white px-6 py-2 rounded-xl font-bold text-sm shadow-lg hover:bg-blue-900 transition flex items-center gap-2 uppercase tracking-wide"
-         >
-            <Download size={16}/> Download PDF
-         </a>
+         <div className="flex gap-3">
+            <button 
+              onClick={handlePrint}
+              className="bg-gray-600 text-white px-6 py-2 rounded-xl font-bold text-sm shadow-lg hover:bg-gray-700 transition flex items-center gap-2 uppercase tracking-wide hidden"
+            >
+              <Printer size={16}/> Print Preview
+            </button>
+            <a 
+               href="/maven-packages.pdf" 
+               download="Maven-Packages.pdf"
+               className="bg-[#103c7f] text-white px-6 py-2 rounded-xl font-bold text-sm shadow-lg hover:bg-blue-900 transition flex items-center gap-2 uppercase tracking-wide"
+            >
+               <Download size={16}/> Download PDF
+            </a>
+         </div>
       </div>
 
       {/* --- PDF CONTENT --- */}
@@ -123,9 +121,6 @@ export default function SalesPackagesPage() {
           <div className="grid grid-cols-4 gap-6 w-full items-stretch">
                 
               {packages.map((pkg) => {
-                  const included = getIncludedFeatures(pkg.id);
-                  const excluded = getExcludedFeatures(pkg.id);
-                  
                   return (
                   <div 
                     key={pkg.id} 
@@ -165,23 +160,28 @@ export default function SalesPackagesPage() {
                       {/* Features List */}
                       <div className="p-4 flex-1">
                             <ul className="space-y-3">
-                                {/* Included Items - Ticks */}
-                                {included.map((feat) => {
+                                {/* All Features - Same numbering in every card */}
+                                {features.map((feat) => {
                                     const value = feat[pkg.id];
+                                    const isIncluded = value === true || (typeof value === 'string' && value.length > 0);
                                     const isTextValue = typeof value === 'string' && value.length > 0;
-                                      
+                                     
                                     return (
                                         <li key={feat.id} className="flex items-start gap-2.5 min-h-[24px]">
                                             <div className="mt-0.5 shrink-0 w-5 flex justify-center">
-                                                {isTextValue ? (
-                                                    <Clock size={16} style={{ color: pkg.theme.checkColor }} />
+                                                {isIncluded ? (
+                                                    isTextValue ? (
+                                                        <Clock size={16} style={{ color: pkg.theme.checkColor }} />
+                                                    ) : (
+                                                        <CheckCircle2 size={18} style={{ color: pkg.theme.checkColor }} strokeWidth={2.5} />
+                                                    )
                                                 ) : (
-                                                    <CheckCircle2 size={18} style={{ color: pkg.theme.checkColor }} strokeWidth={2.5} />
+                                                    <XCircle size={18} className="text-gray-700/80" />
                                                 )}
                                             </div>
                                               
                                             <div className="flex flex-col w-full min-w-0">
-                                                <span className="text-[16px] font-normal leading-tight truncate text-black">
+                                                <span className={`text-[16px] font-normal leading-tight truncate ${isIncluded ? 'text-black' : 'text-gray-700/80'}`}>
                                                     {feat.name}
                                                 </span>
                                                   
@@ -194,33 +194,6 @@ export default function SalesPackagesPage() {
                                         </li>
                                     );
                                 })}
-                                
-                                {/* Divider if there are excluded items */}
-                                {excluded.length > 0 && (
-                                    <li 
-                                    style={{ 
-                                        marginTop: '4px',
-                                        marginBottom: '10px',
-                                        borderTop: '1px dashed #e5e7eb',
-                                        borderImage: 'repeating-linear-gradient(to right, #e5e7eb 0px, #e5e7eb 8px, transparent 8px, transparent 16px) 1'
-                                    }}
-                                ></li>
-                                )}
-                                
-                                {/* Excluded Items - Crosses */}
-                                {excluded.map((feat) => (
-                                    <li key={feat.id} className="flex items-start gap-2.5 min-h-[24px]">
-                                        <div className="mt-0.5 shrink-0 w-5 flex justify-center">
-                                            <XCircle size={18} className="text-gray-700/80" />
-                                        </div>
-                                          
-                                        <div className="flex flex-col w-full min-w-0">
-                                            <span className="text-[16px] font-normal leading-tight truncate text-gray-700/80">
-                                                {feat.name}
-                                            </span>
-                                        </div>
-                                    </li>
-                                ))}
                             </ul>
                       </div>
                     </div>
@@ -242,7 +215,7 @@ export default function SalesPackagesPage() {
             @page { 
                 size: A4 landscape; 
                 margin: 0; 
-                padding: 0;
+                padding: 0; 
             }
             @page :left {
                 @bottom-left { content: none; }
@@ -274,8 +247,6 @@ export default function SalesPackagesPage() {
                 height: calc(100% - 10mm);
                 margin: 0;
                 padding: 0 !important;
-                // transform: scale(1.05);
-                // transform-origin: top left;
             }
             
             /* Show all children of PDF content */
