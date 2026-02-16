@@ -1,376 +1,284 @@
 "use client";
 import { useState, useEffect } from "react";
-import {
-  Target, Calendar, Phone, MapPin, Briefcase, 
-  Loader2, Edit2, Trash2, Check, X, User, Send
+import { 
+  Target, Edit2, Save, BarChart3, Plus, X, 
+  MapPin, Phone, PieChart, Users, CheckCircle, AlertCircle
 } from "lucide-react";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
+} from 'recharts';
 
 export default function HodTargetPage() {
-  const [workingDays, setWorkingDays] = useState(24);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split('T')[0].substring(0, 7) + '-01');
-  const [managers, setManagers] = useState([]);
-  const [loading, setLoading] = useState(true);
   
-  const [editingId, setEditingId] = useState(null); 
-  const [editFormData, setEditFormData] = useState({}); 
-  const [sendingId, setSendingId] = useState(null); 
+  // --- STATE ---
+  const [currentDate] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const [filterMonth, setFilterMonth] = useState(currentDate);
+  const [isTargetModalOpen, setIsTargetModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("new"); // 'new' or 'edit'
 
-  // --- FETCH MANAGERS ---
-  const fetchManagers = async () => {
-    try {
-      setLoading(true);
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch(`/api/hod/targets?month=${selectedMonth}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        const formattedManagers = data.data.managers.map(manager => ({
-          id: manager.id,
-          name: manager.name,
-          region: manager.region || "Zone",
-          sector: manager.sector || "General",
-          fseCount: manager.fseCount || 0,
-          leadGenCount: manager.leadGenCount || 0,
-          targetVisitPerDay: manager.targets ? (manager.targets["visit/day"] || 0) : 8,
-          targetOnboardPerMonth: manager.targets ? (manager.targets["onboard/month"] || 0) : 12,
-          targetCallPerDay: manager.targets ? (manager.targets["calls/day"] || 0) : 50
-        }));
-        setManagers(formattedManagers);
-      }
-    } catch (error) {
-      console.error('Failed to fetch:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Form State
+  const [targetForm, setTargetForm] = useState({
+    managerId: "", month: currentDate,
+    visitTarget: "", onboardTarget: "", callTarget: "", leadTarget: ""
+  });
 
+  // Data State
+  const [managers, setManagers] = useState([]); 
+  const [performanceData, setPerformanceData] = useState([]); 
+  const [loading, setLoading] = useState(false);
+
+  // --- MOCK DATA LOADER ---
   useEffect(() => {
-    fetchManagers();
-  }, [selectedMonth]);
+    setLoading(true);
+    setTimeout(() => {
+      setManagers([
+        { id: 1, name: "Amit Verma", region: "North" },
+        { id: 2, name: "Priya Singh", region: "West" },
+        { id: 3, name: "Rahul Sharma", region: "South" }
+      ]);
+
+      setPerformanceData([
+        { 
+          id: 1, name: "Amit Verma", region: "North", 
+          fseCount: 5, callerCount: 2,
+          fse: { visitTarget: 240, visitAchieved: 180, onboardTarget: 15, onboardAchieved: 12 },
+          caller: { callTarget: 1500, callAchieved: 1450, leadTarget: 60, leadAchieved: 45 }
+        },
+        { 
+          id: 2, name: "Priya Singh", region: "West", 
+          fseCount: 8, callerCount: 4,
+          fse: { visitTarget: 300, visitAchieved: 310, onboardTarget: 20, onboardAchieved: 22 }, 
+          caller: { callTarget: 1200, callAchieved: 800, leadTarget: 50, leadAchieved: 20 }  
+        },
+        { 
+          id: 3, name: "Rahul Sharma", region: "South", 
+          fseCount: 6, callerCount: 3,
+          fse: { visitTarget: 200, visitAchieved: 50, onboardTarget: 10, onboardAchieved: 1 }, 
+          caller: { callTarget: 1000, callAchieved: 950, leadTarget: 40, leadAchieved: 38 }
+        }
+      ]);
+      setLoading(false);
+    }, 600);
+  }, [filterMonth]);
+
+  // --- CHART DATA PREPARATION ---
+  const chartData = performanceData.map(d => ({
+    name: d.name.split(" ")[0],
+    Target: d.fse.onboardTarget,
+    Achieved: d.fse.onboardAchieved,
+  }));
 
   // --- HANDLERS ---
-  const handleEditClick = (manager) => {
-    setEditingId(manager.id);
-    setEditFormData({
-      visitPerDay: manager.targetVisitPerDay,
-      onboardPerMonth: manager.targetOnboardPerMonth,
-      callsPerDay: manager.targetCallPerDay
-    });
+  const handleFormChange = (e) => setTargetForm({ ...targetForm, [e.target.name]: e.target.value });
+  
+  const handleSetTarget = (e) => {
+    e.preventDefault();
+    if(!targetForm.managerId && activeTab === 'new') return alert("Please select a manager");
+    
+    alert(`${activeTab === 'new' ? 'New Targets Set' : 'Targets Updated'} for ${targetForm.month}!`);
+    setIsTargetModalOpen(false);
   };
 
-  const handleCancelClick = () => {
-    setEditingId(null);
-    setEditFormData({});
-  };
-
-  const handleSaveLocal = (id) => {
-    setManagers(prev => prev.map(mgr => {
-      if (mgr.id === id) {
-        return {
-          ...mgr,
-          targetVisitPerDay: Number(editFormData.visitPerDay),
-          targetOnboardPerMonth: Number(editFormData.onboardPerMonth),
-          targetCallPerDay: Number(editFormData.callsPerDay)
-        };
-      }
-      return mgr;
-    }));
-    setEditingId(null);
-  };
-
-  const handleDeleteClick = (id) => {
-    if(confirm("Are you sure you want to reset targets for this manager?")) {
-        setManagers(prev => prev.map(mgr => {
-            if (mgr.id === id) {
-              return { ...mgr, targetVisitPerDay: 0, targetOnboardPerMonth: 0, targetCallPerDay: 0 };
-            }
-            return mgr;
-        }));
-    }
-  };
-
-  const handleSendToManager = async (manager) => {
-    try {
-      setSendingId(manager.id); 
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      
-      const singleTarget = {
-        sm_id: manager.id,
-        total_visits: manager.targetVisitPerDay * workingDays * manager.fseCount,
-        total_onboards: manager.targetOnboardPerMonth * manager.fseCount,
-        total_calls: manager.targetCallPerDay * workingDays * manager.leadGenCount,
-        "visit/day": manager.targetVisitPerDay,
-        "onboard/month": manager.targetOnboardPerMonth,
-        "calls/day": manager.targetCallPerDay
-      };
-
-      const response = await fetch('/api/hod/targets', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          month: selectedMonth,
-          working_days: workingDays,
-          targets: [singleTarget] 
-        })
-      });
-
-      const data = await response.json();
-      if (data.success) {
-         alert(`Targets sent to ${manager.name} successfully!`);
-      } else {
-         alert('Failed: ' + (data.details || data.error));
-      }
-      
-    } catch (error) {
-      console.error(error);
-      alert('Network error');
-    } finally {
-      setSendingId(null); 
-    }
+  const getProgressColor = (achieved, target) => {
+    if(!target) return "bg-gray-200";
+    const percent = (achieved / target) * 100;
+    if (percent >= 100) return "bg-green-500";
+    if (percent >= 70) return "bg-yellow-500";
+    return "bg-red-500";
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 font-['Calibri'] p-4 pb-12">
+    <div className="min-h-screen bg-gray-50/50 font-['Calibri'] p-6 pb-12 relative z-0">
       
-      {/* TOP HEADER */}
-      <div className="flex justify-between items-end mb-4">
-          <div>
-             <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
-                <Target size={28} /> Master Target Assignment
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
+         <div>
+             <h1 className="text-3xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
+                <Target size={32} /> Target & Analytics Console
              </h1>
-             <div className="flex items-center gap-3 mt-2">
-               <div className="relative">
-                  <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-                  <input
-                    type="month"
-                    value={selectedMonth.substring(0, 7)}
-                    onChange={(e) => setSelectedMonth(e.target.value + '-01')}
-                    className="pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-bold text-[#103c7f] outline-none shadow-sm cursor-pointer"
-                  />
-               </div>
-               <div className="h-4 w-[1px] bg-gray-300"></div>
-               <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase">Working Days:</label>
-                  <input 
-                    type="number" 
-                    value={workingDays}
-                    onChange={(e) => setWorkingDays(Number(e.target.value))}
-                    className="w-10 text-center font-black text-[#103c7f] focus:border-blue-500 outline-none bg-transparent"
-                  />
-               </div>
+             <p className="text-gray-500 text-sm font-bold mt-1">Performance Overview & Monthly Planning</p>
+         </div>
+         
+         <div className="flex gap-3">
+             <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-gray-200 shadow-sm">
+                <span className="text-[10px] font-bold text-gray-400 uppercase">Viewing:</span>
+                <input type="month" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="bg-transparent border-none text-sm font-bold text-[#103c7f] outline-none cursor-pointer"/>
              </div>
-          </div>
+             <button onClick={() => { setActiveTab('new'); setIsTargetModalOpen(true); }} className="bg-[#103c7f] hover:bg-blue-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg transition flex items-center gap-2 uppercase tracking-wide">
+                <Plus size={18}/> Manage Targets
+             </button>
+         </div>
       </div>
 
-      {/* MAIN TABLE (Restored to Original Clean Format) */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        
-        <table className="w-full text-left border-collapse">
-          {/* Header */}
-          <thead className="bg-[#103c7f]/5 border-b border-[#103c7f]/10 text-[10px] font-black text-[#103c7f] uppercase tracking-widest">
-            <tr>
-              <th className="px-6 py-4 w-[25%]">Manager Details</th>
-              <th className="px-6 py-4 text-center w-[10%]">Team</th>
-              <th className="px-6 py-4 w-[20%] border-l border-gray-100 bg-blue-50/20 text-center">FSE Targets (Daily)</th>
-              <th className="px-6 py-4 w-[15%] border-l border-gray-100 bg-orange-50/20 text-center">Caller Targets</th>
-              <th className="px-6 py-4 w-[20%] border-l border-gray-100 bg-gray-50/50 text-[#103c7f] text-center">Team Output</th> {/* Output Column Restored */}
-              <th className="px-6 py-4 text-center w-[10%]">Action</th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y divide-gray-100 text-sm">
-            {loading ? (
-                <tr><td colSpan="6" className="py-10 text-center text-gray-400"><Loader2 className="animate-spin inline mr-2"/> Loading...</td></tr>
-            ) : managers.length === 0 ? (
-                <tr><td colSpan="6" className="py-8 text-center text-gray-400">No managers found</td></tr>
-            ) : (
-                managers.map((mgr) => {
-                  const isEditing = editingId === mgr.id;
-                  const isSending = sendingId === mgr.id;
-
-                  // --- CALCULATIONS ---
-                  const visitVal = isEditing ? Number(editFormData.visitPerDay) : mgr.targetVisitPerDay;
-                  const onboardVal = isEditing ? Number(editFormData.onboardPerMonth) : mgr.targetOnboardPerMonth;
-                  const callVal = isEditing ? Number(editFormData.callsPerDay) : mgr.targetCallPerDay;
+      {/* --- ANALYTICS SUMMARY --- */}
+    
+      {/* --- TEAM CARDS GRID --- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {loading ? (
+              <p className="col-span-3 text-center py-12 text-gray-400">Loading Data...</p>
+          ) : performanceData.map((row) => (
+              <div key={row.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group">
                   
-                  // Monthly Per Person
-                  const monthlyVisitPerPerson = visitVal * workingDays;
-                  
-                  // Team Totals (For Output Column)
-                  const teamTotalVisits = monthlyVisitPerPerson * mgr.fseCount;
-                  const teamTotalOnboards = onboardVal * mgr.fseCount; 
-                  const teamTotalCalls = (callVal * workingDays) * mgr.leadGenCount;
+                  {/* Card Header */}
+                  <div className="p-5 border-b border-gray-100 flex justify-between items-start bg-gray-50/50">
+                      <div>
+                          <h3 className="font-bold text-lg text-gray-800">{row.name}</h3>
+                          <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-100 uppercase font-bold tracking-wider">{row.region}</span>
+                      </div>
+                      <div className="flex gap-2">
+                          <span className="flex items-center gap-1 text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded-lg" title="FSE Count"><Users size={12}/> {row.fseCount}</span>
+                          <span className="flex items-center gap-1 text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded-lg" title="Caller Count"><Phone size={12}/> {row.callerCount}</span>
+                      </div>
+                  </div>
 
-                  return (
-                    <tr key={mgr.id} className={`hover:bg-gray-50 transition-colors ${isEditing ? 'bg-blue-50/10' : ''}`}>
+                  {/* Card Body */}
+                  <div className="p-5 flex flex-col gap-6">
                       
-                      {/* 1. Manager Details */}
-                      <td className="px-6 py-4">
-                         <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold border border-gray-200 shadow-sm">
-                                {mgr.name.charAt(0)}
-                            </div>
-                            <div>
-                               <p className="font-bold text-gray-800 text-sm">{mgr.name}</p>
-                               <div className="flex gap-2 mt-1">
-                                  <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 uppercase font-bold">{mgr.region}</span>
-                                  <span className={`text-[9px] px-1.5 py-0.5 rounded border uppercase font-bold ${mgr.sector === 'Corporate' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-green-50 text-green-600 border-green-100'}`}>
-                                    {mgr.sector}
-                                  </span>
-                               </div>
-                            </div>
-                         </div>
-                      </td>
+                      {/* FSE Section */}
+                      <div>
+                          <h4 className="text-xs font-black text-[#103c7f] uppercase mb-3 flex items-center gap-1"><MapPin size={12}/> Field Sales Performance</h4>
+                          <div className="space-y-3">
+                              {/* Visits */}
+                              <div>
+                                  <div className="flex justify-between text-xs mb-1">
+                                      <span className="text-gray-500 font-bold">Visits</span>
+                                      <span className="font-black text-gray-800">{row.fse.visitAchieved} <span className="text-gray-400 font-normal">/ {row.fse.visitTarget}</span></span>
+                                  </div>
+                                  <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                                      <div className={`h-full rounded-full ${getProgressColor(row.fse.visitAchieved, row.fse.visitTarget)}`} style={{ width: `${Math.min((row.fse.visitAchieved / row.fse.visitTarget) * 100, 100)}%` }}></div>
+                                  </div>
+                              </div>
+                              {/* Onboards */}
+                              <div>
+                                  <div className="flex justify-between text-xs mb-1">
+                                      <span className="text-gray-500 font-bold">Onboards</span>
+                                      <span className="font-black text-gray-800">{row.fse.onboardAchieved} <span className="text-gray-400 font-normal">/ {row.fse.onboardTarget}</span></span>
+                                  </div>
+                                  <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                                      <div className={`h-full rounded-full ${getProgressColor(row.fse.onboardAchieved, row.fse.onboardTarget)}`} style={{ width: `${Math.min((row.fse.onboardAchieved / row.fse.onboardTarget) * 100, 100)}%` }}></div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
 
-                      {/* 2. Team Counts */}
-                      <td className="px-6 py-4 text-center">
-                         <div className="flex flex-col gap-1 text-xs">
-                            <div className="flex justify-between">
-                               <span className="font-bold text-gray-400">FSE:</span>
-                               <span className="font-black text-gray-800">{mgr.fseCount}</span>
-                            </div>
-                            <div className="flex justify-between">
-                               <span className="font-bold text-gray-400">Call:</span>
-                               <span className="font-black text-gray-800">{mgr.leadGenCount}</span>
-                            </div>
-                         </div>
-                      </td>
+                      {/* Caller Section */}
+                      <div>
+                          <h4 className="text-xs font-black text-orange-600 uppercase mb-3 flex items-center gap-1"><Phone size={12}/> Caller Performance</h4>
+                          <div className="space-y-3">
+                              {/* Calls */}
+                              <div>
+                                  <div className="flex justify-between text-xs mb-1">
+                                      <span className="text-gray-500 font-bold">Total Calls</span>
+                                      <span className="font-black text-gray-800">{row.caller.callAchieved} <span className="text-gray-400 font-normal">/ {row.caller.callTarget}</span></span>
+                                  </div>
+                                  <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                                      <div className={`h-full rounded-full ${getProgressColor(row.caller.callAchieved, row.caller.callTarget)}`} style={{ width: `${Math.min((row.caller.callAchieved / row.caller.callTarget) * 100, 100)}%` }}></div>
+                                  </div>
+                              </div>
+                              {/* Leads */}
+                              <div>
+                                  <div className="flex justify-between text-xs mb-1">
+                                      <span className="text-gray-500 font-bold">Interested Leads</span>
+                                      <span className="font-black text-gray-800">{row.caller.leadAchieved} <span className="text-gray-400 font-normal">/ {row.caller.leadTarget}</span></span>
+                                  </div>
+                                  <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                                      <div className={`h-full rounded-full ${getProgressColor(row.caller.leadAchieved, row.caller.leadTarget)}`} style={{ width: `${Math.min((row.caller.leadAchieved / row.caller.leadTarget) * 100, 100)}%` }}></div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
 
-                     {/* 3. FSE Targets (Side-by-Side Units) */}
-                      <td className="px-6 py-4 border-l border-gray-100 bg-blue-50/10 text-center">
-                         {isEditing ? (
-                            <div className="flex gap-2 justify-center">
-                               <div className="text-center">
-                                  <label className="text-[8px] font-bold text-gray-400 uppercase block mb-1">Visits</label>
-                                  <input 
-                                    type="number" 
-                                    value={editFormData.visitPerDay} 
-                                    onChange={(e) => setEditFormData({...editFormData, visitPerDay: e.target.value})}
-                                    className="w-14 border border-blue-300 rounded px-1 py-1 text-sm font-bold text-center outline-none"
-                                  />
-                               </div>
-                               <div className="text-center">
-                                  <label className="text-[8px] font-bold text-gray-400 uppercase block mb-1">Onboard</label>
-                                  <input 
-                                    type="number" 
-                                    value={editFormData.onboardPerMonth} 
-                                    onChange={(e) => setEditFormData({...editFormData, onboardPerMonth: e.target.value})}
-                                    className="w-14 border border-blue-300 rounded px-1 py-1 text-sm font-bold text-center outline-none"
-                                  />
-                               </div>
-                            </div>
-                         ) : (
-                            <div className="flex justify-center gap-6 items-center">
-                               {/* Visit Target */}
-                               <div className="flex items-baseline gap-1">
-                                  <span className="text-lg font-black text-gray-800">{mgr.targetVisitPerDay}</span>
-                                  <span className="text-[9px] font-bold text-gray-400 uppercase">/Day</span>
-                               </div>
-                               
-                               {/* Separator Line */}
-                               <div className="h-6 w-[1px] bg-blue-200/50"></div>
-                               
-                               {/* Onboard Target */}
-                               <div className="flex items-baseline gap-1">
-                                  <span className="text-lg font-black text-gray-800">{mgr.targetOnboardPerMonth}</span>
-                                  <span className="text-[9px] font-bold text-gray-400 uppercase">/Mo</span>
-                               </div>
-                            </div>
-                         )}
-                      </td>
-
-                      {/* 4. Caller Targets (Side-by-Side Units) */}
-                      <td className="px-6 py-4 border-l border-gray-100 bg-orange-50/10 text-center">
-                         {isEditing ? (
-                            <div className="text-center flex flex-col items-center">
-                               <label className="text-[8px] font-bold text-gray-400 uppercase block mb-1">Calls</label>
-                               <input 
-                                  type="number" 
-                                  value={editFormData.callsPerDay} 
-                                  onChange={(e) => setEditFormData({...editFormData, callsPerDay: e.target.value})}
-                                  className="w-16 border border-orange-300 rounded px-1 py-1 text-sm font-bold text-center outline-none"
-                               />
-                            </div>
-                         ) : (
-                            <div className="flex justify-center items-baseline gap-1">
-                               <span className="text-lg font-black text-gray-800">{mgr.targetCallPerDay}</span>
-                               <span className="text-[9px] font-bold text-gray-400 uppercase">/Day</span>
-                            </div>
-                         )}
-                      </td>
-
-                      {/* 5. TEAM OUTPUT (Separate Calculation Column) */}
-                      <td className="px-6 py-4 border-l border-gray-100 bg-gray-50/30">
-                         <div className="space-y-1.5">
-                             <div className="flex justify-between items-center text-xs">
-                                <span className="font-bold text-blue-600 uppercase text-[10px]">Visits</span>
-                                <span className="font-black text-gray-800">{teamTotalVisits.toLocaleString()}</span>
-                             </div>
-                             <div className="flex justify-between items-center text-xs">
-                                <span className="font-bold text-green-600 uppercase text-[10px]">Onboard</span>
-                                <span className="font-black text-gray-800">{teamTotalOnboards.toLocaleString()}</span>
-                             </div>
-                             <div className="flex justify-between items-center text-xs ">
-                                <span className="font-bold text-orange-600 uppercase text-[10px]">Calls</span>
-                                <span className="font-black text-gray-800">{teamTotalCalls.toLocaleString()}</span>
-                             </div>
-                         </div>
-                      </td>
-
-                      {/* 6. Action */}
-                      <td className="px-6 py-4 text-center">
-                         {isEditing ? (
-                            <div className="flex items-center justify-center gap-2">
-                               <button 
-                                 onClick={() => handleSaveLocal(mgr.id)}
-                                 className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
-                               >
-                                  <Check size={14} strokeWidth={3}/>
-                               </button>
-                               <button 
-                                 onClick={handleCancelClick}
-                                 className="p-1.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
-                               >
-                                  <X size={14} strokeWidth={3}/>
-                               </button>
-                            </div>
-                         ) : (
-                            <div className="flex items-center justify-center gap-2">
-                               <button 
-                                 onClick={() => handleEditClick(mgr)}
-                                 className="p-1.5 border border-blue-200 text-blue-600 rounded hover:bg-blue-50 transition-colors"
-                               >
-                                  <Edit2 size={14}/>
-                               </button>
-                               <button 
-                                 onClick={() => handleSendToManager(mgr)}
-                                 disabled={isSending}
-                                 className={`p-1.5 border rounded transition-colors ${isSending ? 'bg-blue-50 border-blue-200 text-blue-400' : 'border-green-200 text-green-600 hover:bg-green-50'}`} 
-                               >
-                                  {isSending ? <Loader2 size={14} className="animate-spin"/> : <Send size={14}/>}
-                               </button>
-                               <button 
-                                 onClick={() => handleDeleteClick(mgr.id)}
-                                 className="p-1.5 border border-red-200 text-red-500 rounded hover:bg-red-50 transition-colors"
-                               >
-                                  <Trash2 size={14}/>
-                               </button>
-                            </div>
-                         )}
-                      </td>
-
-                    </tr>
-                  );
-                })
-            )}
-          </tbody>
-        </table>
+                  </div>
+              </div>
+          ))}
       </div>
 
+      {/* --- ADD / EDIT TARGET MODAL --- */}
+      {isTargetModalOpen && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 border-4 border-white">
+                
+                {/* Header with Tabs */}
+                <div className="bg-[#103c7f] p-0">
+                    <div className="flex justify-between items-center p-4 pb-0">
+                        <h3 className="font-bold text-lg text-white uppercase flex items-center gap-2 mb-4">
+                            <Edit2 size={20} /> Manage Monthly Targets
+                        </h3>
+                        <button onClick={() => setIsTargetModalOpen(false)} className="hover:bg-white/20 p-1.5 rounded-full transition text-white mb-4"><X size={20}/></button>
+                    </div>
+                    
+                    {/* TABS */}
+                    <div className="flex px-4 gap-1">
+                        <button 
+                            onClick={() => setActiveTab('new')}
+                            className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-t-lg transition-colors ${activeTab === 'new' ? 'bg-white text-[#103c7f]' : 'bg-[#0d2e61] text-gray-400 hover:text-white'}`}
+                        >
+                            Set New Target
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('edit')}
+                            className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-t-lg transition-colors ${activeTab === 'edit' ? 'bg-white text-[#103c7f]' : 'bg-[#0d2e61] text-gray-400 hover:text-white'}`}
+                        >
+                            Quick Edit
+                        </button>
+                    </div>
+                </div>
+                
+                <form onSubmit={handleSetTarget} className="p-6 flex flex-col gap-5 overflow-y-auto max-h-[80vh]">
+                    
+                    {/* Conditional Select based on Tab */}
+                    {activeTab === 'new' ? (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="col-span-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block ml-1">Select Manager</label>
+                                <select name="managerId" value={targetForm.managerId} onChange={handleFormChange} className="w-full border border-gray-300 rounded-xl p-3 text-sm font-bold text-gray-700 outline-none focus:border-[#103c7f] bg-gray-50">
+                                    <option value="">-- Choose Manager --</option>
+                                    {managers.map(mgr => <option key={mgr.id} value={mgr.id}>{mgr.name} ({mgr.region})</option>)}
+                                </select>
+                            </div>
+                            <div className="col-span-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block ml-1">Target Month</label>
+                                <input type="month" name="month" value={targetForm.month} onChange={handleFormChange} className="w-full border border-gray-300 rounded-xl p-3 text-sm font-bold text-[#103c7f] outline-none focus:border-[#103c7f]"/>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-xs text-blue-700 font-bold">
+                            Select a manager from the list below to update their existing targets for {filterMonth}.
+                            <select name="managerId" value={targetForm.managerId} onChange={handleFormChange} className="w-full mt-2 border border-blue-200 rounded p-2 bg-white outline-none">
+                                <option value="">-- Select Manager to Edit --</option>
+                                {managers.map(mgr => <option key={mgr.id} value={mgr.id}>{mgr.name}</option>)}
+                            </select>
+                        </div>
+                    )}
+
+                    <hr className="border-gray-100"/>
+
+                    {/* FSE KPI Inputs */}
+                    <div>
+                        <h3 className="text-xs font-black text-[#103c7f] uppercase mb-3 flex items-center gap-2"><MapPin size={14}/> Field Sales (FSE) KPIs</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Visits</label><input type="number" name="visitTarget" value={targetForm.visitTarget} onChange={handleFormChange} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-bold outline-none focus:border-blue-500"/></div>
+                            <div><label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Onboards</label><input type="number" name="onboardTarget" value={targetForm.onboardTarget} onChange={handleFormChange} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-bold outline-none focus:border-blue-500"/></div>
+                        </div>
+                    </div>
+
+                    {/* Caller KPI Inputs */}
+                    <div>
+                        <h3 className="text-xs font-black text-orange-600 uppercase mb-3 flex items-center gap-2"><Phone size={14}/> Caller KPIs</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Calls</label><input type="number" name="callTarget" value={targetForm.callTarget} onChange={handleFormChange} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-bold outline-none focus:border-orange-500"/></div>
+                            <div><label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Leads</label><input type="number" name="leadTarget" value={targetForm.leadTarget} onChange={handleFormChange} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-bold outline-none focus:border-orange-500"/></div>
+                        </div>
+                    </div>
+
+                    <button type="submit" className="mt-2 bg-[#103c7f] hover:bg-blue-900 text-white font-bold py-3.5 rounded-xl transition shadow-lg flex justify-center items-center gap-2">
+                        <Save size={18} /> {activeTab === 'new' ? 'Create Targets' : 'Update Targets'}
+                    </button>
+
+                </form>
+            </div>
+        </div>
+      )}
     </div>
   );
 }
