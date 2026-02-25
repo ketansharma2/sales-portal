@@ -79,13 +79,17 @@ export async function GET(request) {
         fseCount: fseCount || 0,
         leadGenCount: leadGenCount || 0,
         targets: managerTargets ? {
+          fse_count: managerTargets.fse_count,
+          callers_count: managerTargets.callers_count,
           total_visits: managerTargets.total_visits,
           total_onboards: managerTargets.total_onboards,
           total_calls: managerTargets.total_calls,
+          total_leads: managerTargets.total_leads,
           working_days: managerTargets.working_days,
-          "visit/day": managerTargets["visit/day"],
-          "onboard/month": managerTargets["onboard/month"],
-          "calls/day": managerTargets["calls/day"]
+          "visits/fse": managerTargets["visits/fse"],
+          "onboard/fse": managerTargets["onboard/fse"],
+          "calls/caller": managerTargets["calls/caller"],
+          "leads/caller": managerTargets["leads/caller"]
         } : null
       }
     }) || [])
@@ -129,38 +133,42 @@ export async function POST(request) {
       }, { status: 400 })
     }
 
-    // Validate targets array
+    // Check if target already exists for this manager and month
+    const existingTarget = await supabaseServer
+      .from('hod_sm_targets')
+      .select('id')
+      .eq('created_by', user.id)
+      .eq('month', month)
+      .eq('sm_id', targets[0].sm_id)
+      .single()
+
+    if (existingTarget.data) {
+      return NextResponse.json({
+        error: 'Target already exists for this manager and month. Please use edit mode to update.'
+      }, { status: 409 })
+    }
+
+    // Validate targets array (only required columns that exist in DB)
     for (const target of targets) {
-      if (target.sm_id == null || target.total_visits == null || target.total_onboards == null || target.total_calls == null) {
+      if (target.sm_id == null || target.total_visits == null) {
         return NextResponse.json({
-          error: 'Each target must have sm_id, total_visits, total_onboards, total_calls'
+          error: 'Each target must have sm_id and total_visits'
         }, { status: 400 })
       }
     }
 
-    // Delete existing targets for this month and HOD
-    const { error: deleteError } = await supabaseServer
-      .from('hod_sm_targets')
-      .delete()
-      .eq('created_by', user.id)
-      .eq('month', month)
-
-    if (deleteError) {
-      console.error('Delete existing targets error:', deleteError)
-      // Continue anyway
-    }
-
-    // Insert new targets
+    // For POST (create): Simply insert new target - no deletion
+    // Insert new targets (only core columns that exist in database)
     const targetsToInsert = targets.map(target => ({
       month,
       working_days,
       sm_id: target.sm_id,
+      fse_count: target.fse_count,
+      callers_count: target.callers_count,
       total_visits: target.total_visits,
       total_onboards: target.total_onboards,
       total_calls: target.total_calls,
-      "visit/day": target["visit/day"],
-      "onboard/month": target["onboard/month"],
-      "calls/day": target["calls/day"],
+      total_leads: target.total_leads,
       created_by: user.id
     }))
 
@@ -185,6 +193,69 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('HOD targets POST error:', error)
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: error.message
+    }, { status: 500 })
+  }
+}
+
+export async function PUT(request) {
+  try {
+    // Authentication
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { month, working_days, sm_id, targets } = body
+
+    if (!month || !working_days || !sm_id || !targets) {
+      return NextResponse.json({
+        error: 'Month, working_days, sm_id, and targets are required'
+      }, { status: 400 })
+    }
+
+    // Update existing target for this month, HOD, and specific manager
+    const { data: updatedTarget, error: updateError } = await supabaseServer
+      .from('hod_sm_targets')
+      .update({
+        month,
+        working_days,
+        fse_count: targets.fse_count,
+        callers_count: targets.callers_count,
+        total_visits: targets.total_visits,
+        total_onboards: targets.total_onboards,
+        total_calls: targets.total_calls,
+        total_leads: targets.total_leads
+      })
+      .eq('created_by', user.id)
+      .eq('month', month)
+      .eq('sm_id', sm_id)
+      .select()
+
+    if (updateError) {
+      console.error('Update target error:', updateError)
+      return NextResponse.json({
+        error: 'Failed to update target',
+        details: updateError.message
+      }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: updatedTarget,
+      message: 'Target updated successfully'
+    })
+
+  } catch (error) {
+    console.error('HOD targets PUT error:', error)
     return NextResponse.json({
       error: 'Internal server error',
       details: error.message

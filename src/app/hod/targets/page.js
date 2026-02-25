@@ -21,6 +21,8 @@ export default function HodTargetPage() {
 
   // Filters
   const [historyFilter, setHistoryFilter] = useState({ month: "", manager: "" });
+  // Separate filtered data state for history tab
+  const [filteredHistoryData, setFilteredHistoryData] = useState([]);
   const [projectionMonth, setProjectionMonth] = useState(
     new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 7)
   );
@@ -33,47 +35,302 @@ export default function HodTargetPage() {
     remarks: ""
   });
 
-  const [managers, setManagers] = useState([]); 
   const [data, setData] = useState([]); 
+  // Separate data for each tab
+  const [historyData, setHistoryData] = useState([]);
+  const [currentData, setCurrentData] = useState([]);
+  const [projectionData, setProjectionData] = useState([]);
+  const [filteredProjectionData, setFilteredProjectionData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [workingDays, setWorkingDays] = useState(24);
+  const [refreshKey, setRefreshKey] = useState(0); // For forcing data refresh
 
-  // --- MOCK DATA GENERATOR ---
-  useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      // 1. Managers List
-      setManagers([
-        { id: 1, name: "Amit Verma", region: "North", sector: "Corporate", currentFse: 5, currentCaller: 2 },
-        { id: 2, name: "Priya Singh", region: "West", sector: "Domestic", currentFse: 8, currentCaller: 4 },
-        { id: 3, name: "Rahul Sharma", region: "South", sector: "Corporate", currentFse: 6, currentCaller: 3 }
-      ]);
+  // Separate managers for each tab
+  const [historyManagers, setHistoryManagers] = useState([]);
+  const [currentManagers, setCurrentManagers] = useState([]);
+  const [projectionManagers, setProjectionManagers] = useState([]);
 
-      // 2. Mock Data based on Tabs
-      if (activeTab === 'history') {
-        setData([
-          { id: 101, managerId: 1, name: "Amit Verma", month: "2026-01", fseCount: 4, callerCount: 1, remarks: "Slow start.", fse: { vt: 200, va: 190, ot: 10, oa: 8 }, caller: { ct: 1000, ca: 950, lt: 40, la: 30 } },
-          { id: 102, managerId: 2, name: "Priya Singh", month: "2026-01", fseCount: 7, callerCount: 3, remarks: "Good.", fse: { vt: 280, va: 300, ot: 18, oa: 20 }, caller: { ct: 1200, ca: 1100, lt: 50, la: 45 } },
-          { id: 103, managerId: 1, name: "Amit Verma", month: "2025-12", fseCount: 4, callerCount: 1, remarks: "Year end push.", fse: { vt: 200, va: 210, ot: 10, oa: 12 }, caller: { ct: 1000, ca: 1000, lt: 40, la: 42 } },
-        ]);
-      } 
-      else if (activeTab === 'current') {
-        setData([
-          { id: 201, managerId: 1, name: "Amit Verma", region: "North", sector: "Corporate", fseCount: 5, callerCount: 2, remarks: "Focus on corporate.", fse: { vt: 240, va: 180, ot: 15, oa: 12 }, caller: { ct: 1500, ca: 1450, lt: 60, la: 45 } },
-          { id: 202, managerId: 2, name: "Priya Singh", region: "West", sector: "Domestic", fseCount: 8, callerCount: 4, remarks: "", fse: { vt: 300, va: 310, ot: 20, oa: 22 }, caller: { ct: 1200, ca: 800, lt: 50, la: 20 } },
-        ]);
-      } 
-      else if (activeTab === 'projection') {
-        // Data for Next Month (Achievements are 0)
-        setData([
-          { id: 301, managerId: 1, name: "Amit Verma", region: "North", sector: "Corporate", fseCount: 6, callerCount: 2, remarks: "Hiring 1 new FSE.", fse: { vt: 300, va: 0, ot: 20, oa: 0 }, caller: { ct: 1600, ca: 0, lt: 70, la: 0 } },
-        ]);
+  // --- FETCH MANAGERS FROM API (for specific tab) ---
+  const fetchManagers = async (tab) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      
+      // Use different API based on tab
+      let url = '/api/hod/targets/projection';
+      if (tab === 'history') {
+        url = '/api/hod/targets/history';
+      } else if (tab === 'current') {
+        url = '/api/hod/targets/current';
+      } else if (tab === 'projection') {
+        // Projection API requires month parameter
+        const monthParam = projectionMonth ? `${projectionMonth}-01` : '';
+        url = `/api/hod/targets/projection?month=${monthParam}`;
       }
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const result = await response.json();
+      
+      if (result.success && result.data && result.data.managers) {
+        const managersList = result.data.managers;
+        // Set managers based on tab
+        if (tab === 'history') {
+          setHistoryManagers(managersList);
+        } else if (tab === 'current') {
+          setCurrentManagers(managersList);
+        } else if (tab === 'projection') {
+          setProjectionManagers(managersList);
+        }
+        return managersList;
+      } else {
+        console.error('Failed to fetch managers:', result.error);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching managers:', error);
+      return [];
+    }
+  };
+
+  // --- FETCH TARGETS FROM API ---
+  const fetchTargets = async (month = null) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      
+      // If month provided, convert YYYY-MM to YYYY-MM-DD
+      const monthParam = month ? `${month}-01` : '';
+      const url = monthParam 
+        ? `/api/hod/targets?month=${monthParam}` 
+        : '/api/hod/targets';
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        return result.data;
+      } else {
+        console.error('Failed to fetch targets:', result.error);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error fetching targets:', error);
+      return null;
+    }
+  };
+
+  // --- FETCH TARGETS FOR PROJECTION TAB ---
+  const fetchProjectionTargets = async (month) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      // If month is null, fetch all targets (no month filter)
+      const monthParam = month ? `${month}-01` : '';
+      const url = monthParam 
+        ? `/api/hod/targets/projection?month=${monthParam}` 
+        : '/api/hod/targets/projection';
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        return result.data;
+      } else {
+        console.error('Failed to fetch projection targets:', result.error);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error fetching projection targets:', error);
+      return null;
+    }
+  };
+
+  // --- FETCH TARGETS FOR CURRENT TAB ---
+  const fetchCurrentTargets = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      
+      const response = await fetch('/api/hod/targets/current', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        return result.data;
+      } else {
+        console.error('Failed to fetch current targets:', result.error);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error fetching current targets:', error);
+      return null;
+    }
+  };
+
+  // --- FETCH TARGETS FOR HISTORY TAB ---
+  const fetchHistoryTargets = async (month = null) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const monthParam = month ? `${month}-01` : '';
+      const url = monthParam 
+        ? `/api/hod/targets/history?month=${monthParam}` 
+        : '/api/hod/targets/history';
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        return result.data;
+      } else {
+        console.error('Failed to fetch history targets:', result.error);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error fetching history targets:', error);
+      return null;
+    }
+  };
+
+  // --- LOAD DATA FROM API ---
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      
+      // Fetch managers from API for the specific tab (history and projection get managers from targets API)
+      if (activeTab === 'current') {
+        await fetchManagers(activeTab);
+      }
+      
+      // Fetch targets based on tab
+      let targetData = null;
+      
+      if (activeTab === 'history') {
+        // For history, fetch all targets (no filter on initial load)
+        targetData = await fetchHistoryTargets(null);
+        // For history, set managers from the targets API response
+        if (targetData && targetData.managers) {
+          setHistoryManagers(targetData.managers);
+        }
+      } else if (activeTab === 'current') {
+        // For current month using current API
+        targetData = await fetchCurrentTargets();
+        // Set managers from current targets API
+        if (targetData && targetData.managers) {
+          setCurrentManagers(targetData.managers);
+        }
+      } else if (activeTab === 'projection') {
+        // For projection, fetch all targets once (no month filter)
+        // We'll filter on frontend when projectionMonth changes
+        targetData = await fetchProjectionTargets(null); // null means fetch all
+        // Set managers from projection targets API
+        if (targetData && targetData.managers) {
+          setProjectionManagers(targetData.managers);
+        }
+      }
+      
+      if (targetData && targetData.targets && targetData.targets.length > 0) {
+        // Transform flat targets array to UI format
+        // Each target is a separate card - don't group by manager
+        const transformedData = targetData.targets.map((target, idx) => {
+          const mgr = targetData.managers?.find(m => m.id === target.sm_id);
+          return {
+            id: idx + 1,
+            managerId: target.sm_id,
+            name: mgr?.name || 'Unknown Manager',
+            region: mgr?.region || '',
+            sector: mgr?.sector || '',
+            month: target.month ? target.month.substring(0, 7) : currentDate,
+            fseCount: target.fse_count || 0,
+            callerCount: target.callers_count || 0,
+            remarks: target.remarks || '',
+            targets: target,
+            fse: {
+              vt: target["visits/fse"] || 0,
+              va: 0,
+              ot: target.total_onboards || 0,
+              oa: 0
+            },
+            caller: {
+              ct: target.total_calls || 0,
+              ca: 0,
+              lt: target.total_leads || 0,
+              la: 0
+            }
+          };
+        });
+        
+        // Set data to appropriate tab-specific state
+        if (activeTab === 'history') {
+          setHistoryData(transformedData);
+        } else if (activeTab === 'current') {
+          setCurrentData(transformedData);
+        } else if (activeTab === 'projection') {
+          setProjectionData(transformedData);
+        }
+      } else {
+        // Clear appropriate tab-specific state
+        if (activeTab === 'history') {
+          setHistoryData([]);
+        } else if (activeTab === 'current') {
+          setCurrentData([]);
+        } else if (activeTab === 'projection') {
+          setProjectionData([]);
+        }
+      }
+      
       setLoading(false);
-    }, 500);
-  }, [activeTab, projectionMonth]); 
+    };
+    
+    loadData();
+  }, [activeTab, currentDate, refreshKey]); 
+
+  // --- FRONTEND FILTERING FOR HISTORY TAB ---
+  useEffect(() => {
+    // Filter history data
+    if (activeTab === 'history' && historyData.length > 0) {
+      const filtered = historyData.filter(item => {
+        const monthMatch = !historyFilter.month || item.month === historyFilter.month;
+        const managerMatch = !historyFilter.manager || String(item.managerId) === String(historyFilter.manager);
+        return monthMatch && managerMatch;
+      });
+      setFilteredHistoryData(filtered);
+    } else if (activeTab === 'history') {
+      setFilteredHistoryData(historyData);
+    } else {
+      setFilteredHistoryData([]);
+    }
+    
+    // Filter projection data by month
+    if (activeTab === 'projection' && projectionData.length > 0) {
+      const filtered = projectionData.filter(item => {
+        const monthMatch = !projectionMonth || item.month === projectionMonth;
+        return monthMatch;
+      });
+      setFilteredProjectionData(filtered);
+    } else if (activeTab === 'projection') {
+      setFilteredProjectionData(projectionData);
+    } else {
+      setFilteredProjectionData([]);
+    }
+  }, [historyFilter, historyData, activeTab, projectionMonth, projectionData]); 
 
   // --- CHART DATA PREPARATION (Only for Current Tab) ---
-  const chartData = activeTab === 'current' ? data.map(d => ({
+  const chartData = activeTab === 'current' ? currentData.map(d => ({
     name: d.name.split(" ")[0],
     Target: d.fse.ot,
     Achieved: d.fse.oa,
@@ -84,15 +341,22 @@ export default function HodTargetPage() {
     setModalMode(mode);
     
     if (mode === 'edit' && data) {
-      // Pre-fill form for Editing
+      // Pre-fill form for Editing - convert numbers to strings
       setTargetForm({
         managerId: data.managerId,
         month: activeTab === 'projection' ? projectionMonth : currentDate,
-        fseCount: data.fseCount, callerCount: data.callerCount,
-        visitTarget: data.fse.vt, onboardTarget: data.fse.ot,
-        callTarget: data.caller.ct, leadTarget: data.caller.lt,
+        fseCount: data.fseCount || data.targets?.fse_count || 0, 
+        callerCount: data.callerCount || data.targets?.callers_count || 0,
+        visitTarget: data.fse?.vt || data.targets?.["visits/fse"] || '', 
+        onboardTarget: data.fse?.ot || data.targets?.["onboard/fse"] || '',
+        callTarget: data.caller?.ct || data.targets?.["calls/caller"] || '',
+        leadTarget: data.caller?.lt || data.targets?.["leads/caller"] || '',
         remarks: data.remarks || ""
       });
+      // Load working days from existing target
+      if (data.targets?.working_days) {
+        setWorkingDays(data.targets.working_days);
+      }
     } else {
       // Reset form for New Creation
       setTargetForm({
@@ -101,32 +365,128 @@ export default function HodTargetPage() {
         fseCount: 0, callerCount: 0,
         visitTarget: "", onboardTarget: "", callTarget: "", leadTarget: "", remarks: ""
       });
+      // Reset working days to default
+      setWorkingDays(24);
     }
     setIsTargetModalOpen(true);
   };
 
   const handleManagerSelect = (e) => {
-    const selectedId = Number(e.target.value);
-    const mgr = managers.find(m => m.id === selectedId);
+    const selectedId = e.target.value; // Keep as string (UUID from Supabase)
+    // Get managers list based on active tab
+    const currentManagersList = activeTab === 'history' ? historyManagers : activeTab === 'current' ? currentManagers : projectionManagers;
+    const mgr = currentManagersList.find(m => String(m.id) === selectedId);
     
     // Auto-fill Current Resource Count when manager is selected
+    // Use fseCount and leadGenCount from API, fallback to 0
     setTargetForm({
         ...targetForm,
         managerId: selectedId,
-        fseCount: mgr ? mgr.currentFse : 0,     
-        callerCount: mgr ? mgr.currentCaller : 0 
+        fseCount: mgr ? (mgr.fseCount || mgr.currentFse || 0) : 0,     
+        callerCount: mgr ? (mgr.leadGenCount || mgr.currentCaller || 0) : 0
     });
   };
 
   const handleFormChange = (e) => {
-    setTargetForm({ ...targetForm, [e.target.name]: e.target.value });
+    const value = e.target.value;
+    setTargetForm({ ...targetForm, [e.target.name]: value });
   };
 
-  const handleSetTarget = (e) => {
+  const handleSetTarget = async (e) => {
     e.preventDefault();
     if(!targetForm.managerId) return alert("Please select a manager");
-    alert(`Target Saved Successfully!\nManager ID: ${targetForm.managerId}\nMonth: ${targetForm.month}`);
-    setIsTargetModalOpen(false);
+    
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      
+      // Prepare target data for API
+      // Convert YYYY-MM to YYYY-MM-DD (first day of month)
+      const monthValue = targetForm.month || projectionMonth;
+      const apiMonth = monthValue ? `${monthValue}-01` : new Date().toISOString().split('T')[0];
+      
+      // Get working days for calculations
+      const wd = workingDays || 24;
+      
+      // Form inputs are per-person targets (handle empty strings)
+      const visitPerMonth = targetForm.visitTarget ? parseInt(targetForm.visitTarget) || 0 : 0;
+      const onboardPerMonth = targetForm.onboardTarget ? parseInt(targetForm.onboardTarget) || 0 : 0;
+      const callsPerMonth = targetForm.callTarget ? parseInt(targetForm.callTarget) || 0 : 0;
+      const leadsPerCaller = targetForm.leadTarget ? parseInt(targetForm.leadTarget) || 0 : 0;
+      
+      // Ensure fseCount and callerCount are numbers
+      const fseCnt = parseInt(targetForm.fseCount) || 0;
+      const callerCnt = parseInt(targetForm.callerCount) || 0;
+      
+      const targetPayload = {
+        sm_id: targetForm.managerId,
+        fse_count: fseCnt,
+        callers_count: callerCnt,
+        // Total targets = per-person × team size (NO working_days multiplication)
+        total_visits: visitPerMonth * fseCnt,
+        total_onboards: onboardPerMonth * fseCnt,
+        total_calls: callsPerMonth * callerCnt,
+        total_leads: leadsPerCaller * callerCnt,
+        // Per-person targets stored separately
+        "visits/fse": visitPerMonth,
+        "onboard/fse": onboardPerMonth,
+        "calls/caller": callsPerMonth,
+        "leads/caller": leadsPerCaller
+      };
+      
+      // Determine if create or edit
+      const isEdit = modalMode === 'edit';
+      
+      let response;
+      if (isEdit) {
+        // Use PUT for edit
+        response = await fetch('/api/hod/targets', {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            month: apiMonth,
+            working_days: wd,
+            sm_id: targetForm.managerId,
+            targets: targetPayload
+          })
+        });
+      } else {
+        // Use POST for create
+        response = await fetch('/api/hod/targets', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            month: apiMonth,
+            working_days: wd,
+            targets: [targetPayload]
+          })
+        });
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Find manager name for display - use appropriate managers list based on activeTab
+        const currentManagersList = activeTab === 'history' ? historyManagers : activeTab === 'current' ? currentManagers : projectionManagers;
+        const mgr = currentManagersList.find(m => String(m.id) === String(targetForm.managerId));
+        const mgrName = mgr ? mgr.name : targetForm.managerId;
+        
+        alert(`${isEdit ? 'Target Updated' : 'Target Saved'} Successfully!\nManager: ${mgrName}\nMonth: ${targetForm.month}`);
+        setIsTargetModalOpen(false);
+        // Refresh data
+        setRefreshKey(prev => prev + 1);
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error saving target:', error);
+      alert("Failed to save target. Please try again.");
+    }
   };
 
   const getProgressColor = (achieved, target) => {
@@ -188,7 +548,18 @@ export default function HodTargetPage() {
                 </div>
                 <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
                     <Search size={14} className="text-gray-400"/>
-                    <input type="text" placeholder="Filter by Manager..." className="bg-transparent text-sm font-bold text-gray-700 outline-none w-48" onChange={(e)=> setHistoryFilter({...historyFilter, manager: e.target.value})}/>
+                    <select 
+                      className="bg-transparent text-sm font-bold text-gray-700 outline-none w-48"
+                      value={historyFilter.manager}
+                      onChange={(e)=> setHistoryFilter({...historyFilter, manager: e.target.value})}
+                    >
+                      <option value="">All Managers</option>
+                      {historyManagers.map(mgr => (
+                        <option key={String(mgr.id)} value={String(mgr.id)}>
+                          {mgr.name}
+                        </option>
+                      ))}
+                    </select>
                 </div>
             </div>
 
@@ -207,8 +578,8 @@ export default function HodTargetPage() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 text-sm">
-                        {data.map((row) => (
-                            <tr key={row.id} className="hover:bg-gray-50">
+                        {filteredHistoryData.map((row, idx) => (
+                            <tr key={row.id || `history-${idx}`} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 font-bold text-gray-500">{row.month}</td>
                                 <td className="px-6 py-4 font-bold text-[#103c7f]">{row.name}</td>
                                 <td className="px-4 py-4 text-center">
@@ -266,8 +637,8 @@ export default function HodTargetPage() {
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {data.map((row) => (
-                    <div key={row.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow relative">
+                {currentData.map((row, idx) => (
+                    <div key={row.id || `current-${idx}`} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow relative">
                         {/* Header */}
                         <div className="p-5 border-b border-gray-100 bg-blue-50/30 flex justify-between items-start">
                             <div>
@@ -345,13 +716,13 @@ export default function HodTargetPage() {
 
             {/* Projection Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {data.length === 0 ? (
+                {filteredProjectionData.length === 0 ? (
                     <div className="col-span-3 text-center py-12 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50">
                         <p className="text-gray-400 font-bold">No targets set for {projectionMonth} yet.</p>
                         <button onClick={() => openModal('create')} className="mt-2 text-purple-600 font-bold hover:underline">Set First Target</button>
                     </div>
-                ) : data.map((row) => (
-                    <div key={row.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 relative hover:border-purple-200 transition-colors">
+                ) : filteredProjectionData.map((row, idx) => (
+                    <div key={row.id || `projection-${idx}`} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 relative hover:border-purple-200 transition-colors">
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <h3 className="font-bold text-lg text-gray-800">{row.name}</h3>
@@ -395,22 +766,34 @@ export default function HodTargetPage() {
                 </div>
                 
                 <form className="p-6 flex flex-col gap-5 overflow-y-auto max-h-[80vh]">
-                    {/* Manager Select */}
+                    {/* Manager & Working Days Row */}
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
+                        <div>
                             <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block ml-1">Select Manager</label>
                             <select 
                                 name="managerId" 
-                                value={targetForm.managerId} 
+                                value={targetForm.managerId || ''} 
                                 onChange={handleManagerSelect} 
                                 disabled={modalMode === 'edit'}
                                 className="w-full border border-gray-300 rounded-xl p-3 text-sm font-bold text-gray-700 outline-none focus:border-purple-500 bg-gray-50 disabled:opacity-60"
                             >
                                 <option value="">-- Choose Manager --</option>
-                                {managers.map(mgr => (
-                                    <option key={mgr.id} value={mgr.id}>{mgr.name} ({mgr.region})</option>
+                                {(activeTab === 'history' ? historyManagers : activeTab === 'current' ? currentManagers : projectionManagers).map(mgr => (
+                                    <option key={String(mgr.id)} value={String(mgr.id)}>
+                                      {mgr.name} {mgr.region ? `(${mgr.region})` : ''} {mgr.sector ? `- ${mgr.sector}` : ''}
+                                    </option>
                                 ))}
                             </select>
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-blue-600 uppercase mb-1 block ml-1">Working Days</label>
+                            <input 
+                              type="number" 
+                              name="workingDays" 
+                              value={workingDays} 
+                              onChange={(e) => setWorkingDays(parseInt(e.target.value) || 0)} 
+                              className="w-full border border-blue-200 rounded-xl p-3 text-sm font-bold text-blue-700 outline-none focus:border-blue-500"
+                            />
                         </div>
                     </div>
 
@@ -420,20 +803,20 @@ export default function HodTargetPage() {
                         <div className="flex gap-4">
                             <div className="flex-1">
                                 <label className="text-[10px] font-bold text-gray-500 block mb-1">FSE Count</label>
-                                <input type="number" name="fseCount" value={targetForm.fseCount} onChange={handleFormChange} className="w-full p-2 border rounded-lg text-sm font-bold"/>
+                                <input type="number" name="fseCount" value={targetForm.fseCount || ''} onChange={handleFormChange} className="w-full p-2 border rounded-lg text-sm font-bold"/>
                             </div>
                             <div className="flex-1">
                                 <label className="text-[10px] font-bold text-gray-500 block mb-1">Caller Count</label>
-                                <input type="number" name="callerCount" value={targetForm.callerCount} onChange={handleFormChange} className="w-full p-2 border rounded-lg text-sm font-bold"/>
+                                <input type="number" name="callerCount" value={targetForm.callerCount || ''} onChange={handleFormChange} className="w-full p-2 border rounded-lg text-sm font-bold"/>
                             </div>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Visits/FSE</label><input type="number" name="visitTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.visitTarget} onChange={handleFormChange}/></div>
-                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Onboards/FSE</label><input type="number" name="onboardTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.onboardTarget} onChange={handleFormChange}/></div>
-                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Calls/Caller</label><input type="number" name="callTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.callTarget} onChange={handleFormChange}/></div>
-                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Leads/Caller</label><input type="number" name="leadTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.leadTarget} onChange={handleFormChange}/></div>
+                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Visits/FSE/Month</label><input type="number" name="visitTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.visitTarget || ''} onChange={handleFormChange}/></div>
+                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Onboards/FSE/Month</label><input type="number" name="onboardTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.onboardTarget || ''} onChange={handleFormChange}/></div>
+                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Calls/Caller/Month</label><input type="number" name="callTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.callTarget || ''} onChange={handleFormChange}/></div>
+                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Leads/Caller/Month</label><input type="number" name="leadTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.leadTarget || ''} onChange={handleFormChange}/></div>
                     </div>
 
                     <div>
