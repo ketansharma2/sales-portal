@@ -24,7 +24,7 @@ export default function HodTargetPage() {
   // Separate filtered data state for history tab
   const [filteredHistoryData, setFilteredHistoryData] = useState([]);
   const [projectionMonth, setProjectionMonth] = useState(
-    new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 7)
+    new Date().toISOString().slice(0, 7) // Current month YYYY-MM
   );
 
   // Form State
@@ -34,7 +34,7 @@ export default function HodTargetPage() {
     visitTarget: "", onboardTarget: "", callTarget: "", leadTarget: "",
     remarks: ""
   });
-
+  
   const [data, setData] = useState([]); 
   // Separate data for each tab
   const [historyData, setHistoryData] = useState([]);
@@ -261,15 +261,15 @@ export default function HodTargetPage() {
             targets: target,
             fse: {
               vt: target["visits/fse"] || 0,
-              va: 0,
+              va: target.achieved_visits || 0,
               ot: target.total_onboards || 0,
-              oa: 0
+              oa: target.achieved_onboards || 0
             },
             caller: {
               ct: target.total_calls || 0,
-              ca: 0,
+              ca: target.achieved_calls || 0,
               lt: target.total_leads || 0,
-              la: 0
+              la: target.achieved_leads || 0
             }
           };
         });
@@ -301,16 +301,20 @@ export default function HodTargetPage() {
 
   // --- FRONTEND FILTERING FOR HISTORY TAB ---
   useEffect(() => {
-    // Filter history data
+    const currentMonth = new Date().toISOString().slice(0, 7); // Current month YYYY-MM
+    
+    // Filter history data - only show PAST months (not current month)
     if (activeTab === 'history' && historyData.length > 0) {
       const filtered = historyData.filter(item => {
         const monthMatch = !historyFilter.month || item.month === historyFilter.month;
         const managerMatch = !historyFilter.manager || String(item.managerId) === String(historyFilter.manager);
-        return monthMatch && managerMatch;
+        // Only show past months (not current or future)
+        const isPastMonth = item.month < currentMonth;
+        return monthMatch && managerMatch && isPastMonth;
       });
       setFilteredHistoryData(filtered);
     } else if (activeTab === 'history') {
-      setFilteredHistoryData(historyData);
+      setFilteredHistoryData(historyData.filter(item => item.month < new Date().toISOString().slice(0, 7)));
     } else {
       setFilteredHistoryData([]);
     }
@@ -378,12 +382,12 @@ export default function HodTargetPage() {
     const mgr = currentManagersList.find(m => String(m.id) === selectedId);
     
     // Auto-fill Current Resource Count when manager is selected
-    // Use fseCount and leadGenCount from API, fallback to 0
+    // Use fseCount and callerCount from API, fallback to 0
     setTargetForm({
         ...targetForm,
         managerId: selectedId,
         fseCount: mgr ? (mgr.fseCount || mgr.currentFse || 0) : 0,     
-        callerCount: mgr ? (mgr.leadGenCount || mgr.currentCaller || 0) : 0
+        callerCount: mgr ? (mgr.callerCount || mgr.currentCaller || 0) : 0
     });
   };
 
@@ -430,7 +434,9 @@ export default function HodTargetPage() {
         "visits/fse": visitPerMonth,
         "onboard/fse": onboardPerMonth,
         "calls/caller": callsPerMonth,
-        "leads/caller": leadsPerCaller
+        "leads/caller": leadsPerCaller,
+        // Remarks
+        remarks: targetForm.remarks || ''
       };
       
       // Determine if create or edit
@@ -492,8 +498,8 @@ export default function HodTargetPage() {
   const getProgressColor = (achieved, target) => {
     if(!target) return "bg-gray-200";
     const percent = (achieved / target) * 100;
-    if (percent >= 100) return "bg-green-500";
-    if (percent >= 70) return "bg-yellow-500";
+    if (percent > 70) return "bg-green-500";
+    if (percent >= 50) return "bg-yellow-500";
     return "bg-red-500";
   };
 
@@ -505,6 +511,11 @@ export default function HodTargetPage() {
          <div>
              <h1 className="text-3xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
                 <Target size={32} /> Target & Performance
+                {activeTab === 'current' && (
+                    <span className="text-lg font-black text-[#103c7f] bg-blue-100 px-3 py-1 rounded-lg ml-2">
+                        {new Date().toLocaleString('en-US', { month: 'short', year: 'numeric' })}
+                    </span>
+                )}
              </h1>
              <p className="text-gray-500 text-sm font-bold mt-1">
                {activeTab === 'history' ? 'Review Past Performance' : activeTab === 'current' ? 'Live Month Tracking' : 'Plan Future Targets'}
@@ -570,36 +581,48 @@ export default function HodTargetPage() {
                         <tr>
                             <th className="px-6 py-4">Month</th>
                             <th className="px-6 py-4">Manager</th>
+                            <th className="px-6 py-4">Sector</th>
                             <th className="px-4 py-4 text-center">Team Size</th>
                             <th className="px-4 py-4 text-center">FSE Targets</th>
-                            <th className="px-4 py-4 text-center">Caller Targets</th>
-                            <th className="px-4 py-4 text-center">Achievement</th>
+                            <th className="px-4 py-4 text-center">Leadgen Targets</th>
+                            <th className="px-4 py-4 text-center">Achievement %</th>
+                            
                             <th className="px-6 py-4 w-1/4">Remarks</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 text-sm">
                         {filteredHistoryData.map((row, idx) => (
                             <tr key={row.id || `history-${idx}`} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 font-bold text-gray-500">{row.month}</td>
+                                <td className="px-6 py-4 font-bold text-gray-500">{row.month ? new Date(row.month + '-01').toLocaleString('en-US', { month: 'short', year: 'numeric' }) : row.month}</td>
                                 <td className="px-6 py-4 font-bold text-[#103c7f]">{row.name}</td>
+                                <td className="px-6 py-4">
+                                    <span className={`text-[10px] px-2 py-1 rounded font-bold ${row.sector === 'Corporate' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{row.sector}</span>
+                                </td>
                                 <td className="px-4 py-4 text-center">
                                     <div className="flex justify-center gap-2 text-xs">
-                                        <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold">{row.fseCount} F</span>
-                                        <span className="bg-orange-50 text-orange-700 px-2 py-1 rounded font-bold">{row.callerCount} C</span>
+                                        <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold">{row.fseCount} FSE</span>
+                                        <span className="bg-orange-50 text-orange-700 px-2 py-1 rounded font-bold">{row.callerCount} Leadgen</span>
                                     </div>
                                 </td>
                                 <td className="px-4 py-4 text-center text-xs text-gray-600">
-                                    <div>Visits: {row.fse.vt}</div>
-                                    <div>Onboard: {row.fse.ot}</div>
+                                    <div>Visits: {row.fse.va || 0}/{row.fse.vt}</div>
+                                    <div>Onboard: {row.fse.oa || 0}/{row.fse.ot}</div>
                                 </td>
                                 <td className="px-4 py-4 text-center text-xs text-gray-600">
-                                    <div>Calls: {row.caller.ct}</div>
-                                    <div>Leads: {row.caller.lt}</div>
+                                    <div>Calls: {row.caller.ca || 0}/{row.caller.ct}</div>
+                                    <div>Leads: {row.caller.la || 0}/{row.caller.lt}</div>
                                 </td>
                                 <td className="px-4 py-4 text-center">
-                                    <span className={`text-xs font-bold px-2 py-1 rounded ${row.fse.oa >= row.fse.ot ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                        {Math.round((row.fse.oa / row.fse.ot) * 100)}%
-                                    </span>
+                                    {(() => {
+                                        const totalAchieved = (row.fse.va || 0) + (row.fse.oa || 0) + (row.caller.ca || 0) + (row.caller.la || 0);
+                                        const totalTarget = (row.fse.vt || 0) + (row.fse.ot || 0) + (row.caller.ct || 0) + (row.caller.lt || 0);
+                                        const achievement = totalTarget > 0 ? Math.round((totalAchieved / totalTarget) * 100) : 0;
+                                        return (
+                                            <span className={`text-xs font-bold px-2 py-1 rounded ${achievement > 70 ? 'bg-green-100 text-green-700' : achievement >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                                                {achievement}%
+                                            </span>
+                                        );
+                                    })()}
                                 </td>
                                 <td className="px-6 py-4 text-xs italic text-gray-500">{row.remarks}</td>
                             </tr>
@@ -617,23 +640,23 @@ export default function HodTargetPage() {
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
             
             {/* Analytics Chart */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-bold text-[#103c7f] flex items-center gap-2"><BarChart3 size={20}/> Sales Performance Overview</h3>
-                </div>
-                <div className="h-48 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fontWeight: 'bold', fill: '#6b7280'}} dy={10} />
-                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#9ca3af'}} />
-                            <Tooltip cursor={{fill: '#f9fafb'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
-                            <Bar dataKey="Target" fill="#e5e7eb" radius={[4, 4, 0, 0]} barSize={40} />
-                            <Bar dataKey="Achieved" fill="#103c7f" radius={[4, 4, 0, 0]} barSize={40} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-            </div>
+              {/* <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                  <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-bold text-[#103c7f] flex items-center gap-2"><BarChart3 size={20}/> Sales Performance Overview</h3>
+                  </div>
+                  <div className="h-48 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={chartData}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fontWeight: 'bold', fill: '#6b7280'}} dy={10} />
+                              <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#9ca3af'}} />
+                              <Tooltip cursor={{fill: '#f9fafb'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                              <Bar dataKey="Target" fill="#e5e7eb" radius={[4, 4, 0, 0]} barSize={40} />
+                              <Bar dataKey="Achieved" fill="#103c7f" radius={[4, 4, 0, 0]} barSize={40} />
+                          </BarChart>
+                      </ResponsiveContainer>
+                  </div>
+              </div> */}
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -643,20 +666,49 @@ export default function HodTargetPage() {
                         <div className="p-5 border-b border-gray-100 bg-blue-50/30 flex justify-between items-start">
                             <div>
                                 <h3 className="font-bold text-lg text-gray-800">{row.name}</h3>
-                                <span className="text-[10px] bg-white border border-gray-200 px-2 py-0.5 rounded text-gray-500 font-bold uppercase">{row.region}</span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${row.sector === 'Corporate' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{row.sector}</span>
                             </div>
                             <div className="text-right">
                                 <span className="block text-[10px] font-bold text-gray-400 uppercase">Team Size</span>
                                 <div className="flex gap-1 mt-1">
-                                    <span className="text-xs font-black text-[#103c7f] bg-blue-100 px-1.5 rounded">{row.fseCount} F</span>
-                                    <span className="text-xs font-black text-orange-600 bg-orange-100 px-1.5 rounded">{row.callerCount} C</span>
+                                    <span className="text-xs font-black text-[#103c7f] bg-blue-100 px-1.5 rounded">{row.fseCount} FSE</span>
+                                    <span className="text-xs font-black text-orange-600 bg-orange-100 px-1.5 rounded">{row.callerCount} Leadgen</span>
                                 </div>
                             </div>
                         </div>
 
+                        {/* Achievement % Badge */}
+                        <div className="bg-gray-50 px-5 py-2 border-b border-gray-100">
+                            {(() => {
+                                const totalAchieved = (row.fse.va || 0) + (row.fse.oa || 0) + (row.caller.ca || 0) + (row.caller.la || 0);
+                                const totalTarget = (row.fse.vt || 0) + (row.fse.ot || 0) + (row.caller.ct || 0) + (row.caller.lt || 0);
+                                const achievement = totalTarget > 0 ? Math.round((totalAchieved / totalTarget) * 100) : 0;
+                                return (
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[10px] font-bold text-gray-500 uppercase">Overall Achievement</span>
+                                        <span className={`text-sm font-black px-2 py-1 rounded ${achievement > 70 ? 'bg-green-100 text-green-700' : achievement >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                                            {achievement}%
+                                        </span>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+
                         {/* Progress Body */}
                         <div className="p-5 space-y-5">
-                            {/* FSE Stats */}
+                            {/* FSE - Visits */}
+                            <div>
+                                <h4 className="text-[10px] font-black text-[#103c7f] uppercase mb-2 flex items-center gap-1"><MapPin size={12}/> Visits Target</h4>
+                                <div className="flex justify-between text-xs mb-1 font-bold text-gray-700">
+                                    <span>{row.fse.va} Achieved</span>
+                                    <span>Target: {row.fse.vt}</span>
+                                </div>
+                                <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                                    <div className={`h-full rounded-full ${getProgressColor(row.fse.va, row.fse.vt)}`} style={{width: `${row.fse.vt > 0 ? (row.fse.va/row.fse.vt)*100 : 0}%`}}></div>
+                                </div>
+                            </div>
+
+                            {/* FSE - Onboards */}
                             <div>
                                 <h4 className="text-[10px] font-black text-[#103c7f] uppercase mb-2 flex items-center gap-1"><MapPin size={12}/> Onboarding Target</h4>
                                 <div className="flex justify-between text-xs mb-1 font-bold text-gray-700">
@@ -664,11 +716,23 @@ export default function HodTargetPage() {
                                     <span>Target: {row.fse.ot}</span>
                                 </div>
                                 <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                                    <div className={`h-full rounded-full ${getProgressColor(row.fse.oa, row.fse.ot)}`} style={{width: `${(row.fse.oa/row.fse.ot)*100}%`}}></div>
+                                    <div className={`h-full rounded-full ${getProgressColor(row.fse.oa, row.fse.ot)}`} style={{width: `${row.fse.ot > 0 ? (row.fse.oa/row.fse.ot)*100 : 0}%`}}></div>
                                 </div>
                             </div>
 
-                            {/* Caller Stats */}
+                            {/* Caller - Calls */}
+                            <div>
+                                <h4 className="text-[10px] font-black text-orange-600 uppercase mb-2 flex items-center gap-1"><Phone size={12}/> Calls Target</h4>
+                                <div className="flex justify-between text-xs mb-1 font-bold text-gray-700">
+                                    <span>{row.caller.ca} Calls</span>
+                                    <span>Target: {row.caller.ct}</span>
+                                </div>
+                                <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                                    <div className={`h-full rounded-full ${getProgressColor(row.caller.ca, row.caller.ct)}`} style={{width: `${row.caller.ct > 0 ? (row.caller.ca/row.caller.ct)*100 : 0}%`}}></div>
+                                </div>
+                            </div>
+
+                            {/* Caller - Leads */}
                             <div>
                                 <h4 className="text-[10px] font-black text-orange-600 uppercase mb-2 flex items-center gap-1"><Phone size={12}/> Lead Gen Target</h4>
                                 <div className="flex justify-between text-xs mb-1 font-bold text-gray-700">
@@ -676,7 +740,7 @@ export default function HodTargetPage() {
                                     <span>Target: {row.caller.lt}</span>
                                 </div>
                                 <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                                    <div className={`h-full rounded-full ${getProgressColor(row.caller.la, row.caller.lt)}`} style={{width: `${(row.caller.la/row.caller.lt)*100}%`}}></div>
+                                    <div className={`h-full rounded-full ${getProgressColor(row.caller.la, row.caller.lt)}`} style={{width: `${row.caller.lt > 0 ? (row.caller.la/row.caller.lt)*100 : 0}%`}}></div>
                                 </div>
                             </div>
 
@@ -725,23 +789,37 @@ export default function HodTargetPage() {
                     <div key={row.id || `projection-${idx}`} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 relative hover:border-purple-200 transition-colors">
                         <div className="flex justify-between items-start mb-4">
                             <div>
-                                <h3 className="font-bold text-lg text-gray-800">{row.name}</h3>
+                                <h3 className="font-bold text-lg text-gray-800 flex items-center">{row.name} <span className={`ml-2 text-[10px] px-2 py-0.5 rounded font-bold align-middle ${row.sector === 'Corporate' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{row.sector}</span></h3>
                                 <div className="flex gap-2 mt-1">
-                                    <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded-lg">FSE: {row.fseCount}</span>
-                                    <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded-lg">Caller: {row.callerCount}</span>
+                                    <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">FSE: {row.fseCount}</span>
+                                    <span className="text-[10px] font-bold bg-red-50 text-red-700 px-2 py-1 rounded-lg">Leadgen: {row.callerCount}</span>
                                 </div>
                             </div>
                             <button onClick={() => openModal('edit', row)} className="bg-purple-50 text-purple-700 p-2 rounded-lg hover:bg-purple-100 transition"><Edit2 size={16}/></button>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 text-center">
-                                <span className="block text-[10px] font-bold text-gray-400 uppercase">FSE Sales</span>
-                                <span className="block text-xl font-black text-gray-800">{row.fse.ot}</span>
+                            <div className="col-span-2">
+                                <span className="text-[10px] font-black text-blue-800 uppercase">FSE Targets</span>
                             </div>
-                            <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 text-center">
-                                <span className="block text-[10px] font-bold text-gray-400 uppercase">Total Leads</span>
-                                <span className="block text-xl font-black text-gray-800">{row.caller.lt}</span>
+                            <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 text-center">
+                                <span className="block text-[10px] font-bold text-blue-400 uppercase">Visits/FSE</span>
+                                <span className="block text-xl font-black text-blue-800">{row.fse.vt || 0}</span>
+                            </div>
+                            <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 text-center">
+                                <span className="block text-[10px] font-bold text-blue-400 uppercase">Onboards/FSE</span>
+                                <span className="block text-xl font-black text-blue-800">{row.fse.ot || 0}</span>
+                            </div>
+                            <div className="col-span-2 mt-2">
+                                <span className="text-[10px] font-black text-red-800 uppercase">Leadgen Targets</span>
+                            </div>
+                            <div className="bg-red-50 p-3 rounded-xl border border-red-100 text-center">
+                                <span className="block text-[10px] font-bold text-red-400 uppercase">Calls/Leadgen</span>
+                                <span className="block text-xl font-black text-red-800">{row.caller.ct || 0}</span>
+                            </div>
+                            <div className="bg-red-50 p-3 rounded-xl border border-red-100 text-center">
+                                <span className="block text-[10px] font-bold text-red-400 uppercase">Leads/Leadgen</span>
+                                <span className="block text-xl font-black text-red-800">{row.caller.lt || 0}</span>
                             </div>
                         </div>
 
@@ -760,7 +838,12 @@ export default function HodTargetPage() {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 border-4 border-white">
                 <div className={`${activeTab === 'projection' ? 'bg-purple-700' : 'bg-[#103c7f]'} p-5 flex justify-between items-center text-white shrink-0`}>
                     <h3 className="font-bold text-lg uppercase flex items-center gap-2">
-                        <Target size={20} /> {modalMode === 'create' ? 'Set New Target' : 'Update Target'}
+                        <Target size={20} /> {modalMode === 'create' ? `Set New Target - ${(() => {
+                          const monthVal = activeTab === 'projection' ? projectionMonth : (currentDate || new Date().toISOString().slice(0, 7));
+                          if (!monthVal) return new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
+                          const [year, month] = monthVal.split('-');
+                          return new Date(year, parseInt(month) - 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+                        })()}` : 'Update Target'}
                     </h3>
                     <button onClick={() => setIsTargetModalOpen(false)} className="hover:bg-white/20 p-1.5 rounded-full transition"><X size={20}/></button>
                 </div>
@@ -803,11 +886,11 @@ export default function HodTargetPage() {
                         <div className="flex gap-4">
                             <div className="flex-1">
                                 <label className="text-[10px] font-bold text-gray-500 block mb-1">FSE Count</label>
-                                <input type="number" name="fseCount" value={targetForm.fseCount || ''} onChange={handleFormChange} className="w-full p-2 border rounded-lg text-sm font-bold"/>
+                                <input type="number" name="fseCount" value={targetForm.fseCount !== undefined && targetForm.fseCount !== null ? targetForm.fseCount : ''} onChange={handleFormChange} className="w-full p-2 border rounded-lg text-sm font-bold"/>
                             </div>
                             <div className="flex-1">
-                                <label className="text-[10px] font-bold text-gray-500 block mb-1">Caller Count</label>
-                                <input type="number" name="callerCount" value={targetForm.callerCount || ''} onChange={handleFormChange} className="w-full p-2 border rounded-lg text-sm font-bold"/>
+                                <label className="text-[10px] font-bold text-gray-500 block mb-1">Leadgen Count</label>
+                                <input type="number" name="callerCount" value={targetForm.callerCount !== undefined && targetForm.callerCount !== null ? targetForm.callerCount : ''} onChange={handleFormChange} className="w-full p-2 border rounded-lg text-sm font-bold"/>
                             </div>
                         </div>
                     </div>
@@ -815,8 +898,8 @@ export default function HodTargetPage() {
                     <div className="grid grid-cols-2 gap-4">
                         <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Visits/FSE/Month</label><input type="number" name="visitTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.visitTarget || ''} onChange={handleFormChange}/></div>
                         <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Onboards/FSE/Month</label><input type="number" name="onboardTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.onboardTarget || ''} onChange={handleFormChange}/></div>
-                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Calls/Caller/Month</label><input type="number" name="callTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.callTarget || ''} onChange={handleFormChange}/></div>
-                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Leads/Caller/Month</label><input type="number" name="leadTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.leadTarget || ''} onChange={handleFormChange}/></div>
+                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Calls/Leadgen/Month</label><input type="number" name="callTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.callTarget || ''} onChange={handleFormChange}/></div>
+                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Leads/Leadgen/Month</label><input type="number" name="leadTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.leadTarget || ''} onChange={handleFormChange}/></div>
                     </div>
 
                     <div>

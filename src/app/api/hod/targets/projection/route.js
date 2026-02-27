@@ -1,7 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
-// GET /api/hod/targets/projection - Fetch targets for a specific month
+// GET - Fetch projection targets for HOD
 export async function GET(request) {
   try {
     // Authentication
@@ -17,14 +17,14 @@ export async function GET(request) {
 
     // Get query parameters
     const { searchParams } = new URL(request.url)
-    const month = searchParams.get('month') // YYYY-MM-DD format (optional)
+    const month = searchParams.get('month') // YYYY-MM-DD format
 
-    // Get managers under this HOD
+    // Fetch managers under this HOD by checking hod_id field
     const { data: managers, error: managersError } = await supabaseServer
       .from('users')
-      .select('id:user_id, name, email, sector, region')
+      .select('user_id, name, email, role, region, sector, manager_id, hod_id')
       .eq('hod_id', user.id)
-      .contains('role', ['MANAGER'])
+      .order('name')
 
     if (managersError) {
       console.error('Managers fetch error:', managersError)
@@ -34,79 +34,68 @@ export async function GET(request) {
       }, { status: 500 })
     }
 
-    // Get existing targets - filter by month if provided, otherwise get all
-    let targetsQuery = supabaseServer
-      .from('hod_sm_targets')
-      .select('*')
-      .eq('created_by', user.id)
-    
-    // If month is provided, filter by month
-    if (month) {
-      targetsQuery = targetsQuery.eq('month', month)
-    }
-    
-    const { data: targets, error: targetsError } = await targetsQuery
-
-    if (targetsError) {
-      console.error('Targets fetch error:', targetsError)
-      return NextResponse.json({
-        error: 'Failed to fetch targets',
-        details: targetsError.message
-      }, { status: 500 })
-    }
-
-    // Get counts for each manager
-    const managersWithCounts = await Promise.all(managers?.map(async (manager) => {
+    // Format managers for response with FSE and Caller counts
+    const managersList = await Promise.all((managers || []).map(async (mgr) => {
       // Count FSEs under this manager
       const { count: fseCount } = await supabaseServer
         .from('users')
         .select('*', { count: 'exact', head: true })
-        .eq('manager_id', manager.id)
+        .eq('manager_id', mgr.user_id)
         .contains('role', ['FSE'])
-
-      // Count LeadGens under this manager
-      const { count: leadGenCount } = await supabaseServer
+      
+      // Count Callers/Leadgens under this manager
+      const { count: callerCount } = await supabaseServer
         .from('users')
         .select('*', { count: 'exact', head: true })
-        .eq('manager_id', manager.id)
+        .eq('manager_id', mgr.user_id)
         .contains('role', ['LEADGEN'])
-
-      const managerTargets = targets?.find(t => t.sm_id === manager.id)
+      
       return {
-        id: manager.id,
-        name: manager.name,
-        email: manager.email,
-        sector: manager.sector,
-        region: manager.region,
+        id: mgr.user_id,
+        name: mgr.name,
+        email: mgr.email,
+        region: mgr.region || '',
+        sector: mgr.sector || '',
         fseCount: fseCount || 0,
-        leadGenCount: leadGenCount || 0,
-        targets: managerTargets ? {
-          fse_count: managerTargets.fse_count,
-          callers_count: managerTargets.callers_count,
-          total_visits: managerTargets.total_visits,
-          total_onboards: managerTargets.total_onboards,
-          total_calls: managerTargets.total_calls,
-          total_leads: managerTargets.total_leads,
-          working_days: managerTargets.working_days,
-          "visits/fse": managerTargets["visits/fse"],
-          "onboard/fse": managerTargets["onboard/fse"],
-          "calls/caller": managerTargets["calls/caller"],
-          "leads/caller": managerTargets["leads/caller"]
-        } : null
+        callerCount: callerCount || 0
       }
-    }) || [])
+    }))
+
+    // Get manager IDs under this HOD
+    const managerIds = (managers || []).map(m => m.user_id)
+
+    // Fetch all projection targets (all months) for these managers
+    let targetsQuery = supabaseServer
+      .from('hod_sm_targets')
+      .select('*')
+      .in('sm_id', managerIds.length > 0 ? managerIds : [''])
+      .order('month', { ascending: false })
+
+    if (month) {
+      targetsQuery = targetsQuery.eq('month', month)
+    }
+
+    const { data: targets, error: targetsError } = await targetsQuery
+
+    if (targetsError) {
+      console.error('Projection targets fetch error:', targetsError)
+      return NextResponse.json({
+        error: 'Failed to fetch projection targets',
+        details: targetsError.message
+      }, { status: 500 })
+    }
 
     return NextResponse.json({
       success: true,
       data: {
-        managers: managersWithCounts,
-        month: month,
+        month: month || null,
+        managers: managersList,
         targets: targets || []
       }
     })
 
   } catch (error) {
-    console.error('HOD targets projection GET error:', error)
+    console.error('HOD projection targets GET error:', error)
     return NextResponse.json({
       error: 'Internal server error',
       details: error.message

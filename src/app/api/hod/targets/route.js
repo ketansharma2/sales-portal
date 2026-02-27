@@ -1,6 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
+// GET - Fetch all HOD targets (with optional month filter)
 export async function GET(request) {
   try {
     // Authentication
@@ -18,12 +19,14 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url)
     const month = searchParams.get('month') // YYYY-MM-DD format
 
-    // Get managers under this HOD
-    const { data: managers, error: managersError } = await supabaseServer
+    // Fetch managers under this HOD by checking hod_id field
+    let managersQuery = supabaseServer
       .from('users')
-      .select('user_id, name, email, sector, region')
+      .select('user_id, name, email, role, region, sector, manager_id, hod_id')
       .eq('hod_id', user.id)
-      .contains('role', ['MANAGER'])
+      .order('name')
+
+    const { data: managers, error: managersError } = await managersQuery
 
     if (managersError) {
       console.error('Managers fetch error:', managersError)
@@ -33,11 +36,24 @@ export async function GET(request) {
       }, { status: 500 })
     }
 
-    // Get existing targets for the month
+    // Format managers for response
+    const managersList = (managers || []).map(mgr => ({
+      id: mgr.user_id,
+      name: mgr.name,
+      email: mgr.email,
+      region: mgr.region || '',
+      sector: mgr.sector || ''
+    }))
+
+    // Get manager IDs under this HOD
+    const managerIds = (managers || []).map(m => m.user_id)
+
+    // Fetch targets for these managers only
     let targetsQuery = supabaseServer
       .from('hod_sm_targets')
       .select('*')
-      .eq('created_by', user.id)
+      .in('sm_id', managerIds.length > 0 ? managerIds : [''])
+      .order('month', { ascending: false })
 
     if (month) {
       targetsQuery = targetsQuery.eq('month', month)
@@ -53,52 +69,10 @@ export async function GET(request) {
       }, { status: 500 })
     }
 
-    // Get counts for each manager
-    const managersWithCounts = await Promise.all(managers?.map(async (manager) => {
-      // Count FSEs under this manager
-      const { count: fseCount, error: fseError } = await supabaseServer
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-        .eq('manager_id', manager.user_id)
-        .contains('role', ['FSE'])
-
-      // Count LeadGens under this manager
-      const { count: leadGenCount, error: leadGenError } = await supabaseServer
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-        .eq('manager_id', manager.user_id)
-        .contains('role', ['LEADGEN'])
-
-      const managerTargets = targets?.find(t => t.sm_id === manager.user_id)
-      return {
-        id: manager.user_id,
-        name: manager.name,
-        email: manager.email,
-        sector: manager.sector,
-        region: manager.region,
-        fseCount: fseCount || 0,
-        leadGenCount: leadGenCount || 0,
-        targets: managerTargets ? {
-          fse_count: managerTargets.fse_count,
-          callers_count: managerTargets.callers_count,
-          total_visits: managerTargets.total_visits,
-          total_onboards: managerTargets.total_onboards,
-          total_calls: managerTargets.total_calls,
-          total_leads: managerTargets.total_leads,
-          working_days: managerTargets.working_days,
-          "visits/fse": managerTargets["visits/fse"],
-          "onboard/fse": managerTargets["onboard/fse"],
-          "calls/caller": managerTargets["calls/caller"],
-          "leads/caller": managerTargets["leads/caller"]
-        } : null
-      }
-    }) || [])
-
     return NextResponse.json({
       success: true,
       data: {
-        managers: managersWithCounts,
-        month: month || new Date().toISOString().split('T')[0].substring(0, 7) + '-01', // First day of current month
+        managers: managersList,
         targets: targets || []
       }
     })
@@ -112,6 +86,7 @@ export async function GET(request) {
   }
 }
 
+// POST - Create new targets
 export async function POST(request) {
   try {
     // Authentication
@@ -127,51 +102,56 @@ export async function POST(request) {
 
     const { month, working_days, targets } = await request.json()
 
-    if (!month || !working_days || !Array.isArray(targets)) {
+    if (!month || !Array.isArray(targets) || targets.length === 0) {
       return NextResponse.json({
-        error: 'Month, working_days, and targets array are required'
+        error: 'Month and targets array are required'
       }, { status: 400 })
     }
 
-    // Check if target already exists for this manager and month
-    const existingTarget = await supabaseServer
+    // Check if targets already exist for this month and manager(s)
+    const smIds = targets.map(t => t.sm_id)
+    const { data: existingTargets, error: checkError } = await supabaseServer
       .from('hod_sm_targets')
-      .select('id')
-      .eq('created_by', user.id)
+      .select('month, sm_id')
       .eq('month', month)
-      .eq('sm_id', targets[0].sm_id)
-      .single()
+      .in('sm_id', smIds)
 
-    if (existingTarget.data) {
+    if (checkError) {
+      console.error('Check existing targets error:', checkError)
+    }
+
+    if (existingTargets && existingTargets.length > 0) {
+      // Find which manager already has a target
+      const existingManagerIds = existingTargets.map(et => et.sm_id)
+      const existingManagers = targets.filter(t => existingManagerIds.includes(t.sm_id))
+      
       return NextResponse.json({
-        error: 'Target already exists for this manager and month. Please use edit mode to update.'
-      }, { status: 409 })
+        error: 'Target already exists for this month',
+        details: `Manager(s) already have targets for ${month}. Please use edit mode to update.`,
+        existing_managers: existingManagers.map(t => t.sm_id)
+      }, { status: 400 })
     }
 
-    // Validate targets array (only required columns that exist in DB)
-    for (const target of targets) {
-      if (target.sm_id == null || target.total_visits == null) {
-        return NextResponse.json({
-          error: 'Each target must have sm_id and total_visits'
-        }, { status: 400 })
-      }
-    }
-
-    // For POST (create): Simply insert new target - no deletion
-    // Insert new targets (only core columns that exist in database)
+    // Prepare targets for insertion
     const targetsToInsert = targets.map(target => ({
       month,
-      working_days,
+      working_days: working_days || 24,
       sm_id: target.sm_id,
-      fse_count: target.fse_count,
-      callers_count: target.callers_count,
-      total_visits: target.total_visits,
-      total_onboards: target.total_onboards,
-      total_calls: target.total_calls,
-      total_leads: target.total_leads,
+      fse_count: target.fse_count || 0,
+      callers_count: target.callers_count || 0,
+      total_visits: target.total_visits || 0,
+      total_onboards: target.total_onboards || 0,
+      total_calls: target.total_calls || 0,
+      total_leads: target.total_leads || 0,
+      "visits/fse": target["visits/fse"] || 0,
+      "onboard/fse": target["onboard/fse"] || 0,
+      "calls/caller": target["calls/caller"] || 0,
+      "leads/caller": target["leads/caller"] || 0,
+      remarks: target.remarks || '',
       created_by: user.id
     }))
 
+    // Insert new targets
     const { data: insertedTargets, error: insertError } = await supabaseServer
       .from('hod_sm_targets')
       .insert(targetsToInsert)
@@ -188,7 +168,7 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       data: insertedTargets,
-      message: `Targets published for ${targets.length} managers`
+      message: `Targets saved for ${targets.length} managers`
     })
 
   } catch (error) {
@@ -200,6 +180,7 @@ export async function POST(request) {
   }
 }
 
+// PUT - Update existing target
 export async function PUT(request) {
   try {
     // Authentication
@@ -213,29 +194,34 @@ export async function PUT(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { month, working_days, sm_id, targets } = body
+    const { month, working_days, sm_id, targets } = await request.json()
 
-    if (!month || !working_days || !sm_id || !targets) {
+    if (!month || !sm_id) {
       return NextResponse.json({
-        error: 'Month, working_days, sm_id, and targets are required'
+        error: 'Month and sm_id are required'
       }, { status: 400 })
     }
 
-    // Update existing target for this month, HOD, and specific manager
+    // Get the target data to update
+    const targetData = targets || {}
+
+    // Update existing target
     const { data: updatedTarget, error: updateError } = await supabaseServer
       .from('hod_sm_targets')
       .update({
-        month,
-        working_days,
-        fse_count: targets.fse_count,
-        callers_count: targets.callers_count,
-        total_visits: targets.total_visits,
-        total_onboards: targets.total_onboards,
-        total_calls: targets.total_calls,
-        total_leads: targets.total_leads
+        working_days: working_days || 24,
+        fse_count: targetData.fse_count || 0,
+        callers_count: targetData.callers_count || 0,
+        total_visits: targetData.total_visits || 0,
+        total_onboards: targetData.total_onboards || 0,
+        total_calls: targetData.total_calls || 0,
+        total_leads: targetData.total_leads || 0,
+        "visits/fse": targetData["visits/fse"] || 0,
+        "onboard/fse": targetData["onboard/fse"] || 0,
+        "calls/caller": targetData["calls/caller"] || 0,
+        "leads/caller": targetData["leads/caller"] || 0,
+        remarks: targetData.remarks || ''
       })
-      .eq('created_by', user.id)
       .eq('month', month)
       .eq('sm_id', sm_id)
       .select()
@@ -248,9 +234,47 @@ export async function PUT(request) {
       }, { status: 500 })
     }
 
+    // If no target found to update, create new one
+    if (!updatedTarget || updatedTarget.length === 0) {
+      const { data: insertedTarget, error: insertError } = await supabaseServer
+        .from('hod_sm_targets')
+        .insert({
+          month,
+          working_days: working_days || 24,
+          sm_id,
+          fse_count: targetData.fse_count || 0,
+          callers_count: targetData.callers_count || 0,
+          total_visits: targetData.total_visits || 0,
+          total_onboards: targetData.total_onboards || 0,
+          total_calls: targetData.total_calls || 0,
+          total_leads: targetData.total_leads || 0,
+          "visits/fse": targetData["visits/fse"] || 0,
+          "onboard/fse": targetData["onboard/fse"] || 0,
+          "calls/caller": targetData["calls/caller"] || 0,
+          "leads/caller": targetData["leads/caller"] || 0,
+          remarks: targetData.remarks || '',
+          created_by: user.id
+        })
+        .select()
+
+      if (insertError) {
+        console.error('Insert target error:', insertError)
+        return NextResponse.json({
+          error: 'Failed to create target',
+          details: insertError.message
+        }, { status: 500 })
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: insertedTarget[0],
+        message: 'Target created successfully'
+      })
+    }
+
     return NextResponse.json({
       success: true,
-      data: updatedTarget,
+      data: updatedTarget[0],
       message: 'Target updated successfully'
     })
 
