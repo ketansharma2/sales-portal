@@ -227,8 +227,12 @@ export default function SalesPackagesPage() {
           </div>
 
           {/* PDF Footer */}
-          <div className="mt-8 pt-4 border-t border-gray-200 text-center">
-              <p className="text-[14px] font-bold text-gray-700/80 uppercase tracking-widest">Confidential & Proprietary - Maven Jobs India</p>
+          {/* PDF Footer */}
+          <div className="mt-8">
+              <p className="text-[12px] font-bold text-gray-700/80 uppercase tracking-widest text-center mb-4">INR 2000 + GST/candidate as a retention bonus is applicable on all packages</p>
+              <div className="pt-4 border-t border-gray-200 text-center">
+                  <p className="text-[14px] font-bold text-gray-700/80 uppercase tracking-widest">Confidential & Proprietary - Maven Jobs India</p>
+              </div>
           </div>
       </div>
 

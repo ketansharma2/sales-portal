@@ -91,7 +91,7 @@ export default function SalesPackagesPage() {
          <div className="flex gap-3">
             <button 
               onClick={handlePrint}
-              className="bg-gray-600 text-white px-6 py-2 rounded-xl font-bold text-sm shadow-lg hover:bg-gray-700 transition flex items-center gap-2 uppercase tracking-wide hidden"
+              className="bg-gray-600 text-white px-6 hidden py-2 rounded-xl font-bold text-sm shadow-lg hover:bg-gray-700 transition flex items-center gap-2 uppercase tracking-wide"
             >
               <Printer size={16}/> Print Preview
             </button>
@@ -204,8 +204,11 @@ export default function SalesPackagesPage() {
           </div>
 
           {/* PDF Footer */}
-          <div className="mt-8 pt-4 border-t border-gray-200 text-center">
-              <p className="text-[14px] font-bold text-gray-700/80 uppercase tracking-widest">Confidential & Proprietary - Maven Jobs India</p>
+          <div className="mt-8">
+              <p className="text-[12px] font-bold text-gray-700/80 tracking-widest text-center mb-4">INR 2000 + GST/candidate as a retention bonus is applicable on all packages.</p>
+              <div className="pt-4 border-t border-gray-200 text-center">
+                  <p className="text-[14px] font-bold text-gray-700/80 uppercase tracking-widest">Confidential & Proprietary - Maven Jobs India</p>
+              </div>
           </div>
       </div>
 

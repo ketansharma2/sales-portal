@@ -181,6 +181,7 @@ export async function GET(request) {
           corporate_leads_interaction!left (
             id,
             date,
+            created_at,
             status,
             sub_status,
             remarks,
@@ -201,13 +202,21 @@ export async function GET(request) {
         }, { status: 500 })
       }
 
-      // Format the data - sort interactions by date descending to get latest first
+      // Format the data - sort interactions by date descending then created_at descending for same dates
       const formattedLeads = rawData?.map((lead) => {
-        // Sort interactions by date descending (latest first)
+        // Sort interactions by date descending (latest first), then by created_at descending for same dates
         const sortedInteractions = lead.corporate_leads_interaction?.sort((a, b) => {
+          // First compare by date
+          if (!a.date && !b.date) return 0
           if (!a.date) return 1
           if (!b.date) return -1
-          return new Date(b.date) - new Date(a.date)
+          const dateCompare = new Date(b.date) - new Date(a.date)
+          if (dateCompare !== 0) return dateCompare
+          // If dates are same, sort by created_at descending (most recent first)
+          if (!a.created_at && !b.created_at) return 0
+          if (!a.created_at) return 1
+          if (!b.created_at) return -1
+          return new Date(b.created_at) - new Date(a.created_at)
         }) || []
         const latestInteraction = sortedInteractions[0] || null
         

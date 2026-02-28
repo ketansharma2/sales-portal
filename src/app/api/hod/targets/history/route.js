@@ -1,7 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
-// GET - Fetch historical targets for HOD with achievements
+// GET - Fetch past months' targets for HOD's managers with achievements
 export async function GET(request) {
   try {
     // Authentication
@@ -17,224 +17,292 @@ export async function GET(request) {
 
     // Get query parameters
     const { searchParams } = new URL(request.url)
-    const month = searchParams.get('month') // YYYY-MM-DD format
+    const monthParam = searchParams.get('month') // YYYY-MM format (optional)
+    
+    // Get current month to filter out
+    const currentDate = new Date()
+    const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
+    
+    // Determine target months - if monthParam provided, use it, otherwise get all past months
+    let targetMonths = []
+    
+    if (monthParam) {
+      // If specific month requested, only use it if it's a past month
+      if (monthParam < currentMonth) {
+        targetMonths = [monthParam]
+      } else {
+        return NextResponse.json({
+          success: true,
+          data: {
+            month: monthParam,
+            targets: [],
+            members: []
+          }
+        })
+      }
+    } else {
+      // Get last 12 months (excluding current)
+      for (let i = 1; i <= 12; i++) {
+        const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1)
+        const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+        targetMonths.push(month)
+      }
+    }
 
-    // Fetch managers under this HOD by checking hod_id field
-    const { data: managers, error: managersError } = await supabaseServer
+    // Get all managers (SMs) under this HOD
+    const { data: teamMembers, error: membersError } = await supabaseServer
       .from('users')
-      .select('user_id, name, email, role, region, sector, manager_id, hod_id')
-      .eq('hod_id', user.id)
+      .select('user_id, name, role, manager_id')
+      .eq('manager_id', user.id)
       .order('name')
 
-    if (managersError) {
-      console.error('Managers fetch error:', managersError)
+    if (membersError) {
+      console.error('Team members fetch error:', membersError)
       return NextResponse.json({
-        error: 'Failed to fetch managers',
-        details: managersError.message
+        error: 'Failed to fetch team members',
+        details: membersError.message
       }, { status: 500 })
     }
 
-    // Format managers for response
-    const managersList = (managers || []).map(mgr => ({
-      id: mgr.user_id,
-      name: mgr.name,
-      email: mgr.email,
-      region: mgr.region || '',
-      sector: mgr.sector || ''
-    }))
+    // Filter only managers (SM roles)
+    const managerList = (teamMembers || []).filter(u => {
+      const roleStr = Array.isArray(u.role) ? u.role.join(' ') : (u.role || '')
+      return roleStr.toUpperCase().includes('MANAGER') || roleStr.toUpperCase().includes('SM')
+    })
 
-    // Get manager IDs under this HOD
-    const managerIds = (managers || []).map(m => m.user_id)
+    const managerIds = managerList.map(m => m.user_id)
 
-    // Fetch ALL historical targets for these managers (no month filter - frontend will filter)
+    // Fetch targets from hod_sm_targets for past months
     let targetsQuery = supabaseServer
       .from('hod_sm_targets')
       .select('*')
-      .in('sm_id', managerIds.length > 0 ? managerIds : [''])
-      .order('month', { ascending: false })
 
-    if (month) {
-      targetsQuery = targetsQuery.eq('month', month)
+    if (managerIds.length > 0) {
+      targetsQuery = targetsQuery.in('sm_id', managerIds)
     }
 
-    const { data: targets, error: targetsError } = await targetsQuery
+    const { data: allTargets, error: targetsError } = await targetsQuery
 
     if (targetsError) {
-      console.error('Historical targets fetch error:', targetsError)
+      console.error('Targets fetch error:', targetsError)
       return NextResponse.json({
-        error: 'Failed to fetch historical targets',
+        error: 'Failed to fetch targets',
         details: targetsError.message
       }, { status: 500 })
     }
 
-    // Get all managers with their sector info
-    const managerSectors = {}
-    ;(managers || []).forEach(mgr => {
-      managerSectors[mgr.user_id] = mgr.sector || ''
+    // Filter targets for past months only
+    const pastTargets = (allTargets || []).filter(t => {
+      if (!t.month) return false
+      const targetMonth = t.month.substring(0, 7) // YYYY-MM
+      return targetMonth < currentMonth && targetMonths.includes(targetMonth)
     })
 
-    // Get all FSEs and Leadgens under these managers - fetch all and filter in JS
-    const { data: allUsersUnderManagers, error: usersError } = await supabaseServer
-      .from('users')
-      .select('user_id, manager_id, sector, role')
-      .in('manager_id', managerIds.length > 0 ? managerIds : [''])
-
-    console.log('Users under managers:', { managerIds, usersError, count: allUsersUnderManagers?.length })
-    
-    // Filter to get FSEs - handle role as string or array (FSE is uppercase in DB)
-    const allFSEs = (allUsersUnderManagers || []).filter(u => {
-      const role = u.role
-      if (Array.isArray(role)) return role.includes('FSE') || role.includes('fse')
-      if (typeof role === 'string') return role.toUpperCase().includes('FSE')
-      return false
+    // Create a map of targets by sm_id and month
+    const targetsMap = {}
+    pastTargets.forEach(t => {
+      const key = `${t.sm_id}_${t.month.substring(0, 7)}`
+      targetsMap[key] = t
     })
-    
-    // Filter to get Leadgens - handle role as string or array (LEADGEN is uppercase in DB)
-    const allLeadgens = (allUsersUnderManagers || []).filter(u => {
-      const role = u.role
-      if (Array.isArray(role)) return role.includes('LEADGEN') || role.includes('Leadgen')
-      if (typeof role === 'string') return role.toUpperCase().includes('LEADGEN')
-      return false
-    })
-    
-    console.log('Filtered FSEs:', { count: allFSEs?.length })
-    console.log('Filtered Leadgens:', { count: allLeadgens?.length })
 
-    // Group FSEs by manager
-    const fsesByManager = {}
-    ;(allFSEs || []).forEach(fse => {
-      if (!fsesByManager[fse.manager_id]) {
-        fsesByManager[fse.manager_id] = []
+    // Get unique months from targets
+    const monthsWithTargets = [...new Set(pastTargets.map(t => t.month.substring(0, 7)))]
+
+    // Get all FSEs and LeadGens under managers
+    let allSubMembers = []
+    if (managerIds.length > 0) {
+      const { data: subMembers, error: subError } = await supabaseServer
+        .from('users')
+        .select('user_id, name, role, manager_id')
+        .in('manager_id', managerIds)
+        .order('name')
+
+      if (!subError && subMembers) {
+        allSubMembers = subMembers
       }
-      fsesByManager[fse.manager_id].push(fse.user_id)
+    }
+
+    const fseList = allSubMembers.filter(u => {
+      const roleStr = Array.isArray(u.role) ? u.role.join(' ') : (u.role || '')
+      return roleStr.toUpperCase().includes('FSE')
+    })
+    
+    const leadgenList = allSubMembers.filter(u => {
+      const roleStr = Array.isArray(u.role) ? u.role.join(' ') : (u.role || '')
+      return roleStr.toUpperCase().includes('LEADGEN')
     })
 
-    // Group Leadgens by manager
-    const leadgensByManager = {}
-    ;(allLeadgens || []).forEach(lg => {
-      if (!leadgensByManager[lg.manager_id]) {
-        leadgensByManager[lg.manager_id] = []
-      }
-      leadgensByManager[lg.manager_id].push(lg.user_id)
-    })
+    const fseIds = fseList.map(f => f.user_id)
+    const leadgenIds = leadgenList.map(l => l.user_id)
 
-    // Calculate achievements for each target
-    const targetsWithAchievements = await Promise.all((targets || []).map(async (target) => {
-      const managerId = target.sm_id
-      const sector = managerSectors[managerId] || ''
-      const fseIds = fsesByManager[managerId] || []
-      const leadgenIds = leadgensByManager[managerId] || []
+    // Build achievements for each month
+    const achievementsMap = {}
 
-      // Get month start and end
-      const targetMonth = target.month ? target.month.substring(0, 7) : null // YYYY-MM
-      if (!targetMonth) return target
-
-      const year = parseInt(targetMonth.split('-')[0])
-      const monthNum = parseInt(targetMonth.split('-')[1])
+    // Process each month
+    for (const month of monthsWithTargets) {
+      const year = parseInt(month.split('-')[0])
+      const monthNum = parseInt(month.split('-')[1])
       const startDate = `${year}-${String(monthNum).padStart(2, '0')}-01`
       const lastDay = new Date(year, monthNum, 0).getDate()
       const endDate = `${year}-${String(monthNum).padStart(2, '0')}-${lastDay}`
 
-      let achievedVisits = 0
-      let achievedOnboards = 0
-      let achievedCalls = 0
-      let achievedLeads = 0
+      const monthKey = month
 
-      // ========== FSE Achievements (Visits & Onboards) ==========
+      // ========== Calculate FSE Achievements (Visits & Onboards) ==========
       if (fseIds.length > 0) {
-        const tableName = sector === 'Corporate' ? 'corporate_clients_interaction' : 'domestic_clients_interaction'
-
         const { data: interactions, error: intError } = await supabaseServer
-          .from(tableName)
-          .select('client_id, status, contact_date, contact_mode')
+          .from('domestic_clients_interaction')
+          .select('user_id, client_id, status, contact_date, contact_mode')
           .in('user_id', fseIds)
           .gte('contact_date', startDate)
           .lte('contact_date', endDate)
 
-        if (intError) {
-          console.error(`Interactions fetch error for ${tableName}:`, intError)
-        } else if (interactions && interactions.length > 0) {
-          const visitsSet = new Set()
-          const clientLatestStatus = {}
-
+        if (!intError && interactions && interactions.length > 0) {
+          const clientsData = {}
           interactions.forEach(int => {
+            if (!clientsData[int.user_id]) {
+              clientsData[int.user_id] = {}
+            }
+            
             const dateKey = `${int.contact_date}-${int.client_id}`
             const mode = int.contact_mode?.toLowerCase() || ''
-
+            
             if (mode === 'visit') {
-              visitsSet.add(dateKey)
+              if (!clientsData[int.user_id][dateKey]) {
+                clientsData[int.user_id][dateKey] = true
+              }
             }
-
-            if (!clientLatestStatus[int.client_id] || int.contact_date > clientLatestStatus[int.client_id].date) {
-              clientLatestStatus[int.client_id] = {
+            
+            const statusKey = `${int.client_id}_status`
+            if (!clientsData[int.user_id][statusKey] || 
+                int.contact_date > clientsData[int.user_id][statusKey].date) {
+              clientsData[int.user_id][statusKey] = {
                 status: int.status,
                 date: int.contact_date
               }
             }
           })
 
-          achievedVisits = visitsSet.size
-          achievedOnboards = Object.values(clientLatestStatus).filter(
-            c => c.status === 'Onboarded'
-          ).length
+          // Group by manager
+          fseList.forEach(fse => {
+            const managerId = fse.manager_id
+            const key = `${managerId}_${monthKey}`
+            const clients = clientsData[fse.user_id] || {}
+            const visits = Object.keys(clients).filter(k => !k.endsWith('_status')).length
+            const onboards = Object.keys(clients)
+              .filter(k => k.endsWith('_status') && clients[k].status === 'Onboarded')
+              .length
+            
+            if (!achievementsMap[key]) {
+              achievementsMap[key] = { visits: 0, onboards: 0, calls: 0, leads: 0 }
+            }
+            achievementsMap[key].visits += visits
+            achievementsMap[key].onboards += onboards
+          })
         }
       }
 
-      // ========== Leadgen Achievements (Calls & Leads) ==========
+      // ========== Calculate LeadGen Achievements (Calls & Leads) ==========
       if (leadgenIds.length > 0) {
-        const interactionTable = sector === 'Corporate' ? 'corporate_leads_interaction' : 'domestic_leads_interaction'
-        const leadsTable = sector === 'Corporate' ? 'corporate_leadgen_leads' : 'domestic_leadgen_leads'
-
-        // Fetch interactions for calls count
         const { data: interactions, error: intError } = await supabaseServer
-          .from(interactionTable)
-          .select('client_id, date')
+          .from('domestic_leads_interaction')
+          .select('leadgen_id, client_id, date')
           .in('leadgen_id', leadgenIds)
           .gte('date', startDate)
           .lte('date', endDate)
 
-        if (intError) {
-          console.error(`Leadgen interactions fetch error for ${interactionTable}:`, intError)
-        } else if (interactions && interactions.length > 0) {
-          // Count DISTINCT client_id per unique date = Total Calls
-          const callsSet = new Set()
+        if (!intError && interactions && interactions.length > 0) {
           interactions.forEach(int => {
-            callsSet.add(`${int.client_id}-${int.date}`)
+            const lg = leadgenList.find(l => l.user_id === int.leadgen_id)
+            if (lg) {
+              const key = `${lg.manager_id}_${monthKey}`
+              if (!achievementsMap[key]) {
+                achievementsMap[key] = { visits: 0, onboards: 0, calls: 0, leads: 0 }
+              }
+              achievementsMap[key].calls++
+            }
           })
-          achievedCalls = callsSet.size
         }
 
-        // Fetch leads: sent_to_sm = TRUE and lock_date in period
         const { data: leads, error: leadsError } = await supabaseServer
-          .from(leadsTable)
-          .select('client_id')
+          .from('domestic_leadgen_leads')
+          .select('client_id, leadgen_id')
           .in('leadgen_id', leadgenIds)
           .eq('sent_to_sm', true)
           .gte('lock_date', startDate)
           .lte('lock_date', endDate)
 
-        if (leadsError) {
-          console.error(`Leadgen leads fetch error for ${leadsTable}:`, leadsError)
-        } else if (leads && leads.length > 0) {
-          achievedLeads = leads.length
+        if (!leadsError && leads && leads.length > 0) {
+          leads.forEach(lead => {
+            const lg = leadgenList.find(l => l.user_id === lead.leadgen_id)
+            if (lg) {
+              const key = `${lg.manager_id}_${monthKey}`
+              if (!achievementsMap[key]) {
+                achievementsMap[key] = { visits: 0, onboards: 0, calls: 0, leads: 0 }
+              }
+              achievementsMap[key].leads++
+            }
+          })
         }
       }
+    }
 
-      return {
-        ...target,
-        achieved_visits: achievedVisits,
-        achieved_onboards: achievedOnboards,
-        achieved_calls: achievedCalls,
-        achieved_leads: achievedLeads
-      }
-    }))
+    // Build the response with targets and achievements
+    const managersWithTargets = []
+
+    // Add managers with their past targets
+    managerList.forEach(manager => {
+      targetMonths.forEach(month => {
+        const key = `${manager.user_id}_${month}`
+        const target = targetsMap[key]
+        const achievements = achievementsMap[key] || { visits: 0, onboards: 0, calls: 0, leads: 0 }
+        
+        if (target) {
+          managersWithTargets.push({
+            id: `${manager.user_id}_${month}`,
+            user_id: manager.user_id,
+            sm_id: manager.user_id,
+            name: manager.name,
+            role: 'Manager',
+            month: month,
+            fseCount: target.fse_count || 0,
+            callersCount: target.callers_count || 0,
+            visitsPerFse: target["visits/fse"] || 0,
+            onboardPerFse: target["onboard/fse"] || 0,
+            callsPerCaller: target["calls/caller"] || 0,
+            leadsPerCaller: target["leads/caller"] || 0,
+            totalVisits: target.total_visits || 0,
+            totalOnboards: target.total_onboards || 0,
+            totalCalls: target.total_calls || 0,
+            totalLeads: target.total_leads || 0,
+            workingDays: target.working_days || 24,
+            remarks: target.remarks || '',
+            achieved_visits: achievements.visits,
+            achieved_onboards: achievements.onboards,
+            achieved_calls: achievements.calls,
+            achieved_leads: achievements.leads
+          })
+        }
+      })
+    })
+
+    // Sort by month (most recent first)
+    managersWithTargets.sort((a, b) => b.month.localeCompare(a.month))
 
     return NextResponse.json({
       success: true,
       data: {
-        month: month || null,
-        managers: managersList,
-        targets: targetsWithAchievements
+        month: monthParam || currentMonth,
+        targets: managersWithTargets,
+        managers: (teamMembers || []).map(m => {
+          const roleStr = Array.isArray(m.role) ? m.role.join(' ') : (m.role || '')
+          return {
+            id: m.user_id,
+            name: m.name,
+            role: roleStr.toUpperCase().includes('MANAGER') || roleStr.toUpperCase().includes('SM') ? 'Manager' : 
+                  roleStr.toUpperCase().includes('FSE') ? 'FSE' : 'LeadGen'
+          }
+        })
       }
     })
 

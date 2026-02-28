@@ -64,6 +64,12 @@ export async function POST(request) {
       }
     }
 
+    // Check if role contains JOBPOST - set redirect URL without sector interference
+    const roleString = Array.isArray(profileData.role) ? profileData.role.join(' ') : profileData.role
+    if (roleString.toUpperCase().includes('JOBPOST')) {
+      responseData.redirectUrl = '/jobpost'
+    }
+
     if (profileData.role.length === 1) {
       // Single role: set current_role and proceed
       responseData.user.current_role = profileData.role[0]
@@ -73,6 +79,11 @@ export async function POST(request) {
       responseData.requiresSelection = true
       responseData.availableRoles = profileData.role
       responseData.user.role = profileData.role
+      
+      // Check if JOBPOST is in available roles
+      if (roleString.toUpperCase().includes('JOBPOST')) {
+        responseData.redirectUrl = '/jobpost'
+      }
     }
 
     return NextResponse.json(responseData)

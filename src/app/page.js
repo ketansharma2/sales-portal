@@ -38,10 +38,21 @@ export default function LoginPage() {
           setUserData(data.user);
           setSessionData(data.session);
           setShowRoleSelector(true);
+          
+          // If redirectUrl is provided (e.g., JOBPOST role), store it
+          if (data.redirectUrl) {
+            localStorage.setItem('redirectUrl', data.redirectUrl);
+          }
         } else {
           // Single role: proceed
           localStorage.setItem('user', JSON.stringify(data.user));
           localStorage.setItem('session', JSON.stringify(data.session));
+
+          // Check for redirectUrl first (e.g., JOBPOST role)
+          if (data.redirectUrl) {
+            router.push(data.redirectUrl);
+            return;
+          }
 
           // Redirect based on sector and current_role
           let redirectPath;
@@ -72,6 +83,14 @@ export default function LoginPage() {
     const updatedUser = { ...userData, current_role: selectedRole };
     localStorage.setItem('user', JSON.stringify(updatedUser));
     localStorage.setItem('session', JSON.stringify(sessionData));
+
+    // Check for stored redirectUrl first (e.g., JOBPOST role)
+    const redirectUrl = localStorage.getItem('redirectUrl');
+    if (redirectUrl) {
+      localStorage.removeItem('redirectUrl');
+      router.push(redirectUrl);
+      return;
+    }
 
     // Redirect based on sector and selectedRole
     let redirectPath;
