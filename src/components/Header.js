@@ -95,6 +95,10 @@ export default function Header() {
       roleLabel = "Operation Head";
       pageSubtitle = "OPERATIONS CONTROL";
       break;
+    case "jobpost":
+      roleLabel = "Job Poster";
+      pageSubtitle = "JOB PUBLISHING";
+      break;
     default:
       roleLabel = "Team Member";
       pageSubtitle = "WORK DASHBOARD";

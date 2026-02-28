@@ -4,7 +4,7 @@ import Image from "next/image";
 import { 
   FileText, Plus, Send, Download, Edit, 
   X, CheckCircle, Briefcase, Users, Phone, Mail,
-  MapPin, IndianRupee, Calendar
+  MapPin, IndianRupee, Calendar , Clock
 } from "lucide-react";
 
 export default function JobRequirementsPage() {
@@ -316,9 +316,9 @@ export default function JobRequirementsPage() {
       )}
 
       {/* --- 5. VIEW APPLICANTS MODAL --- */}
-      {isCVModalOpen && selectedJD && (
+{isCVModalOpen && selectedJD && (
           <div className="fixed inset-0 bg-[#103c7f]/50 backdrop-blur-sm flex justify-center items-center z-[9999] p-4 print:hidden">
-              <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95 border-4 border-white relative z-[10000]">
+              <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl h-[70vh] flex flex-col overflow-hidden animate-in zoom-in-95 border-4 border-white relative z-[10000]">
                   
                   {/* 1. Header */}
                   <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-start bg-white shrink-0">
@@ -338,77 +338,30 @@ export default function JobRequirementsPage() {
                                 </div>
                             </div>
                         </div>
-                        <button onClick={() => setIsCVModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-1 transition bg-gray-50 hover:bg-gray-100 rounded-full">
-                            <X size={24} />
+                        <button onClick={() => setIsCVModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-2 transition bg-gray-50 hover:bg-gray-100 rounded-full">
+                            <X size={20} />
                         </button>
                   </div>
 
-                  {/* 2. Top Info Cards */}
-                  <div className="px-8 py-6 bg-gray-50/50 border-b border-gray-100 shrink-0">
-                        <div className="flex gap-4">
-                            <div className="bg-white border border-gray-100 rounded-xl p-3 min-w-[140px] shadow-sm flex items-center gap-3">
-                                <div className="bg-purple-50 p-2 rounded-lg text-purple-600"><Users size={18}/></div>
-                                <div>
-                                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Total CVs</p>
-                                    <p className="text-lg font-black text-gray-800">{selectedJD.cv_count}</p>
-                                </div>
-                            </div>
-                            <div className="bg-white border border-gray-100 rounded-xl p-3 min-w-[140px] shadow-sm flex items-center gap-3">
-                                <div className="bg-green-50 p-2 rounded-lg text-green-600"><CheckCircle size={18}/></div>
-                                <div>
-                                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Shortlisted</p>
-                                    <p className="text-lg font-black text-gray-800">
-                                        {selectedJD.applications?.filter(app => app.status === 'Shortlisted').length || 0}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                  </div>
+                  {/* 2. Coming Soon Content */}
+                  <div className="flex-1 bg-gray-50 flex flex-col items-center justify-center p-8 relative">
+                      
+                      {/* Background decorative pattern (optional) */}
+                      <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(#103c7f 2px, transparent 2px)', backgroundSize: '30px 30px' }}></div>
 
-                  {/* 3. List */}
-                  <div className="flex-1 bg-white p-0 overflow-y-auto custom-scrollbar relative">
-                      <div className="overflow-x-auto">
-                          <table className="w-full text-left min-w-[600px]">
-                              <thead className="bg-white text-[10px] font-bold text-gray-400 uppercase sticky top-0 z-10 border-b border-gray-100 shadow-sm">
-                                  <tr>
-                                      <th className="px-8 py-4">Candidate Name</th>
-                                      <th className="px-8 py-4">Contact Info</th>
-                                      <th className="px-8 py-4">Applied Date</th>
-                                      <th className="px-8 py-4 text-center">Status</th>
-                                      <th className="px-8 py-4 text-center">Resume</th>
-                                  </tr>
-                              </thead>
-                              <tbody className="text-xs divide-y divide-gray-50">
-                                  {selectedJD.applications && selectedJD.applications.length > 0 ? (
-                                      selectedJD.applications.map((cv, idx) => (
-                                          <tr key={idx} className="hover:bg-blue-50/20 transition duration-150 group">
-                                              <td className="px-8 py-4 font-bold text-[#103c7f] whitespace-nowrap">{cv.name}</td>
-                                              <td className="px-8 py-4">
-                                                  <div className="flex flex-col gap-0.5">
-                                                      <span className="font-bold text-gray-600 flex items-center gap-1"><Phone size={10}/> {cv.phone}</span>
-                                                      <span className="text-[10px] text-gray-400 flex items-center gap-1"><Mail size={10}/> {cv.email}</span>
-                                                  </div>
-                                              </td>
-                                              <td className="px-8 py-4 text-gray-500 font-mono whitespace-nowrap">{cv.date}</td>
-                                              <td className="px-8 py-4 text-center">
-                                                  <span className={`px-2 py-1 rounded text-[9px] font-bold uppercase ${
-                                                      cv.status === 'Shortlisted' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'
-                                                  }`}>
-                                                      {cv.status}
-                                                  </span>
-                                              </td>
-                                              <td className="px-8 py-4 text-center">
-                                                  <button className="text-blue-600 hover:text-blue-800 font-bold flex items-center justify-center gap-1 mx-auto bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition whitespace-nowrap">
-                                                      <Download size={14}/> View PDF
-                                                  </button>
-                                              </td>
-                                          </tr>
-                                      ))
-                                  ) : (
-                                      <tr><td colSpan="5" className="p-12 text-center text-gray-400 uppercase font-bold tracking-widest">No Applications Yet</td></tr>
-                                  )}
-                              </tbody>
-                          </table>
+                      <div className="bg-white p-10 rounded-3xl border border-gray-100 shadow-xl flex flex-col items-center text-center max-w-lg z-10 animate-in slide-in-from-bottom-4 duration-500">
+                          
+                          <div className="w-20 h-20 bg-gradient-to-br from-blue-50 to-blue-100 rounded-full flex items-center justify-center text-[#103c7f] mb-6 shadow-inner border border-blue-200">
+                              <Clock size={40} />
+                          </div>
+                          
+                          <h3 className="text-2xl font-black text-gray-800 uppercase tracking-tight mb-3">
+                              Feature Coming Soon!
+                          </h3>
+                          
+                        
+                         
+                          
                       </div>
                   </div>
 

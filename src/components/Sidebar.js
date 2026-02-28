@@ -107,6 +107,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     menuItems = [
     { name: "CRM Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "Onboardings", href: `${roleBaseHref}/onboard`, icon: <UserPlus size={20} /> }, // For New Handovers
+      { name: "JD Management", href: `${roleBaseHref}/jd`, icon: <FileText size={20} /> }, // Naya JD Page Tab
       { name: "Billing & Revenue", href: `${roleBaseHref}/revenue`, icon: <IndianRupee size={20} /> }, // Direct Access to Finance
     ];
   }
@@ -132,7 +133,13 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       { name: "Reimbursement", href: "/operations/reimbursement", icon: <Wallet size={20} /> },
     ];
   }
-
+  // ---> NEW ROLE: JOB POSTER <---
+  else if (currentRole === "jobpost") {
+    menuItems = [
+      { name: "Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
+      { name: "Job Posting", href: `${roleBaseHref}/post`, icon: <FileText size={20} /> },
+    ];
+  }
   // DEFAULT
   else {
     menuItems = [{ name: "Portal Home", href: "/", icon: <LayoutGrid size={20} /> }];

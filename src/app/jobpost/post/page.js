@@ -80,7 +80,7 @@ export default function JobPosterPanel() {
 
   // New CV Log Form State
   const getTodayDate = () => new Date().toISOString().split('T')[0];
-  const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: "" };
+const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: "", callingCount: "" };
   const [newLog, setNewLog] = useState(initialLogForm);
 
   const platformOptions = ["Naukri.com", "LinkedIn", "Indeed", "Apna", "Internshala", "Direct/Email", "Other"];
@@ -330,22 +330,27 @@ export default function JobPosterPanel() {
 
                   <div className="flex-1 overflow-y-auto p-6 bg-gray-50 custom-scrollbar flex flex-col gap-6">
                         
-                        <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 border-b pb-2 flex items-center gap-1"><PlusCircle size={14}/> Log New CVs</h4>
+                      <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 border-b pb-2 flex items-center gap-1"><PlusCircle size={14}/> Log Sourcing & Calling</h4>
                             <div className="flex flex-col md:flex-row gap-3 items-end">
-                                <div className="w-full md:w-1/3">
+                                <div className="w-full md:w-[20%]">
                                     <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Received Date</label>
                                     <input type="date" className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold outline-none focus:border-indigo-600" value={newLog.date} onChange={(e) => setNewLog({...newLog, date: e.target.value})}/>
                                 </div>
-                                <div className="w-full md:w-1/3">
+                                <div className="w-full md:w-[30%]">
                                     <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Source / Platform</label>
                                     <select className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold outline-none focus:border-indigo-600" value={newLog.platform} onChange={(e) => setNewLog({...newLog, platform: e.target.value})}>
                                         {platformOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                     </select>
                                 </div>
-                                <div className="w-full md:w-1/3">
-                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Number of CVs</label>
-                                    <input type="number" min="1" placeholder="e.g. 5" className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold outline-none focus:border-indigo-600" value={newLog.count} onChange={(e) => setNewLog({...newLog, count: e.target.value})}/>
+                                <div className="w-full md:w-[20%]">
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">CVs Received</label>
+                                    <input type="number" min="0" placeholder="e.g. 5" className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold outline-none focus:border-indigo-600" value={newLog.count} onChange={(e) => setNewLog({...newLog, count: e.target.value})}/>
+                                </div>
+                                {/* NEW INPUT FOR CALLING */}
+                                <div className="w-full md:w-[20%]">
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Calling Done</label>
+                                    <input type="number" min="0" placeholder="e.g. 10" className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold outline-none focus:border-indigo-600" value={newLog.callingCount} onChange={(e) => setNewLog({...newLog, callingCount: e.target.value})}/>
                                 </div>
                                 <button onClick={handleAddLog} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-5 py-2 rounded-lg transition shadow-md w-full md:w-auto shrink-0 whitespace-nowrap">
                                     Add Data
@@ -368,6 +373,7 @@ export default function JobPosterPanel() {
                                                 <th className="p-3">Date</th>
                                                 <th className="p-3">Platform / Source</th>
                                                 <th className="p-3 text-center">CVs Received</th>
+                                                <th className="p-3 text-center">Calling Done</th> 
                                                 <th className="p-3 text-center">Action</th>
                                             </tr>
                                         </thead>
@@ -376,7 +382,8 @@ export default function JobPosterPanel() {
                                                 <tr key={log.id} className="hover:bg-gray-50">
                                                     <td className="p-3 text-gray-600 font-mono text-xs">{log.date}</td>
                                                     <td className="p-3 font-bold text-gray-800">{log.platform}</td>
-                                                    <td className="p-3 text-center font-black text-indigo-600 bg-indigo-50/50">{log.count}</td>
+                                                    <td className="p-3 text-center font-black text-indigo-600 bg-indigo-50/50">{log.count || 0}</td>
+                                                    <td className="p-3 text-center font-black text-green-700 bg-green-50/50">{log.callingCount || 0}</td> {/* NEW DATA */}
                                                     <td className="p-3 text-center">
                                                         <button onClick={() => handleDeleteLog(log.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition"><Trash2 size={16}/></button>
                                                     </td>
