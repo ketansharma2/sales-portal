@@ -72,7 +72,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       { name: "Team Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "FSE Onboard", href: `${roleBaseHref}/fse-onboard`, icon: <UserPlus size={20} /> },
       { name: "Leads", href: `${roleBaseHref}/leadsgen`, icon: <Truck size={20} /> },
-     // { name: "Target", href: `${roleBaseHref}/target`, icon: <Target size={20} /> },
+      { name: "Target", href: `${roleBaseHref}/target`, icon: <Target size={20} /> },
       { name: "Expense Approval", href: `${roleBaseHref}/approvals`, icon: <FileText size={20} /> },
       { name: "My Expenses", href: `${roleBaseHref}/expenses`, icon: <Wallet size={20} /> },
     ];
