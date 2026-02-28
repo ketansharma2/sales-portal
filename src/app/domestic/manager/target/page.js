@@ -33,8 +33,10 @@ export default function DomesticManagerTargetPage() {
   // Separate data for each tab
   const [historyData, setHistoryData] = useState([]);
   const [currentData, setCurrentData] = useState([]);
-  const [projectionData, setProjectionData] = useState([]);
-  const [filteredProjectionData, setFilteredProjectionData] = useState([]);
+  const [projectionData, setProjectionData] = useState([]); // For member targets
+  const [hodProjectionData, setHodProjectionData] = useState([]); // For HOD assigned targets
+  const [filteredProjectionData, setFilteredProjectionData] = useState([]); // For member targets filtered
+  const [filteredHodProjectionData, setFilteredHodProjectionData] = useState([]); // For HOD targets filtered
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -74,8 +76,7 @@ export default function DomesticManagerTargetPage() {
   const fetchCurrentTargets = async () => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const monthParam = `${currentDate}-01`;
-      const response = await fetch(`/api/domestic/manager/targets?month=${monthParam}`, {
+      const response = await fetch('/api/domestic/manager/current-targets', {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const result = await response.json();
@@ -96,8 +97,8 @@ export default function DomesticManagerTargetPage() {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const monthParam = month ? `${month}-01` : '';
       const url = monthParam 
-        ? `/api/domestic/manager/targets?month=${monthParam}` 
-        : '/api/domestic/manager/targets';
+        ? `/api/domestic/manager/history-targets?month=${monthParam.substring(0, 7)}` 
+        : '/api/domestic/manager/history-targets';
       
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
@@ -118,24 +119,28 @@ export default function DomesticManagerTargetPage() {
   const fetchProjectionTargets = async (month = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      // If month is null, fetch all targets (no month filter)
       const monthParam = month || '';
-      const url = monthParam 
-        ? `/api/domestic/manager/hod-targets?month=${monthParam}` 
-        : '/api/domestic/manager/hod-targets';
       
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
-      const result = await response.json();
+      // Fetch both HOD targets and Member targets in parallel
+      const [hodResponse, memberResponse] = await Promise.all([
+        fetch(`/api/domestic/manager/hod-targets${monthParam ? `?month=${monthParam}` : ''}`, {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        }),
+        fetch(`/api/domestic/manager/member-targets${monthParam ? `?month=${monthParam}` : ''}`, {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        })
+      ]);
       
-      if (result.success && result.data) {
-        return result.data;
-      }
-      return null;
+      const hodResult = await hodResponse.json();
+      const memberResult = await memberResponse.json();
+      
+      return {
+        hodTargets: hodResult.success && hodResult.data ? hodResult.data.targets : [],
+        memberTargets: memberResult.success && memberResult.data ? memberResult.data.targets || memberResult.data : []
+      };
     } catch (error) {
       console.error('Error fetching projection targets:', error);
-      return null;
+      return { hodTargets: [], memberTargets: [] };
     }
   };
 
@@ -147,44 +152,37 @@ export default function DomesticManagerTargetPage() {
       // Fetch team members
       await fetchTeamMembers();
       
-      let targetData = null;
-      
       if (activeTab === 'history') {
-        targetData = await fetchHistoryTargets(null);
-      } else if (activeTab === 'current') {
-        targetData = await fetchCurrentTargets();
-      } else if (activeTab === 'projection') {
-        targetData = await fetchProjectionTargets(null);
-      }
-      
-      if (targetData && targetData.targets && targetData.targets.length > 0) {
-        const transformedData = targetData.targets.map((target, idx) => {
-          // For projection tab, map HOD targets fields
-          if (activeTab === 'projection') {
-            return {
-              id: target.id || idx + 1,
-              month: target.month || currentDate,
-              fseCount: target.fseCount || 0,
-              callersCount: target.callersCount || 0,
-              workingDays: target.workingDays || 0,
-              visitsPerFse: target.visitsPerFse || 0,
-              onboardPerFse: target.onboardPerFse || 0,
-              callsPerCaller: target.callsPerCaller || 0,
-              leadsPerCaller: target.leadsPerCaller || 0,
-              totalVisits: target.totalVisits || 0,
-              totalOnboards: target.totalOnboards || 0,
-              totalCalls: target.totalCalls || 0,
-              totalLeads: target.totalLeads || 0,
-              remarks: target.remarks || ''
-            };
-          }
-          // For history and current tabs, map team member targets
-          const member = targetData.members?.find(m => m.user_id === target.user_id);
-          return {
+        const targetData = await fetchHistoryTargets(null);
+        if (targetData && targetData.targets && targetData.targets.length > 0) {
+          const transformedData = targetData.targets.map((target, idx) => ({
             id: idx + 1,
             memberId: target.user_id,
-            name: member?.name || 'Unknown',
-            role: member?.role?.includes('FSE') ? 'FSE' : 'LeadGen',
+            name: target.name || 'Unknown',
+            role: target.role || 'FSE',
+            month: target.month || currentDate,
+            visits: target.visits || 0,
+            onboards: target.onboards || 0,
+            calls: target.calls || 0,
+            leads: target.leads || 0,
+            achievedVisits: target.achieved_visits || 0,
+            achievedOnboards: target.achieved_onboards || 0,
+            achievedCalls: target.achieved_calls || 0,
+            achievedLeads: target.achieved_leads || 0,
+            remarks: target.remarks || ''
+          }));
+          setHistoryData(transformedData);
+        } else {
+          setHistoryData([]);
+        }
+      } else if (activeTab === 'current') {
+        const targetData = await fetchCurrentTargets();
+        if (targetData && targetData.targets && targetData.targets.length > 0) {
+          const transformedData = targetData.targets.map((target, idx) => ({
+            id: idx + 1,
+            memberId: target.user_id,
+            name: target.name || 'Unknown',
+            role: target.role || 'FSE',
             month: target.month ? target.month.substring(0, 7) : currentDate,
             visits: target.visits || 0,
             onboards: target.onboards || 0,
@@ -195,20 +193,59 @@ export default function DomesticManagerTargetPage() {
             achievedCalls: target.achieved_calls || 0,
             achievedLeads: target.achieved_leads || 0,
             remarks: target.remarks || ''
-          };
-        });
-        
-        if (activeTab === 'history') {
-          setHistoryData(transformedData);
-        } else if (activeTab === 'current') {
+          }));
           setCurrentData(transformedData);
-        } else if (activeTab === 'projection') {
-          setProjectionData(transformedData);
+        } else {
+          setCurrentData([]);
         }
-      } else {
-        if (activeTab === 'history') setHistoryData([]);
-        else if (activeTab === 'current') setCurrentData([]);
-        else if (activeTab === 'projection') setProjectionData([]);
+      } else if (activeTab === 'projection') {
+        // Fetch both HOD targets and member targets
+        const targetData = await fetchProjectionTargets(null);
+        
+        // Transform HOD targets
+        if (targetData.hodTargets && targetData.hodTargets.length > 0) {
+          const hodTransformedData = targetData.hodTargets.map((target, idx) => ({
+            id: target.id || idx + 1,
+            month: target.month || projectionMonth,
+            workingDays: target.workingDays || 0,
+            fseCount: target.fseCount || 0,
+            callersCount: target.callersCount || 0,
+            visitsPerFse: target.visitsPerFse || 0,
+            onboardPerFse: target.onboardPerFse || 0,
+            callsPerCaller: target.callsPerCaller || 0,
+            leadsPerCaller: target.leadsPerCaller || 0,
+            totalVisits: target.totalVisits || 0,
+            totalOnboards: target.totalOnboards || 0,
+            totalCalls: target.totalCalls || 0,
+            totalLeads: target.totalLeads || 0,
+            remarks: target.remarks || ''
+          }));
+          setHodProjectionData(hodTransformedData);
+        } else {
+          setHodProjectionData([]);
+        }
+        
+        // Transform member targets
+        if (targetData.memberTargets && targetData.memberTargets.length > 0) {
+          const memberTransformedData = targetData.memberTargets.map((target, idx) => ({
+            id: target.id || idx + 1,
+            targetId: target.id,
+            month: target.month || projectionMonth,
+            fseId: target.fseId,
+            memberId: target.fseId,
+            name: target.fseName || 'Unknown',
+            role: target.fseRole || 'FSE',
+            visits: target.monthlyVisits || 0,
+            onboards: target.monthlyOnboards || 0,
+            calls: target.monthlyCalls || 0,
+            leads: target.monthlyLeads || 0,
+            workingDays: target.workingDays || 0,
+            remarks: target.remarks || ''
+          }));
+          setProjectionData(memberTransformedData);
+        } else {
+          setProjectionData([]);
+        }
       }
       
       setLoading(false);
@@ -216,6 +253,65 @@ export default function DomesticManagerTargetPage() {
     
     loadData();
   }, [activeTab, currentDate, refreshKey]);
+
+  // --- REFETCH PROJECTION DATA WHEN MONTH CHANGES ---
+  useEffect(() => {
+    if (activeTab !== 'projection') return;
+    
+    const fetchProjectionData = async () => {
+      setLoading(true);
+      const targetData = await fetchProjectionTargets(projectionMonth || null);
+      
+      // Transform HOD targets
+      if (targetData.hodTargets && targetData.hodTargets.length > 0) {
+        const hodTransformedData = targetData.hodTargets.map((target, idx) => ({
+          id: target.id || idx + 1,
+          month: target.month || projectionMonth,
+          workingDays: target.workingDays || 0,
+          fseCount: target.fseCount || 0,
+          callersCount: target.callersCount || 0,
+          visitsPerFse: target.visitsPerFse || 0,
+          onboardPerFse: target.onboardPerFse || 0,
+          callsPerCaller: target.callsPerCaller || 0,
+          leadsPerCaller: target.leadsPerCaller || 0,
+          totalVisits: target.totalVisits || 0,
+          totalOnboards: target.totalOnboards || 0,
+          totalCalls: target.totalCalls || 0,
+          totalLeads: target.totalLeads || 0,
+          remarks: target.remarks || ''
+        }));
+        setHodProjectionData(hodTransformedData);
+      } else {
+        setHodProjectionData([]);
+      }
+      
+      // Transform member targets
+      if (targetData.memberTargets && targetData.memberTargets.length > 0) {
+        const memberTransformedData = targetData.memberTargets.map((target, idx) => ({
+          id: target.id || idx + 1,
+          targetId: target.id,
+          month: target.month || projectionMonth,
+          fseId: target.fseId,
+          memberId: target.fseId,
+          name: target.fseName || 'Unknown',
+          role: target.fseRole || 'FSE',
+          visits: target.monthlyVisits || 0,
+          onboards: target.monthlyOnboards || 0,
+          calls: target.monthlyCalls || 0,
+          leads: target.monthlyLeads || 0,
+          workingDays: target.workingDays || 0,
+          remarks: target.remarks || ''
+        }));
+        setProjectionData(memberTransformedData);
+      } else {
+        setProjectionData([]);
+      }
+      
+      setLoading(false);
+    };
+    
+    fetchProjectionData();
+  }, [projectionMonth, activeTab]);
 
   // --- FRONTEND FILTERING ---
   useEffect(() => {
@@ -235,18 +331,33 @@ export default function DomesticManagerTargetPage() {
       setFilteredHistoryData([]);
     }
     
-    if (activeTab === 'projection' && projectionData.length > 0) {
-      const filtered = projectionData.filter(item => {
-        const monthMatch = !projectionMonth || item.month === projectionMonth;
-        return monthMatch;
-      });
-      setFilteredProjectionData(filtered);
-    } else if (activeTab === 'projection') {
-      setFilteredProjectionData(projectionData);
+    if (activeTab === 'projection') {
+      // Filter HOD targets
+      if (hodProjectionData.length > 0) {
+        const hodFiltered = hodProjectionData.filter(item => {
+          const monthMatch = !projectionMonth || item.month === projectionMonth;
+          return monthMatch;
+        });
+        setFilteredHodProjectionData(hodFiltered);
+      } else {
+        setFilteredHodProjectionData([]);
+      }
+      
+      // Filter member targets
+      if (projectionData.length > 0) {
+        const memberFiltered = projectionData.filter(item => {
+          const monthMatch = !projectionMonth || item.month === projectionMonth;
+          return monthMatch;
+        });
+        setFilteredProjectionData(memberFiltered);
+      } else {
+        setFilteredProjectionData([]);
+      }
     } else {
+      setFilteredHodProjectionData([]);
       setFilteredProjectionData([]);
     }
-  }, [historyFilter, historyData, activeTab, projectionMonth, projectionData]);
+  }, [historyFilter, historyData, activeTab, projectionMonth, projectionData, hodProjectionData]);
 
   // --- HANDLERS ---
   const openModal = (mode, data = null) => {
@@ -398,10 +509,10 @@ export default function DomesticManagerTargetPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 font-['Calibri'] p-6 pb-12">
+    <div className="min-h-screen bg-gray-50/50 font-['Calibri'] p-6 pt-2 pb-12">
       
       {/* --- TOP HEADER --- */}
-      <div className="flex flex-col md:flex-row justify-between items-start mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start mb-4">
          <div>
              <h1 className="text-3xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
                 <Target size={32} /> Team Target Distribution
@@ -544,84 +655,11 @@ export default function DomesticManagerTargetPage() {
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
             
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {currentData.length === 0 ? (
-                    <>
-                        {/* Dummy FSE Card */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow relative opacity-75">
-                            <div className="p-5 border-b border-gray-100 bg-blue-50/30 flex justify-between items-start">
-                                <div className="flex items-center gap-2">
-                                    <h3 className="font-bold text-lg text-gray-800">Demo FSE</h3>
-                                </div>
-                                <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-blue-100 text-blue-700">FSE</span>
-                            </div>
-                            <div className="p-5 space-y-5">
-                                <div>
-                                    <h4 className="text-[10px] font-black text-[#103c7f] uppercase mb-2 flex items-center gap-1"><MapPin size={12}/> Monthly Visits</h4>
-                                    <div className="flex justify-between text-xs mb-1 font-bold text-gray-700">
-                                        <span>0 Achieved</span>
-                                        <span>Target: -</span>
-                                    </div>
-                                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                                        <div className="h-full rounded-full bg-gray-200" style={{width: `0%`}}></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <h4 className="text-[10px] font-black text-[#103c7f] uppercase mb-2 flex items-center gap-1"><Briefcase size={12}/> Monthly Onboards</h4>
-                                    <div className="flex justify-between text-xs mb-1 font-bold text-gray-700">
-                                        <span>0 Achieved</span>
-                                        <span>Target: -</span>
-                                    </div>
-                                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                                        <div className="h-full rounded-full bg-gray-200" style={{width: `0%`}}></div>
-                                    </div>
-                                </div>
-                                <div className="bg-yellow-50 p-3 rounded-lg flex gap-2 items-start border border-yellow-100">
-                                    <MessageSquare size={14} className="text-yellow-600 mt-0.5"/>
-                                    <p className="text-xs text-gray-600 italic">"Click + to set target"</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Dummy LeadGen Card */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow relative opacity-75">
-                            <div className="p-5 border-b border-gray-100 bg-red-50/30 flex justify-between items-start">
-                                <div className="flex items-center gap-2">
-                                    <h3 className="font-bold text-lg text-gray-800">Demo LeadGen</h3>
-                                </div>
-                                <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-red-100 text-red-700">LeadGen</span>
-                            </div>
-                            <div className="p-5 space-y-5">
-                                <div>
-                                    <h4 className="text-[10px] font-black text-red-600 uppercase mb-2 flex items-center gap-1"><Phone size={12}/> Monthly Calls</h4>
-                                    <div className="flex justify-between text-xs mb-1 font-bold text-gray-700">
-                                        <span>0 Achieved</span>
-                                        <span>Target: -</span>
-                                    </div>
-                                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                                        <div className="h-full rounded-full bg-gray-200" style={{width: `0%`}}></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <h4 className="text-[10px] font-black text-red-600 uppercase mb-2 flex items-center gap-1"><Users size={12}/> Monthly Leads</h4>
-                                    <div className="flex justify-between text-xs mb-1 font-bold text-gray-700">
-                                        <span>0 Achieved</span>
-                                        <span>Target: -</span>
-                                    </div>
-                                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                                        <div className="h-full rounded-full bg-gray-200" style={{width: `0%`}}></div>
-                                    </div>
-                                </div>
-                                <div className="bg-yellow-50 p-3 rounded-lg flex gap-2 items-start border border-yellow-100">
-                                    <MessageSquare size={14} className="text-yellow-600 mt-0.5"/>
-                                    <p className="text-xs text-gray-600 italic">"Click + to set target"</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Third column placeholder */}
-                        <div></div>
-                    </>
+                    <div className="col-span-3 text-center py-12 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50">
+                        <p className="text-gray-400 font-bold">No team members found or no targets set for this month.</p>
+                    </div>
                 ) : currentData.map((row, idx) => (
                     <div key={row.id || `current-${idx}`} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow relative">
                         <div className="p-5 border-b border-gray-100 bg-blue-50/30 flex justify-between items-start">
@@ -629,9 +667,6 @@ export default function DomesticManagerTargetPage() {
                                 <h3 className="font-bold text-lg text-gray-800">{row.name}</h3>
                                 <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${row.role === 'FSE' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>{row.role}</span>
                             </div>
-                            <button onClick={() => openModal('edit', row)} className="bg-gray-100 text-gray-600 p-2 rounded-lg hover:bg-gray-200 transition">
-                                <Edit2 size={16}/>
-                            </button>
                         </div>
                         <div className="p-5 space-y-5">
                             {row.role === 'FSE' && (
@@ -688,6 +723,19 @@ export default function DomesticManagerTargetPage() {
                                     <p className="text-xs text-gray-600 italic">"{row.remarks}"</p>
                                 </div>
                             )}
+                            
+                            {/* Overall Achievement */}
+                            {(() => {
+                                const totalAchieved = (row.achievedVisits || 0) + (row.achievedOnboards || 0) + (row.achievedCalls || 0) + (row.achievedLeads || 0);
+                                const totalTarget = (row.visits || 0) + (row.onboards || 0) + (row.calls || 0) + (row.leads || 0);
+                                const achievement = totalTarget > 0 ? Math.round((totalAchieved / totalTarget) * 100) : 0;
+                                return (
+                                    <div className={`mt-3 pt-3 border-t ${achievement > 70 ? 'bg-green-50 border-green-200' : achievement >= 50 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'} p-3 rounded-lg text-center`}>
+                                        <span className="text-xs font-bold uppercase">Overall Achievement</span>
+                                        <span className={`block text-2xl font-black ${achievement > 70 ? 'text-green-700' : achievement >= 50 ? 'text-yellow-700' : 'text-red-700'}`}>{achievement}%</span>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 ))}
@@ -701,51 +749,7 @@ export default function DomesticManagerTargetPage() {
       {activeTab === 'projection' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
             
-            {/* HOD Assigned Targets Section */}
-            {filteredProjectionData.length > 0 && filteredProjectionData[0] && (
-            <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-200 text-gray-800">
-                <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-lg font-black uppercase tracking-wide flex items-center gap-2 text-purple-700">
-                        <Target size={20}/> HOD Assigned Targets - {projectionMonth ? new Date(projectionMonth + '-01').toLocaleString('en-US', { month: 'short', year: 'numeric' }) : 'Select Month'}
-                    </h3>
-                    <div className="flex gap-2">
-                        <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">{filteredProjectionData[0].fseCount || 0} FSE</span>
-                        <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">{filteredProjectionData[0].callersCount || 0} Leadgen</span>
-                        <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-bold">{filteredProjectionData[0].workingDays || 0} Working Days</span>
-                    </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
-                        <span className="block text-xs font-bold text-purple-600 uppercase">Visits / FSE / Month</span>
-                        <span className="block text-3xl font-black text-purple-700">{filteredProjectionData[0].visitsPerFse || 0}</span>
-                        <div className="mt-0 text-right"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredProjectionData[0].totalVisits || 0}</span></div>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
-                        <span className="block text-xs font-bold text-purple-600 uppercase">Onboards / FSE / Month</span>
-                        <span className="block text-3xl font-black text-purple-700">{filteredProjectionData[0].onboardPerFse || 0}</span>
-                        <div className="mt-0 text-right"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredProjectionData[0].totalOnboards || 0}</span></div>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
-                        <span className="block text-xs font-bold text-purple-600 uppercase">Calls / Leadgen / Month</span>
-                        <span className="block text-3xl font-black text-purple-700">{filteredProjectionData[0].callsPerCaller || 0}</span>
-                        <div className="mt-0 text-right"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredProjectionData[0].totalCalls || 0}</span></div>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
-                        <span className="block text-xs font-bold text-purple-600 uppercase">Leads / Leadgen / Month</span>
-                        <span className="block text-3xl font-black text-purple-700">{filteredProjectionData[0].leadsPerCaller || 0}</span>
-                        <div className="mt-0 text-right"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredProjectionData[0].totalLeads || 0}</span></div>
-                    </div>
-                </div>
-                
-                {/* Remarks */}
-                <div className="mt-2 pt-2 border-t border-purple-200">
-                    <span className="text-xs font-bold text-purple-600 uppercase">Remarks: </span>
-                    <span className="text-sm text-gray-700 font-bold">{filteredProjectionData[0].remarks || '-'}</span>
-                </div>
-            </div>
-            )}
-
-            {/* Control Bar */}
+            {/* Control Bar - Moved to top */}
             <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-purple-100 shadow-sm">
                 <div className="flex items-center gap-3">
                     <div className="bg-purple-100 text-purple-700 p-2 rounded-lg"><Calendar size={20}/></div>
@@ -757,6 +761,64 @@ export default function DomesticManagerTargetPage() {
                 <button onClick={() => openModal('create')} className="bg-purple-700 hover:bg-purple-800 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg transition flex items-center gap-2 uppercase tracking-wide">
                     <Plus size={18}/> Set Target For Member
                 </button>
+            </div>
+
+            {/* HOD Assigned Targets Section */}
+            {filteredHodProjectionData.length > 0 && filteredHodProjectionData[0] && (
+            <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-200 text-gray-800">
+                <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-lg font-black uppercase tracking-wide flex items-center gap-2 text-purple-700">
+                        <Target size={20}/> HOD Assigned Targets - {projectionMonth ? new Date(projectionMonth + '-01').toLocaleString('en-US', { month: 'short', year: 'numeric' }) : 'Select Month'}
+                    </h3>
+                    <div className="flex gap-2">
+                        <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">{filteredHodProjectionData[0].fseCount || 0} FSE</span>
+                        <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">{filteredHodProjectionData[0].callersCount || 0} Leadgen</span>
+                        <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-bold">{filteredHodProjectionData[0].workingDays || 0} Working Days</span>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
+                        <span className="block text-xs font-bold text-purple-600 uppercase">Visits / FSE / Month</span>
+                        <span className="block text-3xl font-black text-purple-700">{filteredHodProjectionData[0].visitsPerFse || 0}</span>
+                        <div className="mt-0 text-right"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalVisits || 0}</span></div>
+                    </div>
+                    <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
+                        <span className="block text-xs font-bold text-purple-600 uppercase">Onboards / FSE / Month</span>
+                        <span className="block text-3xl font-black text-purple-700">{filteredHodProjectionData[0].onboardPerFse || 0}</span>
+                        <div className="mt-0 text-right"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalOnboards || 0}</span></div>
+                    </div>
+                    <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
+                        <span className="block text-xs font-bold text-purple-600 uppercase">Calls / Leadgen / Month</span>
+                        <span className="block text-3xl font-black text-purple-700">{filteredHodProjectionData[0].callsPerCaller || 0}</span>
+                        <div className="mt-0 text-right"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalCalls || 0}</span></div>
+                    </div>
+                    <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
+                        <span className="block text-xs font-bold text-purple-600 uppercase">Leads / Leadgen / Month</span>
+                        <span className="block text-3xl font-black text-purple-700">{filteredHodProjectionData[0].leadsPerCaller || 0}</span>
+                        <div className="mt-0 text-right"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalLeads || 0}</span></div>
+                    </div>
+                </div>
+                
+                {/* Remarks */}
+                <div className="mt-2 pt-2 border-t border-purple-200">
+                    <span className="text-xs font-bold text-purple-600 uppercase">Remarks: </span>
+                    <span className="text-sm text-gray-700 font-bold">{filteredHodProjectionData[0].remarks || '-'}</span>
+                </div>
+            </div>
+            )}
+
+            {/* Show message if no HOD targets */}
+            {filteredHodProjectionData.length === 0 && (
+                <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200 text-center">
+                    <p className="text-purple-600 font-bold text-sm">No HOD assigned targets for {projectionMonth ? new Date(projectionMonth + '-01').toLocaleString('en-US', { month: 'short', year: 'numeric' }) : 'this month'}</p>
+                </div>
+            )}
+
+            {/* Member Targets Section Header */}
+            <div className="flex justify-between items-center mt-6 mb-4">
+                <h3 className="text-lg font-black uppercase tracking-wide flex items-center gap-2 text-[#103c7f]">
+                    <Users size={20}/> Member Targets - {projectionMonth ? new Date(projectionMonth + '-01').toLocaleString('en-US', { month: 'short', year: 'numeric' }) : 'Select Month'}
+                </h3>
             </div>
 
             {/* Projection Cards */}
@@ -788,10 +850,16 @@ export default function DomesticManagerTargetPage() {
                                     </div>
                                 </>
                             ) : (
-                                <div className="bg-orange-50 p-3 rounded-xl border border-orange-100 text-center">
-                                    <span className="block text-[10px] font-bold text-orange-400 uppercase">Monthly Calls</span>
-                                    <span className="block text-xl font-black text-orange-800">{row.calls || 0}</span>
-                                </div>
+                                <>
+                                    <div className="bg-orange-50 p-3 rounded-xl border border-orange-100 text-center">
+                                        <span className="block text-[10px] font-bold text-orange-400 uppercase">Monthly Calls</span>
+                                        <span className="block text-xl font-black text-orange-800">{row.calls || 0}</span>
+                                    </div>
+                                    <div className="bg-orange-50 p-3 rounded-xl border border-orange-100 text-center">
+                                        <span className="block text-[10px] font-bold text-orange-400 uppercase">Monthly Leads</span>
+                                        <span className="block text-xl font-black text-orange-800">{row.leads || 0}</span>
+                                    </div>
+                                </>
                             )}
                         </div>
 
