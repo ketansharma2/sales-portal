@@ -218,6 +218,7 @@ export default function DomesticManagerTargetPage() {
             totalOnboards: target.totalOnboards || 0,
             totalCalls: target.totalCalls || 0,
             totalLeads: target.totalLeads || 0,
+            ctcGeneration: target.ctcGeneration || 0,
             remarks: target.remarks || ''
           }));
           setHodProjectionData(hodTransformedData);
@@ -278,6 +279,7 @@ export default function DomesticManagerTargetPage() {
           totalOnboards: target.totalOnboards || 0,
           totalCalls: target.totalCalls || 0,
           totalLeads: target.totalLeads || 0,
+          ctcGeneration: target.ctcGeneration || 0,
           remarks: target.remarks || ''
         }));
         setHodProjectionData(hodTransformedData);
@@ -797,6 +799,12 @@ export default function DomesticManagerTargetPage() {
                         <span className="block text-3xl font-black text-purple-700">{filteredHodProjectionData[0].leadsPerCaller || 0}</span>
                         <div className="mt-0 text-right"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalLeads || 0}</span></div>
                     </div>
+                </div>
+                
+                {/* CTC Generation - 5th Card */}
+                <div className="mt-4 bg-green-50 p-4 rounded-xl border border-green-200 text-center">
+                    <span className="block text-xs font-bold text-green-600 uppercase">CTC Generation</span>
+                    <span className="block text-3xl font-black text-green-700">{filteredHodProjectionData[0].ctcGeneration || 0}</span>
                 </div>
                 
                 {/* Remarks */}

@@ -31,11 +31,11 @@ export async function GET(request) {
     const lastDay = new Date(year, monthNum, 0).getDate()
     const endDate = `${year}-${String(monthNum).padStart(2, '0')}-${lastDay}`
 
-    // Get all managers (SMs) under this HOD
+    // Get all managers (SMs) under this HOD by matching hod_id
     const { data: teamMembers, error: membersError } = await supabaseServer
       .from('users')
-      .select('user_id, name, role, manager_id')
-      .eq('manager_id', user.id)
+      .select('user_id, name, role, manager_id, hod_id, region, sector')
+      .eq('hod_id', user.id)
       .order('name')
 
     if (membersError) {
@@ -50,6 +50,12 @@ export async function GET(request) {
     const managerList = (teamMembers || []).filter(u => {
       const roleStr = Array.isArray(u.role) ? u.role.join(' ') : (u.role || '')
       return roleStr.toUpperCase().includes('MANAGER') || roleStr.toUpperCase().includes('SM')
+    })
+    
+    // Create a map of manager sectors
+    const managerSectors = {}
+    managerList.forEach(m => {
+      managerSectors[m.user_id] = m.sector || ''
     })
 
     const managerIds = managerList.map(m => m.user_id)
@@ -168,54 +174,62 @@ export async function GET(request) {
     }
 
     // ========== Calculate LeadGen Achievements (Calls & Leads) ==========
+    // Get all leadgens under managers with their sectors
+    const leadgenListWithSector = allSubMembers.filter(u => {
+      const roleStr = Array.isArray(u.role) ? u.role.join(' ') : (u.role || '')
+      return roleStr.toUpperCase().includes('LEADGEN')
+    })
+    
+    // Group leadgens by manager and track their sectors
+    const leadgensByManager = {}
+    leadgenListWithSector.forEach(lg => {
+      if (!leadgensByManager[lg.manager_id]) {
+        leadgensByManager[lg.manager_id] = { ids: [], sector: managerSectors[lg.manager_id] || '' }
+      }
+      leadgensByManager[lg.manager_id].ids.push(lg.user_id)
+    })
+    
+    // Calculate achievements for each manager
     let leadgenAchievements = {}
-    if (leadgenIds.length > 0) {
-      // Fetch interactions for calls count
+    
+    for (const managerId of Object.keys(leadgensByManager)) {
+      const { ids: managerLeadgenIds, sector } = leadgensByManager[managerId]
+      
+      if (managerLeadgenIds.length === 0) continue
+      
+      // Choose tables based on sector
+      const interactionTable = sector === 'Corporate' ? 'corporate_leads_interaction' : 'domestic_leads_interaction'
+      const leadsTable = sector === 'Corporate' ? 'corporate_leadgen_leads' : 'domestic_leadgen_leads'
+      
+      // Fetch interactions for calls
       const { data: interactions, error: intError } = await supabaseServer
-        .from('domestic_leads_interaction')
+        .from(interactionTable)
         .select('leadgen_id, client_id, date')
-        .in('leadgen_id', leadgenIds)
+        .in('leadgen_id', managerLeadgenIds)
         .gte('date', startDate)
         .lte('date', endDate)
 
       if (!intError && interactions && interactions.length > 0) {
-        leadgenList.forEach(lg => {
-          const managerId = lg.manager_id
-          if (!leadgenAchievements[managerId]) {
-            leadgenAchievements[managerId] = { calls: 0, leads: 0 }
-          }
-        })
-        
-        interactions.forEach(int => {
-          const lg = leadgenList.find(l => l.user_id === int.leadgen_id)
-          if (lg) {
-            const managerId = lg.manager_id
-            if (leadgenAchievements[managerId]) {
-              leadgenAchievements[managerId].calls++
-            }
-          }
-        })
+        if (!leadgenAchievements[managerId]) {
+          leadgenAchievements[managerId] = { calls: 0, leads: 0 }
+        }
+        leadgenAchievements[managerId].calls += interactions.length
       }
-
-      // Fetch leads: sent_to_sm = TRUE and lock_date in period
+      
+      // Fetch leads
       const { data: leads, error: leadsError } = await supabaseServer
-        .from('domestic_leadgen_leads')
+        .from(leadsTable)
         .select('client_id, leadgen_id')
-        .in('leadgen_id', leadgenIds)
+        .in('leadgen_id', managerLeadgenIds)
         .eq('sent_to_sm', true)
         .gte('lock_date', startDate)
         .lte('lock_date', endDate)
 
       if (!leadsError && leads && leads.length > 0) {
-        leads.forEach(lead => {
-          const lg = leadgenList.find(l => l.user_id === lead.leadgen_id)
-          if (lg) {
-            const managerId = lg.manager_id
-            if (leadgenAchievements[managerId]) {
-              leadgenAchievements[managerId].leads++
-            }
-          }
-        })
+        if (!leadgenAchievements[managerId]) {
+          leadgenAchievements[managerId] = { calls: 0, leads: 0 }
+        }
+        leadgenAchievements[managerId].leads += leads.length
       }
     }
 
@@ -231,6 +245,8 @@ export async function GET(request) {
         user_id: manager.user_id,
         sm_id: manager.user_id,
         name: manager.name,
+        region: manager.region || '',
+        sector: manager.sector || '',
         role: 'Manager',
         month: startDate,
         fseCount: target?.fse_count || 0,
@@ -278,11 +294,14 @@ export async function GET(request) {
         })),
         managers: (teamMembers || []).map(m => {
           const roleStr = Array.isArray(m.role) ? m.role.join(' ') : (m.role || '')
+          const isManager = roleStr.toUpperCase().includes('MANAGER') || roleStr.toUpperCase().includes('SM')
           return {
             id: m.user_id,
             name: m.name,
-            role: roleStr.toUpperCase().includes('MANAGER') || roleStr.toUpperCase().includes('SM') ? 'Manager' : 
-                  roleStr.toUpperCase().includes('FSE') ? 'FSE' : 'LeadGen'
+            role: isManager ? 'Manager' : 
+                  roleStr.toUpperCase().includes('FSE') ? 'FSE' : 'LeadGen',
+            fseCount: isManager ? (memberCountMap[m.user_id]?.fse || 0) : 0,
+            callerCount: isManager ? (memberCountMap[m.user_id]?.leadgen || 0) : 0
           }
         })
       }

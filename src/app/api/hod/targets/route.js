@@ -58,6 +58,7 @@ export async function GET(request) {
       totalOnboards: target.total_onboards,
       totalCalls: target.total_calls,
       totalLeads: target.total_leads,
+      ctcGeneration: target.ctc_generation || 0,
       remarks: target.remarks || '',
       createdBy: target.created_by
     }))
@@ -94,36 +95,47 @@ export async function POST(request) {
     }
 
     const body = await request.json()
-    const {
-      month,
-      workingDays,
-      fseCount,
-      callersCount,
-      visitsPerFse,
-      onboardPerFse,
-      callsPerCaller,
-      leadsPerCaller,
-      remarks
-    } = body
+    // Accept both camelCase and snake_case for working_days
+    const workingDaysInput = body.workingDays !== undefined ? body.workingDays : body.working_days
+    const { month, sm_id, fseCount, callersCount, visitTarget, onboardTarget, callsPerCaller, leadsPerCaller, ctc_generation, remarks } = body
+    const workingDays = workingDaysInput !== undefined ? workingDaysInput : 24
 
     if (!month) {
       return NextResponse.json({ error: 'Month is required' }, { status: 400 })
     }
 
-    const monthStart = `${month}-01`
+    // Fix month format if already YYYY-MM-DD (take first 7 chars)
+    const fixedMonth = (month && month.length > 7) ? month.substring(0, 7) : month
+    const monthStart = fixedMonth ? `${fixedMonth}-01` : undefined
+
+    // Check if target already exists for this manager and month
+    const { data: existingTarget, error: existingError } = await supabaseServer
+      .from('hod_sm_targets')
+      .select('id, month')
+      .eq('sm_id', sm_id)
+      .eq('month', monthStart)
+      .single()
+
+    if (existingTarget) {
+      return NextResponse.json({ 
+        error: 'Target already exists for this manager and month. Please use edit mode to update the existing target.' 
+      }, { status: 400 })
+    }
 
     // Calculate totals
     const fseCountNum = parseInt(fseCount) || 0
     const callersCountNum = parseInt(callersCount) || 0
-    const visitsPerFseNum = parseFloat(visitsPerFse) || 0
-    const onboardPerFseNum = parseFloat(onboardPerFse) || 0
+    // visitTarget is per DAY value - multiply by working days to get monthly
+    // onboardTarget is already monthly - store as-is
+    const visitsPerFseNum = (parseFloat(visitTarget) || 0) * (parseInt(workingDays) || 24)
+    const onboardPerFseNum = parseFloat(onboardTarget) || 0
     const callsPerCallerNum = parseFloat(callsPerCaller) || 0
     const leadsPerCallerNum = parseFloat(leadsPerCaller) || 0
 
     const { data, error } = await supabaseServer
       .from('hod_sm_targets')
       .insert({
-        sm_id: user.id,
+        sm_id: sm_id,  // Use the manager ID from the request body
         month: monthStart,
         working_days: parseInt(workingDays) || 24,
         fse_count: fseCountNum,
@@ -136,6 +148,7 @@ export async function POST(request) {
         total_onboards: fseCountNum * onboardPerFseNum,
         total_calls: callersCountNum * callsPerCallerNum,
         total_leads: callersCountNum * leadsPerCallerNum,
+        ctc_generation: parseInt(ctc_generation) || 0,
         remarks: remarks || '',
         created_by: user.id
       })
@@ -166,6 +179,7 @@ export async function POST(request) {
         totalOnboards: data.total_onboards,
         totalCalls: data.total_calls,
         totalLeads: data.total_leads,
+        ctcGeneration: data.ctc_generation || 0,
         remarks: data.remarks || ''
       }
     })
@@ -194,27 +208,34 @@ export async function PUT(request) {
     }
 
     const body = await request.json()
+    // Accept both camelCase and snake_case for working_days
+    const workingDaysInput = body.workingDays !== undefined ? body.workingDays : body.working_days
+    // Accept both field names: visitTarget (frontend) and visitsPerFse (backend)
+    const visitTargetInput = body.visitTarget ?? body.visitsPerFse
     const {
       id,
       month,
-      workingDays,
       fseCount,
       callersCount,
-      visitsPerFse,
+      visitsPerFse = visitTargetInput,
       onboardPerFse,
       callsPerCaller,
       leadsPerCaller,
+      ctc_generation,
       remarks
     } = body
+    
+    // Handle workingDays separately to accept both formats
+    let workingDays = workingDaysInput !== undefined ? workingDaysInput : 24
 
     if (!id) {
       return NextResponse.json({ error: 'Target ID is required' }, { status: 400 })
     }
 
-    // Check if target exists and belongs to this user
+    // Check if target exists and was created by this user (HOD)
     const { data: existingTarget, error: fetchError } = await supabaseServer
       .from('hod_sm_targets')
-      .select('sm_id')
+      .select('sm_id, created_by')
       .eq('id', id)
       .single()
 
@@ -222,16 +243,22 @@ export async function PUT(request) {
       return NextResponse.json({ error: 'Target not found' }, { status: 404 })
     }
 
-    if (existingTarget.sm_id !== user.id) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+    // HOD can update targets they created (created_by = user.id)
+    // This allows HOD to update targets for any manager under them
+    if (existingTarget.created_by !== user.id) {
+      return NextResponse.json({ error: 'Access denied. You can only update targets you created.' }, { status: 403 })
     }
 
-    const monthStart = month ? `${month}-01` : undefined
+    // Fix month format - handle both YYYY-MM and YYYY-MM-DD
+    const fixedMonth = month ? (month.length > 7 ? month.substring(0, 7) : month) : null
+    const monthStart = fixedMonth ? `${fixedMonth}-01` : undefined
 
     // Calculate totals
+    // visitsPerFse is per DAY value - multiply by working days to get monthly
+    // onboardPerFse is already monthly - store as-is
     const fseCountNum = parseInt(fseCount) || 0
     const callersCountNum = parseInt(callersCount) || 0
-    const visitsPerFseNum = parseFloat(visitsPerFse) || 0
+    const visitsPerFseNum = ((parseFloat(visitsPerFse) || 0) * (parseInt(workingDays) || 24))
     const onboardPerFseNum = parseFloat(onboardPerFse) || 0
     const callsPerCallerNum = parseFloat(callsPerCaller) || 0
     const leadsPerCallerNum = parseFloat(leadsPerCaller) || 0
@@ -245,6 +272,7 @@ export async function PUT(request) {
     if (onboardPerFse !== undefined) updateData["onboard/fse"] = onboardPerFseNum
     if (callsPerCaller !== undefined) updateData["calls/caller"] = callsPerCallerNum
     if (leadsPerCaller !== undefined) updateData["leads/caller"] = leadsPerCallerNum
+    if (ctc_generation !== undefined) updateData.ctc_generation = parseInt(ctc_generation) || 0
 
     // Recalculate totals
     updateData.total_visits = fseCountNum * visitsPerFseNum
@@ -284,6 +312,7 @@ export async function PUT(request) {
         totalOnboards: data.total_onboards,
         totalCalls: data.total_calls,
         totalLeads: data.total_leads,
+        ctcGeneration: data.ctc_generation || 0,
         remarks: data.remarks || ''
       }
     })

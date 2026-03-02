@@ -17,45 +17,98 @@ export async function GET(request) {
 
     // Get query parameters
     const { searchParams } = new URL(request.url)
-    const monthParam = searchParams.get('month') // YYYY-MM format (optional)
+    const monthParam = searchParams.get('month') // YYYY-MM or YYYY-MM-DD format
     
-    // Get current month to filter out past months
+    // Normalize month to YYYY-MM format
+    const normalizedMonth = monthParam ? monthParam.substring(0, 7) : null
+    
+    // Get current user info to check role
+    const { data: userData, error: userDataError } = await supabaseServer
+      .from('users')
+      .select('user_id, name, role')
+      .eq('user_id', user.id)
+      .single()
+    
+    const userRole = userData?.role
+    const roleStr = Array.isArray(userRole) ? userRole.join(' ') : (userRole || '')
+    const isHod = roleStr.toUpperCase().includes('HOD')
+    
+    console.log('HOD projection - user role:', roleStr, 'isHod:', isHod)
+    
+    // Get current month to filter out past months (only for reference, not filtering)
     const currentDate = new Date()
     const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
     
-    // Determine target months - if monthParam provided, use it, otherwise get future months
+    // Determine target months - fetch all if no month param, otherwise get specific month
     let targetMonths = []
     
-    if (monthParam) {
-      // If specific month requested, only use it if it's a future month
-      if (monthParam > currentMonth) {
-        targetMonths = [monthParam]
-      } else {
-        return NextResponse.json({
-          success: true,
-          data: {
-            month: monthParam,
-            targets: [],
-            members: []
-          }
-        })
-      }
+    if (normalizedMonth) {
+      // If specific month requested (normalized to YYYY-MM)
+      targetMonths = [normalizedMonth]
     } else {
-      // Get next 3 future months
-      for (let i = 1; i <= 3; i++) {
-        const d = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1)
-        const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-        targetMonths.push(month)
-      }
+      // Get all months from database
+      targetMonths = []
     }
 
-    // Get all managers (SMs) under this HOD
+    // Get all managers (SMs) under this HOD by matching hod_id
+    console.log('HOD projection - user.id:', user.id)
     const { data: teamMembers, error: membersError } = await supabaseServer
       .from('users')
-      .select('user_id, name, role, manager_id')
-      .eq('manager_id', user.id)
+      .select('user_id, name, role, manager_id, hod_id, region, sector')
+      .eq('hod_id', user.id)
       .order('name')
 
+    console.log('HOD projection - teamMembers count:', teamMembers?.length || 0)
+    console.log('HOD projection - membersError:', membersError)
+    
+    // Filter only managers (SM roles)
+    const managerList = (teamMembers || []).filter(u => {
+      const roleStr = Array.isArray(u.role) ? u.role.join(' ') : (u.role || '')
+      return roleStr.toUpperCase().includes('MANAGER') || roleStr.toUpperCase().includes('SM')
+    })
+    
+    console.log('HOD projection - managerList count:', managerList.length)
+    console.log('HOD projection - all team member roles:', (teamMembers || []).map(u => ({ name: u.name, role: u.role })))
+    
+    // If no team members found, return informative message
+    if (!teamMembers || teamMembers.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          month: monthParam || targetMonths[0] || currentMonth,
+          targets: [],
+          managers: [],
+          message: isHod ? 'No team members found under your hod_id. Check that users have hod_id set to your user_id.' : 'You do not have HOD role. Contact administrator.',
+          debug: {
+            userId: user.id,
+            userRole: roleStr,
+            isHod: isHod,
+            teamMembersCount: 0
+          }
+        }
+      })
+    }
+    
+    // If managers list is empty after filtering, return info
+    if (managerList.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          month: monthParam || targetMonths[0] || currentMonth,
+          targets: [],
+          managers: [],
+          message: 'No managers (SMs) found under you. The team members exist but their roles do not contain "MANAGER" or "SM".',
+          debug: {
+            userId: user.id,
+            userRole: roleStr,
+            isHod: isHod,
+            teamMembersCount: teamMembers.length,
+            teamMemberRoles: teamMembers.map(u => ({ name: u.name, role: u.role }))
+          }
+        }
+      })
+    }
+    
     if (membersError) {
       console.error('Team members fetch error:', membersError)
       return NextResponse.json({
@@ -64,15 +117,10 @@ export async function GET(request) {
       }, { status: 500 })
     }
 
-    // Filter only managers (SM roles)
-    const managerList = (teamMembers || []).filter(u => {
-      const roleStr = Array.isArray(u.role) ? u.role.join(' ') : (u.role || '')
-      return roleStr.toUpperCase().includes('MANAGER') || roleStr.toUpperCase().includes('SM')
-    })
-
     const managerIds = managerList.map(m => m.user_id)
 
-    // Fetch targets from hod_sm_targets for future months
+    // Fetch ALL targets from hod_sm_targets (no month filter)
+    // Frontend will handle filtering by month
     let targetsQuery = supabaseServer
       .from('hod_sm_targets')
       .select('*')
@@ -91,16 +139,13 @@ export async function GET(request) {
       }, { status: 500 })
     }
 
-    // Filter targets for future months only
-    const futureTargets = (allTargets || []).filter(t => {
-      if (!t.month) return false
-      const targetMonth = t.month.substring(0, 7) // YYYY-MM
-      return targetMonth > currentMonth && targetMonths.includes(targetMonth)
-    })
+    // Don't filter by month - return all targets
+    // Get all targets from DB (no filtering)
+    const existingTargets = allTargets || []
 
     // Create a map of targets by sm_id and month
     const targetsMap = {}
-    futureTargets.forEach(t => {
+    existingTargets.forEach(t => {
       const key = `${t.sm_id}_${t.month.substring(0, 7)}`
       targetsMap[key] = t
     })
@@ -134,18 +179,77 @@ export async function GET(request) {
       }
     })
 
+    // Build the response with targets - only include months that have targets in DB
+    const monthsToShow = [...new Set((existingTargets || []).map(t => t.month?.substring(0, 7)).filter(Boolean))]
+    
+    // Only show managers who actually have targets in DB (when no specific month is requested)
+    // Get unique manager IDs that have targets in DB
+    const managerIdsWithTargets = [...new Set(existingTargets.map(t => t.sm_id))]
+    
+    // If specific month requested, show all managers; otherwise only show managers with existing targets
+    const displayManagers = normalizedMonth ? managerList : managerList.filter(m => managerIdsWithTargets.includes(m.user_id))
+
     // Build the response with targets
     const managersWithTargets = []
 
-    managerList.forEach(manager => {
-      targetMonths.forEach(month => {
+    // If no targets exist at all, don't show any cards
+    if (existingTargets.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          month: normalizedMonth || currentMonth,
+          targets: [],
+          managers: managerList.map(m => ({
+            id: m.user_id,
+            name: m.name,
+            region: m.region || '',
+            sector: m.sector || '',
+            role: 'Manager',
+            fseCount: memberCountMap[m.user_id]?.fse || 0,
+            callerCount: memberCountMap[m.user_id]?.leadgen || 0
+          }))
+        }
+      })
+    }
+
+    displayManagers.forEach(manager => {
+      // Get months that have targets for this specific manager
+      const managerTargetMonths = [...new Set(
+        existingTargets
+          .filter(t => t.sm_id === manager.user_id)
+          .map(t => t.month?.substring(0, 7))
+          .filter(Boolean)
+      )]
+      
+      // If specific month requested, only show that month if this manager has a target for it
+      // Otherwise show only months that have targets for this manager
+      let monthsToProcess = []
+      if (normalizedMonth) {
+        // Check if this manager has a target for the requested month
+        const key = `${manager.user_id}_${normalizedMonth}`
+        if (targetsMap[key]) {
+          monthsToProcess = [normalizedMonth]
+        }
+      } else {
+        monthsToProcess = managerTargetMonths
+      }
+      
+      // If no months to process (manager has no targets), skip this manager
+      if (monthsToProcess.length === 0) {
+        return
+      }
+      
+      monthsToProcess.forEach(month => {
         const key = `${manager.user_id}_${month}`
         const target = targetsMap[key]
         
         managersWithTargets.push({
-          id: target?.id ? `${manager.user_id}_${month}` : null,
+          id: target?.id || null,
           user_id: manager.user_id,
+          sm_id: manager.user_id,
           name: manager.name,
+          region: manager.region || '',
+          sector: manager.sector || '',
           role: 'Manager',
           month: month,
           fseCount: target?.fse_count || memberCountMap[manager.user_id]?.fse || 0,
@@ -159,6 +263,7 @@ export async function GET(request) {
           totalCalls: target?.total_calls || 0,
           totalLeads: target?.total_leads || 0,
           workingDays: target?.working_days || 24,
+          ctcGeneration: target?.ctc_generation || 0,
           remarks: target?.remarks || '',
           isProjection: !target // Flag to indicate this is a projection (not yet set)
         })
@@ -171,15 +276,18 @@ export async function GET(request) {
     return NextResponse.json({
       success: true,
       data: {
-        month: monthParam || targetMonths[0] || currentMonth,
+        month: monthParam || (monthsToShow.length > 0 ? monthsToShow[0] : currentMonth),
         targets: managersWithTargets,
-        managers: (teamMembers || []).map(m => {
+        managers: managerList.map(m => {
           const roleStr = Array.isArray(m.role) ? m.role.join(' ') : (m.role || '')
           return {
             id: m.user_id,
             name: m.name,
-            role: roleStr.toUpperCase().includes('MANAGER') || roleStr.toUpperCase().includes('SM') ? 'Manager' : 
-                  roleStr.toUpperCase().includes('FSE') ? 'FSE' : 'LeadGen'
+            region: m.region || '',
+            sector: m.sector || '',
+            role: 'Manager',
+            fseCount: memberCountMap[m.user_id]?.fse || 0,
+            callerCount: memberCountMap[m.user_id]?.leadgen || 0
           }
         })
       }

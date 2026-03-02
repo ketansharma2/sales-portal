@@ -52,8 +52,8 @@ export async function GET(request) {
     // Get all managers (SMs) under this HOD
     const { data: teamMembers, error: membersError } = await supabaseServer
       .from('users')
-      .select('user_id, name, role, manager_id')
-      .eq('manager_id', user.id)
+      .select('user_id, name, role, manager_id, hod_id, region, sector')
+      .eq('hod_id', user.id)
       .order('name')
 
     if (membersError) {
@@ -68,6 +68,12 @@ export async function GET(request) {
     const managerList = (teamMembers || []).filter(u => {
       const roleStr = Array.isArray(u.role) ? u.role.join(' ') : (u.role || '')
       return roleStr.toUpperCase().includes('MANAGER') || roleStr.toUpperCase().includes('SM')
+    })
+    
+    // Create a map of manager sectors
+    const managerSectors = {}
+    managerList.forEach(m => {
+      managerSectors[m.user_id] = m.sector || ''
     })
 
     const managerIds = managerList.map(m => m.user_id)
@@ -203,46 +209,62 @@ export async function GET(request) {
       }
 
       // ========== Calculate LeadGen Achievements (Calls & Leads) ==========
-      if (leadgenIds.length > 0) {
+      // Get all leadgens under managers with their sectors
+      const leadgenListWithSector = allSubMembers.filter(u => {
+        const roleStr = Array.isArray(u.role) ? u.role.join(' ') : (u.role || '')
+        return roleStr.toUpperCase().includes('LEADGEN')
+      })
+      
+      // Group leadgens by manager and track their sectors
+      const leadgensByManager = {}
+      leadgenListWithSector.forEach(lg => {
+        if (!leadgensByManager[lg.manager_id]) {
+          leadgensByManager[lg.manager_id] = { ids: [], sector: managerSectors[lg.manager_id] || '' }
+        }
+        leadgensByManager[lg.manager_id].ids.push(lg.user_id)
+      })
+      
+      // Process achievements for each manager's leadgens
+      for (const managerId of Object.keys(leadgensByManager)) {
+        const { ids: managerLeadgenIds, sector } = leadgensByManager[managerId]
+        
+        if (managerLeadgenIds.length === 0) continue
+        
+        // Choose tables based on sector
+        const interactionTable = sector === 'Corporate' ? 'corporate_leads_interaction' : 'domestic_leads_interaction'
+        const leadsTable = sector === 'Corporate' ? 'corporate_leadgen_leads' : 'domestic_leadgen_leads'
+        
+        const key = `${managerId}_${monthKey}`
+        
+        // Fetch interactions for calls
         const { data: interactions, error: intError } = await supabaseServer
-          .from('domestic_leads_interaction')
+          .from(interactionTable)
           .select('leadgen_id, client_id, date')
-          .in('leadgen_id', leadgenIds)
+          .in('leadgen_id', managerLeadgenIds)
           .gte('date', startDate)
           .lte('date', endDate)
 
         if (!intError && interactions && interactions.length > 0) {
-          interactions.forEach(int => {
-            const lg = leadgenList.find(l => l.user_id === int.leadgen_id)
-            if (lg) {
-              const key = `${lg.manager_id}_${monthKey}`
-              if (!achievementsMap[key]) {
-                achievementsMap[key] = { visits: 0, onboards: 0, calls: 0, leads: 0 }
-              }
-              achievementsMap[key].calls++
-            }
-          })
+          if (!achievementsMap[key]) {
+            achievementsMap[key] = { visits: 0, onboards: 0, calls: 0, leads: 0 }
+          }
+          achievementsMap[key].calls += interactions.length
         }
-
+        
+        // Fetch leads
         const { data: leads, error: leadsError } = await supabaseServer
-          .from('domestic_leadgen_leads')
+          .from(leadsTable)
           .select('client_id, leadgen_id')
-          .in('leadgen_id', leadgenIds)
+          .in('leadgen_id', managerLeadgenIds)
           .eq('sent_to_sm', true)
           .gte('lock_date', startDate)
           .lte('lock_date', endDate)
 
         if (!leadsError && leads && leads.length > 0) {
-          leads.forEach(lead => {
-            const lg = leadgenList.find(l => l.user_id === lead.leadgen_id)
-            if (lg) {
-              const key = `${lg.manager_id}_${monthKey}`
-              if (!achievementsMap[key]) {
-                achievementsMap[key] = { visits: 0, onboards: 0, calls: 0, leads: 0 }
-              }
-              achievementsMap[key].leads++
-            }
-          })
+          if (!achievementsMap[key]) {
+            achievementsMap[key] = { visits: 0, onboards: 0, calls: 0, leads: 0 }
+          }
+          achievementsMap[key].leads += leads.length
         }
       }
     }
@@ -263,6 +285,8 @@ export async function GET(request) {
             user_id: manager.user_id,
             sm_id: manager.user_id,
             name: manager.name,
+            region: manager.region || '',
+            sector: manager.sector || '',
             role: 'Manager',
             month: month,
             fseCount: target.fse_count || 0,

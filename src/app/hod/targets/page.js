@@ -29,9 +29,9 @@ export default function HodTargetPage() {
 
   // Form State
   const [targetForm, setTargetForm] = useState({
-    managerId: "", month: "", 
+    managerId: "", targetId: null, month: "", 
     fseCount: 0, callerCount: 0,
-    visitTarget: "", onboardTarget: "", callTarget: "", leadTarget: "",
+    visitTarget: "", onboardTarget: "", callTarget: "", leadTarget: "", ctcGeneration: "",
     remarks: ""
   });
   
@@ -251,24 +251,25 @@ export default function HodTargetPage() {
           return {
             id: idx + 1,
             managerId: target.sm_id,
-            name: mgr?.name || 'Unknown Manager',
-            region: mgr?.region || '',
-            sector: mgr?.sector || '',
+            name: mgr?.name || target.name || 'Unknown Manager',
+            region: target.region || mgr?.region || '',
+            sector: target.sector || mgr?.sector || '',
             month: target.month ? target.month.substring(0, 7) : currentDate,
-            fseCount: target.fse_count || 0,
-            callerCount: target.callers_count || 0,
+            fseCount: target.fseCount || target.fse_count || 0,
+            callerCount: target.callersCount || target.callers_count || 0,
+            ctcGeneration: target.ctcGeneration || target.ctc_generation || 0,
             remarks: target.remarks || '',
             targets: target,
             fse: {
-              vt: target["visits/fse"] || 0,
+              vt: target.visitsPerFse || target["visits/fse"] || 0,
               va: target.achieved_visits || 0,
-              ot: target.total_onboards || 0,
+              ot: target.onboardPerFse || target.totalOnboards || target.total_onboards || 0,
               oa: target.achieved_onboards || 0
             },
             caller: {
-              ct: target.total_calls || 0,
+              ct: target.callsPerCaller || target.totalCalls || target.total_calls || 0,
               ca: target.achieved_calls || 0,
-              lt: target.total_leads || 0,
+              lt: target.leadsPerCaller || target.totalLeads || target.total_leads || 0,
               la: target.achieved_leads || 0
             }
           };
@@ -345,29 +346,45 @@ export default function HodTargetPage() {
     setModalMode(mode);
     
     if (mode === 'edit' && data) {
-      // Pre-fill form for Editing - convert numbers to strings
+      // Pre-fill form for Editing - convert monthly values back to daily for display
+      // data.targets contains the original API target object
+      const targetData = data.targets || data; // Fallback to data itself if targets not present
+      
+      // API returns camelCase field names: visitsPerFse, onboardPerFse, callsPerCaller, leadsPerCaller
+      const wd = targetData.working_days || targetData.workingDays || 24;
+      const visitVal = targetData.visitsPerFse || targetData["visits/fse"] || 0;
+      const onboardVal = targetData.onboardPerFse || targetData["onboard/fse"] || 0;
+      const callVal = targetData.callsPerCaller || targetData["calls/caller"] || 0;
+      const leadVal = targetData.leadsPerCaller || targetData["leads/caller"] || 0;
+      const ctcVal = targetData.ctcGeneration || targetData.ctc_generation || 0;
+      
+      console.log('Edit mode - targetData:', targetData);
+      console.log('Edit mode - working_days:', wd, 'visitsPerFse:', visitVal, 'onboardPerFse:', onboardVal);
+      console.log('Edit mode - callsPerCaller:', callVal, 'leadsPerCaller:', leadVal);
+      console.log('Edit mode - target id:', targetData.id);
+      
       setTargetForm({
         managerId: data.managerId,
-        month: activeTab === 'projection' ? projectionMonth : currentDate,
-        fseCount: data.fseCount || data.targets?.fse_count || 0, 
-        callerCount: data.callerCount || data.targets?.callers_count || 0,
-        visitTarget: data.fse?.vt || data.targets?.["visits/fse"] || '', 
-        onboardTarget: data.fse?.ot || data.targets?.["onboard/fse"] || '',
-        callTarget: data.caller?.ct || data.targets?.["calls/caller"] || '',
-        leadTarget: data.caller?.lt || data.targets?.["leads/caller"] || '',
-        remarks: data.remarks || ""
+        targetId: targetData.id,
+        month: data.month || targetData.month || (activeTab === 'projection' ? projectionMonth : currentDate),
+        fseCount: data.fseCount ?? targetData.fse_count ?? targetData.fseCount ?? 0, 
+        callerCount: data.callerCount ?? targetData.callers_count ?? targetData.callerCount ?? 0,
+        visitTarget: wd > 0 ? Math.round(visitVal / wd) : (visitVal || 0), 
+        onboardTarget: onboardVal ?? 0,
+        callTarget: callVal ?? 0, 
+        leadTarget: leadVal ?? 0,
+        ctcGeneration: ctcVal ?? 0,
+        remarks: data.remarks ?? targetData.remarks ?? ""
       });
       // Load working days from existing target
-      if (data.targets?.working_days) {
-        setWorkingDays(data.targets.working_days);
-      }
+      setWorkingDays(wd || 24);
     } else {
       // Reset form for New Creation
       setTargetForm({
         managerId: "", 
         month: activeTab === 'projection' ? projectionMonth : currentDate,
         fseCount: 0, callerCount: 0,
-        visitTarget: "", onboardTarget: "", callTarget: "", leadTarget: "", remarks: ""
+        visitTarget: "", onboardTarget: "", callTarget: "", leadTarget: "", ctcGeneration: "", remarks: ""
       });
       // Reset working days to default
       setWorkingDays(24);
@@ -406,14 +423,18 @@ export default function HodTargetPage() {
       // Prepare target data for API
       // Convert YYYY-MM to YYYY-MM-DD (first day of month)
       const monthValue = targetForm.month || projectionMonth;
-      const apiMonth = monthValue ? `${monthValue}-01` : new Date().toISOString().split('T')[0];
+      // Handle both YYYY-MM and YYYY-MM-DD formats
+      const monthOnly = monthValue && monthValue.length === 7 ? monthValue : (monthValue ? monthValue.substring(0, 7) : null);
+      const apiMonth = monthOnly ? `${monthOnly}-01` : new Date().toISOString().split('T')[0];
       
       // Get working days for calculations
       const wd = workingDays || 24;
       
-      // Form inputs are per-person targets (handle empty strings)
-      const visitPerMonth = targetForm.visitTarget ? parseInt(targetForm.visitTarget) || 0 : 0;
-      const onboardPerMonth = targetForm.onboardTarget ? parseInt(targetForm.onboardTarget) || 0 : 0;
+      console.log('Saving target - workingDays from state:', workingDays, 'wd used:', wd);
+      
+      // Form inputs are per-person targets per DAY (handle empty strings)
+      const visitPerDay = targetForm.visitTarget ? parseInt(targetForm.visitTarget) || 0 : 0;
+      const onboardPerDay = targetForm.onboardTarget ? parseInt(targetForm.onboardTarget) || 0 : 0;
       const callsPerMonth = targetForm.callTarget ? parseInt(targetForm.callTarget) || 0 : 0;
       const leadsPerCaller = targetForm.leadTarget ? parseInt(targetForm.leadTarget) || 0 : 0;
       
@@ -421,20 +442,26 @@ export default function HodTargetPage() {
       const fseCnt = parseInt(targetForm.fseCount) || 0;
       const callerCnt = parseInt(targetForm.callerCount) || 0;
       
+      // Calculate per-day values multiplied by working days
+      const visitPerMonth = visitPerDay * wd;
+      const onboardPerMonth = onboardPerDay * wd;
+      
       const targetPayload = {
         sm_id: targetForm.managerId,
         fse_count: fseCnt,
         callers_count: callerCnt,
-        // Total targets = per-person × team size (NO working_days multiplication)
+        // Total targets = per-person × team size
         total_visits: visitPerMonth * fseCnt,
         total_onboards: onboardPerMonth * fseCnt,
         total_calls: callsPerMonth * callerCnt,
         total_leads: leadsPerCaller * callerCnt,
-        // Per-person targets stored separately
+        // Per-person targets stored as monthly (daily × working_days)
         "visits/fse": visitPerMonth,
         "onboard/fse": onboardPerMonth,
         "calls/caller": callsPerMonth,
         "leads/caller": leadsPerCaller,
+        // CTC Generation
+        ctc_generation: targetForm.ctcGeneration ? parseInt(targetForm.ctcGeneration) || 0 : 0,
         // Remarks
         remarks: targetForm.remarks || ''
       };
@@ -442,9 +469,13 @@ export default function HodTargetPage() {
       // Determine if create or edit
       const isEdit = modalMode === 'edit';
       
+      // Get the target ID for edit mode (from the original target data)
+      const targetId = isEdit ? (targetForm.targetId || (filteredProjectionData.find(d => d.managerId === targetForm.managerId && d.month === targetForm.month)?.targets?.id)) : null;
+      
       let response;
       if (isEdit) {
-        // Use PUT for edit
+        // Use PUT for edit - must include the target ID
+        console.log('Editing target with ID:', targetId);
         response = await fetch('/api/hod/targets', {
           method: 'PUT',
           headers: {
@@ -452,10 +483,18 @@ export default function HodTargetPage() {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
+            id: targetId,
             month: apiMonth,
             working_days: wd,
             sm_id: targetForm.managerId,
-            targets: targetPayload
+            fseCount: fseCnt,
+            callersCount: callerCnt,
+            visitTarget: visitPerDay,
+            onboardTarget: onboardPerDay,
+            callsPerCaller: callsPerMonth,
+            leadsPerCaller: leadsPerCaller,
+            ctc_generation: targetForm.ctcGeneration ? parseInt(targetForm.ctcGeneration) || 0 : 0,
+            remarks: targetForm.remarks || ''
           })
         });
       } else {
@@ -469,7 +508,15 @@ export default function HodTargetPage() {
           body: JSON.stringify({
             month: apiMonth,
             working_days: wd,
-            targets: [targetPayload]
+            sm_id: targetForm.managerId,
+            fseCount: fseCnt,
+            callersCount: callerCnt,
+            visitTarget: visitPerDay,
+            onboardTarget: onboardPerDay,
+            callsPerCaller: callsPerMonth,
+            leadsPerCaller: leadsPerCaller,
+            ctc_generation: targetForm.ctcGeneration ? parseInt(targetForm.ctcGeneration) || 0 : 0,
+            remarks: targetForm.remarks || ''
           })
         });
       }
@@ -487,7 +534,12 @@ export default function HodTargetPage() {
         // Refresh data
         setRefreshKey(prev => prev + 1);
       } else {
-        alert(`Error: ${result.error}`);
+        // Check if it's a duplicate target error
+        if (result.error && result.error.includes('already exists')) {
+          alert(result.error);
+        } else {
+          alert(`Error: ${result.error}`);
+        }
       }
     } catch (error) {
       console.error('Error saving target:', error);
@@ -614,9 +666,13 @@ export default function HodTargetPage() {
                                 </td>
                                 <td className="px-4 py-4 text-center">
                                     {(() => {
-                                        const totalAchieved = (row.fse.va || 0) + (row.fse.oa || 0) + (row.caller.ca || 0) + (row.caller.la || 0);
-                                        const totalTarget = (row.fse.vt || 0) + (row.fse.ot || 0) + (row.caller.ct || 0) + (row.caller.lt || 0);
-                                        const achievement = totalTarget > 0 ? Math.round((totalAchieved / totalTarget) * 100) : 0;
+                                        // Calculate percentage for each criteria, then average (only criteria with targets)
+                                        const criteria = [];
+                                        if (row.fse.vt > 0) criteria.push((row.fse.va || 0) / row.fse.vt * 100);
+                                        if (row.fse.ot > 0) criteria.push((row.fse.oa || 0) / row.fse.ot * 100);
+                                        if (row.caller.ct > 0) criteria.push((row.caller.ca || 0) / row.caller.ct * 100);
+                                        if (row.caller.lt > 0) criteria.push((row.caller.la || 0) / row.caller.lt * 100);
+                                        const achievement = criteria.length > 0 ? Math.round(criteria.reduce((a, b) => a + b, 0) / criteria.length) : 0;
                                         return (
                                             <span className={`text-xs font-bold px-2 py-1 rounded ${achievement > 70 ? 'bg-green-100 text-green-700' : achievement >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
                                                 {achievement}%
@@ -680,9 +736,13 @@ export default function HodTargetPage() {
                         {/* Achievement % Badge */}
                         <div className="bg-gray-50 px-5 py-2 border-b border-gray-100">
                             {(() => {
-                                const totalAchieved = (row.fse.va || 0) + (row.fse.oa || 0) + (row.caller.ca || 0) + (row.caller.la || 0);
-                                const totalTarget = (row.fse.vt || 0) + (row.fse.ot || 0) + (row.caller.ct || 0) + (row.caller.lt || 0);
-                                const achievement = totalTarget > 0 ? Math.round((totalAchieved / totalTarget) * 100) : 0;
+                                // Calculate percentage for each criteria, then average (only criteria with targets)
+                                const criteria = [];
+                                if (row.fse.vt > 0) criteria.push((row.fse.va || 0) / row.fse.vt * 100);
+                                if (row.fse.ot > 0) criteria.push((row.fse.oa || 0) / row.fse.ot * 100);
+                                if (row.caller.ct > 0) criteria.push((row.caller.ca || 0) / row.caller.ct * 100);
+                                if (row.caller.lt > 0) criteria.push((row.caller.la || 0) / row.caller.lt * 100);
+                                const achievement = criteria.length > 0 ? Math.round(criteria.reduce((a, b) => a + b, 0) / criteria.length) : 0;
                                 return (
                                     <div className="flex justify-between items-center">
                                         <span className="text-[10px] font-bold text-gray-500 uppercase">Overall Achievement</span>
@@ -803,8 +863,11 @@ export default function HodTargetPage() {
                                 <span className="text-[10px] font-black text-blue-800 uppercase">FSE Targets</span>
                             </div>
                             <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 text-center">
-                                <span className="block text-[10px] font-bold text-blue-400 uppercase">Visits/FSE</span>
+                                <span className="block text-[10px] font-bold text-blue-400 uppercase">Visits/FSE/Month</span>
                                 <span className="block text-xl font-black text-blue-800">{row.fse.vt || 0}</span>
+                                <div className="flex justify-end mt-1">
+                                    <span className="inline-block text-[10px] font-bold text-blue-600 px-2 py-0.5 bg-blue-100 rounded">Per Day: {row.fse.vt && workingDays ? Math.round(row.fse.vt / workingDays) : 0}</span>
+                                </div>
                             </div>
                             <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 text-center">
                                 <span className="block text-[10px] font-bold text-blue-400 uppercase">Onboards/FSE</span>
@@ -820,6 +883,13 @@ export default function HodTargetPage() {
                             <div className="bg-red-50 p-3 rounded-xl border border-red-100 text-center">
                                 <span className="block text-[10px] font-bold text-red-400 uppercase">Leads/Leadgen</span>
                                 <span className="block text-xl font-black text-red-800">{row.caller.lt || 0}</span>
+                            </div>
+                            <div className="col-span-2 mt-2">
+                                <span className="text-[10px] font-black text-green-800 uppercase">Financial Targets</span>
+                            </div>
+                            <div className="col-span-2 bg-green-50 p-3 rounded-xl border border-green-100 text-center">
+                                <span className="block text-[10px] font-bold text-green-400 uppercase">CTC Generation</span>
+                                <span className="block text-xl font-black text-green-800">{row.ctcGeneration || 0}</span>
                             </div>
                         </div>
 
@@ -874,7 +944,7 @@ export default function HodTargetPage() {
                               type="number" 
                               name="workingDays" 
                               value={workingDays} 
-                              onChange={(e) => setWorkingDays(parseInt(e.target.value) || 0)} 
+                              onChange={(e) => setWorkingDays(parseInt(e.target.value) || 24)} 
                               className="w-full border border-blue-200 rounded-xl p-3 text-sm font-bold text-blue-700 outline-none focus:border-blue-500"
                             />
                         </div>
@@ -896,10 +966,11 @@ export default function HodTargetPage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Visits/FSE/Month</label><input type="number" name="visitTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.visitTarget || ''} onChange={handleFormChange}/></div>
-                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Onboards/FSE/Month</label><input type="number" name="onboardTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.onboardTarget || ''} onChange={handleFormChange}/></div>
-                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Calls/Leadgen/Month</label><input type="number" name="callTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.callTarget || ''} onChange={handleFormChange}/></div>
-                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Leads/Leadgen/Month</label><input type="number" name="leadTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.leadTarget || ''} onChange={handleFormChange}/></div>
+                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Visits/FSE/Day</label><input type="number" name="visitTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.visitTarget ?? ''} onChange={handleFormChange}/></div>
+                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Onboards/FSE/Month</label><input type="number" name="onboardTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.onboardTarget ?? ''} onChange={handleFormChange}/></div>
+                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Calls/Leadgen/Month</label><input type="number" name="callTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.callTarget ?? ''} onChange={handleFormChange}/></div>
+                        <div><label className="text-[10px] font-bold text-gray-400 uppercase block">Leads/Leadgen/Month</label><input type="number" name="leadTarget" className="w-full border p-2 rounded-lg font-bold" value={targetForm.leadTarget ?? ''} onChange={handleFormChange}/></div>
+                        <div className="col-span-2"><label className="text-[10px] font-bold text-gray-400 uppercase block">CTC Generation</label><input type="number" name="ctcGeneration" className="w-full border p-2 rounded-lg font-bold" value={targetForm.ctcGeneration ?? ''} onChange={handleFormChange}/></div>
                     </div>
 
                     <div>

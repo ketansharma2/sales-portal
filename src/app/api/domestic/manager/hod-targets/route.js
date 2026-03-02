@@ -58,6 +58,7 @@ export async function GET(request) {
       totalOnboards: target.total_onboards,
       totalCalls: target.total_calls,
       totalLeads: target.total_leads,
+      ctcGeneration: target.ctc_generation || 0,
       remarks: target.remarks || '',
       createdBy: target.created_by
     }))
