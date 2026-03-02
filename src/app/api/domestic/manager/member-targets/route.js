@@ -17,7 +17,7 @@ export async function POST(request) {
 
     // Parse request body
     const body = await request.json()
-    const { month, fseId, monthlyVisits, monthlyOnboards, monthlyCalls, monthlyLeads, workingDays, remarks } = body
+    const { month, fseId, monthlyVisits, monthlyOnboards, monthlyCalls, monthlyLeads, ctcGeneration, workingDays, remarks } = body
 
     // Validate required fields
     if (!month || !fseId) {
@@ -56,6 +56,7 @@ export async function POST(request) {
         monthly_onboards: monthlyOnboards || 0,
         monthly_calls: monthlyCalls || 0,
         monthly_leads: monthlyLeads || 0,
+        ctc_generation: ctcGeneration || 0,
         working_days: workingDays || 24,
         remarks: remarks || '',
         created_by: user.id
@@ -161,6 +162,7 @@ export async function GET(request) {
         monthlyOnboards: target.monthly_onboards,
         monthlyCalls: target.monthly_calls,
         monthlyLeads: target.monthly_leads,
+        ctcGeneration: target.ctc_generation,
         workingDays: target.working_days,
         remarks: target.remarks,
         createdBy: target.created_by
@@ -200,7 +202,7 @@ export async function PUT(request) {
 
     // Parse request body
     const body = await request.json()
-    const { month, fseId, monthlyVisits, monthlyOnboards, monthlyCalls, monthlyLeads, workingDays, remarks, targetId } = body
+    const { month, fseId, monthlyVisits, monthlyOnboards, monthlyCalls, monthlyLeads, ctcGeneration, workingDays, remarks, targetId } = body
 
     // Validate required fields
     if (!targetId || !month || !fseId) {
@@ -222,6 +224,7 @@ export async function PUT(request) {
         monthly_onboards: monthlyOnboards || 0,
         monthly_calls: monthlyCalls || 0,
         monthly_leads: monthlyLeads || 0,
+        ctc_generation: ctcGeneration || 0,
         working_days: workingDays || 24,
         remarks: remarks || ''
       })

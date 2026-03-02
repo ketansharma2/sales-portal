@@ -1,4 +1,4 @@
- "use client";
+"use client";
 import { useState, useEffect } from "react";
 import { 
   Target, Edit2, Save, BarChart3, Plus, X, 
@@ -26,7 +26,7 @@ export default function DomesticManagerTargetPage() {
   // Form State
   const [targetForm, setTargetForm] = useState({
     memberId: "", month: "", 
-    visits: "", onboards: "", calls: "", leads: "", remarks: "",
+    visits: "", onboards: "", calls: "", leads: "", ctcGeneration: "", remarks: "",
     targetId: "", workingDays: "24"
   });
   
@@ -240,6 +240,7 @@ export default function DomesticManagerTargetPage() {
             onboards: target.monthlyOnboards || 0,
             calls: target.monthlyCalls || 0,
             leads: target.monthlyLeads || 0,
+            ctcGeneration: target.ctcGeneration || 0,
             workingDays: target.workingDays || 0,
             remarks: target.remarks || ''
           }));
@@ -301,6 +302,7 @@ export default function DomesticManagerTargetPage() {
           onboards: target.monthlyOnboards || 0,
           calls: target.monthlyCalls || 0,
           leads: target.monthlyLeads || 0,
+          ctcGeneration: target.ctcGeneration || 0,
           workingDays: target.workingDays || 0,
           remarks: target.remarks || ''
         }));
@@ -370,10 +372,11 @@ export default function DomesticManagerTargetPage() {
         memberId: data.memberId,
         targetId: data.targetId || data.id || '',
         month: activeTab === 'projection' ? projectionMonth : currentDate,
-        visits: data.visits || '',
+        visits: data.workingDays ? Math.round(data.visits / data.workingDays) : data.visits || '',
         onboards: data.onboards || '',
         calls: data.calls || '',
         leads: data.leads || '',
+        ctcGeneration: data.ctcGeneration || '',
         workingDays: data.workingDays || '24',
         remarks: data.remarks || ""
       });
@@ -382,7 +385,7 @@ export default function DomesticManagerTargetPage() {
         memberId: "", 
         targetId: "",
         month: activeTab === 'projection' ? projectionMonth : currentDate,
-        visits: "", onboards: "", calls: "", leads: "", 
+        visits: "", onboards: "", calls: "", leads: "", ctcGeneration: "", 
         workingDays: "24",
         remarks: ""
       });
@@ -437,10 +440,11 @@ export default function DomesticManagerTargetPage() {
       const targetPayload = {
         month: monthValue,
         fseId: targetForm.memberId,
-        monthlyVisits: parseInt(targetForm.visits) || 0,
+        monthlyVisits: (parseInt(targetForm.visits) || 0) * (parseInt(targetForm.workingDays) || 24),
         monthlyOnboards: parseInt(targetForm.onboards) || 0,
         monthlyCalls: parseInt(targetForm.calls) || 0,
         monthlyLeads: parseInt(targetForm.leads) || 0,
+        ctcGeneration: parseInt(targetForm.ctcGeneration) || 0,
         workingDays: parseInt(targetForm.workingDays) || 24,
         remarks: targetForm.remarks || ''
       };
@@ -631,9 +635,17 @@ export default function DomesticManagerTargetPage() {
                                 </td>
                                 <td className="px-4 py-4 text-center">
                                     {(() => {
-                                        const totalAchieved = (row.achievedVisits || 0) + (row.achievedOnboards || 0) + (row.achievedCalls || 0) + (row.achievedLeads || 0);
-                                        const totalTarget = (row.visits || 0) + (row.onboards || 0) + (row.calls || 0) + (row.leads || 0);
-                                        const achievement = totalTarget > 0 ? Math.round((totalAchieved / totalTarget) * 100) : 0;
+                                        const criteria = [];
+                                        // For FSE: visits and onboards
+                                        if (row.role === 'FSE') {
+                                            if ((row.visits || 0) > 0) criteria.push(((row.achievedVisits || 0) / row.visits) * 100);
+                                            if ((row.onboards || 0) > 0) criteria.push(((row.achievedOnboards || 0) / row.onboards) * 100);
+                                        } else {
+                                            // For LeadGen: calls and leads
+                                            if ((row.calls || 0) > 0) criteria.push(((row.achievedCalls || 0) / row.calls) * 100);
+                                            if ((row.leads || 0) > 0) criteria.push(((row.achievedLeads || 0) / row.leads) * 100);
+                                        }
+                                        const achievement = criteria.length > 0 ? Math.round(criteria.reduce((a, b) => a + b, 0) / criteria.length) : 0;
                                         return (
                                             <span className={`text-xs font-bold px-2 py-1 rounded ${achievement > 70 ? 'bg-green-100 text-green-700' : achievement >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
                                                 {achievement}%
@@ -728,9 +740,17 @@ export default function DomesticManagerTargetPage() {
                             
                             {/* Overall Achievement */}
                             {(() => {
-                                const totalAchieved = (row.achievedVisits || 0) + (row.achievedOnboards || 0) + (row.achievedCalls || 0) + (row.achievedLeads || 0);
-                                const totalTarget = (row.visits || 0) + (row.onboards || 0) + (row.calls || 0) + (row.leads || 0);
-                                const achievement = totalTarget > 0 ? Math.round((totalAchieved / totalTarget) * 100) : 0;
+                                const criteria = [];
+                                // For FSE: visits and onboards
+                                if (row.role === 'FSE') {
+                                    if ((row.visits || 0) > 0) criteria.push(((row.achievedVisits || 0) / row.visits) * 100);
+                                    if ((row.onboards || 0) > 0) criteria.push(((row.achievedOnboards || 0) / row.onboards) * 100);
+                                } else {
+                                    // For LeadGen: calls and leads
+                                    if ((row.calls || 0) > 0) criteria.push(((row.achievedCalls || 0) / row.calls) * 100);
+                                    if ((row.leads || 0) > 0) criteria.push(((row.achievedLeads || 0) / row.leads) * 100);
+                                }
+                                const achievement = criteria.length > 0 ? Math.round(criteria.reduce((a, b) => a + b, 0) / criteria.length) : 0;
                                 return (
                                     <div className={`mt-3 pt-3 border-t ${achievement > 70 ? 'bg-green-50 border-green-200' : achievement >= 50 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'} p-3 rounded-lg text-center`}>
                                         <span className="text-xs font-bold uppercase">Overall Achievement</span>
@@ -778,33 +798,31 @@ export default function DomesticManagerTargetPage() {
                         <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-bold">{filteredHodProjectionData[0].workingDays || 0} Working Days</span>
                     </div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
                         <span className="block text-xs font-bold text-purple-600 uppercase">Visits / FSE / Month</span>
                         <span className="block text-3xl font-black text-purple-700">{filteredHodProjectionData[0].visitsPerFse || 0}</span>
-                        <div className="mt-0 text-right"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalVisits || 0}</span></div>
+                        <div className="mt-1 flex justify-between items-center"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalVisits || 0}</span><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Per Day: {filteredHodProjectionData[0].workingDays ? Math.round((filteredHodProjectionData[0].totalVisits || 0) / filteredHodProjectionData[0].workingDays) : 0}</span></div>
                     </div>
                     <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
                         <span className="block text-xs font-bold text-purple-600 uppercase">Onboards / FSE / Month</span>
                         <span className="block text-3xl font-black text-purple-700">{filteredHodProjectionData[0].onboardPerFse || 0}</span>
-                        <div className="mt-0 text-right"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalOnboards || 0}</span></div>
+                        <div className="mt-1 flex justify-between items-center"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalOnboards || 0}</span></div>
                     </div>
                     <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
                         <span className="block text-xs font-bold text-purple-600 uppercase">Calls / Leadgen / Month</span>
                         <span className="block text-3xl font-black text-purple-700">{filteredHodProjectionData[0].callsPerCaller || 0}</span>
-                        <div className="mt-0 text-right"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalCalls || 0}</span></div>
+                        <div className="mt-1 flex justify-between items-center"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalCalls || 0}</span></div>
                     </div>
                     <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
                         <span className="block text-xs font-bold text-purple-600 uppercase">Leads / Leadgen / Month</span>
                         <span className="block text-3xl font-black text-purple-700">{filteredHodProjectionData[0].leadsPerCaller || 0}</span>
-                        <div className="mt-0 text-right"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalLeads || 0}</span></div>
+                        <div className="mt-1 flex justify-between items-center"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalLeads || 0}</span></div>
                     </div>
-                </div>
-                
-                {/* CTC Generation - 5th Card */}
-                <div className="mt-4 bg-green-50 p-4 rounded-xl border border-green-200 text-center">
-                    <span className="block text-xs font-bold text-green-600 uppercase">CTC Generation</span>
-                    <span className="block text-3xl font-black text-green-700">{filteredHodProjectionData[0].ctcGeneration || 0}</span>
+                    <div className="bg-green-50 p-4 rounded-xl border border-green-200 text-center">
+                        <span className="block text-xs font-bold text-green-600 uppercase">CTC Generation</span>
+                        <span className="block text-3xl font-black text-green-700">{filteredHodProjectionData[0].ctcGeneration || 0}</span>
+                    </div>
                 </div>
                 
                 {/* Remarks */}
@@ -851,10 +869,15 @@ export default function DomesticManagerTargetPage() {
                                     <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 text-center">
                                         <span className="block text-[10px] font-bold text-blue-400 uppercase">Monthly Visits</span>
                                         <span className="block text-xl font-black text-blue-800">{row.visits || 0}</span>
+                                        <span className="inline-block text-[10px] font-bold bg-blue-800 text-white px-2 py-0.5 rounded mt-1 ml-auto">Per Day: {row.workingDays ? Math.round((row.visits || 0) / row.workingDays) : 0}</span>
                                     </div>
                                     <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 text-center">
                                         <span className="block text-[10px] font-bold text-blue-400 uppercase">Monthly Onboards</span>
                                         <span className="block text-xl font-black text-blue-800">{row.onboards || 0}</span>
+                                    </div>
+                                    <div className="bg-green-50 p-3 rounded-xl border border-green-100 text-center">
+                                        <span className="block text-[10px] font-bold text-green-400 uppercase">CTC Generation</span>
+                                        <span className="block text-xl font-black text-green-800">{row.ctcGeneration || 0}</span>
                                     </div>
                                 </>
                             ) : (
@@ -928,7 +951,7 @@ export default function DomesticManagerTargetPage() {
                     {/* Target Inputs */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="text-[10px] font-bold text-gray-400 uppercase block">Monthly Visits</label>
+                            <label className="text-[10px] font-bold text-gray-400 uppercase block">Visits/Day</label>
                             <input type="number" name="visits" className="w-full border p-2 rounded-lg font-bold" value={targetForm.visits || ''} onChange={handleFormChange} disabled={getMembersList().find(m => String(m.id) === String(targetForm.memberId))?.role === 'LeadGen'}/>
                         </div>
                         <div>
@@ -942,6 +965,10 @@ export default function DomesticManagerTargetPage() {
                         <div>
                             <label className="text-[10px] font-bold text-gray-400 uppercase block">Monthly Leads</label>
                             <input type="number" name="leads" className="w-full border p-2 rounded-lg font-bold" value={targetForm.leads || ''} onChange={handleFormChange} disabled={getMembersList().find(m => String(m.id) === String(targetForm.memberId))?.role === 'FSE'}/>
+                        </div>
+                        <div className="col-span-2">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase block">CTC Generation</label>
+                            <input type="number" name="ctcGeneration" className="w-full border p-2 rounded-lg font-bold" value={targetForm.ctcGeneration || ''} onChange={handleFormChange}/>
                         </div>
                     </div>
 
