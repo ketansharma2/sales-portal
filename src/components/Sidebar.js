@@ -84,6 +84,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       { name: "My Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "My Leads", href: `${roleBaseHref}/lead`, icon: <Users size={20} /> },
       //{ name: "My Weekly Plan", href: `${roleBaseHref}/weekly-plan`, icon: <Calendar size={20} /> },
+      { name: "Targets", href: `${roleBaseHref}/targets`, icon: <Target size={20} /> },
       { name: "My Expenses", href: `${roleBaseHref}/expenses`, icon: <Wallet size={20} /> },
       { name: "Packages", href: `${roleBaseHref}/packages`, icon: <Package size={20} /> },
     ];

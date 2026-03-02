@@ -49,15 +49,18 @@ export default function FSEDashboard() {
       });
       const data = await response.json();
       console.log('Targets API response:', data);
-      if (data.success && data.data) {
-        console.log('Visit Goal:', data.data.monthly_visits);
-        console.log('Onboard Goal:', data.data.monthly_onboards);
+      console.log('Targets array:', data.data?.targets);
+      if (data.success && data.data?.targets?.length > 0) {
+        const targetData = data.data.targets[0];
+        console.log('First target data:', targetData);
+        console.log('Visit Goal:', targetData.monthly_visits);
+        console.log('Onboard Goal:', targetData.monthly_onboards);
         setStats(prev => ({
           ...prev,
           monthly: {
             ...prev.monthly,
-            visitGoal: data.data.monthly_visits || 0,
-            onboardGoal: data.data.monthly_onboards || 0
+            visitGoal: targetData.monthly_visits || 0,
+            onboardGoal: targetData.monthly_onboards || 0
           }
         }));
       }
