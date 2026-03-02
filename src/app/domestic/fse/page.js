@@ -42,6 +42,9 @@ export default function FSEDashboard() {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const currentMonth = new Date().toISOString().split('T')[0].substring(0, 7) + '-01';
+      console.log('=== FETCH VISIT TARGET DEBUG ===');
+      console.log('Current month param:', currentMonth);
+      console.log('User ID from session:', session.user?.id);
       const response = await fetch(`/api/domestic/fse/targets?month=${currentMonth}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
@@ -49,10 +52,27 @@ export default function FSEDashboard() {
       });
       const data = await response.json();
       console.log('Targets API response:', data);
+      console.log('API success:', data.success);
+      console.log('Targets count:', data.data?.count);
       console.log('Targets array:', data.data?.targets);
+      
+      // Debug: Check if targets exist and their values
+      if (data.data?.targets && data.data.targets.length > 0) {
+        console.log('All targets in response:');
+        data.data.targets.forEach((t, i) => {
+          console.log(`Target ${i}: month=${t.month}, visits=${t.monthly_visits}, onboards=${t.monthly_onboards}`);
+        });
+      }
+      
+      // Filter targets by the requested month in frontend
+      const requestedMonthKey = currentMonth.substring(0, 7); // "2026-03"
+      console.log('Looking for month:', requestedMonthKey);
+      
       if (data.success && data.data?.targets?.length > 0) {
-        const targetData = data.data.targets[0];
-        console.log('First target data:', targetData);
+        // Find target matching the current month
+        const matchingTarget = data.data.targets.find(t => t.month === requestedMonthKey);
+        const targetData = matchingTarget || data.data.targets[0]; // Use matching month or fall back to first (most recent)
+        console.log('Using target data:', targetData);
         console.log('Visit Goal:', targetData.monthly_visits);
         console.log('Onboard Goal:', targetData.monthly_onboards);
         setStats(prev => ({
@@ -63,6 +83,9 @@ export default function FSEDashboard() {
             onboardGoal: targetData.monthly_onboards || 0
           }
         }));
+      } else {
+        console.log('NO TARGETS FOUND - Setting goals to 0');
+        console.log('This could mean: 1) No targets in database for this user, 2) API error:', data.error);
       }
     } catch (error) {
       console.error('Failed to fetch visit target:', error);

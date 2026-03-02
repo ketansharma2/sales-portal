@@ -802,7 +802,7 @@ export default function DomesticManagerTargetPage() {
                     <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
                         <span className="block text-xs font-bold text-purple-600 uppercase">Visits / FSE / Month</span>
                         <span className="block text-3xl font-black text-purple-700">{filteredHodProjectionData[0].visitsPerFse || 0}</span>
-                        <div className="mt-1 flex justify-between items-center"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalVisits || 0}</span><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Per Day: {filteredHodProjectionData[0].workingDays ? Math.round((filteredHodProjectionData[0].totalVisits || 0) / filteredHodProjectionData[0].workingDays) : 0}</span></div>
+                        <div className="mt-1 flex justify-between items-center"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalVisits || 0}</span></div>
                     </div>
                     <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
                         <span className="block text-xs font-bold text-purple-600 uppercase">Onboards / FSE / Month</span>

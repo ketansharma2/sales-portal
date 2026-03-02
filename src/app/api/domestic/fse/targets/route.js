@@ -3,6 +3,12 @@ import { NextResponse } from 'next/server'
 
 export async function GET(request) {
   try {
+    // Debug: Log the request URL and parameters
+    const { searchParams } = new URL(request.url);
+    const requestedMonth = searchParams.get('month');
+    console.log('=== DOMESTIC FSE TARGETS API DEBUG ===');
+    console.log('Requested month param:', requestedMonth);
+    
     // Authentication
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
@@ -11,16 +17,46 @@ export async function GET(request) {
     const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
     if (authError || !user) {
+      console.log('Auth error:', authError);
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
+    console.log('Authenticated user ID:', user.id);
 
     // Get all targets for this FSE from domestic_sm_fse_targets table
     // Return all rows - frontend will filter by month
-    const { data: targets, error: targetsError } = await supabaseServer
+    let query = supabaseServer
       .from('domestic_sm_fse_targets')
       .select('id, month, fse_id, monthly_visits, monthly_onboards, monthly_calls, monthly_leads, working_days, remarks, ctc_generation')
       .eq('fse_id', user.id)
+    
+    // Filter by month if provided (format: YYYY-MM-DD)
+    if (requestedMonth) {
+      const monthPrefix = requestedMonth.substring(0, 7); // Extract YYYY-MM from YYYY-MM-DD
+      console.log('Filtering by month prefix:', monthPrefix);
+      query = query.like('month', `${monthPrefix}%`);
+    }
+    
+    let { data: targets, error: targetsError } = await query
       .order('month', { ascending: false })
+    
+    // If month filter returned no results, get the latest target as fallback
+    if ((!targets || targets.length === 0) && requestedMonth) {
+      console.log('No target for specific month, fetching latest target as fallback');
+      const { data: fallbackTarget, error: fallbackError } = await supabaseServer
+        .from('domestic_sm_fse_targets')
+        .select('id, month, fse_id, monthly_visits, monthly_onboards, monthly_calls, monthly_leads, working_days, remarks, ctc_generation')
+        .eq('fse_id', user.id)
+        .order('month', { ascending: false })
+        .limit(1);
+      
+      if (!fallbackError && fallbackTarget && fallbackTarget.length > 0) {
+        targets = fallbackTarget;
+        console.log('Using fallback target:', targets[0]);
+      }
+    }
+
+    console.log('Database query result - targets count:', targets?.length || 0);
+    console.log('Database query result - targets:', targets);
 
     if (targetsError) {
       console.error('Targets fetch error:', targetsError)
@@ -28,6 +64,10 @@ export async function GET(request) {
         error: 'Failed to fetch targets',
         details: targetsError.message
       }, { status: 500 })
+    }
+
+    if (!targets || targets.length === 0) {
+      console.log('No targets found in database for user:', user.id);
     }
 
     // Fetch all FSE interactions (for achievements calculation per month)
