@@ -276,7 +276,11 @@ export default function JobRequirementsPage() {
                             </td>
                             <td className="p-2 border-r border-gray-100 text-center">
                                 <span className={`px-2 py-1 rounded text-[9px] font-black uppercase border whitespace-nowrap ${
-                                    jd.status === 'Sent' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'
+                                    jd.status === 'Sent' ? 'bg-green-50 text-green-700 border-green-200' :
+                                    jd.status === 'Live' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                    jd.status === 'Paused' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                    jd.status === 'Deleted' ? 'bg-red-50 text-red-700 border-red-200' :
+                                    'bg-gray-100 text-gray-500 border-gray-200'
                                 }`}>
                                     {jd.status === 'Sent' && jd.sent_to_name ? `Sent to ${jd.sent_to_name}` : (jd.status || 'Draft')}
                                 </span>
@@ -491,50 +495,124 @@ export default function JobRequirementsPage() {
       )}
 
       {/* --- 6. VIEW APPLICANTS MODAL --- */}
-{isCVModalOpen && selectedJD && (
-          <div className="fixed inset-0 bg-[#103c7f]/50 backdrop-blur-sm flex justify-center items-center z-[9999] p-4 print:hidden">
-              <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl h-[70vh] flex flex-col overflow-hidden animate-in zoom-in-95 border-4 border-white relative z-[10000]">
-                  
-                  {/* 1. Header */}
-                  <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-start bg-white shrink-0">
-                        <div className="flex gap-4 items-center">
-                            <div className="p-3 bg-blue-50 text-[#103c7f] rounded-xl border border-blue-100">
-                                <Users size={24} />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-black text-[#103c7f] uppercase tracking-tight">Applications Data</h2>
-                                <div className="flex flex-col gap-1 mt-0.5">
-                                    <div className="flex items-center gap-1 text-xs font-bold text-gray-500 uppercase tracking-wide">
-                                        <Briefcase size={12} /> {selectedJD.job_title}
-                                    </div>
-                                    <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-wide">
-                                        For Client: {selectedJD.client_name || "Internal"}
-                                    </div>
+      {isCVModalOpen && selectedJD && (
+        <div className="fixed inset-0 bg-[#103c7f]/50 backdrop-blur-sm flex justify-center items-center z-[9999] p-4 print:hidden">
+            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl h-[70vh] flex flex-col overflow-hidden animate-in zoom-in-95 border-4 border-white relative z-[10000]">
+                
+                {/* 1. Header */}
+                <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-start bg-white shrink-0">
+                    <div className="flex gap-4 items-center">
+                        <div className="p-3 bg-blue-50 text-[#103c7f] rounded-xl border border-blue-100">
+                            <Users size={24} />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black text-[#103c7f] uppercase tracking-tight">Applications Data</h2>
+                            <div className="flex flex-col gap-1 mt-0.5">
+                                <div className="flex items-center gap-1 text-xs font-bold text-gray-500 uppercase tracking-wide">
+                                    <Briefcase size={12} /> {selectedJD.job_title}
+                                </div>
+                                <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+                                    For Client: {selectedJD.client_name || "Internal"}
                                 </div>
                             </div>
                         </div>
-                        <button onClick={() => setIsCVModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-2 transition bg-gray-50 hover:bg-gray-100 rounded-full">
-                            <X size={20} />
-                        </button>
-                  </div>
+                    </div>
+                    <button onClick={() => setIsCVModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-2 transition bg-gray-50 hover:bg-gray-100 rounded-full">
+                        <X size={20} />
+                    </button>
+                </div>
 
-                  {/* 2. Content - Two Vertical Sections */}
-                  <div className="flex-1 overflow-hidden flex flex-col gap-4 p-6 bg-gray-50">
+                {/* 2. Content - Two Vertical Sections */}
+                <div className="flex-1 overflow-hidden flex flex-col gap-4 p-6 bg-gray-50">
+                    {/* Section 1: Postings */}
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="bg-blue-600 px-4 py-2 flex justify-between items-center">
+                            <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+                                <Globe size={14}/> Job Postings (Platform Links)
+                            </h3>
+                            <span className="text-[10px] font-bold text-blue-200">{cvModalData.postings.length} platforms</span>
+                        </div>
+                        <div className="p-4">
+                            {cvModalLoading ? (
+                                <p className="text-center text-gray-500 py-4">Loading...</p>
+                            ) : cvModalData.postings.length === 0 ? (
+                                <p className="text-center text-gray-400 py-4">No postings yet</p>
+                            ) : (
+                                <table className="w-full text-left text-xs">
+                                    <thead className="text-[10px] uppercase text-gray-400 bg-gray-50 border-b border-gray-200">
+                                        <tr>
+                                            <th className="p-2">Platform</th>
+                                            <th className="p-2">Posted On</th>
+                                            <th className="p-2">Live URL</th>
+                                            <th className="p-2 text-center">Stage</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {cvModalData.postings.map(pub => (
+                                            <tr key={pub.id} className="hover:bg-gray-50">
+                                                <td className="p-2 font-bold text-gray-800">{pub.platform}</td>
+                                                <td className="p-2 text-gray-600">{pub.posted_on || '-'}</td>
+                                                <td className="p-2">
+                                                    {pub.live_url ? (
+                                                        <a href={pub.live_url} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">View Link</a>
+                                                    ) : '-'}
+                                                </td>
+                                                <td className="p-2 text-center">
+                                                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                                        pub.current_stage === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                                                    }`}>
+                                                        {pub.current_stage}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    </div>
 
+                    {/* Section 2: CV Data */}
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="bg-purple-600 px-4 py-2 flex justify-between items-center">
+                            <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+                                <Users size={14}/> CVs / Applications Received
+                            </h3>
+                            <span className="text-[10px] font-bold text-purple-200">{cvModalData.cvLogs.reduce((sum, log) => sum + (log.cv_received || 0), 0)} total CVs</span>
+                        </div>
+                        <div className="p-4">
+                            {cvModalLoading ? (
+                                <p className="text-center text-gray-500 py-4">Loading...</p>
+                            ) : cvModalData.cvLogs.length === 0 ? (
+                                <p className="text-center text-gray-400 py-4">No CV data logged yet</p>
+                            ) : (
+                                <table className="w-full text-left text-xs">
+                                    <thead className="text-[10px] uppercase text-gray-400 bg-gray-50 border-b border-gray-200">
+                                        <tr>
+                                            <th className="p-2">Date</th>
+                                            <th className="p-2">Platform</th>
+                                            <th className="p-2 text-center">CVs Received</th>
+                                            <th className="p-2 text-center">Calls Done</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {cvModalData.cvLogs.map(log => (
+                                            <tr key={log.id} className="hover:bg-gray-50">
+                                                <td className="p-2 text-gray-600 font-mono">{log.date}</td>
+                                                <td className="p-2 font-bold text-gray-800">{log.platform}</td>
+                                                <td className="p-2 text-center font-black text-purple-600">{log.cv_received || 0}</td>
+                                                <td className="p-2 text-center font-black text-green-600">{log.calls_done || 0}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    </div>
+                </div>
 
-                      <div className="bg-white p-10 rounded-3xl border border-gray-100 shadow-xl flex flex-col items-center text-center max-w-lg z-10 animate-in slide-in-from-bottom-4 duration-500">
-                           
-                          <div className="w-20 h-20">
-                            </div>
-                          
-                        
-                           
-                           
-                      </div>
-                  </div>
-
-              </div>
-          </div>
+            </div>
+        </div>
       )}
 
     </div>
