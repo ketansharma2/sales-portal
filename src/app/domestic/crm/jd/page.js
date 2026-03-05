@@ -173,6 +173,10 @@ export default function JobRequirementsPage() {
   const handleSave = async () => {
       try {
         const session = JSON.parse(localStorage.getItem('session') || '{}');
+        
+        // Remove computed fields that shouldn't be saved to database
+        const { totalCVs, sent_to_name, created_date, ...cleanFormData } = formData;
+        
         const method = formData.jd_id ? 'PUT' : 'POST';
         const url = formData.jd_id 
           ? `/api/domestic/crm/jd?jd_id=${formData.jd_id}`
@@ -184,7 +188,7 @@ export default function JobRequirementsPage() {
             'Authorization': `Bearer ${session.access_token}`,
             'Content-Type': 'application/json' 
           },
-          body: JSON.stringify({ ...formData, status: 'Draft' })
+          body: JSON.stringify({ ...cleanFormData, status: 'Draft' })
         });
         const data = await response.json();
         
