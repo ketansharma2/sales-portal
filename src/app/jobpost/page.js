@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Calendar, Printer, FileSpreadsheet, Database, Briefcase, PhoneCall
 } from "lucide-react";
@@ -8,56 +8,113 @@ export default function JobPosterReportDetailed() {
   
   const getTodayDate = () => new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
-  const [remarks, setRemarks] = useState("");
 
-  // --- MOCK DATABASE 1: JOBS POSTED TODAY ---
-  const [jobsPosted] = useState([
-    { id: 1, date: getTodayDate(), sector: "Domestic", client: "Lakshya International School", profile: "Mathematics Teacher" },
-    { id: 2, date: getTodayDate(), sector: "Domestic", client: "Lakshya International School", profile: "English Teacher" },
-    { id: 3, date: getTodayDate(), sector: "Corporate", client: "TechCorp Solutions", profile: "React Developer" },
-    { id: 4, date: getTodayDate(), sector: "Corporate", client: "Global Tech Inc.", profile: "Backend Node.js Eng." }
-  ]);
+  // --- API DATABASE 1: JOBS POSTED TODAY (from job_postings + domestic_crm_jd/corporate_crm_jd) ---
+  const [jobsPosted, setJobsPosted] = useState([]);
+  const [loadingJobs, setLoadingJobs] = useState(true);
 
-  // --- MOCK DATABASE 2: DAILY PLATFORM STATS ---
-  const [dailyPlatformStats] = useState([
-    { id: 101, date: getTodayDate(), platform: "Indeed", cvsReceived: 54, callingDone: 49 },
-    { id: 102, date: getTodayDate(), platform: "Naukri", cvsReceived: 37, callingDone: 30 }
-  ]);
+  // Fetch jobs posted when selected date changes
+  useEffect(() => {
+    const fetchJobsPosted = async () => {
+      setLoadingJobs(true);
+      try {
+        const res = await fetch(`/api/jobpost/jobs-posted?date=${selectedDate}`);
+        const data = await res.json();
+        if (data.success) {
+          setJobsPosted(data.jobs);
+        }
+      } catch (error) {
+        console.error('Error fetching jobs posted:', error);
+      } finally {
+        setLoadingJobs(false);
+      }
+    };
+    fetchJobsPosted();
+  }, [selectedDate]);
 
-  // --- MOCK DATABASE 3: LIFETIME GRAND TOTALS ---
-  const lifetimeTotals = {
-      indeedCvs: 1250, indeedCalls: 1100,
-      naukriCvs: 890, naukriCalls: 850
-  };
+  // --- API DATABASE 2: DAILY PLATFORM STATS (from posting_data table) ---
+  const [dailyPlatformStats, setDailyPlatformStats] = useState([]);
+  const [loadingDaily, setLoadingDaily] = useState(true);
+
+  // Fetch daily stats when selected date changes
+  useEffect(() => {
+    const fetchDailyStats = async () => {
+      setLoadingDaily(true);
+      try {
+        const res = await fetch(`/api/jobpost/daily-stats?date=${selectedDate}`);
+        const data = await res.json();
+        if (data.success) {
+          setDailyPlatformStats(data.stats);
+        }
+      } catch (error) {
+        console.error('Error fetching daily stats:', error);
+      } finally {
+        setLoadingDaily(false);
+      }
+    };
+    fetchDailyStats();
+  }, [selectedDate]);
+
+  // --- API DATABASE 3: LIFETIME GRAND TOTALS (from posting_data table) ---
+  const [lifetimeTotals, setLifetimeTotals] = useState({
+    indeedCvs: 0, indeedCalls: 0,
+    naukriCvs: 0, naukriCalls: 0,
+    internshalaCvs: 0, internshalaCalls: 0
+  });
+  const [loadingTotals, setLoadingTotals] = useState(true);
+
+  useEffect(() => {
+    const fetchPlatformTotals = async () => {
+      try {
+        const res = await fetch('/api/jobpost/platform-totals');
+        const data = await res.json();
+        if (data.success) {
+          setLifetimeTotals({
+            indeedCvs: data.platformTotals.indeed?.cvs || 0,
+            indeedCalls: data.platformTotals.indeed?.calls || 0,
+            naukriCvs: data.platformTotals.naukri?.cvs || 0,
+            naukriCalls: data.platformTotals.naukri?.calls || 0,
+            internshalaCvs: data.platformTotals.internshala?.cvs || 0,
+            internshalaCalls: data.platformTotals.internshala?.calls || 0
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching platform totals:', error);
+      } finally {
+        setLoadingTotals(false);
+      }
+    };
+    fetchPlatformTotals();
+  }, []);
 
   const handlePrint = () => window.print();
 
-  const filteredJobs = jobsPosted.filter(r => r.date === selectedDate);
-  const filteredStats = dailyPlatformStats.filter(r => r.date === selectedDate);
+  // Note: jobsPosted is already filtered by date from the API
 
   return (
-<div className="min-h-screen bg-gray-100 font-['Calibri'] p-1 md:p-8 print:p-0 print:bg-white print:min-h-0 print:block">      
+    <div className="min-h-screen bg-gray-100 font-['Calibri'] p-1 md:p-8 print:p-0 print:bg-white print:min-h-0">
+      <div className="Print-wrapper">
       {/* --- HEADER CONTROLS (Hidden in Print) --- */}
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4 print:hidden">
-         <div>
-             <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
-                 <FileSpreadsheet size={24}/> Daily Report
-             </h1>
-         </div>
-         <div className="flex flex-wrap items-center gap-3">
-             <div className="flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2 shadow-sm">
-                 <Calendar size={16} className="text-gray-400 mr-2"/>
-                 <input 
-                    type="date" 
-                    className="outline-none text-sm font-bold text-gray-700 bg-transparent cursor-pointer"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                 />
-             </div>
-             <button onClick={handlePrint} className="flex items-center gap-2 bg-[#103c7f] hover:bg-blue-900 text-white px-5 py-2 rounded-lg font-bold transition shadow-md text-sm">
-                 <Printer size={16}/> Print Report
-             </button>
-         </div>
+        <div>
+            <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
+                <FileSpreadsheet size={24}/> Daily Report
+            </h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2 shadow-sm">
+                <Calendar size={16} className="text-gray-400 mr-2"/>
+                <input 
+                   type="date" 
+                   className="outline-none text-sm font-bold text-gray-700 bg-transparent cursor-pointer"
+                   value={selectedDate}
+                   onChange={(e) => setSelectedDate(e.target.value)}
+                />
+            </div>
+            <button onClick={handlePrint} className="flex items-center gap-2 bg-[#103c7f] hover:bg-blue-900 text-white px-5 py-2 rounded-lg font-bold transition shadow-md text-sm">
+                <Printer size={16}/> Print Report
+            </button>
+        </div>
       </div>
 
       {/* --- PROFESSIONAL REPORT PAPER --- */}
@@ -81,10 +138,16 @@ export default function JobPosterReportDetailed() {
               <div className="w-full lg:w-[65%] print:w-[65%] border-r border-gray-200 flex flex-col">
                   <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center gap-2">
                       <Briefcase size={16} className="text-[#103c7f]"/>
-                      <h3 className="font-black text-[#103c7f] uppercase text-sm tracking-widest">Jobs Posted Today ({filteredJobs.length})</h3>
+                      <h3 className="font-black text-[#103c7f] uppercase text-sm tracking-widest">Jobs Posted Today ({jobsPosted.length})</h3>
                   </div>
                   
                   <div className="p-0 flex-1">
+                    {loadingJobs ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#103c7f]"></div>
+                        <span className="ml-3 text-gray-500 text-sm">Loading...</span>
+                      </div>
+                    ) : (
                       <table className="w-full text-left text-sm">
                           <thead className="bg-white border-b border-gray-200 text-[10px] uppercase text-gray-400 font-bold">
                               <tr>
@@ -94,7 +157,7 @@ export default function JobPosterReportDetailed() {
                               </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100 text-gray-800">
-                              {filteredJobs.length > 0 ? filteredJobs.map(job => (
+                              {jobsPosted.length > 0 ? jobsPosted.map(job => (
                                   <tr key={job.id} className="hover:bg-gray-50">
                                       <td className="py-3 px-6">
                                           <span className={`text-[9px] px-2 py-1 rounded font-black uppercase tracking-widest ${job.sector === 'Domestic' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
@@ -109,6 +172,7 @@ export default function JobPosterReportDetailed() {
                               )}
                           </tbody>
                       </table>
+                    )}
                   </div>
               </div>
 
@@ -119,111 +183,140 @@ export default function JobPosterReportDetailed() {
                       <h3 className="font-black text-green-700 uppercase text-sm tracking-widest">Today's Sourcing</h3>
                   </div>
                   
-                  <div className="p-6 flex-1 bg-white">
-                      <table className="w-full text-left text-sm border border-gray-200 rounded-lg overflow-hidden">
-                          <thead className="bg-gray-100 text-[10px] uppercase text-gray-500 font-bold border-b border-gray-200">
-                              <tr>
-                                  <th className="py-2 px-4 w-[40%]">Platform</th>
-                                  <th className="py-2 px-4 w-[30%] text-center">CVs</th>
-                                  <th className="py-2 px-4 w-[30%] text-center">Calling</th>
-                              </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100 text-gray-800">
-                              {filteredStats.length > 0 ? filteredStats.map(stat => (
-                                  <tr key={stat.id}>
-                                      <td className="py-3 px-4 font-black uppercase tracking-wider text-xs">{stat.platform}</td>
-                                      <td className="py-3 px-4 text-center font-black text-base text-[#103c7f] bg-blue-50/30">{stat.cvsReceived}</td>
-                                      <td className="py-3 px-4 text-center font-black text-base text-green-700 bg-green-50/30">{stat.callingDone}</td>
-                                  </tr>
-                              )) : (
-                                  <tr><td colSpan="3" className="py-4 text-center text-gray-400 italic text-xs">No activity logged.</td></tr>
-                              )}
-                          </tbody>
-                      </table>
+                  <div className="p-4 flex-1 bg-white flex items-center justify-center">
+                    {loadingDaily ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-700"></div>
+                        <span className="ml-3 text-gray-500 text-sm">Loading...</span>
+                      </div>
+                    ) : (
+                      <div className="w-full overflow-x-auto">
+                        <table className="w-full text-left text-sm border border-gray-200 rounded-lg overflow-hidden">
+                            <thead className="bg-gray-100 text-[10px] uppercase text-gray-500 font-bold border-b border-gray-200">
+                                <tr>
+                                    <th className="py-2 px-4 w-[40%]">Platform</th>
+                                    <th className="py-2 px-4 w-[30%] text-center">CVs</th>
+                                    <th className="py-2 px-4 w-[30%] text-center">Calling</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 text-gray-800">
+                                {dailyPlatformStats.length > 0 ? dailyPlatformStats.map((stat, index) => (
+                                    <tr key={index}>
+                                        <td className="py-3 px-4 font-black uppercase tracking-wider text-xs">{stat.platform}</td>
+                                        <td className="py-3 px-4 text-center font-black text-base text-[#103c7f] bg-blue-50/30">{stat.cvsReceived}</td>
+                                        <td className="py-3 px-4 text-center font-black text-base text-green-700 bg-green-50/30">{stat.callingDone}</td>
+                                    </tr>
+                                )) : (
+                                    <tr><td colSpan="3" className="py-4 text-center text-gray-400 italic text-xs">No activity logged.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
               </div>
           </div>
 
-          {/* === FOOTER: REMARKS & LIFETIME TOTALS === */}
-          <div className="flex flex-col lg:flex-row print:flex-row w-full bg-white">
-              
-              {/* Remarks Box */}
-              <div className="w-full lg:w-[65%] print:w-[65%] border-r border-gray-200 p-6 flex flex-col">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Remarks / Notes</span>
-                  <textarea 
-                      className="w-full flex-1 min-h-[60px] p-3 text-gray-700 text-sm font-medium border border-gray-200 rounded-lg outline-none resize-none focus:border-[#103c7f] print:border-none print:p-0 print:text-black"
-                      placeholder="Type any end of day remarks here..."
-                      value={remarks}
-                      onChange={(e) => setRemarks(e.target.value)}
-                  ></textarea>
-              </div>
-              
-              {/* Lifetime Totals Section */}
-              <div className="w-full lg:w-[35%] print:w-[35%] bg-[#103c7f] text-white p-6 flex flex-col justify-center">
-                  <div className="flex items-center gap-2 border-b border-blue-800 pb-2 mb-4 justify-center">
-                      <PhoneCall size={16} className="text-blue-300"/>
-                      <h3 className="font-black uppercase text-sm tracking-widest text-blue-100">Total Database</h3>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                      {/* Indeed Lifetime */}
-                      <div className="text-center bg-white/10 rounded-lg p-3 border border-white/10 print:border-blue-300">
-                          <p className="text-xs font-bold uppercase tracking-widest text-blue-200 mb-2">Indeed</p>
-                          <div className="flex justify-between items-center text-left px-1">
-                              <div>
-                                  <p className="text-[9px] text-gray-300 uppercase">CVs</p>
-                                  <p className="text-lg font-black">{lifetimeTotals.indeedCvs}</p>
-                              </div>
-                              <div className="w-px h-6 bg-blue-500"></div>
-                              <div className="text-right">
-                                  <p className="text-[9px] text-gray-300 uppercase">Calls</p>
-                                  <p className="text-lg font-black text-green-400">{lifetimeTotals.indeedCalls}</p>
-                              </div>
-                          </div>
-                      </div>
-
-                      {/* Naukri Lifetime */}
-                      <div className="text-center bg-white/10 rounded-lg p-3 border border-white/10 print:border-blue-300">
-                          <p className="text-xs font-bold uppercase tracking-widest text-blue-200 mb-2">Naukri</p>
-                          <div className="flex justify-between items-center text-left px-1">
-                              <div>
-                                  <p className="text-[9px] text-gray-300 uppercase">CVs</p>
-                                  <p className="text-lg font-black">{lifetimeTotals.naukriCvs}</p>
-                              </div>
-                              <div className="w-px h-6 bg-blue-500"></div>
-                              <div className="text-right">
-                                  <p className="text-[9px] text-gray-300 uppercase">Calls</p>
-                                  <p className="text-lg font-black text-green-400">{lifetimeTotals.naukriCalls}</p>
-                              </div>
-                          </div>
-                      </div>
-                  </div>
+          {/* === FOOTER: LIFETIME TOTALS === */}
+          <div className="w-full bg-[#103c7f] text-white p-6 flex flex-col justify-center">
+              <div className="flex items-center gap-2 border-b border-blue-800 pb-2 mb-4 justify-center">
+                  <PhoneCall size={16} className="text-blue-300"/>
+                  <h3 className="font-black uppercase text-sm tracking-widest text-blue-100">Total Database</h3>
               </div>
 
+              {loadingTotals ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                  <span className="ml-3 text-blue-200">Loading totals...</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-4">
+                    {/* Indeed Lifetime */}
+                    <div className="text-center bg-white/10 rounded-lg p-3 border border-white/10 print:border-blue-300">
+                        <p className="text-xs font-bold uppercase tracking-widest text-blue-200 mb-2">Indeed</p>
+                        <div className="flex justify-between items-center text-left px-1">
+                            <div>
+                                <p className="text-[9px] text-gray-300 uppercase">CVs</p>
+                                <p className="text-lg font-black">{lifetimeTotals.indeedCvs}</p>
+                            </div>
+                            <div className="w-px h-6 bg-blue-500"></div>
+                            <div className="text-right">
+                                <p className="text-[9px] text-gray-300 uppercase">Calls</p>
+                                <p className="text-lg font-black text-green-400">{lifetimeTotals.indeedCalls}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Naukri Lifetime */}
+                    <div className="text-center bg-white/10 rounded-lg p-3 border border-white/10 print:border-blue-300">
+                        <p className="text-xs font-bold uppercase tracking-widest text-blue-200 mb-2">Naukri</p>
+                        <div className="flex justify-between items-center text-left px-1">
+                            <div>
+                                <p className="text-[9px] text-gray-300 uppercase">CVs</p>
+                                <p className="text-lg font-black">{lifetimeTotals.naukriCvs}</p>
+                            </div>
+                            <div className="w-px h-6 bg-blue-500"></div>
+                            <div className="text-right">
+                                <p className="text-[9px] text-gray-300 uppercase">Calls</p>
+                                <p className="text-lg font-black text-green-400">{lifetimeTotals.naukriCalls}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Internshala Lifetime */}
+                    <div className="text-center bg-white/10 rounded-lg p-3 border border-white/10 print:border-blue-300">
+                        <p className="text-xs font-bold uppercase tracking-widest text-blue-200 mb-2">Internshala</p>
+                        <div className="flex justify-between items-center text-left px-1">
+                            <div>
+                                <p className="text-[9px] text-gray-300 uppercase">CVs</p>
+                                <p className="text-lg font-black">{lifetimeTotals.internshalaCvs}</p>
+                            </div>
+                            <div className="w-px h-6 bg-blue-500"></div>
+                            <div className="text-right">
+                                <p className="text-[9px] text-gray-300 uppercase">Calls</p>
+                                <p className="text-lg font-black text-green-400">{lifetimeTotals.internshalaCalls}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+              )}
           </div>
       </div>
 
       {/* --- GLOBAL PRINT CSS --- */}
-    {/* --- GLOBAL PRINT CSS --- */}
       <style jsx global>{`
         @media print {
-            body { 
+            html, body { 
                 background-color: white !important; 
-                margin: 0; 
-                padding: 0;
+                margin: 0 !important; 
+                padding: 0 !important;
+                height: 100vh !important;
+                width: 100vw !important;
             }
-            /* Landscape format best for side-by-side view */
             @page { 
                 size: landscape; 
-                margin: 10mm; 
+                margin: 0;
+            }
+            .Print-wrapper {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 100% !important;
+                height: 100vh !important;
+                min-height: 100vh !important;
             }
             #report-paper { 
                 box-shadow: none !important; 
-                border: 1px solid #e5e7eb !important; 
+                border: none !important; 
                 border-radius: 0 !important;
+                margin: 0 auto !important;
+                width: 100% !important;
+                max-width: 100% !important;
             }
-            /* Scrollbar Hataane ka pakka ilaaj */
-            .overflow-x-auto, .overflow-hidden, .overflow-y-auto { 
+            #report-paper * {
+                box-sizing: border-box;
+            }
+            .overflow-x-auto { 
                 overflow: visible !important; 
             }
             ::-webkit-scrollbar { 
@@ -235,6 +328,7 @@ export default function JobPosterReportDetailed() {
             }
         }
       `}</style>
+      </div>
     </div>
   );
 }
