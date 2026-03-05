@@ -1,7 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
-// GET - Fetch JDs sent to the logged-in jobpost user
+// GET - Fetch JDs sent to the logged-in jobpost user (both domestic and corporate)
 export async function GET(request) {
   try {
     const authHeader = request.headers.get('authorization')
@@ -18,19 +18,38 @@ export async function GET(request) {
 
     const userId = user.user_id || user.id
 
-    // Fetch JDs where sent_to matches the logged-in user
-    const { data: jds, error } = await supabaseServer
-      .from('domestic_crm_jd')
-      .select('*')
-      .eq('sent_to', userId)
-      .order('sent_date', { ascending: false })
+    // Fetch JDs from both domestic_crm_jd and corporate_crm_jd tables
+    const [domesticJDs, corporateJDs] = await Promise.all([
+      supabaseServer
+        .from('domestic_crm_jd')
+        .select('*')
+        .eq('sent_to', userId),
+      supabaseServer
+        .from('corporate_crm_jd')
+        .select('*')
+        .eq('sent_to', userId)
+    ])
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    if (domesticJDs.error) {
+      console.error('Error fetching domestic JDs:', domesticJDs.error)
+    }
+    if (corporateJDs.error) {
+      console.error('Error fetching corporate JDs:', corporateJDs.error)
     }
 
-    // Fetch job_postings for these JDs
-    const jdIds = jds?.map((j) => j.jd_id) || []
+    // Add sector identifier and combine both lists
+    const domesticList = (domesticJDs.data || []).map(jd => ({ ...jd, sector: 'Domestic' }))
+    const corporateList = (corporateJDs.data || []).map(jd => ({ ...jd, sector: 'Corporate' }))
+    
+    // Combine and sort by sent_date
+    const allJDs = [...domesticList, ...corporateList].sort((a, b) => {
+      const dateA = a.sent_date || '1970-01-01'
+      const dateB = b.sent_date || '1970-01-01'
+      return new Date(dateB) - new Date(dateA)
+    })
+
+    // Fetch job_postings for all JDs
+    const jdIds = allJDs?.map((j) => j.jd_id) || []
     let postings = []
     
     if (jdIds.length > 0) {
@@ -47,7 +66,7 @@ export async function GET(request) {
       }
     }
 
-    // Fetch posting_data (CV logs) for these JDs
+    // Fetch posting_data (CV logs) for all JDs
     let cvData = [];
     if (jdIds.length > 0) {
       const { data: cvLogs, error: cvError } = await supabaseServer
@@ -62,9 +81,9 @@ export async function GET(request) {
     }
 
     // Merge data into JDs
-    const jdsWithAll = jds?.map((jd) => ({
+    const jdsWithAll = allJDs?.map((jd) => ({
       ...jd,
-      sector: 'Domestic', // Default sector for domestic_crm_jd table
+      sector: jd.sector,
       publishingDetails: postings
         .filter((p) => p.jd_id === jd.jd_id)
         .map((p) => ({
@@ -84,7 +103,7 @@ export async function GET(request) {
           count: c.cv_received,
           callingCount: c.calls_done
         })),
-      // Include the status from domestic_crm_jd table
+      // Include the status from the JD table
       jdStatus: jd.status
     })) || []
 

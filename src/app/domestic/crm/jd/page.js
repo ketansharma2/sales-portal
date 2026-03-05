@@ -253,8 +253,8 @@ export default function JobRequirementsPage() {
                     ) : (
                     jds.map((jd) => (
                         <tr key={jd.jd_id} className="hover:bg-blue-50/20 transition group">
-                            <td className="p-2 border-r border-gray-100 whitespace-nowrap text-gray-500 font-bold flex items-center gap-1.5">
-                                <Calendar size={12} className="text-gray-400"/> {jd.created_date || "N/A"}
+                            <td className="p-2 border-r border-gray-100 whitespace-nowrap text-gray-500 font-bold align-middle">
+                                <div className="flex items-center gap-1.5"><Calendar size={12} className="text-gray-400"/> {jd.created_date || "N/A"}</div>
                             </td>
                             <td className="p-2 border-r border-gray-100 font-bold text-gray-800">
                                 {jd.client_name || "Internal"}

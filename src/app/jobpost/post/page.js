@@ -99,6 +99,9 @@ export default function JobPosterPanel() {
           return;
       }
       
+      // Determine API base based on sector
+      const apiBase = selectedJD.sector === 'Corporate' ? '/api/corporate/crm/jd' : '/api/domestic/crm/jd';
+      
       console.log('Session:', session);
       console.log('User ID being used:', userId);
       
@@ -112,7 +115,7 @@ export default function JobPosterPanel() {
       });
       
       try {
-          const response = await fetch('/api/domestic/crm/jd/job-postings', {
+          const response = await fetch(`${apiBase}/job-postings`, {
               method: 'POST',
               headers: {
                   'Content-Type': 'application/json',
@@ -172,10 +175,13 @@ export default function JobPosterPanel() {
   const handleToggleStage = async (linkId, currentStage) => {
       const newStage = currentStage === "Active" ? "Paused" : "Active";
       
+      // Determine API base based on sector
+      const apiBase = selectedJD.sector === 'Corporate' ? '/api/corporate/crm/jd' : '/api/domestic/crm/jd';
+      
       // Update in database
       try {
           const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const response = await fetch('/api/domestic/crm/jd/job-postings', {
+          const response = await fetch(`${apiBase}/job-postings`, {
               method: 'PUT',
               headers: {
                   'Content-Type': 'application/json',
@@ -214,10 +220,13 @@ export default function JobPosterPanel() {
   const handleDeleteLink = async (linkId) => {
       if(!confirm("Are you sure you want to delete this link?")) return;
 
+      // Determine API base based on sector
+      const apiBase = selectedJD.sector === 'Corporate' ? '/api/corporate/crm/jd' : '/api/domestic/crm/jd';
+      
       // Delete from database
       try {
           const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const response = await fetch(`/api/domestic/crm/jd/job-postings?id=${linkId}`, {
+          const response = await fetch(`${apiBase}/job-postings?id=${linkId}`, {
               method: 'DELETE',
               headers: {
                   'Authorization': `Bearer ${session.access_token}`
@@ -249,10 +258,13 @@ export default function JobPosterPanel() {
   const handleAddLog = async () => {
       if(!newLog.count || newLog.count <= 0) return alert("Please enter a valid CV count!");
       
+      // Determine API base based on sector
+      const apiBase = selectedJD.sector === 'Corporate' ? '/api/corporate/crm/jd' : '/api/domestic/crm/jd';
+      
       // Save to database
       try {
           const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const response = await fetch('/api/domestic/crm/jd/posting-data', {
+          const response = await fetch(`${apiBase}/posting-data`, {
               method: 'POST',
               headers: {
                   'Content-Type': 'application/json',
@@ -316,9 +328,12 @@ export default function JobPosterPanel() {
   const handleUpdateLog = async () => {
       if(!newLog.count || newLog.count <= 0) return alert("Please enter a valid CV count!");
       
+      // Determine API base based on sector
+      const apiBase = selectedJD.sector === 'Corporate' ? '/api/corporate/crm/jd' : '/api/domestic/crm/jd';
+      
       try {
           const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const response = await fetch('/api/domestic/crm/jd/posting-data', {
+          const response = await fetch(`${apiBase}/posting-data`, {
               method: 'PUT',
               headers: {
                   'Content-Type': 'application/json',
@@ -377,10 +392,13 @@ export default function JobPosterPanel() {
   const handleDeleteLog = async (logId) => {
       if(!confirm("Delete this data record?")) return;
 
+      // Determine API base based on sector
+      const apiBase = selectedJD.sector === 'Corporate' ? '/api/corporate/crm/jd' : '/api/domestic/crm/jd';
+      
       // Delete from database
       try {
           const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const response = await fetch(`/api/domestic/crm/jd/posting-data?id=${logId}`, {
+          const response = await fetch(`${apiBase}/posting-data?id=${logId}`, {
               method: 'DELETE',
               headers: {
                   'Authorization': `Bearer ${session.access_token}`
@@ -410,9 +428,16 @@ export default function JobPosterPanel() {
 
   // Handle Status Change from dropdown
   const handleStatusChange = async (jdId, newStatus) => {
+      // Find the posting to get its sector
+      const post = postings.find(p => p.jd_id === jdId);
+      if (!post) return;
+      
+      // Determine API base based on sector
+      const apiBase = post.sector === 'Corporate' ? '/api/corporate/crm/jd' : '/api/domestic/crm/jd';
+      
       try {
           const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const response = await fetch(`/api/domestic/crm/jd?jd_id=${jdId}`, {
+          const response = await fetch(`${apiBase}?jd_id=${jdId}`, {
               method: 'PUT',
               headers: {
                   'Content-Type': 'application/json',
@@ -758,7 +783,6 @@ export default function JobPosterPanel() {
                                                 <th className="p-3">Posted On</th>
                                                 <th className="p-3">Proof Link</th>
                                                 <th className="p-3 text-center">Stage Toggle</th>
-                                                <th className="p-3 text-center">Delete</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
@@ -775,9 +799,6 @@ export default function JobPosterPanel() {
                                                         <button onClick={() => handleToggleStage(pub.id, pub.stage)} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase transition border ${pub.stage === 'Active' ? 'bg-green-100 text-green-700 border-green-200 hover:bg-red-50 hover:text-red-600' : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-green-50 hover:text-green-700'}`}>
                                                             {pub.stage === 'Active' ? <PlayCircle size={14}/> : <PauseCircle size={14}/>} {pub.stage}
                                                         </button>
-                                                    </td>
-                                                    <td className="p-3 text-center">
-                                                        <button onClick={() => handleDeleteLink(pub.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition"><Trash2 size={16}/></button>
                                                     </td>
                                                 </tr>
                                             ))}
