@@ -1,86 +1,54 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { 
   Calendar, User, Briefcase, FileText, CheckCircle, 
   X, ExternalLink, Clock, Building2, MapPin, Download,
   Globe, Link as LinkIcon, PlusCircle, Trash2, PlayCircle, PauseCircle,
-  Database, BarChart2 // Naye icons CV tracking ke liye
+  Database, BarChart2, Edit2 // Naye icons CV tracking ke liye
 } from "lucide-react";
 
 export default function JobPosterPanel() {
   
-  // --- MOCK DATA (Updated with cvLogs) ---
-  const [postings, setPostings] = useState([
-    { 
-      id: 101, 
-      sentDate: "20 Feb 2026",
-      sector: "Domestic",
-      crmName: "Amit Verma",
-      clientName: "TechCorp Solutions",
-      title: "Business Development Executive [Male]", 
-      location: "Ludhiana, Chandigarh, Delhi NCR",
-      package: "2LPA - 3.96 LPA",
-      experience: "0 months - 2 year",
-      empType: "Full-time",
-      workingDays: "6 Days",
-      timings: "9:30 - 6:30 , 10:00 - 7:00",
-      tools: "2 Wheeler Vehicle Mandatory",
-      summary: "We are looking for a dynamic and result-oriented Field Sales Executive to join our team...",
-      roles: "Generate and close sales leads in the assigned territory.\nBuild and maintain strong relationships.",
-      skills: "Strong communication and negotiation skills\nAbility to build and maintain customer relationships",
-      qualifications: "Graduate - Fresher\nUndergraduate with minimum 2 years of sales experience",
-      offers: "Opportunity to generate new leads & convert into sales .\nTravel Allowance On Per km .",
-      contact: "Interested candidates can call on: 8295761297\nEmail Address: Bd1@mavenjobs.in",
-      cv_count: 5,
-      publishingDetails: [], // Empty = Pending
-      cvLogs: [] // CV Data Array
-    },
-    { 
-      id: 102, 
-      sentDate: "25 Feb 2026",
-      sector: "Corporate",
-      crmName: "Priya Singh",
-      clientName: "Global Tech Inc.",
-      title: "Senior React Developer",
-      location: "Remote / Bangalore",
-      package: "8.0 - 12.0 LPA",
-      experience: "3 - 5 years",
-      empType: "Full-time",
-      workingDays: "5 Days",
-      timings: "10:00 - 7:00",
-      tools: "Own Laptop Required",
-      summary: "Looking for an experienced React developer with Next.js knowledge.",
-      roles: "Develop scalable web applications.\nCollaborate with backend teams.",
-      skills: "React, Next.js, Tailwind CSS, REST APIs",
-      qualifications: "B.Tech/BE in Computer Science",
-      offers: "Health Insurance\nFlexible Timings",
-      contact: "Email Address: careers@globaltech.com",
-      cv_count: 12,
-      publishingDetails: [
-        { id: 1, platform: "Naukri.com", link: "https://naukri.com/job/123", stage: "Active" },
-        { id: 2, platform: "LinkedIn", link: "https://linkedin.com/job/456", stage: "Paused" }
-      ],
-      cvLogs: [
-        { id: 1, date: "2026-02-26", platform: "Naukri.com", count: 15 },
-        { id: 2, date: "2026-02-26", platform: "LinkedIn", count: 4 }
-      ]
+  // --- STATE ---
+  const [postings, setPostings] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch JDs from API
+  useEffect(() => {
+    fetchJDs();
+  }, []);
+
+  const fetchJDs = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/jobpost/jds', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      setPostings(data || []);
+    } catch (error) {
+      console.error('Error fetching JDs:', error);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   // --- STATE ---
   const [selectedJD, setSelectedJD] = useState(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [isDataModalOpen, setIsDataModalOpen] = useState(false); // Modal state for CV tracking
+  const [editingLog, setEditingLog] = useState(null); // For editing CV log
 
   // New Link Form State
-  const initialLinkForm = { platform: "Naukri.com", link: "", stage: "Active" };
+  const getTodayDate = () => new Date().toISOString().split('T')[0];
+  const initialLinkForm = { platform: "Naukri.com", live_url: "", stage: "Active", postedOn: getTodayDate() };
   const [newLink, setNewLink] = useState(initialLinkForm);
 
   // New CV Log Form State
-  const getTodayDate = () => new Date().toISOString().split('T')[0];
-const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: "", callingCount: "" };
+  const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: "", callingCount: "" };
   const [newLog, setNewLog] = useState(initialLogForm);
 
   const platformOptions = ["Naukri.com", "LinkedIn", "Indeed", "Apna", "Internshala", "Direct/Email", "Other"];
@@ -105,71 +73,382 @@ const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: ""
   };
 
   // Add new link to a JD
-  const handleAddLink = () => {
-      if(!newLink.link) return alert("Please enter the proof link!");
+  const handleAddLink = async () => {
+      if(!newLink.live_url) return alert("Please enter the proof link!");
       
-      const updatedJob = {
-          ...selectedJD,
-          publishingDetails: [...selectedJD.publishingDetails, { ...newLink, id: Date.now() }]
-      };
-
-      setPostings(postings.map(post => post.id === selectedJD.id ? updatedJob : post));
-      setSelectedJD(updatedJob); 
-      setNewLink(initialLinkForm); 
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      
+      // Get user_id from session or decode from token
+      let userId = session.user_id || session.id;
+      
+      // If not in session, try to get from API
+      if (!userId && session.access_token) {
+          try {
+              const userRes = await fetch('/api/auth/get-current-user', {
+                  headers: { 'Authorization': `Bearer ${session.access_token}` }
+              });
+              const userData = await userRes.json();
+              userId = userData.user_id || userData.id;
+          } catch (e) {
+              console.error('Error getting user:', e);
+          }
+      }
+      
+      if (!userId) {
+          alert('User not found. Please login again.');
+          return;
+      }
+      
+      console.log('Session:', session);
+      console.log('User ID being used:', userId);
+      
+      console.log('Saving posting:', {
+          jd_id: selectedJD.jd_id,
+          user_id: userId,
+          platform: newLink.platform,
+          live_url: newLink.live_url,
+          current_stage: newLink.stage,
+          posted_on: newLink.postedOn
+      });
+      
+      try {
+          const response = await fetch('/api/domestic/crm/jd/job-postings', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({
+                  jd_id: selectedJD.jd_id,
+                  user_id: userId,
+                  platform: newLink.platform,
+                  live_url: newLink.live_url,
+                  current_stage: newLink.stage,
+                  posted_on: newLink.postedOn
+              })
+          });
+          
+          const result = await response.json();
+          console.log('Save result:', result);
+          
+          if (result.error) {
+              alert('Error saving posting: ' + result.error);
+              return;
+          }
+          
+          // Refresh the job postings list
+          fetchJDs();
+          
+          // Reset form and show success
+          setNewLink(initialLinkForm); 
+          alert('Posting saved successfully!');
+          console.log('Posting saved, refreshing data...');
+          
+          // Close the modal and reopen to refresh
+          setIsManageModalOpen(false);
+          setTimeout(async () => {
+              // Fetch fresh data and update selectedJD
+              const session = JSON.parse(localStorage.getItem('session') || '{}');
+              const response = await fetch('/api/jobpost/jds', {
+                  headers: { 'Authorization': `Bearer ${session.access_token}` }
+              });
+              const freshData = await response.json();
+              console.log('Fresh data received:', freshData);
+              const updatedPost = freshData.find(p => p.jd_id === selectedJD.jd_id);
+              console.log('Updated post:', updatedPost);
+              if (updatedPost) {
+                  setSelectedJD(updatedPost);
+                  setPostings(freshData);
+              }
+              setIsManageModalOpen(true);
+          }, 100);
+      } catch (error) {
+          console.error('Error saving posting:', error);
+          alert('Error saving posting');
+      }
   };
 
   // Toggle Stage (Active <-> Paused)
-  const handleToggleStage = (linkId, currentStage) => {
+  const handleToggleStage = async (linkId, currentStage) => {
       const newStage = currentStage === "Active" ? "Paused" : "Active";
       
-      const updatedJob = {
-          ...selectedJD,
-          publishingDetails: selectedJD.publishingDetails.map(pub => 
-              pub.id === linkId ? { ...pub, stage: newStage } : pub
-          )
-      };
+      // Update in database
+      try {
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const response = await fetch('/api/domestic/crm/jd/job-postings', {
+              method: 'PUT',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({
+                  id: linkId,
+                  current_stage: newStage
+              })
+          });
+          
+          const result = await response.json();
+          
+          if (result.error) {
+              alert('Error updating stage: ' + result.error);
+              return;
+          }
+          
+          // Update local state
+          const updatedJob = {
+              ...selectedJD,
+              publishingDetails: selectedJD.publishingDetails.map(pub => 
+                  pub.id === linkId ? { ...pub, stage: newStage } : pub
+              )
+          };
 
-      setPostings(postings.map(post => post.id === selectedJD.id ? updatedJob : post));
-      setSelectedJD(updatedJob);
+          setPostings(postings.map(post => post.jd_id === selectedJD.jd_id ? updatedJob : post));
+          setSelectedJD(updatedJob);
+      } catch (error) {
+          console.error('Error toggling stage:', error);
+          alert('Error updating stage');
+      }
   };
 
   // Delete Link
-  const handleDeleteLink = (linkId) => {
+  const handleDeleteLink = async (linkId) => {
       if(!confirm("Are you sure you want to delete this link?")) return;
 
-      const updatedJob = {
-          ...selectedJD,
-          publishingDetails: selectedJD.publishingDetails.filter(pub => pub.id !== linkId)
-      };
+      // Delete from database
+      try {
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const response = await fetch(`/api/domestic/crm/jd/job-postings?id=${linkId}`, {
+              method: 'DELETE',
+              headers: {
+                  'Authorization': `Bearer ${session.access_token}`
+              }
+          });
+          
+          const result = await response.json();
+          
+          if (result.error) {
+              alert('Error deleting link: ' + result.error);
+              return;
+          }
+          
+          // Update local state
+          const updatedJob = {
+              ...selectedJD,
+              publishingDetails: selectedJD.publishingDetails.filter(pub => pub.id !== linkId)
+          };
 
-      setPostings(postings.map(post => post.id === selectedJD.id ? updatedJob : post));
-      setSelectedJD(updatedJob);
+          setPostings(postings.map(post => post.jd_id === selectedJD.jd_id ? updatedJob : post));
+          setSelectedJD(updatedJob);
+      } catch (error) {
+          console.error('Error deleting link:', error);
+          alert('Error deleting link');
+      }
   };
 
   // Add CV Data Log
-  const handleAddLog = () => {
+  const handleAddLog = async () => {
       if(!newLog.count || newLog.count <= 0) return alert("Please enter a valid CV count!");
-      const updatedJob = { ...selectedJD, cvLogs: [{ ...newLog, id: Date.now() }, ...(selectedJD.cvLogs || [])] };
-      setPostings(postings.map(post => post.id === selectedJD.id ? updatedJob : post));
-      setSelectedJD(updatedJob);
+      
+      // Save to database
+      try {
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const response = await fetch('/api/domestic/crm/jd/posting-data', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({
+                  jd_id: selectedJD.jd_id,
+                  date: newLog.date,
+                  platform: newLog.platform,
+                  cv_received: parseInt(newLog.count),
+                  calls_done: parseInt(newLog.callingCount) || 0
+              })
+          });
+          
+          const result = await response.json();
+          
+          if (result.error) {
+              alert('Error saving data: ' + result.error);
+              return;
+          }
+          
+          // Refresh the job postings list to get updated cvLogs
+          fetchJDs();
+          
+          setNewLog(initialLogForm); 
+          alert('Data saved successfully!');
+          
+          // Close and reopen modal to refresh
+          setIsDataModalOpen(false);
+          setTimeout(async () => {
+              const session = JSON.parse(localStorage.getItem('session') || '{}');
+              const response = await fetch('/api/jobpost/jds', {
+                  headers: { 'Authorization': `Bearer ${session.access_token}` }
+              });
+              const freshData = await response.json();
+              const updatedPost = freshData.find(p => p.jd_id === selectedJD.jd_id);
+              if (updatedPost) {
+                  setSelectedJD(updatedPost);
+                  setPostings(freshData);
+              }
+              setIsDataModalOpen(true);
+          }, 100);
+      } catch (error) {
+          console.error('Error saving CV data:', error);
+          alert('Error saving data');
+      }
+  };
+
+  // Edit CV Data Log
+  const handleEditLog = (log) => {
+      setEditingLog(log);
+      setNewLog({
+          date: log.date,
+          platform: log.platform,
+          count: log.count.toString(),
+          callingCount: log.callingCount ? log.callingCount.toString() : ""
+      });
+  };
+
+  // Update CV Data Log
+  const handleUpdateLog = async () => {
+      if(!newLog.count || newLog.count <= 0) return alert("Please enter a valid CV count!");
+      
+      try {
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const response = await fetch('/api/domestic/crm/jd/posting-data', {
+              method: 'PUT',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({
+                  id: editingLog.id,
+                  date: newLog.date,
+                  platform: newLog.platform,
+                  cv_received: parseInt(newLog.count),
+                  calls_done: parseInt(newLog.callingCount) || 0
+              })
+          });
+          
+          const result = await response.json();
+          
+          if (result.error) {
+              alert('Error updating data: ' + result.error);
+              return;
+          }
+          
+          // Refresh
+          fetchJDs();
+          
+          setNewLog(initialLogForm);
+          setEditingLog(null);
+          alert('Data updated successfully!');
+          
+          setIsDataModalOpen(false);
+          setTimeout(async () => {
+              const session = JSON.parse(localStorage.getItem('session') || '{}');
+              const response = await fetch('/api/jobpost/jds', {
+                  headers: { 'Authorization': `Bearer ${session.access_token}` }
+              });
+              const freshData = await response.json();
+              const updatedPost = freshData.find(p => p.jd_id === selectedJD.jd_id);
+              if (updatedPost) {
+                  setSelectedJD(updatedPost);
+                  setPostings(freshData);
+              }
+              setIsDataModalOpen(true);
+          }, 100);
+      } catch (error) {
+          console.error('Error updating CV data:', error);
+          alert('Error updating data');
+      }
+  };
+
+  // Cancel Edit
+  const handleCancelEdit = () => {
+      setEditingLog(null);
       setNewLog(initialLogForm);
   };
 
   // Delete CV Data Log
-  const handleDeleteLog = (logId) => {
+  const handleDeleteLog = async (logId) => {
       if(!confirm("Delete this data record?")) return;
-      const updatedJob = { ...selectedJD, cvLogs: selectedJD.cvLogs.filter(log => log.id !== logId) };
-      setPostings(postings.map(post => post.id === selectedJD.id ? updatedJob : post));
-      setSelectedJD(updatedJob);
+
+      // Delete from database
+      try {
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const response = await fetch(`/api/domestic/crm/jd/posting-data?id=${logId}`, {
+              method: 'DELETE',
+              headers: {
+                  'Authorization': `Bearer ${session.access_token}`
+              }
+          });
+          
+          const result = await response.json();
+          
+          if (result.error) {
+              alert('Error deleting record: ' + result.error);
+              return;
+          }
+          
+          // Update local state
+          const updatedJob = { ...selectedJD, cvLogs: selectedJD.cvLogs.filter(log => log.id !== logId) };
+          setPostings(postings.map(post => post.jd_id === selectedJD.jd_id ? updatedJob : post));
+          setSelectedJD(updatedJob);
+      } catch (error) {
+          console.error('Error deleting CV data:', error);
+          alert('Error deleting record');
+      }
   };
 
   const downloadPDF = () => {
       window.print(); 
   };
 
+  // Handle Status Change from dropdown
+  const handleStatusChange = async (jdId, newStatus) => {
+      try {
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const response = await fetch(`/api/domestic/crm/jd?jd_id=${jdId}`, {
+              method: 'PUT',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({ status: newStatus })
+          });
+          
+          const result = await response.json();
+          
+          if (result.error) {
+              alert('Error updating status: ' + result.error);
+              return;
+          }
+          
+          // Update local state
+          setPostings(postings.map(post => 
+              post.jd_id === jdId ? { ...post, jdStatus: newStatus } : post
+          ));
+          
+          alert('Status updated to ' + newStatus);
+      } catch (error) {
+          console.error('Error updating status:', error);
+          alert('Error updating status');
+      }
+  };
+
   // --- HELPERS ---
-  const getActiveCount = (details) => details.filter(d => d.stage === 'Active').length;
-  const getTotalCVs = (logs) => logs?.reduce((sum, log) => sum + Number(log.count), 0) || 0;
+  const getActiveCount = (details) => {
+    if (!details || !Array.isArray(details)) return 0;
+    return details.filter(d => d.stage === 'Active').length;
+  };
+  const getTotalCVs = (logs) => {
+    if (!logs || !Array.isArray(logs)) return 0;
+    return logs.reduce((sum, log) => sum + Number(log.count || 0), 0);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 font-['Calibri'] p-2 print:p-0 print:bg-white">
@@ -188,13 +467,25 @@ const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: ""
              <div className="text-center px-4 border-r border-gray-100">
                  <p className="text-[10px] font-bold text-gray-400 uppercase">Pending</p>
                  <p className="text-xl font-black text-orange-500">
-                    {postings.filter(p => p.publishingDetails.length === 0).length}
+                    {postings.filter(p => (p.jdStatus || 'Sent') === 'Sent').length}
+                 </p>
+             </div>
+             <div className="text-center px-4 border-r border-gray-100">
+                 <p className="text-[10px] font-bold text-gray-400 uppercase">Live</p>
+                 <p className="text-xl font-black text-green-600">
+                    {postings.filter(p => (p.jdStatus || 'Sent') === 'Live').length}
+                 </p>
+             </div>
+             <div className="text-center px-4 border-r border-gray-100">
+                 <p className="text-[10px] font-bold text-gray-400 uppercase">Paused</p>
+                 <p className="text-xl font-black text-gray-500">
+                    {postings.filter(p => (p.jdStatus || 'Sent') === 'Paused').length}
                  </p>
              </div>
              <div className="text-center px-4">
-                 <p className="text-[10px] font-bold text-gray-400 uppercase">Live (Active)</p>
-                 <p className="text-xl font-black text-green-600">
-                    {postings.filter(p => getActiveCount(p.publishingDetails) > 0).length}
+                 <p className="text-[10px] font-bold text-gray-400 uppercase">Deleted</p>
+                 <p className="text-xl font-black text-red-500">
+                    {postings.filter(p => (p.jdStatus || 'Sent') === 'Deleted').length}
                  </p>
              </div>
          </div>
@@ -206,7 +497,7 @@ const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: ""
              <table className="w-full text-left border-collapse min-w-[1000px]">
                 <thead className="bg-[#103c7f] text-white text-[11px] font-bold uppercase tracking-wider sticky top-0 z-10">
                     <tr>
-                        <th className="p-4 border-r border-blue-800">Sent Date</th>
+                        <th className="p-4 border-r border-blue-800">Received Date</th>
                         <th className="p-4 border-r border-blue-800">Sector / CRM</th>
                         <th className="p-4 border-r border-blue-800">Client</th>
                         <th className="p-4 border-r border-blue-800 w-1/4">Profile</th>
@@ -218,15 +509,15 @@ const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: ""
                 </thead>
                 <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
                     {postings.map((post) => {
-                        const activeCount = getActiveCount(post.publishingDetails);
+                        const activeCount = getActiveCount(post.publishingDetails || []);
                         const totalCVs = getTotalCVs(post.cvLogs);
                         
                         return (
-                        <tr key={post.id} className="hover:bg-blue-50/30 transition group">
+                        <tr key={post.jd_id} className="hover:bg-blue-50/30 transition group">
                             
                             <td className="p-2 border-r border-gray-100 whitespace-nowrap">
                                 <span className="flex items-center gap-1.5 text-gray-600 font-bold bg-gray-50 px-2 py-1 rounded border border-gray-200">
-                                    <Calendar size={12} className="text-[#103c7f]"/> {post.sentDate}
+                                    <Calendar size={12} className="text-[#103c7f]"/> {post.sent_date}
                                 </span>
                             </td>
 
@@ -238,17 +529,17 @@ const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: ""
                                         {post.sector}
                                     </span>
                                     <span className="flex items-center gap-1 font-bold text-gray-800">
-                                        <User size={12} className="text-gray-400"/> {post.crmName}
+                                        <User size={12} className="text-gray-400"/> {post.created_by_name || 'CRM'}
                                     </span>
                                 </div>
                             </td>
 
                             <td className="p-2 border-r border-gray-100 font-bold text-gray-800">
-                                <div className="flex items-center gap-1.5"><Building2 size={14} className="text-gray-400"/> {post.clientName}</div>
+                                <div className="flex items-center gap-1.5"><Building2 size={14} className="text-gray-400"/> {post.client_name}</div>
                             </td>
 
                             <td className="p-2 border-r border-gray-100">
-                                <span className="font-black text-[#103c7f] text-sm">{post.title}</span>
+                                <span className="font-black text-[#103c7f] text-sm">{post.job_title}</span>
                                 
                             </td>
 
@@ -263,21 +554,22 @@ const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: ""
 
                             {/* Dynamic Status Column */}
                             <td className="p-2 border-r border-gray-100 text-center">
-                                {post.publishingDetails.length === 0 ? (
-                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-[9px] font-black uppercase border bg-orange-50 text-orange-600 border-orange-200">
-                                        <Clock size={10}/> Pending
-                                    </span>
-                                ) : (
-                                    <div className="flex flex-col items-center gap-1">
-                                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[9px] font-black uppercase border ${
-                                            activeCount > 0 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'
-                                        }`}>
-                                            {activeCount > 0 ? <CheckCircle size={10}/> : <PauseCircle size={10}/>} 
-                                            {activeCount > 0 ? 'Live' : 'Paused'}
-                                        </span>
-                                        <span className="text-[9px] text-gray-500 font-bold">{post.publishingDetails.length} Platforms</span>
-                                    </div>
-                                )}
+                                {/* Always show dropdown but default to current status */}
+                                <select 
+                                    value={post.jdStatus || 'Sent'}
+                                    onChange={(e) => handleStatusChange(post.jd_id, e.target.value)}
+                                    className={`text-[9px] font-black uppercase border rounded px-2 py-1 cursor-pointer ${
+                                        (post.jdStatus || 'Sent') === 'Sent' ? 'bg-orange-50 text-orange-600 border-orange-200' :
+                                        (post.jdStatus || 'Sent') === 'Live' ? 'bg-green-50 text-green-700 border-green-200' :
+                                        (post.jdStatus || 'Sent') === 'Paused' ? 'bg-gray-100 text-gray-500 border-gray-200' :
+                                        'bg-red-50 text-red-600 border-red-200'
+                                    }`}
+                                >
+                                    <option value="Sent">Pending</option>
+                                    <option value="Live">Live</option>
+                                    <option value="Paused">Paused</option>
+                                    <option value="Deleted">Deleted</option>
+                                </select>
                             </td>
 
                             {/* Manage Links Action */}
@@ -320,7 +612,7 @@ const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: ""
                                 <Database size={20}/> Track Data / CVs Received
                             </h2>
                             <p className="text-xs text-indigo-200 font-bold mt-1">
-                                {selectedJD.title} <span className="text-indigo-400 mx-1">•</span> Total Logged: {getTotalCVs(selectedJD.cvLogs)} CVs
+                                {selectedJD.job_title} <span className="text-indigo-400 mx-1">•</span> Total Logged: {getTotalCVs(selectedJD.cvLogs)} CVs
                             </p>
                         </div>
                         <button onClick={() => setIsDataModalOpen(false)} className="hover:bg-white/20 p-1.5 rounded transition bg-white/10">
@@ -352,9 +644,14 @@ const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: ""
                                     <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Calling Done</label>
                                     <input type="number" min="0" placeholder="e.g. 10" className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold outline-none focus:border-indigo-600" value={newLog.callingCount} onChange={(e) => setNewLog({...newLog, callingCount: e.target.value})}/>
                                 </div>
-                                <button onClick={handleAddLog} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-5 py-2 rounded-lg transition shadow-md w-full md:w-auto shrink-0 whitespace-nowrap">
-                                    Add Data
+                                <button onClick={editingLog ? handleUpdateLog : handleAddLog} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-5 py-2 rounded-lg transition shadow-md w-full md:w-auto shrink-0 whitespace-nowrap">
+                                    {editingLog ? 'Update Data' : 'Add Data'}
                                 </button>
+                                {editingLog && (
+                                    <button onClick={handleCancelEdit} className="bg-gray-500 hover:bg-gray-600 text-white font-bold text-sm px-5 py-2 rounded-lg transition shadow-md w-full md:w-auto shrink-0 whitespace-nowrap">
+                                        Cancel
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -379,15 +676,7 @@ const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: ""
                                         </thead>
                                         <tbody className="divide-y divide-gray-100 font-medium">
                                             {selectedJD.cvLogs.map(log => (
-                                                <tr key={log.id} className="hover:bg-gray-50">
-                                                    <td className="p-3 text-gray-600 font-mono text-xs">{log.date}</td>
-                                                    <td className="p-3 font-bold text-gray-800">{log.platform}</td>
-                                                    <td className="p-3 text-center font-black text-indigo-600 bg-indigo-50/50">{log.count || 0}</td>
-                                                    <td className="p-3 text-center font-black text-green-700 bg-green-50/50">{log.callingCount || 0}</td> {/* NEW DATA */}
-                                                    <td className="p-3 text-center">
-                                                        <button onClick={() => handleDeleteLog(log.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition"><Trash2 size={16}/></button>
-                                                    </td>
-                                                </tr>
+                                                <tr key={log.id} className="hover:bg-gray-50"><td className="p-3 text-gray-600 font-mono text-xs">{log.date}</td><td className="p-3 font-bold text-gray-800">{log.platform}</td><td className="p-3 text-center font-black text-indigo-600 bg-indigo-50/50">{log.count || 0}</td><td className="p-3 text-center font-black text-green-700 bg-green-50/50">{log.callingCount || 0}</td><td className="p-3 text-center"><button onClick={() => handleEditLog(log)} className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded transition mr-1"><Edit2 size={16}/></button></td></tr>
                                             ))}
                                         </tbody>
                                     </table>
@@ -410,7 +699,7 @@ const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: ""
                                 <Globe size={20}/> Publish Tracking
                             </h2>
                             <p className="text-xs text-blue-200 font-bold mt-1">
-                                {selectedJD.title} <span className="text-blue-400 mx-1">•</span> {selectedJD.clientName}
+                                {selectedJD.job_title} <span className="text-blue-400 mx-1">•</span> {selectedJD.client_name}
                             </p>
                         </div>
                         <button onClick={() => setIsManageModalOpen(false)} className="hover:bg-white/20 p-1.5 rounded transition bg-white/10">
@@ -424,6 +713,10 @@ const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: ""
                             <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 border-b pb-2 flex items-center gap-1"><PlusCircle size={14}/> Add New Platform Link</h4>
                             <div className="flex flex-col md:flex-row gap-3 items-end">
                                 <div className="w-full md:w-1/4">
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Posted On</label>
+                                    <input type="date" className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold outline-none focus:border-[#103c7f]" value={newLink.postedOn} onChange={(e) => setNewLink({...newLink, postedOn: e.target.value})}/>
+                                </div>
+                                <div className="w-full md:w-1/4">
                                     <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Platform</label>
                                     <select className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold outline-none focus:border-[#103c7f]" value={newLink.platform} onChange={(e) => setNewLink({...newLink, platform: e.target.value})}>
                                         {platformOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -433,7 +726,7 @@ const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: ""
                                     <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Live URL (Proof Link)</label>
                                     <div className="relative">
                                         <LinkIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-                                        <input type="url" placeholder="https://..." className="w-full border border-gray-300 rounded-lg p-2 pl-8 text-sm font-medium outline-none focus:border-[#103c7f]" value={newLink.link} onChange={(e) => setNewLink({...newLink, link: e.target.value})}/>
+                                        <input type="url" placeholder="https://..." className="w-full border border-gray-300 rounded-lg p-2 pl-8 text-sm font-medium outline-none focus:border-[#103c7f]" value={newLink.live_url} onChange={(e) => setNewLink({...newLink, live_url: e.target.value})}/>
                                     </div>
                                 </div>
                                 <div className="w-full md:w-1/4">
@@ -450,9 +743,9 @@ const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: ""
                         </div>
 
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex-1 flex flex-col">
-                            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest m-5 mb-0 pb-2 border-b">Currently Posted On ({selectedJD.publishingDetails.length})</h4>
+                            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest m-5 mb-0 pb-2 border-b">Currently Posted On ({(selectedJD.publishingDetails || []).length})</h4>
                             <div className="p-5 overflow-y-auto">
-                                {selectedJD.publishingDetails.length === 0 ? (
+                                {(selectedJD.publishingDetails || []).length === 0 ? (
                                     <div className="text-center py-10 text-gray-400 border-2 border-dashed border-gray-200 rounded-xl">
                                         <Globe size={32} className="mx-auto mb-2 opacity-50"/>
                                         <p className="font-bold text-sm">No links added yet.</p>
@@ -462,6 +755,7 @@ const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: ""
                                         <thead className="text-[10px] uppercase text-gray-400 bg-gray-50 border-b border-gray-200">
                                             <tr>
                                                 <th className="p-3">Platform</th>
+                                                <th className="p-3">Posted On</th>
                                                 <th className="p-3">Proof Link</th>
                                                 <th className="p-3 text-center">Stage Toggle</th>
                                                 <th className="p-3 text-center">Delete</th>
@@ -471,11 +765,12 @@ const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: ""
                                             {selectedJD.publishingDetails.map(pub => (
                                                 <tr key={pub.id} className="hover:bg-gray-50">
                                                     <td className="p-3 font-bold text-gray-800">{pub.platform}</td>
-                                                    <td className="p-3">
-                                                        <a href={pub.link} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700 hover:underline flex items-center gap-1 w-fit">
+                                                    <td className="p-3 text-gray-600 text-xs">{pub.postedOn || '-'}</td>
+                                                    <td className="p-3">{pub.live_url ? (
+                                                        <a href={pub.live_url} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700 hover:underline flex items-center gap-1 w-fit">
                                                             <LinkIcon size={12}/> View Link
                                                         </a>
-                                                    </td>
+                                                    ) : '-'}</td>
                                                     <td className="p-3 text-center">
                                                         <button onClick={() => handleToggleStage(pub.id, pub.stage)} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase transition border ${pub.stage === 'Active' ? 'bg-green-100 text-green-700 border-green-200 hover:bg-red-50 hover:text-red-600' : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-green-50 hover:text-green-700'}`}>
                                                             {pub.stage === 'Active' ? <PlayCircle size={14}/> : <PauseCircle size={14}/>} {pub.stage}
@@ -507,7 +802,7 @@ const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: ""
                         <FileText size={20} />
                         <div>
                             <h3 className="font-bold text-lg uppercase tracking-wide">Document Preview</h3>
-                            <p className="text-[10px] text-blue-200 font-bold tracking-widest uppercase">For Client: {selectedJD.clientName}</p>
+                            <p className="text-[10px] text-blue-200 font-bold tracking-widest uppercase">For Client: {selectedJD.client_name}</p>
                         </div>
                     </div>
                     <div className="flex gap-3">
@@ -526,23 +821,23 @@ const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: ""
                         <div className="border border-black p-8 min-h-[850px] relative print:border-none print:p-0">
                             
                             <div className="space-y-4 mb-10 text-[15px] leading-relaxed">
-                                {selectedJD.title && <p><span className="font-bold">JOB TITLE : </span> {selectedJD.title}</p>}
+                                {selectedJD.job_title && <p><span className="font-bold">JOB TITLE : </span> {selectedJD.job_title}</p>}
                                 {selectedJD.location && <p><span className="font-bold">LOCATION : </span> {selectedJD.location}</p>}
                                 {selectedJD.experience && <p><span className="font-bold">EXPERIENCE : </span> {selectedJD.experience}</p>}
-                                {selectedJD.empType && <p><span className="font-bold">EMPLOYMENT TYPE : </span> {selectedJD.empType}</p>}
-                                {selectedJD.workingDays && <p><span className="font-bold">WORKING DAYS : </span> {selectedJD.workingDays}</p>}
+                                {selectedJD.employment_type && <p><span className="font-bold">EMPLOYMENT TYPE : </span> {selectedJD.employment_type}</p>}
+                                {selectedJD.working_days && <p><span className="font-bold">WORKING DAYS : </span> {selectedJD.working_days}</p>}
                                 {selectedJD.timings && <p><span className="font-bold">TIMINGS : </span> {selectedJD.timings}</p>}
                                 {selectedJD.package && <p><span className="font-bold">PACKAGE : </span> {selectedJD.package}</p>}
-                                {selectedJD.tools && <p><span className="font-bold">TOOL REQUIREMENT : </span> {selectedJD.tools}</p>}
+                                {selectedJD.tool_requirement && <p><span className="font-bold">TOOL REQUIREMENT : </span> {selectedJD.tool_requirement}</p>}
                             </div>
 
                             <div className="space-y-8 text-[15px]">
-                                {selectedJD.summary && <div><h4 className="font-bold mb-2 uppercase text-[16px]">Job Summary :</h4><p className="leading-relaxed text-justify text-gray-800">{selectedJD.summary}</p></div>}
-                                {selectedJD.roles && <div><h4 className="font-bold mb-2 uppercase text-[16px]">Role & Responsibilities :</h4><ul className="list-disc pl-5 space-y-1.5 text-gray-800">{selectedJD.roles?.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}</ul></div>}
-                                {selectedJD.skills && <div><h4 className="font-bold mb-2 uppercase text-[16px]">Required Skills :</h4><ul className="list-disc pl-5 space-y-1.5 text-gray-800">{selectedJD.skills?.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}</ul></div>}
-                                {selectedJD.qualifications && <div><h4 className="font-bold mb-2 uppercase text-[16px]">Preferred Qualifications :</h4><ul className="list-disc pl-5 space-y-1.5 text-gray-800">{selectedJD.qualifications?.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}</ul></div>}
-                                {selectedJD.offers && <div><h4 className="font-bold mb-2 uppercase text-[16px]">What Company Offer :</h4><ul className="list-disc pl-5 space-y-1.5 text-gray-800">{selectedJD.offers?.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}</ul></div>}
-                                {selectedJD.contact && <div className="mt-12 pt-6 border-t border-black/20"><h4 className="font-bold mb-3 uppercase text-[16px]">Contact Us To Apply :</h4><div className="whitespace-pre-line leading-loose text-gray-900 font-medium">{selectedJD.contact}</div></div>}
+                                {selectedJD.job_summary && <div><h4 className="font-bold mb-2 uppercase text-[16px]">Job Summary :</h4><p className="leading-relaxed text-justify text-gray-800">{selectedJD.job_summary}</p></div>}
+                                {selectedJD.rnr && <div><h4 className="font-bold mb-2 uppercase text-[16px]">Role & Responsibilities :</h4><ul className="list-disc pl-5 space-y-1.5 text-gray-800">{selectedJD.rnr?.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}</ul></div>}
+                                {selectedJD.req_skills && <div><h4 className="font-bold mb-2 uppercase text-[16px]">Required Skills :</h4><ul className="list-disc pl-5 space-y-1.5 text-gray-800">{selectedJD.req_skills?.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}</ul></div>}
+                                {selectedJD.preferred_qual && <div><h4 className="font-bold mb-2 uppercase text-[16px]">Preferred Qualifications :</h4><ul className="list-disc pl-5 space-y-1.5 text-gray-800">{selectedJD.preferred_qual?.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}</ul></div>}
+                                {selectedJD.company_offers && <div><h4 className="font-bold mb-2 uppercase text-[16px]">What Company Offer :</h4><ul className="list-disc pl-5 space-y-1.5 text-gray-800">{selectedJD.company_offers?.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}</ul></div>}
+                                {selectedJD.contact_details && <div className="mt-12 pt-6 border-t border-black/20"><h4 className="font-bold mb-3 uppercase text-[16px]">Contact Us To Apply :</h4><div className="whitespace-pre-line leading-loose text-gray-900 font-medium">{selectedJD.contact_details}</div></div>}
                             </div>
 
                         </div>
