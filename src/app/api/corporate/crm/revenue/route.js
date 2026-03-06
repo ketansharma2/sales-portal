@@ -31,8 +31,40 @@ export async function GET(request) {
 
     const { data: revenue, error } = await query
 
-    // If we have revenue data, fetch recruiter names
+    // If we have revenue data, fetch recruiter names and payment followups
     if (revenue && revenue.length > 0) {
+      // Get unique revenue IDs
+      const revenueIds = revenue.map(r => r.id)
+      
+      // Fetch payment followups for all revenue records
+      const { data: allFollowups, error: followupsError } = await supabaseServer
+        .from('corporate_payment_followup')
+        .select('*')
+        .in('id', revenueIds)
+        .order('created_at', { ascending: false })
+      
+      // Group followups by revenue ID and get latest next_follow_up
+      const followupByRevenue = {}
+      const allFollowupsList = {}
+      
+      if (allFollowups && allFollowups.length > 0) {
+        allFollowups.forEach(followup => {
+          const revId = followup.id
+          if (!allFollowupsList[revId]) {
+            allFollowupsList[revId] = []
+          }
+          allFollowupsList[revId].push(followup)
+          
+          // Store latest next_follow_up (most recent created_at has the latest next_follow_up)
+          if (followup.next_follow_up) {
+            if (!followupByRevenue[revId] || 
+                new Date(followup.created_at) > new Date(followupByRevenue[revId].created_at)) {
+              followupByRevenue[revId] = followup
+            }
+          }
+        })
+      }
+      
       // Get unique recruiter IDs
       const recruiterIds = [...new Set(revenue.map(r => r.recruiter_id).filter(Boolean))]
       
@@ -49,11 +81,20 @@ export async function GET(request) {
             recruiterMap[r.user_id] = r.name
           })
           
-          // Add recruiter_name to each revenue record
+          // Add recruiter_name, next_follow_up, and followup_history to each revenue record
           revenue.forEach(r => {
             r.recruiter_name = r.recruiter_id ? recruiterMap[r.recruiter_id] || null : null
+            r.next_follow_up = followupByRevenue[r.id]?.next_follow_up || null
+            r.followup_history = allFollowupsList[r.id] || []
           })
         }
+      } else {
+        // No recruiters but still add followup data
+        revenue.forEach(r => {
+          r.recruiter_name = null
+          r.next_follow_up = followupByRevenue[r.id]?.next_follow_up || null
+          r.followup_history = allFollowupsList[r.id] || []
+        })
       }
     }
 

@@ -97,6 +97,17 @@ export default function RevenuePage() {
   const [formData, setFormData] = useState(initialForm);
   const [kycFile, setKycFile] = useState(null);
 
+  // Payment Followup Form State
+  const [followupForm, setFollowupForm] = useState({
+    contact_date: new Date().toISOString().split('T')[0],
+    next_follow_up: '',
+    remarks: '',
+    payment_status: 'Pending'
+  });
+
+  // Payment Followup History State
+  const [followupHistory, setFollowupHistory] = useState([]);
+
   // Handle KYC file upload
   const handleKycUpload = async (file) => {
     setKycFile(file);
@@ -223,6 +234,47 @@ export default function RevenuePage() {
     } catch (error) {
       console.error('Error saving:', error);
       alert('Error saving data');
+    }
+  };
+
+  // Save Payment Followup
+  const handleSaveFollowup = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      
+      const response = await fetch('/api/corporate/crm/revenue/payment-followup', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          revenue_id: selectedRecord?.id,
+          contact_date: followupForm.contact_date,
+          remarks: followupForm.remarks,
+          next_follow_up: followupForm.next_follow_up || null,
+          payment_status: followupForm.payment_status
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        alert('Payment follow-up saved successfully!');
+        setFollowupForm({
+          contact_date: new Date().toISOString().split('T')[0],
+          next_follow_up: '',
+          remarks: '',
+          payment_status: 'Pending'
+        });
+        handleCloseModal();
+      } else {
+        alert('Failed to save: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error saving followup:', error);
+      alert('Error saving follow-up');
     }
   };
 
@@ -376,7 +428,7 @@ export default function RevenuePage() {
                            <div className="flex flex-col gap-1">
                               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Due Date</span>
                               <div className="flex items-center gap-1.5 font-bold text-gray-700 bg-gray-50 px-2 py-1 rounded border border-gray-200 w-fit">
-                                 <Calendar size={12} className="text-blue-500"/> {item.payment_due_date}
+                                 <Calendar size={12} className="text-blue-500"/> {item.next_follow_up || item.payment_due_date}
                               </div>
                            </div>
                         </td>
@@ -614,19 +666,39 @@ export default function RevenuePage() {
                         <div className="grid grid-cols-2 gap-5">
                             <div className="col-span-2 md:col-span-1">
                                 <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Follow-up Date</label>
-                                <input type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:border-[#103c7f] outline-none"/>
+                                <input 
+                                  type="date" 
+                                  value={followupForm.contact_date}
+                                  onChange={(e) => setFollowupForm({...followupForm, contact_date: e.target.value})}
+                                  className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:border-[#103c7f] outline-none"
+                                />
                             </div>
                             <div className="col-span-2 md:col-span-1">
                                 <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Next Follow-up Date</label>
-                                <input type="date" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:border-[#103c7f] outline-none"/>
+                                <input 
+                                  type="date" 
+                                  value={followupForm.next_follow_up}
+                                  onChange={(e) => setFollowupForm({...followupForm, next_follow_up: e.target.value})}
+                                  className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:border-[#103c7f] outline-none"
+                                />
                             </div>
                             <div className="col-span-2">
                                 <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Remarks / Conversation</label>
-                                <textarea rows="3" className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:border-[#103c7f] outline-none resize-none" placeholder="E.g., Spoke to finance team regarding invoice processing..."></textarea>
+                                <textarea 
+                                  rows="3" 
+                                  value={followupForm.remarks}
+                                  onChange={(e) => setFollowupForm({...followupForm, remarks: e.target.value})}
+                                  className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:border-[#103c7f] outline-none resize-none" 
+                                  placeholder="E.g., Spoke to finance team regarding invoice processing..."
+                                ></textarea>
                             </div>
                             <div className="col-span-2 md:col-span-1">
                                 <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Payment Status</label>
-                                <select className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:border-[#103c7f] outline-none bg-white">
+                                <select 
+                                  value={followupForm.payment_status}
+                                  onChange={(e) => setFollowupForm({...followupForm, payment_status: e.target.value})}
+                                  className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:border-[#103c7f] outline-none bg-white"
+                                >
                                     <option value="Pending">Pending</option>
                                     <option value="Received">Received</option>
                                 </select>
@@ -635,7 +707,7 @@ export default function RevenuePage() {
 
                         <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
                             <button onClick={handleCloseModal} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition">Cancel</button>
-                            <button onClick={handleCloseModal} className="bg-[#103c7f] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-blue-900 transition flex items-center gap-2">
+                            <button onClick={handleSaveFollowup} className="bg-[#103c7f] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-blue-900 transition flex items-center gap-2">
                                 <CheckCircle size={16}/> Save Follow-up
                             </button>
                         </div>
@@ -657,95 +729,37 @@ export default function RevenuePage() {
                         {/* Timeline List (Scrollable Area) */}
                         <div className="space-y-6 pl-2 max-h-[50vh] overflow-y-auto custom-scrollbar pr-3">
                             
-                            {/* Mock History Item 1 (Latest) */}
-                            <div className="relative pl-6 border-l-2 border-[#103c7f]">
-                                <div className="absolute w-4 h-4 bg-[#103c7f] rounded-full -left-[9px] top-0 border-4 border-white shadow-sm flex items-center justify-center"></div>
-                                
-                                <div className="flex justify-between items-start mb-1">
-                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-800">28 Feb 2026</span></p>
-                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded uppercase bg-orange-50 text-orange-600 border border-orange-200">Pending</span>
+                            {selectedRecord.followup_history && selectedRecord.followup_history.length > 0 ? (
+                                [...selectedRecord.followup_history]
+                                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                                    .map((followup, index) => (
+                                    <div key={followup.created_at || index} className={`relative pl-6 border-l-2 ${index === 0 ? 'border-[#103c7f]' : 'border-gray-200'}`}>
+                                        <div className={`absolute w-4 h-4 bg-${index === 0 ? '[#103c7f]' : 'gray-300'} rounded-full -left-[9px] top-0 border-4 border-white shadow-sm flex items-center justify-center`}></div>
+                                        
+                                        <div className="flex justify-between items-start mb-1">
+                                            <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-800">{followup.contact_date}</span></p>
+                                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${followup.payment_status === 'Received' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-orange-50 text-orange-600 border-orange-200'}`}>
+                                                {followup.payment_status}
+                                            </span>
+                                        </div>
+                                        
+                                        <p className="text-sm font-bold text-gray-800 bg-blue-50/50 p-3 rounded-lg border border-blue-100 mb-2">
+                                            {followup.remarks}
+                                        </p>
+                                        
+                                        {followup.next_follow_up && (
+                                            <p className="text-xs text-[#103c7f] font-bold flex items-center gap-1.5">
+                                                <Calendar size={12}/> Next Follow-up: {followup.next_follow_up}
+                                            </p>
+                                        )}
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-8 text-gray-500">
+                                    <p className="text-sm font-bold">No follow-up history available</p>
+                                    <p className="text-xs mt-1">Click the + button to add the first follow-up</p>
                                 </div>
-                                
-                                <p className="text-sm font-bold text-gray-800 bg-blue-50/50 p-3 rounded-lg border border-blue-100 mb-2">
-                                    Spoke to the Director. They said there is a slight delay due to month-end closing. Assured payment by 5th March.
-                                </p>
-                                
-                                <p className="text-xs text-[#103c7f] font-bold flex items-center gap-1.5">
-                                    <Calendar size={12}/> Next Follow-up: 05 Mar 2026
-                                </p>
-                            </div>
-
-                            {/* Mock History Item 2 */}
-                            <div className="relative pl-6 border-l-2 border-gray-200">
-                                <div className="absolute w-3 h-3 bg-gray-300 rounded-full -left-[7px] top-1 border-2 border-white"></div>
-                                
-                                <div className="flex justify-between items-start mb-1">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wide">Follow-up Date: <span className="text-gray-600">22 Feb 2026</span></p>
-                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded uppercase bg-orange-50 text-orange-600 border border-orange-200">Pending</span>
-                                </div>
-                                
-                                <p className="text-sm font-medium text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100 mb-2">
-                                    Finance team asked to resend the GST invoice copy. Resent on the same email thread. They will process it in 3-4 days.
-                                </p>
-
-                                <p className="text-xs text-gray-500 font-bold flex items-center gap-1.5">
-                                    <Calendar size={12}/> Next Follow-up: 28 Feb 2026
-                                </p>
-                            </div>
-
-                            {/* Mock History Item 3 */}
-                            <div className="relative pl-6 border-l-2 border-gray-200">
-                                <div className="absolute w-3 h-3 bg-gray-300 rounded-full -left-[7px] top-1 border-2 border-white"></div>
-                                
-                                <div className="flex justify-between items-start mb-1">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wide">Follow-up Date: <span className="text-gray-600">15 Feb 2026</span></p>
-                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded uppercase bg-orange-50 text-orange-600 border border-orange-200">Pending</span>
-                                </div>
-                                
-                                <p className="text-sm font-medium text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100 mb-2">
-                                    Spoke to Accounts Head. Invoice received and verified. Payment is in queue for the next billing cycle.
-                                </p>
-
-                                <p className="text-xs text-gray-500 font-bold flex items-center gap-1.5">
-                                    <Calendar size={12}/> Next Follow-up: 22 Feb 2026
-                                </p>
-                            </div>
-
-                            {/* Mock History Item 4 */}
-                            <div className="relative pl-6 border-l-2 border-gray-200">
-                                <div className="absolute w-3 h-3 bg-gray-300 rounded-full -left-[7px] top-1 border-2 border-white"></div>
-                                
-                                <div className="flex justify-between items-start mb-1">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wide">Follow-up Date: <span className="text-gray-600">08 Feb 2026</span></p>
-                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded uppercase bg-orange-50 text-orange-600 border border-orange-200">Pending</span>
-                                </div>
-                                
-                                <p className="text-sm font-medium text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100 mb-2">
-                                    Called the HR Manager to confirm candidate's joining status and attendance. HR confirmed candidate is active. Forwarded call to accounts.
-                                </p>
-
-                                <p className="text-xs text-gray-500 font-bold flex items-center gap-1.5">
-                                    <Calendar size={12}/> Next Follow-up: 15 Feb 2026
-                                </p>
-                            </div>
-
-                            {/* Mock History Item 5 (First Entry) */}
-                            <div className="relative pl-6 border-l-2 border-transparent">
-                                <div className="absolute w-3 h-3 bg-gray-300 rounded-full -left-[7px] top-1 border-2 border-white"></div>
-                                
-                                <div className="flex justify-between items-start mb-1">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wide">Follow-up Date: <span className="text-gray-600">01 Feb 2026</span></p>
-                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded uppercase bg-gray-100 text-gray-500 border border-gray-200">Initiated</span>
-                                </div>
-                                
-                                <p className="text-sm font-medium text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100 mb-2">
-                                    Invoice shared via email with finance@client.com. KYC docs attached and acknowledged by the HR manager. First payment follow-up initiated.
-                                </p>
-
-                                <p className="text-xs text-gray-500 font-bold flex items-center gap-1.5">
-                                    <Calendar size={12}/> Next Follow-up: 08 Feb 2026
-                                </p>
-                            </div>
+                            )}
 
                         </div>
 
