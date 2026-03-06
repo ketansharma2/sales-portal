@@ -39,9 +39,13 @@ export default function LoginPage() {
           setSessionData(data.session);
           setShowRoleSelector(true);
           
-          // If redirectUrl is provided (e.g., JOBPOST role), store it
-          if (data.redirectUrl) {
+          // Check if JOBPOST is in available roles - only store redirectUrl for that case
+          // For other multi-role cases (RC, TL, etc.), let user select the role
+          const hasJobpost = data.availableRoles.some(r => r.toUpperCase().includes('JOBPOST'));
+          if (hasJobpost && data.redirectUrl) {
             localStorage.setItem('redirectUrl', data.redirectUrl);
+          } else {
+            localStorage.removeItem('redirectUrl');
           }
         } else {
           // Single role: proceed
@@ -100,6 +104,16 @@ export default function LoginPage() {
       redirectPath = '/hod';
     } else if (role === 'operation_head' || role === 'operations') {
       redirectPath = '/operations/reimbursement';
+    } else if (role === 'rc') {
+      // RC role redirects to recruiter page
+      redirectPath = userData.sector 
+        ? `/${userData.sector.toLowerCase()}/recruiter`
+        : '/recruiter';
+    } else if (role === 'tl') {
+      // TL role redirects to tl page
+      redirectPath = userData.sector 
+        ? `/${userData.sector.toLowerCase()}/tl`
+        : '/tl';
     } else if (role === 'manager' || role === 'fse' || role === 'leadgen' || role === 'crm') {
       // Map generic roles to their dashboard pages
       redirectPath = userData.sector 
