@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   ArrowLeft, FileText, Download, CheckCircle, Clock, AlertCircle, Plus, 
   Search, Filter, Calendar, User, Mail, Briefcase, IndianRupee, ShieldCheck, Eye, Edit, Save, X, 
@@ -14,6 +14,65 @@ export default function RevenuePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState(""); // 'add', 'edit', 'followup'
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [revenueData, setRevenueData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [rcUsers, setRcUsers] = useState([]);
+
+  // --- FETCH DATA FROM API ---
+  useEffect(() => {
+    fetchRevenueData();
+    fetchRcUsers();
+  }, []);
+
+  const fetchRcUsers = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      
+      const response = await fetch('/api/corporate/crm/rc-users', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setRcUsers(result.data || []);
+      } else {
+        console.error('Failed to fetch RC users:', result.error);
+      }
+    } catch (error) {
+      console.error('Error fetching RC users:', error);
+    }
+  };
+
+  const fetchRevenueData = async () => {
+    try {
+      setLoading(true);
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      const response = await fetch('/api/corporate/crm/revenue', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setRevenueData(result.data || []);
+      } else {
+        console.error('Failed to fetch revenue:', result.error);
+      }
+    } catch (error) {
+      console.error('Error fetching revenue:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // --- INITIAL FORM STATE ---
   const initialForm = {
@@ -27,74 +86,57 @@ export default function RevenuePage() {
       candidate_status: "Joined",
       joining_date: "",
       payment_client_follow_date: "",
-      payment_outcome: "Expected",
+
       base_invoice: "",
-      with_gst: "",
-      kyc_doc: "pending",
+      total_amount: "",
+      kyc_link: "",
       account_email: "",
-      recruiter_name: ""
+
   };
 
   const [formData, setFormData] = useState(initialForm);
+  const [kycFile, setKycFile] = useState(null);
 
-  // --- MOCK DATA ---
-  const [revenueData, setRevenueData] = useState([
-    { 
-      id: 1, 
-      candidate_name: "Rohan Das", 
-      client_name: "TechCorp Solutions", 
-      position: "Java Developer",
-      offer_salary: "12,00,000",
-      payment_terms: "8.33%",
-      payment_days: "30 Days",
-      candidate_status: "Joined",
-      joining_date: "2026-01-15",
-      payment_client_follow_date: "2026-02-15",
-      payment_outcome: "Expected",
-      base_invoice: "1,00,000",
-      with_gst: "1,18,000",
-      kyc_doc: "uploaded",
-      account_email: "accounts@techcorp.com",
-      recruiter_name: "Amit Kumar"
-    },
-    { 
-      id: 2, 
-      candidate_name: "Priya Sharma", 
-      client_name: "Global Logistics", 
-      position: "HR Manager",
-      offer_salary: "8,00,000",
-      payment_terms: "Fixed",
-      payment_days: "45 Days",
-      candidate_status: "Terminated",
-      joining_date: "2026-01-01",
-      payment_client_follow_date: "2026-02-15",
-      payment_outcome: "Disputed",
-      base_invoice: "50,000",
-      with_gst: "59,000", 
-      kyc_doc: "pending",
-      account_email: "finance@global.com",
-      recruiter_name: "Sarah Johnson"
-    }
-  ]);
+  // Handle KYC file upload
+  const handleKycUpload = async (file) => {
+    setKycFile(file);
+  };
 
   const months = [
       "January", "February", "March", "April", "May", "June", 
       "July", "August", "September", "October", "November", "December"
   ];
 
+  // Helper to convert null/undefined to empty string for form inputs
+  const sanitizeFormData = (data) => ({
+      id: data?.id || null,
+      candidate_name: data?.candidate_name || "",
+      client_name: data?.client_name || "",
+      position: data?.position || "",
+      offer_salary: data?.offer_salary?.toString() || "",
+      payment_terms: data?.payment_terms || "",
+      payment_days: data?.payment_days?.toString() || "",
+      candidate_status: data?.candidate_status || "Joined",
+      joining_date: data?.joining_date || "",
+      payment_client_follow_date: data?.payment_client_follow_date || data?.payment_due_date || "",
+      base_invoice: data?.base_invoice?.toString() || "",
+      total_amount: data?.total_amount?.toString() || "",
+      kyc_link: data?.kyc_link || "",
+      account_email: data?.account_email || "",
+      recruiter_id: data?.recruiter_id || ""
+  });
+
   // --- HANDLERS ---
 
-  // Open Modal
   // Open Modal
   const handleOpenModal = (type, record = null) => {
       setModalType(type);
       if (type === 'edit' && record) {
-          setFormData(record);
+          setFormData(sanitizeFormData(record));
           setSelectedRecord(record);
       } else if (type === 'add') {
-          setFormData({ ...initialForm, id: Date.now() }); // Generate temp ID
+          setFormData({ ...initialForm, id: Date.now() });
       } else if (record) {
-          // Naye followup modals ke liye record save karega
           setSelectedRecord(record); 
       }
       setIsModalOpen(true);
@@ -105,16 +147,83 @@ export default function RevenuePage() {
       setIsModalOpen(false);
       setSelectedRecord(null);
       setFormData(initialForm);
+      setKycFile(null);
   };
 
   // Save Data (Add or Edit)
-  const handleSave = () => {
+  const handleSave = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      
+      // Helper to upload file
+      const uploadFile = async (revenueId) => {
+        if (!kycFile) return null;
+        
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', kycFile);
+        uploadFormData.append('revenue_id', revenueId);
+        
+        const response = await fetch('/api/corporate/crm/revenue/upload-kyc', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: uploadFormData
+        });
+        
+        const result = await response.json();
+        return result;
+      };
+      
       if (modalType === 'add') {
-          setRevenueData([formData, ...revenueData]);
+        // First, create the revenue record
+        const response = await fetch('/api/corporate/crm/revenue', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({...formData, kyc_link: ''})
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          // If there's a file to upload, upload it
+          if (kycFile) {
+            await uploadFile(result.data.id);
+          }
+          fetchRevenueData();
+        } else {
+          alert('Failed to create: ' + result.error);
+          return;
+        }
       } else if (modalType === 'edit') {
-          setRevenueData(revenueData.map(item => item.id === formData.id ? formData : item));
+        const response = await fetch('/api/corporate/crm/revenue', {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          // If there's a new file to upload, upload it
+          if (kycFile) {
+            await uploadFile(formData.id);
+          }
+          fetchRevenueData();
+        } else {
+          alert('Failed to update: ' + result.error);
+          return;
+        }
       }
+      setKycFile(null); // Clear file after save
       handleCloseModal();
+    } catch (error) {
+      console.error('Error saving:', error);
+      alert('Error saving data');
+    }
   };
 
   // Filter Logic
@@ -206,7 +315,13 @@ export default function RevenuePage() {
 
                {/* --- BODY --- */}
                <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
-                  {filteredData.length > 0 ? (
+                  {loading ? (
+                     <tr>
+                       <td colSpan="12" className="p-10 text-center text-gray-400 font-bold uppercase">
+                         Loading...
+                       </td>
+                     </tr>
+                   ) : filteredData.length > 0 ? (
                       filteredData.map((item, index) => (
                      <tr key={item.id} className="hover:bg-blue-50/20 transition group">
                         
@@ -217,7 +332,7 @@ export default function RevenuePage() {
                            <div className="flex flex-col gap-1">
                               <span className="font-bold text-[#103c7f] text-sm flex items-center gap-1.5"><User size={12}/> {item.candidate_name}</span>
                               <span className="text-[10px] text-gray-500 flex items-center gap-1.5"><Briefcase size={12}/> {item.position}</span>
-                              <span className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded w-fit border border-gray-200 mt-1">By: {item.recruiter_name}</span>
+                              <span className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded w-fit border border-gray-200 mt-1">By: {item.recruiter_name || '-'}</span>
                            </div>
                         </td>
 
@@ -243,7 +358,7 @@ export default function RevenuePage() {
                         {/* GST Invoice */}
                         <td className="p-3 border-r border-gray-100 bg-green-50/30 text-right">
                            <div className="flex flex-col items-end gap-0.5">
-                              <span className="font-black text-green-700 text-sm">₹ {item.with_gst}</span>
+                              <span className="font-black text-green-700 text-sm">₹ {item.total_amount}</span>
                               <span className="text-[8px] text-green-600 font-bold uppercase">+18% GST</span>
                            </div>
                         </td>
@@ -261,15 +376,15 @@ export default function RevenuePage() {
                            <div className="flex flex-col gap-1">
                               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Due Date</span>
                               <div className="flex items-center gap-1.5 font-bold text-gray-700 bg-gray-50 px-2 py-1 rounded border border-gray-200 w-fit">
-                                 <Calendar size={12} className="text-blue-500"/> {item.payment_client_follow_date}
+                                 <Calendar size={12} className="text-blue-500"/> {item.payment_due_date}
                               </div>
                            </div>
                         </td>
 
                         {/* KYC */}
                         <td className="p-3 border-r border-gray-100 text-center">
-                           {item.kyc_doc === 'uploaded' ? (
-                              <button className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-100 hover:bg-blue-100 transition mx-auto" title="View Documents">
+                           {item.kyc_link ? (
+                              <button onClick={() => handleOpenModal('viewKyc', item)} className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-100 hover:bg-blue-100 transition mx-auto" title="View Documents">
                                  <Eye size={12}/> <span className="text-[9px] font-bold uppercase">View</span>
                               </button>
                            ) : (
@@ -285,7 +400,7 @@ export default function RevenuePage() {
                               }`}>
                                  {item.candidate_status}
                               </span>
-                              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tight">{item.payment_outcome}</span>
+                              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tight"></span>
                            </div>
                         </td>
 
@@ -347,7 +462,7 @@ export default function RevenuePage() {
         <div className="fixed inset-0 bg-[#103c7f]/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
             
             <div className={`bg-white rounded-2xl shadow-2xl w-full border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200 ${
-                modalType === 'followup' ? 'max-w-lg' : 'max-w-4xl'
+                modalType === 'followup' ? 'max-w-lg' : modalType === 'viewKyc' ? 'max-w-5xl' : 'max-w-4xl'
             }`}>
                 
                 {/* Modal Header */}
@@ -359,6 +474,7 @@ export default function RevenuePage() {
                         {modalType === 'addClientFollowup' && <><MessageSquarePlus size={18}/> Add Client Follow-up</>}
                         {modalType === 'viewClientFollowup' && <><History size={18}/> Client Follow-up History</>}
                         {modalType === 'viewCandidateFollowup' && <><UserSearch size={18}/> Candidate Follow-up</>}
+                        {modalType === 'viewKyc' && <><Eye size={18}/> View KYC Document</>}
                     </h3>
                     <button onClick={handleCloseModal} className="hover:bg-white/20 p-1.5 rounded-full transition"><X size={20} /></button>
                 </div>
@@ -385,7 +501,24 @@ export default function RevenuePage() {
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Recruiter Name</label>
-                                <input type="text" value={formData.recruiter_name} onChange={(e) => setFormData({...formData, recruiter_name: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm focus:border-[#103c7f] outline-none" placeholder="Sourced by"/>
+                                <select 
+                                  value={formData.recruiter_id || ''} 
+                                  onChange={(e) => {
+                                    const selectedUser = rcUsers.find(u => u.user_id === e.target.value);
+                                    setFormData({
+                                      ...formData, 
+                                      recruiter_id: e.target.value
+                                    });
+                                  }} 
+                                  className="w-full border border-gray-300 rounded p-2 text-sm focus:border-[#103c7f] outline-none bg-white"
+                                >
+                                  <option value="">Select Recruiter</option>
+                                  {rcUsers.map(user => (
+                                    <option key={user.user_id} value={user.user_id}>
+                                      {user.name}
+                                    </option>
+                                  ))}
+                                </select>
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Account Email</label>
@@ -412,8 +545,8 @@ export default function RevenuePage() {
                                 <input type="text" value={formData.base_invoice} onChange={(e) => setFormData({...formData, base_invoice: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm focus:border-[#103c7f] outline-none font-mono" placeholder="Amount without GST"/>
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-green-600 uppercase block mb-1">Total (With GST)</label>
-                                <input type="text" value={formData.with_gst} onChange={(e) => setFormData({...formData, with_gst: e.target.value})} className="w-full border border-green-200 bg-green-50 rounded p-2 text-sm focus:border-green-500 outline-none font-bold" placeholder="Amount + 18%"/>
+                                <label className="text-[10px] font-bold text-green-600 uppercase block mb-1">Total Amount</label>
+                                <input type="text" value={formData.total_amount} onChange={(e) => setFormData({...formData, total_amount: e.target.value})} className="w-full border border-green-200 bg-green-50 rounded p-2 text-sm focus:border-green-500 outline-none font-bold" placeholder="Total Amount"/>
                             </div>
 
                             {/* Section 3: Status & Dates */}
@@ -439,14 +572,22 @@ export default function RevenuePage() {
                                 <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Upload KYC Document</label>
                                 <input 
                                     type="file" 
+                                    accept=".pdf,.jpg,.jpeg,.png"
                                     onChange={(e) => {
-                                        // In a real app, you would handle the file upload here
-                                        // For this UI demo, we just set the status to 'uploaded'
-                                        setFormData({...formData, kyc_doc: 'uploaded'});
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                            handleKycUpload(file);
+                                        }
                                     }} 
                                     className="w-full border border-gray-300 rounded p-1.5 text-sm focus:border-[#103c7f] outline-none bg-white file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-[#103c7f] hover:file:bg-blue-100 cursor-pointer"
                                 />
-                                <p className="text-[9px] text-gray-400 mt-1 italic">Supported formats: PDF, JPG, PNG (Max 5MB)</p>
+                                {kycFile && (
+                                    <p className="text-[9px] text-green-600 mt-1">Selected: {kycFile.name}</p>
+                                )}
+                                {formData.kyc_link && !kycFile && (
+                                    <p className="text-[9px] text-blue-600 mt-1">Current file uploaded</p>
+                                )}
+                                <p className="text-[9px] text-gray-400 mt-1 italic">Supported formats: PDF, JPG, PNG</p>
                             </div>
 
                         </div>
@@ -729,6 +870,39 @@ export default function RevenuePage() {
 
                         <div className="mt-6 text-right pt-4 border-t border-gray-200">
                             <button onClick={handleCloseModal} className="bg-gray-200 text-gray-700 px-6 py-2 rounded-xl font-bold text-sm hover:bg-gray-300 transition shadow-sm">Close View</button>
+                        </div>
+                    </div>
+                )}
+
+                {/* --- 4. VIEW KYC DOCUMENT MODAL --- */}
+                {modalType === 'viewKyc' && selectedRecord && selectedRecord.kyc_link && (
+                    <div className="p-6">
+                        <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
+                            <div>
+                                <h4 className="text-lg font-black text-gray-800">{selectedRecord.candidate_name}</h4>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">KYC Document</p>
+                            </div>
+                        </div>
+                        
+                        {/* Document Preview */}
+                        <div className="bg-gray-100 rounded-xl border border-gray-200 overflow-hidden" style={{height: '60vh'}}>
+                            {selectedRecord.kyc_link.toLowerCase().endsWith('.pdf') ? (
+                                <iframe 
+                                    src={selectedRecord.kyc_link} 
+                                    className="w-full h-full"
+                                    title="KYC Document"
+                                />
+                            ) : (
+                                <img 
+                                    src={selectedRecord.kyc_link} 
+                                    alt="KYC Document" 
+                                    className="w-full h-full object-contain"
+                                />
+                            )}
+                        </div>
+
+                        <div className="mt-6 text-right pt-4 border-t border-gray-100">
+                            <button onClick={handleCloseModal} className="bg-gray-100 text-gray-700 px-6 py-2 rounded-xl font-bold text-sm hover:bg-gray-200 transition">Close</button>
                         </div>
                     </div>
                 )}
