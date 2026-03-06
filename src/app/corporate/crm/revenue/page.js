@@ -840,7 +840,9 @@ export default function RevenuePage() {
                                             <div>
                                                 <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-800">{hist.contact_date}</span></p>
                                                 {hist.loggedBy && (
-                                                    <p className="text-[9px] font-bold text-blue-600 mt-0.5">By: {hist.loggedBy}</p>
+                                                    <p className="text-[9px] font-bold text-blue-600 mt-0.5">
+                                                            By: {hist.loggedBy}{hist.loggedByRole ? ` (${hist.loggedByRole})` : ''}
+                                                        </p>
                                                 )}
                                             </div>
                                             

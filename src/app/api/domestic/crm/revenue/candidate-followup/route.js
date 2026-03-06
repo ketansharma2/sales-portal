@@ -24,7 +24,7 @@ export async function GET(request) {
 
     // Fetch candidate follow-ups for this specific revenue/candidate ID
     const { data: followups, error } = await supabaseServer
-      .from('corporate_candidate_followup')
+      .from('domestic_candidate_followup')
       .select('*')
       .eq('id', candidateId)
       .order('created_at', { ascending: false })
