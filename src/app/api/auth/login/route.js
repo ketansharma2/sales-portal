@@ -81,6 +81,17 @@ export async function POST(request) {
       }
     }
 
+    // Check if role contains TL (Team Lead) - redirect based on sector
+    if (roleString.toUpperCase().includes('TL')) {
+      const sector = profileData.sector?.toLowerCase() || ''
+      if (sector === 'domestic') {
+        responseData.redirectUrl = '/domestic/tl'
+      } else {
+        // Default to corporate tl for other sectors (IT, Non-IT, etc.)
+        responseData.redirectUrl = '/corporate/tl'
+      }
+    }
+
     if (profileData.role.length === 1) {
       // Single role: set current_role and proceed
       responseData.user.current_role = profileData.role[0]

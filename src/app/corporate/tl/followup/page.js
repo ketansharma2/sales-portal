@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
     Search, Calendar, User, Briefcase, Building2, Clock, 
     MessageSquarePlus, History, CheckCircle, X, AlertCircle, 
@@ -13,55 +13,60 @@ export default function TLCandidateFollowupPanel() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalType, setModalType] = useState(""); // 'add', 'view'
     const [selectedCandidate, setSelectedCandidate] = useState(null);
+    const [candidates, setCandidates] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // --- MOCK DATA: Candidates assigned to this TL's Team ---
-    const [candidates, setCandidates] = useState([
-        {
-            id: 1,
-            name: "Rohan Das",
-            client: "TechCorp Solutions",
-            position: "Java Developer",
-            doj: "15 Jan 2026",
-            recruiterName: "Amit Kumar", // Added Recruiter Name
-            status: "Working", 
-            nextFollowup: "15 Mar 2026",
-            history: [
-                { id: 101, date: "02 Mar 2026", remarks: "Completed 1-month check-in call. Candidate is performing exceptionally well. Client has approved the invoice. Case closed for retention.", nextDate: "15 Mar 2026", loggedBy: "Shruti (Team Lead)" },
-                { id: 102, date: "30 Jan 2026", remarks: "15-day retention check. Candidate is happy with the team. Sorted out his initial login portal issue.", nextDate: "02 Mar 2026", loggedBy: "Shruti (Team Lead)" },
-                { id: 103, date: "15 Jan 2026", remarks: "Candidate successfully logged in on Day 1. Handover completed.", nextDate: "30 Jan 2026", loggedBy: "Amit Kumar (Recruiter)" }
-            ]
-        },
-        {
-            id: 2,
-            name: "Priya Sharma",
-            client: "Global Logistics",
-            position: "HR Manager",
-            doj: "01 Feb 2026",
-            recruiterName: "Sarah Johnson", // Added Recruiter Name
-            status: "Warning", 
-            nextFollowup: "06 Mar 2026",
-            history: [
-                { id: 201, date: "04 Mar 2026", remarks: "Had a detailed 1-on-1 discussion regarding her resignation threat. Negotiated on shift timings with the client. Waiting for her final confirmation.", nextDate: "06 Mar 2026", loggedBy: "Shruti (Team Lead)" },
-                { id: 202, date: "02 Mar 2026", remarks: "Candidate is complaining about the work culture and late sitting hours. She wants to quit. Escalated to TL.", nextDate: "04 Mar 2026", loggedBy: "Sarah Johnson (Recruiter)" },
-                { id: 203, date: "15 Feb 2026", remarks: "First 15 days completed. A bit struggling with the software but managing.", nextDate: "02 Mar 2026", loggedBy: "Sarah Johnson (Recruiter)" }
-            ]
-        },
-        {
-            id: 3,
-            name: "Vikas Verma",
-            client: "Lakshya International School",
-            position: "Mathematics Teacher",
-            doj: "25 Feb 2026",
-            recruiterName: "Amit Kumar", // Added Recruiter Name
-            status: "Absconded",
-            nextFollowup: "-",
-            history: [
-                { id: 301, date: "02 Mar 2026", remarks: "Tried calling from official and alternate numbers. Reached out to emergency contact as well, no proper response. Discussed with Client HR and finally marked as Absconded.", nextDate: "-", loggedBy: "Shruti (Team Lead)" },
-                { id: 302, date: "01 Mar 2026", remarks: "Did not report to the school for the last 3 days. Not picking up calls. Flagged to TL.", nextDate: "02 Mar 2026", loggedBy: "Amit Kumar (Recruiter)" },
-                { id: 303, date: "25 Feb 2026", remarks: "Day 1 check-in. Successfully joined and took the first class.", nextDate: "01 Mar 2026", loggedBy: "Amit Kumar (Recruiter)" }
-            ]
+    // --- FETCH DATA FROM API ---
+    useEffect(() => {
+        fetchCandidates();
+    }, []);
+
+    const fetchCandidates = async () => {
+        try {
+            setLoading(true);
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            
+            const response = await fetch('/api/corporate/tl/followup', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Transform revenue data to candidate format
+                const transformedData = (result.data || []).map(item => {
+                    // Get latest follow-up (first one since sorted by created_at desc)
+                    const latestFollowup = item.followup_history && item.followup_history.length > 0 
+                        ? item.followup_history[0] 
+                        : null;
+                    
+                    return {
+                        id: item.id,
+                        name: item.candidate_name,
+                        client: item.client_name,
+                        position: item.position,
+                        doj: item.joining_date,
+                        recruiterName: item.recruiter_name || '-',
+                        recruiter_id: item.recruiter_id,
+                        status: latestFollowup?.current_status || "-",
+                        nextFollowup: latestFollowup?.next_follow_up || "-",
+                        followup_history: item.followup_history || []
+                    };
+                });
+                setCandidates(transformedData);
+            } else {
+                console.error('Failed to fetch candidates:', result.error);
+            }
+        } catch (error) {
+            console.error('Error fetching candidates:', error);
+        } finally {
+            setLoading(false);
         }
-    ]);
+    };
 
     // Form State for Adding Followup
     const getTodayDate = () => new Date().toISOString().split('T')[0];
@@ -73,7 +78,7 @@ export default function TLCandidateFollowupPanel() {
         setModalType(type);
         setSelectedCandidate(candidate);
         if (type === 'add') {
-            setFormData({ ...initialForm, status: candidate.status });
+            setFormData({ ...initialForm, status: candidate.status !== '-' ? candidate.status : '', nextDate: candidate.nextFollowup !== '-' ? candidate.nextFollowup : '' });
         }
         setIsModalOpen(true);
     };
@@ -81,45 +86,76 @@ export default function TLCandidateFollowupPanel() {
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setSelectedCandidate(null);
+        setFormData(initialForm);
     };
 
-    const handleSaveFollowup = () => {
+    const handleSaveFollowup = async () => {
         if (!formData.remarks || !formData.nextDate) return alert("Please fill all details!");
 
-        const updatedCandidates = candidates.map(c => {
-            if (c.id === selectedCandidate.id) {
-                return {
-                    ...c,
-                    status: formData.status,
-                    nextFollowup: formData.nextDate,
-                    history: [
-                        {
-                            id: Date.now(),
-                            date: formData.date,
-                            remarks: formData.remarks,
-                            nextDate: formData.nextDate,
-                            loggedBy: "Shruti (You)" // Replace with actual logged-in user dynamically in real app
-                        },
-                        ...c.history
-                    ]
-                };
-            }
-            return c;
-        });
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
 
-        setCandidates(updatedCandidates);
-        handleCloseModal();
+            const response = await fetch('/api/corporate/recruiter/followup', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    revenue_id: selectedCandidate.id,
+                    contact_date: formData.date,
+                    remarks: formData.remarks,
+                    next_follow_up: formData.nextDate,
+                    current_status: formData.status
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Update the candidate's status, next follow-up date, and history in local state
+                const updatedCandidates = candidates.map(c => {
+                    if (c.id === selectedCandidate.id) {
+                        return {
+                            ...c,
+                            status: formData.status,
+                            nextFollowup: formData.nextDate,
+                            followup_history: [
+                                {
+                                    contact_date: formData.date,
+                                    remarks: formData.remarks,
+                                    next_follow_up: formData.nextDate,
+                                    current_status: formData.status,
+                                    created_at: new Date().toISOString()
+                                },
+                                ...(c.followup_history || [])
+                            ]
+                        };
+                    }
+                    return c;
+                });
+                setCandidates(updatedCandidates);
+                handleCloseModal();
+            } else {
+                alert('Failed to save followup: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error saving followup:', error);
+            alert('Error saving followup');
+        }
     };
 
     // Filter logic
     const filteredCandidates = candidates.filter(c => 
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         c.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.recruiterName.toLowerCase().includes(searchTerm.toLowerCase()) // Allow searching by recruiter name too
+        c.recruiterName.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     // --- HELPER FOR STATUS BADGE ---
     const getStatusBadge = (status) => {
+        if (!status || status === '-') return <span className="text-gray-400 font-bold">-</span>;
         switch(status) {
             case 'Working': return <span className="bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded text-[10px] font-black uppercase flex items-center justify-center gap-1 w-full max-w-[100px]"><UserCheck size={12}/> Working</span>;
             case 'Warning': return <span className="bg-orange-50 text-orange-600 border border-orange-200 px-2 py-1 rounded text-[10px] font-black uppercase flex items-center justify-center gap-1 w-full max-w-[100px]"><AlertCircle size={12}/> At Risk</span>;
@@ -176,10 +212,16 @@ export default function TLCandidateFollowupPanel() {
                             </tr>
                         </thead>
                         <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
-                            {filteredCandidates.length > 0 ? (
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="7" className="p-10 text-center text-gray-400 font-bold uppercase">
+                                        Loading...
+                                    </td>
+                                </tr>
+                            ) : filteredCandidates.length > 0 ? (
                                 filteredCandidates.map((candidate) => (
                                 <tr key={candidate.id} className="hover:bg-blue-50/20 transition group">
-                                    
+                                     
                                     {/* Candidate */}
                                     <td className="p-3 border-r border-gray-100">
                                         <div className="flex flex-col gap-1">
@@ -324,6 +366,7 @@ export default function TLCandidateFollowupPanel() {
                                             value={formData.status}
                                             onChange={(e) => setFormData({...formData, status: e.target.value})}
                                         >
+                                            <option value="">Select Status</option>
                                             <option value="Working">Working (Active)</option>
                                             <option value="Warning">Warning / At Risk</option>
                                             <option value="Absconded">Absconded</option>
@@ -358,33 +401,44 @@ export default function TLCandidateFollowupPanel() {
                                 </div>
 
                                 <div className="space-y-6 pl-2 max-h-[45vh] overflow-y-auto custom-scrollbar pr-3">
-                                    {selectedCandidate.history.map((hist, idx) => (
-                                        <div key={hist.id} className={`relative pl-6 border-l-2 ${idx === 0 ? 'border-purple-600' : 'border-purple-300'}`}>
-                                            <div className={`absolute w-4 h-4 rounded-full -left-[9px] top-0 border-4 shadow-sm flex items-center justify-center ${idx === 0 ? 'bg-purple-600 border-white' : 'bg-purple-400 border-gray-50 w-3 h-3 -left-[7px] top-1'}`}></div>
-                                            
-                                            <div className="flex justify-between items-start mb-1">
-                                                <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-800">{hist.date}</span></p>
+                                    {selectedCandidate.followup_history && selectedCandidate.followup_history.length > 0 ? (
+                                        [...selectedCandidate.followup_history]
+                                            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                                            .map((hist, idx) => (
+                                            <div key={hist.created_at || idx} className={`relative pl-6 border-l-2 ${idx === 0 ? 'border-purple-600' : 'border-purple-300'}`}>
+                                                <div className={`absolute w-4 h-4 rounded-full -left-[9px] top-0 border-4 shadow-sm flex items-center justify-center ${idx === 0 ? 'bg-purple-600 border-white' : 'bg-purple-400 border-gray-50 w-3 h-3 -left-[7px] top-1'}`}></div>
                                                 
-                                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
-                                                    hist.loggedBy.includes("Team Lead") || hist.loggedBy.includes("TL") 
-                                                    ? 'bg-blue-50 text-blue-700 border-blue-200' 
-                                                    : 'bg-purple-100 text-purple-800 border-purple-200'
-                                                }`}>
-                                                    By: {hist.loggedBy}
-                                                </span>
-                                            </div>
-                                            
-                                            <p className={`text-sm font-bold text-gray-800 p-3 rounded-lg shadow-sm border ${idx === 0 ? 'bg-white border-gray-200' : 'bg-white/60 border-gray-100'}`}>
-                                                {hist.remarks}
-                                            </p>
-
-                                            {hist.nextDate !== "-" && (
-                                                <p className="text-xs text-purple-600 font-bold flex items-center gap-1.5 mt-2">
-                                                    <Calendar size={12}/> Next Follow-up: {hist.nextDate}
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-800">{hist.contact_date}</span></p>
+                                                    
+                                                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
+                                                        hist.current_status === 'Working' ? 'bg-green-50 text-green-600 border-green-200' :
+                                                        hist.current_status === 'Warning' ? 'bg-orange-50 text-orange-600 border-orange-200' :
+                                                        hist.current_status === 'Absconded' ? 'bg-red-50 text-red-600 border-red-200' :
+                                                        hist.current_status === 'Resigned' ? 'bg-gray-100 text-gray-600 border-gray-200' :
+                                                        'bg-blue-50 text-blue-600 border-blue-200'
+                                                    }`}>
+                                                        {hist.current_status}
+                                                    </span>
+                                                </div>
+                                                
+                                                <p className={`text-sm font-bold text-gray-800 p-3 rounded-lg shadow-sm border ${idx === 0 ? 'bg-white border-gray-200' : 'bg-white/60 border-gray-100'}`}>
+                                                    {hist.remarks}
                                                 </p>
-                                            )}
+
+                                                {hist.next_follow_up && (
+                                                    <p className="text-xs text-purple-600 font-bold flex items-center gap-1.5 mt-2">
+                                                        <Calendar size={12}/> Next Follow-up: {hist.next_follow_up}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <p className="text-sm font-bold">No follow-up history available</p>
+                                            <p className="text-xs mt-1">Click the + button to add the first follow-up</p>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
 
                                 <div className="mt-6 text-right pt-4 border-t border-gray-200">
