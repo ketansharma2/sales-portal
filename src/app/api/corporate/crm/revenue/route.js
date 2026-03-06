@@ -46,6 +46,7 @@ export async function GET(request) {
       // Group followups by revenue ID and get latest next_follow_up
       const followupByRevenue = {}
       const allFollowupsList = {}
+      const latestPaymentStatusByRevenue = {}
       
       if (allFollowups && allFollowups.length > 0) {
         allFollowups.forEach(followup => {
@@ -60,6 +61,15 @@ export async function GET(request) {
             if (!followupByRevenue[revId] || 
                 new Date(followup.created_at) > new Date(followupByRevenue[revId].created_at)) {
               followupByRevenue[revId] = followup
+            }
+          }
+          
+          // Store latest payment_status (most recent followup has the latest status)
+          if (!latestPaymentStatusByRevenue[revId] || 
+              new Date(followup.created_at) > new Date(latestPaymentStatusByRevenue[revId].created_at)) {
+            latestPaymentStatusByRevenue[revId] = { 
+              payment_status: followup.payment_status,
+              created_at: followup.created_at 
             }
           }
         })
@@ -86,6 +96,7 @@ export async function GET(request) {
             r.recruiter_name = r.recruiter_id ? recruiterMap[r.recruiter_id] || null : null
             r.next_follow_up = followupByRevenue[r.id]?.next_follow_up || null
             r.followup_history = allFollowupsList[r.id] || []
+            r.latest_payment_status = latestPaymentStatusByRevenue[r.id]?.payment_status || null
           })
         }
       } else {
@@ -94,6 +105,7 @@ export async function GET(request) {
           r.recruiter_name = null
           r.next_follow_up = followupByRevenue[r.id]?.next_follow_up || null
           r.followup_history = allFollowupsList[r.id] || []
+          r.latest_payment_status = latestPaymentStatusByRevenue[r.id]?.payment_status || null
         })
       }
     }

@@ -108,6 +108,9 @@ export default function RevenuePage() {
   // Payment Followup History State
   const [followupHistory, setFollowupHistory] = useState([]);
 
+  // Candidate Followup History State (for TL/Recruiter follow-ups)
+  const [candidateFollowupHistory, setCandidateFollowupHistory] = useState([]);
+
   // Handle KYC file upload
   const handleKycUpload = async (file) => {
     setKycFile(file);
@@ -149,8 +152,40 @@ export default function RevenuePage() {
           setFormData({ ...initialForm, id: Date.now() });
       } else if (record) {
           setSelectedRecord(record); 
+          
+          // If opening candidate followup view, fetch the data
+          if (type === 'viewCandidateFollowup' && record.id) {
+              fetchCandidateFollowups(record.id);
+          }
       }
       setIsModalOpen(true);
+  };
+
+  // Fetch Candidate Followups (for TL/Recruiter follow-ups)
+  const fetchCandidateFollowups = async (candidateId) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      
+      const response = await fetch(`/api/corporate/crm/revenue/candidate-followup?candidate_id=${candidateId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setCandidateFollowupHistory(result.data || []);
+      } else {
+        console.error('Failed to fetch candidate followups:', result.error);
+        setCandidateFollowupHistory([]);
+      }
+    } catch (error) {
+      console.error('Error fetching candidate followups:', error);
+      setCandidateFollowupHistory([]);
+    }
   };
 
   // Close Modal
@@ -159,6 +194,7 @@ export default function RevenuePage() {
       setSelectedRecord(null);
       setFormData(initialForm);
       setKycFile(null);
+      setCandidateFollowupHistory([]);
   };
 
   // Save Data (Add or Edit)
@@ -359,7 +395,7 @@ export default function RevenuePage() {
                      <th className="p-3 border-r border-blue-800 whitespace-nowrap min-w-[120px]">Joining / Due Days</th>
                      <th className="p-3 border-r border-blue-800 whitespace-nowrap min-w-[140px]">Payment Follow-up</th>
                      <th className="p-3 border-r border-blue-800 whitespace-nowrap text-center">KYC Docs</th>
-                     <th className="p-3 border-r border-blue-800 whitespace-nowrap text-center w-28">Candidate Status</th>
+                     <th className="p-3 border-r border-blue-800 whitespace-nowrap text-center w-28">Candidate/Payment Status</th>
                      {/* ACTION HEADER */}
                      <th className="p-3 text-center bg-[#0d316a] sticky right-0 z-20 w-32">Action</th>
                   </tr>
@@ -452,7 +488,13 @@ export default function RevenuePage() {
                               }`}>
                                  {item.candidate_status}
                               </span>
-                              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tight"></span>
+                              {item.latest_payment_status && (
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
+                                  item.latest_payment_status === 'Received' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-orange-100 text-orange-700 border-orange-200'
+                                }`}>
+                                  {item.latest_payment_status}
+                                </span>
+                              )}
                            </div>
                         </td>
 
@@ -782,103 +824,54 @@ export default function RevenuePage() {
                                 <h4 className="text-lg font-black text-[#103c7f]">{selectedRecord.candidate_name}</h4>
                                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{selectedRecord.position}</p>
                             </div>
-                            <span className={`px-3 py-1 rounded-lg text-[10px] font-black border uppercase shadow-sm ${selectedRecord.candidate_status === 'Joined' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-                                {selectedRecord.candidate_status}
-                            </span>
                         </div>
 
-                        {/* Timeline (Scrollable Area) */}
+                        {/* Timeline (Scrollable Area) - Using Real Data from API */}
                         <div className="space-y-6 pl-2 max-h-[45vh] overflow-y-auto custom-scrollbar pr-3">
                             
-                            {/* Mock Candidate History 1 (Latest) */}
-                            <div className="relative pl-6 border-l-2 border-purple-600">
-                                <div className="absolute w-4 h-4 bg-purple-600 rounded-full -left-[9px] top-0 border-4 border-gray-50 shadow-sm flex items-center justify-center"></div>
-                                
-                                <div className="flex justify-between items-start mb-1">
-                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-800">02 Mar 2026</span></p>
-                                    <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[9px] font-bold border border-purple-200">By: Rohan (Team Lead)</span>
+                            {candidateFollowupHistory && candidateFollowupHistory.length > 0 ? (
+                                [...candidateFollowupHistory]
+                                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                                    .map((hist, idx) => (
+                                    <div key={hist.created_at || idx} className={`relative pl-6 border-l-2 ${idx === 0 ? 'border-purple-600' : 'border-purple-300'}`}>
+                                        <div className={`absolute w-4 h-4 rounded-full -left-[9px] top-0 border-4 shadow-sm flex items-center justify-center ${idx === 0 ? 'bg-purple-600 border-white' : 'bg-purple-400 border-gray-50 w-3 h-3 -left-[7px] top-1'}`}></div>
+                                        
+                                        <div className="flex justify-between items-start mb-1">
+                                            <div>
+                                                <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-800">{hist.contact_date}</span></p>
+                                                {hist.loggedBy && (
+                                                    <p className="text-[9px] font-bold text-blue-600 mt-0.5">By: {hist.loggedBy}</p>
+                                                )}
+                                            </div>
+                                            
+                                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
+                                                hist.current_status === 'Working' ? 'bg-green-50 text-green-600 border-green-200' :
+                                                hist.current_status === 'Warning' ? 'bg-orange-50 text-orange-600 border-orange-200' :
+                                                hist.current_status === 'Absconded' ? 'bg-red-50 text-red-600 border-red-200' :
+                                                hist.current_status === 'Resigned' ? 'bg-gray-100 text-gray-600 border-gray-200' :
+                                                'bg-blue-50 text-blue-600 border-blue-200'
+                                            }`}>
+                                                {hist.current_status}
+                                            </span>
+                                        </div>
+                                        
+                                        <p className={`text-sm font-bold text-gray-800 p-3 rounded-lg shadow-sm border ${idx === 0 ? 'bg-white border-gray-200' : 'bg-white/60 border-gray-100'}`}>
+                                            {hist.remarks}
+                                        </p>
+
+                                        {hist.next_follow_up && (
+                                            <p className="text-xs text-purple-600 font-bold flex items-center gap-1.5 mt-2">
+                                                <Calendar size={12}/> Next Follow-up: {hist.next_follow_up}
+                                            </p>
+                                        )}
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-8 text-gray-500">
+                                    <p className="text-sm font-bold">No candidate follow-up history available</p>
+                                    <p className="text-xs mt-1">TL or Recruiter will add follow-ups here</p>
                                 </div>
-                                
-                                <p className="text-sm font-bold text-gray-800 bg-white p-3 rounded-lg shadow-sm border border-gray-200">
-                                    Candidate has successfully completed 1 month. Received first salary. Client feedback is positive. Ready for billing cycle.
-                                </p>
-
-                                <p className="text-xs text-purple-600 font-bold flex items-center gap-1.5 mt-2">
-                                    <Calendar size={12}/> Next Follow-up: 15 Mar 2026
-                                </p>
-                            </div>
-
-                            {/* Mock Candidate History 2 */}
-                            <div className="relative pl-6 border-l-2 border-purple-300">
-                                <div className="absolute w-3 h-3 bg-purple-400 rounded-full -left-[7px] top-1 border-2 border-gray-50"></div>
-                                
-                                <div className="flex justify-between items-start mb-1">
-                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-700">20 Feb 2026</span></p>
-                                    <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded text-[9px] font-bold border border-gray-300">By: Amit Kumar (Recruiter)</span>
-                                </div>
-                                
-                                <p className="text-sm font-medium text-gray-600 bg-white p-3 rounded-lg shadow-sm border border-gray-100">
-                                    15-day check-in. Candidate is adapting well to the project. No issues reported with attendance or performance.
-                                </p>
-
-                                <p className="text-xs text-gray-500 font-bold flex items-center gap-1.5 mt-2">
-                                    <Calendar size={12}/> Next Follow-up: 02 Mar 2026
-                                </p>
-                            </div>
-
-                            {/* Mock Candidate History 3 */}
-                            <div className="relative pl-6 border-l-2 border-purple-300">
-                                <div className="absolute w-3 h-3 bg-purple-400 rounded-full -left-[7px] top-1 border-2 border-gray-50"></div>
-                                
-                                <div className="flex justify-between items-start mb-1">
-                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-700">12 Feb 2026</span></p>
-                                    <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded text-[9px] font-bold border border-gray-300">By: Amit Kumar (Recruiter)</span>
-                                </div>
-                                
-                                <p className="text-sm font-medium text-gray-600 bg-white p-3 rounded-lg shadow-sm border border-gray-100">
-                                    1st-week completion call. Candidate is happy with the work culture. Laptop and portal access provided on time.
-                                </p>
-
-                                <p className="text-xs text-gray-500 font-bold flex items-center gap-1.5 mt-2">
-                                    <Calendar size={12}/> Next Follow-up: 20 Feb 2026
-                                </p>
-                            </div>
-
-                            {/* Mock Candidate History 4 */}
-                            <div className="relative pl-6 border-l-2 border-purple-300">
-                                <div className="absolute w-3 h-3 bg-purple-400 rounded-full -left-[7px] top-1 border-2 border-gray-50"></div>
-                                
-                                <div className="flex justify-between items-start mb-1">
-                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-700">05 Feb 2026</span></p>
-                                    <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[9px] font-bold border border-purple-200">By: Shruti (Team Lead)</span>
-                                </div>
-                                
-                                <p className="text-sm font-medium text-gray-600 bg-white p-3 rounded-lg shadow-sm border border-gray-100">
-                                    Day 1 check-in. Candidate successfully onboarded and logged into the client system. HOD informed.
-                                </p>
-
-                                <p className="text-xs text-gray-500 font-bold flex items-center gap-1.5 mt-2">
-                                    <Calendar size={12}/> Next Follow-up: 12 Feb 2026
-                                </p>
-                            </div>
-
-                            {/* Mock Candidate History 5 (First Entry) */}
-                            <div className="relative pl-6 border-l-2 border-transparent">
-                                <div className="absolute w-3 h-3 bg-gray-400 rounded-full -left-[7px] top-1 border-2 border-gray-50"></div>
-                                
-                                <div className="flex justify-between items-start mb-1">
-                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-700">04 Feb 2026</span></p>
-                                    <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded text-[9px] font-bold border border-gray-300">By: Amit Kumar (Recruiter)</span>
-                                </div>
-                                
-                                <p className="text-sm font-medium text-gray-600 bg-white p-3 rounded-lg shadow-sm border border-gray-100">
-                                    Pre-joining reminder call. Candidate confirmed they will log in by 9:30 AM tomorrow. All basic documents are verified.
-                                </p>
-
-                                <p className="text-xs text-gray-500 font-bold flex items-center gap-1.5 mt-2">
-                                    <Calendar size={12}/> Next Follow-up: 05 Feb 2026
-                                </p>
-                            </div>
+                            )}
 
                         </div>
 

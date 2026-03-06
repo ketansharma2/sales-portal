@@ -409,7 +409,12 @@ export default function TLCandidateFollowupPanel() {
                                                 <div className={`absolute w-4 h-4 rounded-full -left-[9px] top-0 border-4 shadow-sm flex items-center justify-center ${idx === 0 ? 'bg-purple-600 border-white' : 'bg-purple-400 border-gray-50 w-3 h-3 -left-[7px] top-1'}`}></div>
                                                 
                                                 <div className="flex justify-between items-start mb-1">
-                                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-800">{hist.contact_date}</span></p>
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-800">{hist.contact_date}</span></p>
+                                                        {hist.loggedBy && (
+                                                            <p className="text-[9px] font-bold text-blue-600 mt-0.5">By: {hist.loggedBy}</p>
+                                                        )}
+                                                    </div>
                                                     
                                                     <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
                                                         hist.current_status === 'Working' ? 'bg-green-50 text-green-600 border-green-200' :

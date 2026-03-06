@@ -40,7 +40,10 @@ export async function GET(request) {
 
     const recruiterIds = recruiters?.map(r => r.user_id) || []
 
-    // If no recruiters under this TL, return empty
+    // Include TL's own user_id to fetch follow-ups they added
+    const allUserIds = [...recruiterIds, tlId]
+
+    // If no recruiters under this TL, check if TL has any direct follow-ups
     if (recruiterIds.length === 0) {
       return NextResponse.json({
         success: true,
@@ -75,11 +78,11 @@ export async function GET(request) {
       }
     }
 
-    // Fetch candidate follow-ups for these recruiters
+    // Fetch candidate follow-ups for these recruiters AND the TL
     const { data: candidateFollowups, error: followupsError } = await supabaseServer
       .from('corporate_candidate_followup')
       .select('*')
-      .in('user_id', recruiterIds)
+      .in('user_id', allUserIds)
       .order('created_at', { ascending: false })
 
     // Get all user IDs from follow-ups to fetch their names
