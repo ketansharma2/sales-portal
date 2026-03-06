@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { 
   ArrowLeft, FileText, Download, CheckCircle, Clock, AlertCircle, Plus, 
-  Search, Filter, Calendar, User, Mail, Briefcase, IndianRupee, ShieldCheck, Eye, Edit, Save, X
+  Search, Filter, Calendar, User, Mail, Briefcase, IndianRupee, ShieldCheck, Eye, Edit, Save, X, 
+  MessageSquarePlus, History, UserSearch // Naye icons
 } from "lucide-react";
 
 export default function RevenuePage() {
@@ -84,14 +85,17 @@ export default function RevenuePage() {
   // --- HANDLERS ---
 
   // Open Modal
+  // Open Modal
   const handleOpenModal = (type, record = null) => {
       setModalType(type);
       if (type === 'edit' && record) {
           setFormData(record);
+          setSelectedRecord(record);
       } else if (type === 'add') {
           setFormData({ ...initialForm, id: Date.now() }); // Generate temp ID
-      } else if (type === 'followup' && record) {
-          setSelectedRecord(record);
+      } else if (record) {
+          // Naye followup modals ke liye record save karega
+          setSelectedRecord(record); 
       }
       setIsModalOpen(true);
   };
@@ -286,25 +290,46 @@ export default function RevenuePage() {
                         </td>
 
                         {/* ACTION COLUMN (Sticky Right) */}
-                        <td className="p-3 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)]">
+                     {/* ACTION COLUMN (Sticky Right) */}
+                        <td className="p-3 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)] w-48">
                            <div className="flex items-center justify-center gap-2">
-                               {/* Edit Button */}
+                               
+                               {/* 1. Add Client Followup (CRM Only) */}
+                               <button 
+                               onClick={() => handleOpenModal('addClientFollowup', item)}
+                                className="p-1.5 text-white bg-[#103c7f] rounded transition hover:bg-blue-900 shadow-sm" 
+                                title="Add Client Follow-up"
+                               >
+                                   <MessageSquarePlus size={14} />
+                               </button>
+
+                               {/* 2. View Client Followup History */}
+                               <button 
+                                onClick={() => handleOpenModal('viewClientFollowup', item)}
+                                className="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded transition hover:bg-blue-100" 
+                                title="View Client Follow-up History"
+                               >
+                                   <History size={14} />
+                               </button>
+
+                               {/* 3. View Candidate Followup History (Added by TL/Recruiter, viewable by CRM) */}
+                               <button 
+                                onClick={() => handleOpenModal('viewCandidateFollowup', item)}
+                                className="p-1.5 text-purple-600 bg-purple-50 border border-purple-200 rounded transition hover:bg-purple-100" 
+                                title="View Candidate Follow-up (By TL/Recruiter)"
+                               >
+                                   <UserSearch size={14} />
+                               </button>
+
+                               {/* 4. Edit Record (Existing) */}
                                <button 
                                 onClick={() => handleOpenModal('edit', item)}
-                                className="p-1.5 text-gray-500 hover:text-[#103c7f] bg-gray-50 border border-gray-200 rounded transition hover:shadow-sm" 
-                                title="Edit Record"
+                                className="p-1.5 text-gray-500 hover:text-gray-800 bg-gray-50 border border-gray-200 rounded transition hover:bg-gray-100" 
+                                title="Edit Revenue Record"
                                >
                                    <Edit size={14} />
                                </button>
                                
-                               {/* See Followup Button */}
-                               <button 
-                                onClick={() => handleOpenModal('followup', item)}
-                                className="p-1.5 text-gray-500 hover:text-orange-600 bg-gray-50 border border-gray-200 rounded transition hover:shadow-sm" 
-                                title="See Candidate Followup"
-                               >
-                                   <Clock size={14} />
-                               </button>
                            </div>
                         </td>
 
@@ -326,11 +351,14 @@ export default function RevenuePage() {
             }`}>
                 
                 {/* Modal Header */}
-                <div className="bg-[#103c7f] p-3 flex justify-between items-center text-white shadow-md">
+                {/* Modal Header */}
+                <div className="bg-[#103c7f] p-3 flex justify-between items-center text-white shadow-md shrink-0">
                     <h3 className="font-bold text-md uppercase tracking-wide flex items-center gap-2">
                         {modalType === 'add' && <><Plus size={18}/> Add New Revenue Record</>}
                         {modalType === 'edit' && <><Edit size={18}/> Edit Revenue Record</>}
-                        {modalType === 'followup' && <><Clock size={18}/> Candidate Follow-up Details</>}
+                        {modalType === 'addClientFollowup' && <><MessageSquarePlus size={18}/> Add Client Follow-up</>}
+                        {modalType === 'viewClientFollowup' && <><History size={18}/> Client Follow-up History</>}
+                        {modalType === 'viewCandidateFollowup' && <><UserSearch size={18}/> Candidate Follow-up</>}
                     </h3>
                     <button onClick={handleCloseModal} className="hover:bg-white/20 p-1.5 rounded-full transition"><X size={20} /></button>
                 </div>
@@ -432,41 +460,278 @@ export default function RevenuePage() {
                     </div>
                 )}
 
-                {/* --- FOLLOW-UP MODAL --- 
-                {modalType === 'followup' && selectedRecord && (
+                {/* --- 1. ADD CLIENT FOLLOWUP MODAL --- */}
+             {/* --- 1. ADD CLIENT FOLLOWUP MODAL --- */}
+                {modalType === 'addClientFollowup' && selectedRecord && (
                     <div className="p-6">
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="bg-blue-50 p-3 rounded-full text-[#103c7f]"><Clock size={24}/></div>
-                            <div>
-                                <h4 className="font-bold text-lg text-gray-800">{selectedRecord.client_name}</h4>
-                                <p className="text-xs text-gray-500 font-bold uppercase">Candidate: {selectedRecord.candidate_name}</p>
-                            </div>
+                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-5">
+                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Adding Follow-up for Client:</p>
+                            <h4 className="text-lg font-black text-[#103c7f]">{selectedRecord.client_name}</h4>
+                            <p className="text-xs font-bold text-gray-600 mt-1">Candidate: <span className="text-gray-800">{selectedRecord.candidate_name}</span></p>
                         </div>
                         
-                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                            <div className="flex justify-between items-center border-b border-gray-200 pb-3 mb-3">
-                                <span className="text-xs font-bold text-gray-400 uppercase">Payment Due Date</span>
-                                <span className="text-sm font-black text-orange-600 font-mono">{selectedRecord.payment_client_follow_date}</span>
+                        <div className="grid grid-cols-2 gap-5">
+                            <div className="col-span-2 md:col-span-1">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Follow-up Date</label>
+                                <input type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:border-[#103c7f] outline-none"/>
                             </div>
-                            
-                            <div className="space-y-3">
-                                <p className="text-xs font-bold text-gray-400 uppercase">Latest Remarks</p>
-                                <div className="bg-white p-3 rounded border border-gray-200 text-sm text-gray-600 italic">
-                                    "Payment is processed from client side, expected to hit account by next Monday."
-                                </div>
+                            <div className="col-span-2 md:col-span-1">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Next Follow-up Date</label>
+                                <input type="date" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:border-[#103c7f] outline-none"/>
                             </div>
-
-                            <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center">
-                                <span className="text-xs font-bold text-gray-400 uppercase">Account Email</span>
-                                <span className="text-sm font-bold text-blue-600">{selectedRecord.account_email}</span>
+                            <div className="col-span-2">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Remarks / Conversation</label>
+                                <textarea rows="3" className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:border-[#103c7f] outline-none resize-none" placeholder="E.g., Spoke to finance team regarding invoice processing..."></textarea>
+                            </div>
+                            <div className="col-span-2 md:col-span-1">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Payment Status</label>
+                                <select className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:border-[#103c7f] outline-none bg-white">
+                                    <option value="Pending">Pending</option>
+                                    <option value="Received">Received</option>
+                                </select>
                             </div>
                         </div>
 
-                        <div className="mt-6 text-center">
-                            <button onClick={handleCloseModal} className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-bold text-sm hover:bg-gray-300 transition">Close</button>
+                        <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
+                            <button onClick={handleCloseModal} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition">Cancel</button>
+                            <button onClick={handleCloseModal} className="bg-[#103c7f] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-blue-900 transition flex items-center gap-2">
+                                <CheckCircle size={16}/> Save Follow-up
+                            </button>
                         </div>
                     </div>
-                )}*/}
+                )}
+
+                {/* --- 2. VIEW CLIENT FOLLOWUP HISTORY MODAL --- */}
+           {/* --- 2. VIEW CLIENT FOLLOWUP HISTORY MODAL --- */}
+                {modalType === 'viewClientFollowup' && selectedRecord && (
+                    <div className="p-6">
+                        <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
+                            <div>
+                                <h4 className="text-lg font-black text-gray-800">{selectedRecord.client_name}</h4>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Client Follow-up History</p>
+                            </div>
+                            <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-[10px] font-black border border-blue-100">CRM DEPT</span>
+                        </div>
+                        
+                        {/* Timeline List (Scrollable Area) */}
+                        <div className="space-y-6 pl-2 max-h-[50vh] overflow-y-auto custom-scrollbar pr-3">
+                            
+                            {/* Mock History Item 1 (Latest) */}
+                            <div className="relative pl-6 border-l-2 border-[#103c7f]">
+                                <div className="absolute w-4 h-4 bg-[#103c7f] rounded-full -left-[9px] top-0 border-4 border-white shadow-sm flex items-center justify-center"></div>
+                                
+                                <div className="flex justify-between items-start mb-1">
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-800">28 Feb 2026</span></p>
+                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded uppercase bg-orange-50 text-orange-600 border border-orange-200">Pending</span>
+                                </div>
+                                
+                                <p className="text-sm font-bold text-gray-800 bg-blue-50/50 p-3 rounded-lg border border-blue-100 mb-2">
+                                    Spoke to the Director. They said there is a slight delay due to month-end closing. Assured payment by 5th March.
+                                </p>
+                                
+                                <p className="text-xs text-[#103c7f] font-bold flex items-center gap-1.5">
+                                    <Calendar size={12}/> Next Follow-up: 05 Mar 2026
+                                </p>
+                            </div>
+
+                            {/* Mock History Item 2 */}
+                            <div className="relative pl-6 border-l-2 border-gray-200">
+                                <div className="absolute w-3 h-3 bg-gray-300 rounded-full -left-[7px] top-1 border-2 border-white"></div>
+                                
+                                <div className="flex justify-between items-start mb-1">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wide">Follow-up Date: <span className="text-gray-600">22 Feb 2026</span></p>
+                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded uppercase bg-orange-50 text-orange-600 border border-orange-200">Pending</span>
+                                </div>
+                                
+                                <p className="text-sm font-medium text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100 mb-2">
+                                    Finance team asked to resend the GST invoice copy. Resent on the same email thread. They will process it in 3-4 days.
+                                </p>
+
+                                <p className="text-xs text-gray-500 font-bold flex items-center gap-1.5">
+                                    <Calendar size={12}/> Next Follow-up: 28 Feb 2026
+                                </p>
+                            </div>
+
+                            {/* Mock History Item 3 */}
+                            <div className="relative pl-6 border-l-2 border-gray-200">
+                                <div className="absolute w-3 h-3 bg-gray-300 rounded-full -left-[7px] top-1 border-2 border-white"></div>
+                                
+                                <div className="flex justify-between items-start mb-1">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wide">Follow-up Date: <span className="text-gray-600">15 Feb 2026</span></p>
+                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded uppercase bg-orange-50 text-orange-600 border border-orange-200">Pending</span>
+                                </div>
+                                
+                                <p className="text-sm font-medium text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100 mb-2">
+                                    Spoke to Accounts Head. Invoice received and verified. Payment is in queue for the next billing cycle.
+                                </p>
+
+                                <p className="text-xs text-gray-500 font-bold flex items-center gap-1.5">
+                                    <Calendar size={12}/> Next Follow-up: 22 Feb 2026
+                                </p>
+                            </div>
+
+                            {/* Mock History Item 4 */}
+                            <div className="relative pl-6 border-l-2 border-gray-200">
+                                <div className="absolute w-3 h-3 bg-gray-300 rounded-full -left-[7px] top-1 border-2 border-white"></div>
+                                
+                                <div className="flex justify-between items-start mb-1">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wide">Follow-up Date: <span className="text-gray-600">08 Feb 2026</span></p>
+                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded uppercase bg-orange-50 text-orange-600 border border-orange-200">Pending</span>
+                                </div>
+                                
+                                <p className="text-sm font-medium text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100 mb-2">
+                                    Called the HR Manager to confirm candidate's joining status and attendance. HR confirmed candidate is active. Forwarded call to accounts.
+                                </p>
+
+                                <p className="text-xs text-gray-500 font-bold flex items-center gap-1.5">
+                                    <Calendar size={12}/> Next Follow-up: 15 Feb 2026
+                                </p>
+                            </div>
+
+                            {/* Mock History Item 5 (First Entry) */}
+                            <div className="relative pl-6 border-l-2 border-transparent">
+                                <div className="absolute w-3 h-3 bg-gray-300 rounded-full -left-[7px] top-1 border-2 border-white"></div>
+                                
+                                <div className="flex justify-between items-start mb-1">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wide">Follow-up Date: <span className="text-gray-600">01 Feb 2026</span></p>
+                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded uppercase bg-gray-100 text-gray-500 border border-gray-200">Initiated</span>
+                                </div>
+                                
+                                <p className="text-sm font-medium text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100 mb-2">
+                                    Invoice shared via email with finance@client.com. KYC docs attached and acknowledged by the HR manager. First payment follow-up initiated.
+                                </p>
+
+                                <p className="text-xs text-gray-500 font-bold flex items-center gap-1.5">
+                                    <Calendar size={12}/> Next Follow-up: 08 Feb 2026
+                                </p>
+                            </div>
+
+                        </div>
+
+                        <div className="mt-6 text-right pt-4 border-t border-gray-100">
+                            <button onClick={handleCloseModal} className="bg-gray-100 text-gray-700 px-6 py-2 rounded-xl font-bold text-sm hover:bg-gray-200 transition">Close</button>
+                        </div>
+                    </div>
+                )}
+
+              {/* --- 3. VIEW CANDIDATE FOLLOWUP HISTORY MODAL (Read Only for CRM) --- */}
+                {modalType === 'viewCandidateFollowup' && selectedRecord && (
+                    <div className="p-6 bg-gray-50">
+                        <div className="bg-purple-100 text-purple-800 p-3 rounded-xl text-xs font-bold mb-5 flex items-center gap-2 border border-purple-200 shadow-sm">
+                            <ShieldCheck size={16} className="shrink-0"/>
+                            This history is logged by the Recruitment/TL team. CRM can view candidate retention status here.
+                        </div>
+
+                        <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-200">
+                            <div>
+                                <h4 className="text-lg font-black text-[#103c7f]">{selectedRecord.candidate_name}</h4>
+                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{selectedRecord.position}</p>
+                            </div>
+                            <span className={`px-3 py-1 rounded-lg text-[10px] font-black border uppercase shadow-sm ${selectedRecord.candidate_status === 'Joined' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                                {selectedRecord.candidate_status}
+                            </span>
+                        </div>
+
+                        {/* Timeline (Scrollable Area) */}
+                        <div className="space-y-6 pl-2 max-h-[45vh] overflow-y-auto custom-scrollbar pr-3">
+                            
+                            {/* Mock Candidate History 1 (Latest) */}
+                            <div className="relative pl-6 border-l-2 border-purple-600">
+                                <div className="absolute w-4 h-4 bg-purple-600 rounded-full -left-[9px] top-0 border-4 border-gray-50 shadow-sm flex items-center justify-center"></div>
+                                
+                                <div className="flex justify-between items-start mb-1">
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-800">02 Mar 2026</span></p>
+                                    <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[9px] font-bold border border-purple-200">By: Rohan (Team Lead)</span>
+                                </div>
+                                
+                                <p className="text-sm font-bold text-gray-800 bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+                                    Candidate has successfully completed 1 month. Received first salary. Client feedback is positive. Ready for billing cycle.
+                                </p>
+
+                                <p className="text-xs text-purple-600 font-bold flex items-center gap-1.5 mt-2">
+                                    <Calendar size={12}/> Next Follow-up: 15 Mar 2026
+                                </p>
+                            </div>
+
+                            {/* Mock Candidate History 2 */}
+                            <div className="relative pl-6 border-l-2 border-purple-300">
+                                <div className="absolute w-3 h-3 bg-purple-400 rounded-full -left-[7px] top-1 border-2 border-gray-50"></div>
+                                
+                                <div className="flex justify-between items-start mb-1">
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-700">20 Feb 2026</span></p>
+                                    <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded text-[9px] font-bold border border-gray-300">By: Amit Kumar (Recruiter)</span>
+                                </div>
+                                
+                                <p className="text-sm font-medium text-gray-600 bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                                    15-day check-in. Candidate is adapting well to the project. No issues reported with attendance or performance.
+                                </p>
+
+                                <p className="text-xs text-gray-500 font-bold flex items-center gap-1.5 mt-2">
+                                    <Calendar size={12}/> Next Follow-up: 02 Mar 2026
+                                </p>
+                            </div>
+
+                            {/* Mock Candidate History 3 */}
+                            <div className="relative pl-6 border-l-2 border-purple-300">
+                                <div className="absolute w-3 h-3 bg-purple-400 rounded-full -left-[7px] top-1 border-2 border-gray-50"></div>
+                                
+                                <div className="flex justify-between items-start mb-1">
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-700">12 Feb 2026</span></p>
+                                    <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded text-[9px] font-bold border border-gray-300">By: Amit Kumar (Recruiter)</span>
+                                </div>
+                                
+                                <p className="text-sm font-medium text-gray-600 bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                                    1st-week completion call. Candidate is happy with the work culture. Laptop and portal access provided on time.
+                                </p>
+
+                                <p className="text-xs text-gray-500 font-bold flex items-center gap-1.5 mt-2">
+                                    <Calendar size={12}/> Next Follow-up: 20 Feb 2026
+                                </p>
+                            </div>
+
+                            {/* Mock Candidate History 4 */}
+                            <div className="relative pl-6 border-l-2 border-purple-300">
+                                <div className="absolute w-3 h-3 bg-purple-400 rounded-full -left-[7px] top-1 border-2 border-gray-50"></div>
+                                
+                                <div className="flex justify-between items-start mb-1">
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-700">05 Feb 2026</span></p>
+                                    <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[9px] font-bold border border-purple-200">By: Shruti (Team Lead)</span>
+                                </div>
+                                
+                                <p className="text-sm font-medium text-gray-600 bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                                    Day 1 check-in. Candidate successfully onboarded and logged into the client system. HOD informed.
+                                </p>
+
+                                <p className="text-xs text-gray-500 font-bold flex items-center gap-1.5 mt-2">
+                                    <Calendar size={12}/> Next Follow-up: 12 Feb 2026
+                                </p>
+                            </div>
+
+                            {/* Mock Candidate History 5 (First Entry) */}
+                            <div className="relative pl-6 border-l-2 border-transparent">
+                                <div className="absolute w-3 h-3 bg-gray-400 rounded-full -left-[7px] top-1 border-2 border-gray-50"></div>
+                                
+                                <div className="flex justify-between items-start mb-1">
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Follow-up Date: <span className="text-gray-700">04 Feb 2026</span></p>
+                                    <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded text-[9px] font-bold border border-gray-300">By: Amit Kumar (Recruiter)</span>
+                                </div>
+                                
+                                <p className="text-sm font-medium text-gray-600 bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                                    Pre-joining reminder call. Candidate confirmed they will log in by 9:30 AM tomorrow. All basic documents are verified.
+                                </p>
+
+                                <p className="text-xs text-gray-500 font-bold flex items-center gap-1.5 mt-2">
+                                    <Calendar size={12}/> Next Follow-up: 05 Feb 2026
+                                </p>
+                            </div>
+
+                        </div>
+
+                        <div className="mt-6 text-right pt-4 border-t border-gray-200">
+                            <button onClick={handleCloseModal} className="bg-gray-200 text-gray-700 px-6 py-2 rounded-xl font-bold text-sm hover:bg-gray-300 transition shadow-sm">Close View</button>
+                        </div>
+                    </div>
+                )}
 
             </div>
         </div>

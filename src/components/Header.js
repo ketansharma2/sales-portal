@@ -99,6 +99,15 @@ export default function Header() {
       roleLabel = "Job Poster";
       pageSubtitle = "JOB PUBLISHING";
       break;
+    case "tl":
+      roleLabel = "Team Lead";
+      pageSubtitle = "TEAM MANAGEMENT"; 
+      break;
+      
+    case "recruiter":
+      roleLabel = "Recruiter";
+      pageSubtitle = "TALENT ACQUISITION"; 
+      break;  
     default:
       roleLabel = "Team Member";
       pageSubtitle = "WORK DASHBOARD";

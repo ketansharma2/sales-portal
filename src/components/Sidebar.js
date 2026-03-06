@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { 
   Users, Wallet, LayoutGrid, ShieldCheck, 
   Settings, FileText, Target, Search, BarChart, Phone,Calendar,MapPin,Truck,UserPlus,IndianRupee,UserCheck,Edit,Plus,
-  Package
+  Package,PhoneCall,ClipboardList,KanbanSquare,TableProperties
 } from "lucide-react";
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
@@ -108,6 +108,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     menuItems = [
     { name: "CRM Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "Onboardings", href: `${roleBaseHref}/onboard`, icon: <UserPlus size={20} /> }, // For New Handovers
+      { name: "Requirement Allocation", href: `${roleBaseHref}/assign`, icon: <ClipboardList size={20} /> },
       { name: "JD Management", href: `${roleBaseHref}/jd`, icon: <FileText size={20} /> }, // Naya JD Page Tab
       { name: "Billing & Revenue", href: `${roleBaseHref}/revenue`, icon: <IndianRupee size={20} /> }, // Direct Access to Finance
     ];
@@ -115,16 +116,19 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   else if (currentRole === "recruiter") {
     menuItems = [
       { name: "Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
-      { name: "My Placements", href: `${roleBaseHref}/placement`, icon: <IndianRupee size={20} /> }, 
+      { name: "Workbench", href: `${roleBaseHref}/workbench`, icon: <TableProperties size={20} /> },
+      { name: "Candidate Follow-up", href: `${roleBaseHref}/followup`, icon: <PhoneCall size={20} /> }, 
     ];
   }
+  
 
-  // --- DELIVERY (UPDATED FOR 'deliverycorporate' FOLDER) ---
-  else if (currentRole === "deliverycorporate") {
+  // SIDEBAR.JS / NAVIGATION LOGIC
+  
+  else if (currentRole === "tl") {
     menuItems = [
-      { name: "Delivery Board", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
-      { name: "Active Handovers", href: `${roleBaseHref}/handovers`, icon: <Truck size={20} /> },
-      { name: "Team Performance", href: `${roleBaseHref}/team`, icon: <BarChart size={20} /> },
+      { name: "Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
+      { name: "My Workbench", href: `${roleBaseHref}/workbench`, icon: <KanbanSquare size={20} /> },
+      { name: "Candidate Follow-up", href: `${roleBaseHref}/followup`, icon: <PhoneCall size={20} /> }, // TL will use the same component here
     ];
   }
 
