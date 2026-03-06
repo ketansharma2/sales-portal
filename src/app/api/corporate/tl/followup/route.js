@@ -92,12 +92,19 @@ export async function GET(request) {
     if (followupUserIds.length > 0) {
       const { data: followupUsers, error: usersError } = await supabaseServer
         .from('users')
-        .select('user_id, name')
+        .select('user_id, name, role')
         .in('user_id', followupUserIds)
       
       if (!usersError && followupUsers) {
         followupUsers.forEach(u => {
-          userMap[u.user_id] = u.name
+          // Store name and role - filter to only show TL or RC
+          const roleArr = Array.isArray(u.role) ? u.role : (u.role ? [u.role] : [])
+          // Find first role that is TL or RC (case insensitive)
+          const relevantRole = roleArr.find(r => r && (r.toUpperCase() === 'TL' || r.toUpperCase() === 'RC'))
+          userMap[u.user_id] = { 
+            name: u.name,
+            role: relevantRole || '' 
+          }
         })
       }
     }
@@ -110,8 +117,10 @@ export async function GET(request) {
         if (!followupsByCandidate[candidateId]) {
           followupsByCandidate[candidateId] = []
         }
-        // Add loggedBy name to the follow-up
-        followup.loggedBy = userMap[followup.user_id] || 'Unknown'
+        // Add loggedBy name and role to the follow-up
+        const userInfo = userMap[followup.user_id] || { name: 'Unknown', role: '' }
+        followup.loggedBy = typeof userInfo === 'string' ? userInfo : userInfo.name
+        followup.loggedByRole = typeof userInfo === 'string' ? '' : userInfo.role
         followupsByCandidate[candidateId].push(followup)
       })
     }
