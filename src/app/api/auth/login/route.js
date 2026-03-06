@@ -70,6 +70,17 @@ export async function POST(request) {
       responseData.redirectUrl = '/jobpost'
     }
 
+    // Check if role contains RC (Recruiter) - redirect based on sector
+    if (roleString.toUpperCase().includes('RC')) {
+      const sector = profileData.sector?.toLowerCase() || ''
+      if (sector === 'domestic') {
+        responseData.redirectUrl = '/domestic/recruiter'
+      } else {
+        // Default to corporate recruiter for other sectors (IT, Non-IT, etc.)
+        responseData.redirectUrl = '/corporate/recruiter'
+      }
+    }
+
     if (profileData.role.length === 1) {
       // Single role: set current_role and proceed
       responseData.user.current_role = profileData.role[0]
