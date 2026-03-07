@@ -768,6 +768,7 @@ export default function LeadsTablePage() {
                    <option>All</option>
                    <option>Yes</option>
                    <option>No</option>
+                   <option>Master Union</option>
                  </select>
                </div>
             </div>
@@ -1081,6 +1082,7 @@ export default function LeadsTablePage() {
                                    <option value="">Select Option</option>
                                    <option value="Yes">Yes</option>
                                    <option value="No">No</option>
+                                   <option value="Master Union">Master Union</option>
                                </select>
                            </div>
                        </div>
