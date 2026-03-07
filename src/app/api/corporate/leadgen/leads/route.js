@@ -256,6 +256,11 @@ export async function GET(request) {
       }) || []
       const latestInteraction = sortedInteractions[0] || null
       
+      // Check if ANY interaction has Contract Share (for filtering)
+      const everContractShare = lead.corporate_leads_interaction?.some(
+        interaction => interaction.sub_status === 'Contract Share'
+      ) || false
+      
       return {
         id: lead.client_id,
         sourcingDate: lead.sourcing_date,
@@ -277,7 +282,8 @@ export async function GET(request) {
         contact_no: latestInteraction?.contact_no || latestInteraction?.phone || '',
         email: latestInteraction?.email || '',
         phone: latestInteraction?.contact_no || latestInteraction?.phone || '',
-        isSubmitted: lead.sent_to_sm || false
+        isSubmitted: lead.sent_to_sm || false,
+        everContractShare: everContractShare
       }
     }) || []
 

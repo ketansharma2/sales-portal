@@ -318,9 +318,11 @@ export default function LeadsTablePage() {
            ((lead.district_city || '') + ' ' + (lead.state || '') + ' ' + (lead.location || '')).toLowerCase().includes(newFilters.location.toLowerCase());
 
           // 3. Dropdown Matching (with null safety)
+          // For Contract Share: show clients who have EVER had Contract Share (not just latest)
           const matchStatus = newFilters.status === "All" ||
             ((lead.status || '').trim().toLowerCase() === (newFilters.status || '').trim().toLowerCase());
-          const matchSubStatus = newFilters.subStatus === "All" || ((lead.subStatus || '').trim().toLowerCase()) === (newFilters.subStatus || '').trim().toLowerCase();
+          const matchSubStatus = newFilters.subStatus === "All" || 
+            (newFilters.subStatus === "Contract Share" ? lead.everContractShare : ((lead.subStatus || '').trim().toLowerCase()) === (newFilters.subStatus || '').trim().toLowerCase());
           const matchFranchiseStatus = newFilters.franchiseStatus === "All" || ((lead.franchiseStatus || '').trim().toLowerCase()) === (newFilters.franchiseStatus || '').trim().toLowerCase();
           const matchStartup = newFilters.startup === "All" || ((lead.startup || '').trim().toLowerCase()) === (newFilters.startup || '').trim().toLowerCase();
 
@@ -356,9 +358,11 @@ export default function LeadsTablePage() {
           ((lead.district_city || '') + ' ' + (lead.state || '') + ' ' + (lead.location || '')).toLowerCase().includes(filters.location.toLowerCase());
 
          // 3. Dropdown Matching (with null safety)
+         // For Contract Share: show clients who have EVER had Contract Share (not just latest)
          const matchStatus = filters.status === "All" ||
            ((lead.status || '').trim().toLowerCase() === (filters.status || '').trim().toLowerCase());
-         const matchSubStatus = filters.subStatus === "All" || ((lead.subStatus || '').trim().toLowerCase()) === (filters.subStatus || '').trim().toLowerCase();
+         const matchSubStatus = filters.subStatus === "All" || 
+           (filters.subStatus === "Contract Share" ? lead.everContractShare : ((lead.subStatus || '').trim().toLowerCase()) === (filters.subStatus || '').trim().toLowerCase());
          const matchFranchiseStatus = filters.franchiseStatus === "All" || ((lead.franchiseStatus || '').trim().toLowerCase()) === (filters.franchiseStatus || '').trim().toLowerCase();
          const matchStartup = filters.startup === "All" || ((lead.startup || '').trim().toLowerCase()) === (filters.startup || '').trim().toLowerCase();
 
