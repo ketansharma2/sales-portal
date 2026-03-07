@@ -154,106 +154,136 @@ export async function GET(request) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
+    
+    // Debug: Log user ID and check leads count
+    console.log('DEBUG Leads API: User ID:', user.id);
+    
+    // Debug: Count leads in corporate_leadgen_leads table for this user
+    const { count: leadsCount, error: countError } = await supabaseServer
+      .from('corporate_leadgen_leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('leadgen_id', user.id)
+    
+    console.log('DEBUG Leads API: Total leads in table for user:', leadsCount);
+    
+    // Debug: Count interactions for leads owned by this user
+    const { count: interactionsCount, error: interactionsCountError } = await supabaseServer
+      .from('corporate_leads_interaction')
+      .select('*', { count: 'exact', head: true })
+      .eq('leadgen_id', user.id)
+    
+    console.log('DEBUG Leads API: Total interactions for user:', interactionsCount);
 
-    // Use a single optimized query with LEFT JOIN and ROW_NUMBER to get latest interaction for all leads at once
-    const { data: formattedLeads, error: queryError } = await supabaseServer
-      .rpc('get_corporate_leads_with_latest_interaction', { 
-        leadgen_user_id: user.id 
-      })
+    // Skip RPC function and use fallback query to match dashboard logic
+    // Fetch leads with their interactions ordered by created_at descending
+    const { data: rawData, error: rawError } = await supabaseServer
+      .from('corporate_leadgen_leads')
+      .select(`
+        client_id,
+        company,
+        category,
+        state,
+        location,
+        district_city,
+        emp_count,
+        reference,
+        startup,
+        sourcing_date,
+        sent_to_sm,
+        corporate_leads_interaction!left (
+          id,
+          date,
+          created_at,
+          status,
+          sub_status,
+          remarks,
+          next_follow_up,
+          contact_person,
+          contact_no,
+          email,
+          franchise_status
+        )
+      `)
+      .eq('leadgen_id', user.id)
 
-    // If RPC function doesn't exist, use raw SQL query as fallback
-    if (queryError) {
-      // Fetch leads with their interactions ordered by date descending
-      const { data: rawData, error: rawError } = await supabaseServer
-        .from('corporate_leadgen_leads')
-        .select(`
-          client_id,
-          company,
-          category,
-          state,
-          location,
-          district_city,
-          emp_count,
-          reference,
-          startup,
-          sourcing_date,
-          sent_to_sm,
-          corporate_leads_interaction!left (
-            id,
-            date,
-            created_at,
-            status,
-            sub_status,
-            remarks,
-            next_follow_up,
-            contact_person,
-            contact_no,
-            email,
-            franchise_status
-          )
-        `)
-        .eq('leadgen_id', user.id)
-
-      if (rawError) {
-        console.error('Leads fetch error:', rawError)
-        return NextResponse.json({
-          error: 'Failed to fetch leads',
-          details: rawError.message
-        }, { status: 500 })
-      }
-
-      // Format the data - sort interactions by date descending then created_at descending for same dates
-      const formattedLeads = rawData?.map((lead) => {
-        // Sort interactions by date descending (latest first), then by created_at descending for same dates
-        const sortedInteractions = lead.corporate_leads_interaction?.sort((a, b) => {
-          // First compare by date
-          if (!a.date && !b.date) return 0
-          if (!a.date) return 1
-          if (!b.date) return -1
-          const dateCompare = new Date(b.date) - new Date(a.date)
-          if (dateCompare !== 0) return dateCompare
-          // If dates are same, sort by created_at descending (most recent first)
-          if (!a.created_at && !b.created_at) return 0
-          if (!a.created_at) return 1
-          if (!b.created_at) return -1
-          return new Date(b.created_at) - new Date(a.created_at)
-        }) || []
-        const latestInteraction = sortedInteractions[0] || null
-        
-        return {
-          id: lead.client_id,
-          sourcingDate: lead.sourcing_date,
-          company: lead.company,
-          category: lead.category,
-          state: lead.state,
-          location: lead.location,
-          district_city: lead.district_city || '',
-          empCount: lead.emp_count,
-          reference: lead.reference,
-          startup: lead.startup,
-          status: latestInteraction?.status || 'New',
-          subStatus: latestInteraction?.sub_status || 'New Lead',
-          franchiseStatus: latestInteraction?.franchise_status || '',
-          latestFollowup: latestInteraction?.date || null,
-          remarks: latestInteraction?.remarks || '',
-          nextFollowup: latestInteraction?.next_follow_up || null,
-          contact_person: latestInteraction?.contact_person || '',
-          contact_no: latestInteraction?.contact_no || latestInteraction?.phone || '',
-          email: latestInteraction?.email || '',
-          phone: latestInteraction?.contact_no || latestInteraction?.phone || '',
-          isSubmitted: lead.sent_to_sm || false
-        }
-      }) || []
-
+    if (rawError) {
+      console.error('Leads fetch error:', rawError)
       return NextResponse.json({
-        success: true,
-        data: formattedLeads
-      })
+        error: 'Failed to fetch leads',
+        details: rawError.message
+      }, { status: 500 })
     }
+
+    // Debug: Count leads with Contract Share
+    const debugContractShareLeads = rawData?.map((lead) => {
+      const sortedInteractions = lead.corporate_leads_interaction?.sort((a, b) => {
+        if (!a.created_at && !b.created_at) return 0
+        if (!a.created_at) return 1
+        if (!b.created_at) return -1
+        return new Date(b.created_at) - new Date(a.created_at)
+      }) || []
+      const latestInteraction = sortedInteractions[0] || null
+      return {
+        client_id: lead.client_id,
+        company: lead.company,
+        latest_sub_status: latestInteraction?.sub_status,
+        is_contract_share: latestInteraction?.sub_status === 'Contract Share',
+        has_interactions: (lead.corporate_leads_interaction?.length || 0) > 0,
+        interaction_count: lead.corporate_leads_interaction?.length || 0
+      }
+    }) || []
+    
+    const contractShareCount = debugContractShareLeads.filter(l => l.is_contract_share).length
+    const leadsWithNoInteractions = debugContractShareLeads.filter(l => !l.has_interactions).length
+    const leadsWithInteractions = debugContractShareLeads.filter(l => l.has_interactions).length
+    
+    console.log('DEBUG: Total leads:', rawData?.length || 0, 'Contract Share:', contractShareCount)
+    console.log('DEBUG: Leads with interactions:', leadsWithInteractions, 'Leads without interactions:', leadsWithNoInteractions)
+    
+    // Log first 10 Contract Share leads for comparison
+    const contractShareLeads = debugContractShareLeads.filter(l => l.is_contract_share).slice(0, 10)
+    console.log('DEBUG Contract Share leads (first 10):', JSON.stringify(contractShareLeads.map(l => ({ client_id: l.client_id, company: l.company }))))
+
+    // Format the data - sort interactions by created_at descending (most recent first)
+    // This matches the dashboard contract-count logic
+    const formattedLeads = rawData?.map((lead) => {
+      // Sort interactions by created_at descending (most recent first)
+      const sortedInteractions = lead.corporate_leads_interaction?.sort((a, b) => {
+        if (!a.created_at && !b.created_at) return 0
+        if (!a.created_at) return 1
+        if (!b.created_at) return -1
+        return new Date(b.created_at) - new Date(a.created_at)
+      }) || []
+      const latestInteraction = sortedInteractions[0] || null
+      
+      return {
+        id: lead.client_id,
+        sourcingDate: lead.sourcing_date,
+        company: lead.company,
+        category: lead.category,
+        state: lead.state,
+        location: lead.location,
+        district_city: lead.district_city || '',
+        empCount: lead.emp_count,
+        reference: lead.reference,
+        startup: lead.startup,
+        status: latestInteraction?.status || 'New',
+        subStatus: latestInteraction?.sub_status || 'New Lead',
+        franchiseStatus: latestInteraction?.franchise_status || '',
+        latestFollowup: latestInteraction?.date || null,
+        remarks: latestInteraction?.remarks || '',
+        nextFollowup: latestInteraction?.next_follow_up || null,
+        contact_person: latestInteraction?.contact_person || '',
+        contact_no: latestInteraction?.contact_no || latestInteraction?.phone || '',
+        email: latestInteraction?.email || '',
+        phone: latestInteraction?.contact_no || latestInteraction?.phone || '',
+        isSubmitted: lead.sent_to_sm || false
+      }
+    }) || []
 
     return NextResponse.json({
       success: true,
-      data: formattedLeads || []
+      data: formattedLeads
     })
 
   } catch (error) {

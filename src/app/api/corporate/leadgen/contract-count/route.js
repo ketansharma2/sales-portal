@@ -19,73 +19,99 @@ export async function GET(request) {
     if (authError || !user) {
       return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
     }
+    
+    // Debug: Log user ID
+    console.log('DEBUG Contract Count: User ID:', user.id);
 
     // Get date range from query params
     const { searchParams } = new URL(request.url);
     const fromDate = searchParams.get('fromDate');
     const toDate = searchParams.get('toDate');
 
-    // Get all leads with their interactions
-    const { data: rawData, error: queryError } = await supabase
-      .from('corporate_leadgen_leads')
-      .select(`
-        client_id,
-        startup,
-        corporate_leads_interaction!left (
+    let contractInteractions = [];
+    
+    if (fromDate && toDate) {
+      // Direct query: Get interactions with sub_status = 'Contract Share' in the date range
+      const { data: interactionsData, error: interactionsError } = await supabase
+        .from('corporate_leads_interaction')
+        .select(`
           id,
+          client_id,
           date,
           sub_status,
-          created_at
-        )
-      `)
-      .eq('leadgen_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (queryError) {
-      console.error('Query error:', queryError);
-      return NextResponse.json({ success: false, error: queryError.message }, { status: 500 });
-    }
-
-    // Filter leads based on date range if provided
-    let leadsToConsider = rawData || [];
-    if (fromDate && toDate) {
-      // Get client_ids that have interactions in the date range
-      const { data: interactionsInRange } = await supabase
-        .from('corporate_leads_interaction')
-        .select('client_id')
+          created_at,
+          corporate_leadgen_leads!inner(startup)
+        `)
         .eq('leadgen_id', user.id)
+        .eq('sub_status', 'Contract Share')
         .gte('date', fromDate)
-        .lte('date', toDate);
+        .lte('date', toDate)
+        .order('created_at', { ascending: false });
+
+      if (interactionsError) {
+        console.error('Interactions query error:', interactionsError);
+        return NextResponse.json({ success: false, error: interactionsError.message }, { status: 500 });
+      }
+
+      contractInteractions = interactionsData || [];
+    } else {
+      // No date filter: Get all interactions with sub_status = 'Contract Share'
+      // Debug: Also check what leadgen_ids exist in the interaction table
+      const { data: leadgenIds, error: leadgenIdsError } = await supabase
+        .from('corporate_leads_interaction')
+        .select('leadgen_id')
+        .eq('sub_status', 'Contract Share')
+        .limit(100)
       
-      const clientIdsInRange = new Set(interactionsInRange?.map(i => i.client_id) || []);
-      leadsToConsider = (rawData || []).filter(lead => clientIdsInRange.has(lead.client_id));
+      console.log('DEBUG Contract Count: Sample leadgen_ids in Contract Share interactions:', leadgenIds?.map(i => i.leadgen_id).filter((v, i, a) => a.indexOf(v) === i) || [])
+      
+      const { data: interactionsData, error: interactionsError } = await supabase
+        .from('corporate_leads_interaction')
+        .select(`
+          id,
+          client_id,
+          date,
+          sub_status,
+          created_at,
+          leadgen_id,
+          corporate_leadgen_leads!inner(startup)
+        `)
+        .eq('leadgen_id', user.id)
+        .eq('sub_status', 'Contract Share')
+        .order('created_at', { ascending: false });
+
+      if (interactionsError) {
+        console.error('Interactions query error:', interactionsError);
+        return NextResponse.json({ success: false, error: interactionsError.message }, { status: 500 });
+      }
+
+      contractInteractions = interactionsData || [];
     }
 
-    // Find latest interaction for each client
-    const latestInteractionsMap = new Map();
-    leadsToConsider.forEach(lead => {
-      const interaction = lead.corporate_leads_interaction?.[0] || null;
-      if (interaction) {
-        const existing = latestInteractionsMap.get(lead.client_id);
-        if (!existing || new Date(interaction.created_at) > new Date(existing.created_at)) {
-          latestInteractionsMap.set(lead.client_id, {
-            ...interaction,
-            startup: lead.startup
-          });
-        }
+    // Debug: Log the counts and client IDs
+    console.log('DEBUG Contract Count: Total interactions with Contract Share:', contractInteractions.length);
+    
+    // Get unique clients (one entry per client - the latest one)
+    const uniqueClientsMap = new Map();
+    contractInteractions.forEach(interaction => {
+      const existing = uniqueClientsMap.get(interaction.client_id);
+      if (!existing || new Date(interaction.created_at) > new Date(existing.created_at)) {
+        uniqueClientsMap.set(interaction.client_id, interaction);
       }
     });
+    
+    console.log('DEBUG Contract Count: Unique clients with Contract Share:', uniqueClientsMap.size);
+    
+    // Log first 10 client IDs for comparison
+    const uniqueClients = Array.from(uniqueClientsMap.values()).slice(0, 10)
+    console.log('DEBUG Contract Count client IDs (first 10):', JSON.stringify(uniqueClients.map(c => c.client_id)))
 
-    // Count clients where latest interaction sub_status = 'Contract Share'
-    const latestInteractions = Array.from(latestInteractionsMap.values());
-    const contractLatest = latestInteractions.filter(i =>
-      String(i.sub_status).trim().toLowerCase() === 'contract share'
-    );
+    const contractLatest = Array.from(uniqueClientsMap.values());
     const totalContract = contractLatest.length;
 
     // Count startup companies
     const startupContract = contractLatest.filter(i => {
-      const startup = i.startup;
+      const startup = i.corporate_leadgen_leads?.startup;
       return startup === true || 
              String(startup).toLowerCase() === 'yes' ||
              String(startup) === '1' ||
