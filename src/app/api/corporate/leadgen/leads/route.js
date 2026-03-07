@@ -155,24 +155,7 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
     
-    // Debug: Log user ID and check leads count
-    console.log('DEBUG Leads API: User ID:', user.id);
-    
-    // Debug: Count leads in corporate_leadgen_leads table for this user
-    const { count: leadsCount, error: countError } = await supabaseServer
-      .from('corporate_leadgen_leads')
-      .select('*', { count: 'exact', head: true })
-      .eq('leadgen_id', user.id)
-    
-    console.log('DEBUG Leads API: Total leads in table for user:', leadsCount);
-    
-    // Debug: Count interactions for leads owned by this user
-    const { count: interactionsCount, error: interactionsCountError } = await supabaseServer
-      .from('corporate_leads_interaction')
-      .select('*', { count: 'exact', head: true })
-      .eq('leadgen_id', user.id)
-    
-    console.log('DEBUG Leads API: Total interactions for user:', interactionsCount);
+
 
     // Skip RPC function and use fallback query to match dashboard logic
     // Fetch leads with their interactions ordered by created_at descending
@@ -214,35 +197,7 @@ export async function GET(request) {
       }, { status: 500 })
     }
 
-    // Debug: Count leads with Contract Share
-    const debugContractShareLeads = rawData?.map((lead) => {
-      const sortedInteractions = lead.corporate_leads_interaction?.sort((a, b) => {
-        if (!a.created_at && !b.created_at) return 0
-        if (!a.created_at) return 1
-        if (!b.created_at) return -1
-        return new Date(b.created_at) - new Date(a.created_at)
-      }) || []
-      const latestInteraction = sortedInteractions[0] || null
-      return {
-        client_id: lead.client_id,
-        company: lead.company,
-        latest_sub_status: latestInteraction?.sub_status,
-        is_contract_share: latestInteraction?.sub_status === 'Contract Share',
-        has_interactions: (lead.corporate_leads_interaction?.length || 0) > 0,
-        interaction_count: lead.corporate_leads_interaction?.length || 0
-      }
-    }) || []
-    
-    const contractShareCount = debugContractShareLeads.filter(l => l.is_contract_share).length
-    const leadsWithNoInteractions = debugContractShareLeads.filter(l => !l.has_interactions).length
-    const leadsWithInteractions = debugContractShareLeads.filter(l => l.has_interactions).length
-    
-    console.log('DEBUG: Total leads:', rawData?.length || 0, 'Contract Share:', contractShareCount)
-    console.log('DEBUG: Leads with interactions:', leadsWithInteractions, 'Leads without interactions:', leadsWithNoInteractions)
-    
-    // Log first 10 Contract Share leads for comparison
-    const contractShareLeads = debugContractShareLeads.filter(l => l.is_contract_share).slice(0, 10)
-    console.log('DEBUG Contract Share leads (first 10):', JSON.stringify(contractShareLeads.map(l => ({ client_id: l.client_id, company: l.company }))))
+
 
     // Format the data - sort interactions by created_at descending (most recent first)
     // This matches the dashboard contract-count logic

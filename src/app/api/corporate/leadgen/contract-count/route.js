@@ -20,8 +20,7 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
     }
     
-    // Debug: Log user ID
-    console.log('DEBUG Contract Count: User ID:', user.id);
+
 
     // Get date range from query params
     const { searchParams } = new URL(request.url);
@@ -56,15 +55,6 @@ export async function GET(request) {
       contractInteractions = interactionsData || [];
     } else {
       // No date filter: Get all interactions with sub_status = 'Contract Share'
-      // Debug: Also check what leadgen_ids exist in the interaction table
-      const { data: leadgenIds, error: leadgenIdsError } = await supabase
-        .from('corporate_leads_interaction')
-        .select('leadgen_id')
-        .eq('sub_status', 'Contract Share')
-        .limit(100)
-      
-      console.log('DEBUG Contract Count: Sample leadgen_ids in Contract Share interactions:', leadgenIds?.map(i => i.leadgen_id).filter((v, i, a) => a.indexOf(v) === i) || [])
-      
       const { data: interactionsData, error: interactionsError } = await supabase
         .from('corporate_leads_interaction')
         .select(`
@@ -88,9 +78,6 @@ export async function GET(request) {
       contractInteractions = interactionsData || [];
     }
 
-    // Debug: Log the counts and client IDs
-    console.log('DEBUG Contract Count: Total interactions with Contract Share:', contractInteractions.length);
-    
     // Get unique clients (one entry per client - the latest one)
     const uniqueClientsMap = new Map();
     contractInteractions.forEach(interaction => {
@@ -99,12 +86,6 @@ export async function GET(request) {
         uniqueClientsMap.set(interaction.client_id, interaction);
       }
     });
-    
-    console.log('DEBUG Contract Count: Unique clients with Contract Share:', uniqueClientsMap.size);
-    
-    // Log first 10 client IDs for comparison
-    const uniqueClients = Array.from(uniqueClientsMap.values()).slice(0, 10)
-    console.log('DEBUG Contract Count client IDs (first 10):', JSON.stringify(uniqueClients.map(c => c.client_id)))
 
     const contractLatest = Array.from(uniqueClientsMap.values());
     const totalContract = contractLatest.length;

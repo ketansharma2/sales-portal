@@ -29,7 +29,7 @@ export default function LeadGenHome() {
   const [kpiData, setKpiData] = useState({
     searched: { total: 0, startup: 0 },
     contacts: { total: 0, startup: 0 },
-    calls: { total: 0, startup: 0 },
+    calls: { total: 0, startup: 0, new: { total: 0, startup: 0 }, followup: { total: 0, startup: 0 } },
     picked: { total: 0, startup: 0 },
     notPicked: { total: 0, startup: 0 },
     contract: { total: 0, startup: 0 },
@@ -262,7 +262,12 @@ export default function LeadGenHome() {
       setKpiData({
         searched: { total: searchedData.data?.searched?.total || 0, startup: searchedData.data?.searched?.startup || 0 },
         contacts: { total: contactsData.data?.contacts?.total || 0, startup: contactsData.data?.contacts?.startup || 0 },
-        calls: { total: callsData.data?.calls?.total || 0, startup: callsData.data?.calls?.startup || 0 },
+        calls: { 
+          total: callsData.data?.calls?.total || 0, 
+          startup: callsData.data?.calls?.startup || 0,
+          new: { total: callsData.data?.new?.total || 0, startup: callsData.data?.new?.startup || 0 },
+          followup: { total: callsData.data?.followup?.total || 0, startup: callsData.data?.followup?.startup || 0 }
+        },
         picked: {
           total: (callsData.data?.calls?.total || 0) - (notPickedData.data?.notPicked?.total || 0),
           startup: (callsData.data?.calls?.startup || 0) - (notPickedData.data?.notPicked?.startup || 0)
@@ -455,7 +460,17 @@ export default function LeadGenHome() {
               {/* --- Row 1 --- */}
               <KpiCard title="Companies Searched" total={kpiData.searched.total} startup={kpiData.searched.startup} icon={<SearchIcon/>} color="blue" />
               <KpiCard title="Contact Persons" total={kpiData.contacts.total} startup={kpiData.contacts.startup} icon={<UserCheck size={18}/>} color="blue" />
-              <KpiCard title="Total Calls" total={kpiData.calls.total} startup={kpiData.calls.startup} icon={<Phone size={18}/>} color="purple" />
+              <KpiCard 
+                title="Total Calls" 
+                total={kpiData.calls.total} 
+                startup={kpiData.calls.startup} 
+                icon={<Phone size={18}/>} 
+                color="purple" 
+                badges={!isAllData ? [
+                  { label: 'New:', value: kpiData.calls.new?.total || 0, bgColor: 'bg-blue-50', textColor: 'text-blue-700', borderColor: 'border-blue-100' },
+                  { label: 'Followup:', value: kpiData.calls.followup?.total || 0, bgColor: 'bg-orange-50', textColor: 'text-orange-700', borderColor: 'border-orange-100' }
+                ] : undefined}
+              />
 
               {/* --- Row 2 --- */}
                 <KpiCard title="Calls Picked" total={kpiData.picked.total} startup={kpiData.picked.startup} icon={<PhoneOutgoing size={18}/>} color="green" />
@@ -584,7 +599,7 @@ function BigSuccessCard({ title, total, startup, icon, color, isFranchise = fals
 
 
 // --- HELPER 2: UPDATED KPI CARD (Icon + Title Side-by-Side) ---
-function KpiCard({ title, total, startup, icon, color }) {
+function KpiCard({ title, total, startup, icon, color, badges }) {
     const colorClasses = {
         blue: "bg-blue-50 text-blue-700 border-blue-100",
         purple: "bg-purple-50 text-purple-700 border-purple-100",
@@ -608,9 +623,23 @@ function KpiCard({ title, total, startup, icon, color }) {
 
             {/* Content Body */}
             <div className="flex flex-col gap-1.5">
-                {/* Total Count */}
-                <h3 className="text-2xl font-black text-slate-800 leading-none ml-1">{total}</h3>
-                
+                {/* Total Count with Badges */}
+                <div className="flex items-start justify-between">
+                    <h3 className="text-2xl font-black text-slate-800 leading-none ml-1">{total}</h3>
+                    
+                    {/* Badges Section - Right aligned */}
+                    {badges && badges.length > 0 && (
+                        <div className="flex flex-col gap-0.5 items-end">
+                            {badges.map((badge, idx) => (
+                                <div key={idx} className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold border ${badge.bgColor || 'bg-gray-100'} ${badge.textColor || 'text-gray-700'} ${badge.borderColor || 'border-gray-200'}`}>
+                                    <span>{badge.label}</span>
+                                    <span className="font-black">{badge.value}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                 
                  {/* Startup Breakdown Section (Always Visible) */}
                  <div className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-lg px-2 py-1">
                      <div className="flex items-center gap-1.5">

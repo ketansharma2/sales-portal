@@ -20,17 +20,18 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
     }
 
-    // Get latest sourcing_date from corporate_leadgen_leads
+    // Get latest date from corporate_leads_interaction table (last call/interaction date)
     const { data, error } = await supabaseServer
-      .from('corporate_leadgen_leads')
-      .select('sourcing_date')
+      .from('corporate_leads_interaction')
+      .select('date')
       .eq('leadgen_id', user.id)
-      .order('sourcing_date', { ascending: false })
+      .not('date', 'is', null)
+      .order('date', { ascending: false })
       .limit(1)
       .single();
 
-    if (error || !data || !data.sourcing_date) {
-      // Fallback to today's date if no data
+    if (error || !data || !data.date) {
+      // Fallback to today's date if no interaction data
       const today = new Date().toISOString().split('T')[0];
       return NextResponse.json({
         success: true,
@@ -39,8 +40,8 @@ export async function GET(request) {
       });
     }
 
-    // sourcing_date is already in YYYY-MM-DD format
-    const latestDate = data.sourcing_date;
+    // date is already in YYYY-MM-DD format
+    const latestDate = data.date;
 
     return NextResponse.json({
       success: true,
