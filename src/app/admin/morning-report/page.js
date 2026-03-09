@@ -12,6 +12,41 @@ export default function MorningReportPage() {
     // --- GET CURRENT MONTH ---
     const currentMonth = new Date().toLocaleString('en-US', { month: 'long' });
 
+    // --- STATE FOR INPUT VALUES (from localStorage) ---
+    const [inputValues, setInputValues] = useState({
+        masterUnionProfiles: '',
+        masterUnionCalling: '',
+        totalCtc: '',
+        corporateRemarks: '',
+        domesticRemarks: ''
+    });
+
+    // --- LOAD FROM LOCALSTORAGE ON MOUNT ---
+    useEffect(() => {
+        const saved = localStorage.getItem('morningReportInputs');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                setInputValues({
+                    masterUnionProfiles: parsed.masterUnionProfiles || '',
+                    masterUnionCalling: parsed.masterUnionCalling || '',
+                    totalCtc: parsed.totalCtc || '',
+                    corporateRemarks: parsed.corporateRemarks || '',
+                    domesticRemarks: parsed.domesticRemarks || ''
+                });
+            } catch (e) {
+                console.error('Error loading from localStorage:', e);
+            }
+        }
+    }, []);
+
+    // --- SAVE TO LOCALSTORAGE ---
+    const saveToLocalStorage = (key, value) => {
+        const newValues = { ...inputValues, [key]: value };
+        setInputValues(newValues);
+        localStorage.setItem('morningReportInputs', JSON.stringify(newValues));
+    };
+
     // --- GET YESTERDAY'S DATE ---
     // If yesterday is Sunday (day 0), use Saturday instead
     const getLastWorkingDay = () => {
@@ -38,6 +73,29 @@ export default function MorningReportPage() {
         repeatVisits: 0,
         yesterdayReachedOut: 0,
         yesterdayInterested: 0,
+        lastWorkingDay: '',
+        loading: true
+    });
+
+    // --- STATE FOR CORPORATE SECTOR DATA ---
+    const [corporateStats, setCorporateStats] = useState({
+        lastWorkingDay: '',
+        clientSearchTotal: 0,
+        clientSearchYesterday: 0,
+        clientCallingTotal: 0,
+        clientCallingYesterday: 0,
+        contractShareTotal: 0,
+        contractShareYesterday: 0,
+        startupSearchTotal: 0,
+        startupSearchYesterday: 0,
+        startupCallingTotal: 0,
+        startupCallingYesterday: 0,
+        masterUnionClientsTotal: 0,
+        masterUnionCallingTotal: 0,
+        franchiseDiscussedTotal: 0,
+        franchiseDiscussedYesterday: 0,
+        formSharedTotal: 0,
+        formSharedYesterday: 0,
         loading: true
     });
 
@@ -54,6 +112,9 @@ export default function MorningReportPage() {
                 const data = await response.json();
                 
                 if (data.success) {
+                    const lastDay = data.data.lastWorkingDay || '';
+                    const lastDayFormatted = lastDay ? new Date(lastDay).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '';
+                    
                     setDomesticStats({
                         totalVisits: data.data.totalVisits || 0,
                         yesterdayVisits: data.data.yesterdayVisits || 0,
@@ -64,6 +125,7 @@ export default function MorningReportPage() {
                         repeatVisits: data.data.repeatVisits || 0,
                         yesterdayReachedOut: data.data.yesterdayReachedOut || 0,
                         yesterdayInterested: data.data.yesterdayInterested || 0,
+                        lastWorkingDay: lastDayFormatted,
                         loading: false
                     });
                 }
@@ -74,6 +136,52 @@ export default function MorningReportPage() {
         };
 
         fetchDomesticStats();
+    }, []);
+
+    // --- FETCH CORPORATE SECTOR DATA ---
+    useEffect(() => {
+        const fetchCorporateStats = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const response = await fetch('/api/admin/morning-report/corporate', {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    const lastDay = data.data.lastWorkingDay || '';
+                    const lastDayFormatted = lastDay ? new Date(lastDay).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '';
+                    
+                    setCorporateStats({
+                        lastWorkingDay: lastDayFormatted,
+                        clientSearchTotal: data.data.clientSearchTotal || 0,
+                        clientSearchYesterday: data.data.clientSearchYesterday || 0,
+                        clientCallingTotal: data.data.clientCallingTotal || 0,
+                        clientCallingYesterday: data.data.clientCallingYesterday || 0,
+                        contractShareTotal: data.data.contractShareTotal || 0,
+                        contractShareYesterday: data.data.contractShareYesterday || 0,
+                        startupSearchTotal: data.data.startupSearchTotal || 0,
+                        startupSearchYesterday: data.data.startupSearchYesterday || 0,
+                        startupCallingTotal: data.data.startupCallingTotal || 0,
+                        startupCallingYesterday: data.data.startupCallingYesterday || 0,
+                        masterUnionClientsTotal: data.data.masterUnionClientsTotal || 0,
+                        masterUnionCallingTotal: data.data.masterUnionCallingTotal || 0,
+                        franchiseDiscussedTotal: data.data.franchiseDiscussedTotal || 0,
+                        franchiseDiscussedYesterday: data.data.franchiseDiscussedYesterday || 0,
+                        formSharedTotal: data.data.formSharedTotal || 0,
+                        formSharedYesterday: data.data.formSharedYesterday || 0,
+                        loading: false
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching corporate stats:', error);
+                setCorporateStats(prev => ({ ...prev, loading: false }));
+            }
+        };
+
+        fetchCorporateStats();
     }, []);
 
     // --- TAB DEFINITIONS ---
@@ -159,8 +267,8 @@ export default function MorningReportPage() {
                                         <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col">
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Client Search</p></div>
                                             <div className="flex divide-x divide-slate-100">
-                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">150</p></div>
-                                                <div className="flex-1 p-1.5 text-center bg-indigo-50/50"><p className="text-[8px] font-black text-indigo-400 uppercase">Yest</p><p className="text-base font-black text-indigo-700 leading-none mt-1">12</p></div>
+                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.clientSearchTotal}</p></div>
+                                                <div className="flex-1 p-1.5 text-center bg-indigo-50/50"><p className="text-[8px] font-black text-indigo-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-indigo-700 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.clientSearchYesterday}</p></div>
                                             </div>
                                         </div>
 
@@ -168,8 +276,8 @@ export default function MorningReportPage() {
                                         <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col">
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Client Calling</p></div>
                                             <div className="flex divide-x divide-slate-100">
-                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">320</p></div>
-                                                <div className="flex-1 p-1.5 text-center bg-indigo-50/50"><p className="text-[8px] font-black text-indigo-400 uppercase">Yest</p><p className="text-base font-black text-indigo-700 leading-none mt-1">45</p></div>
+                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.clientCallingTotal}</p></div>
+                                                <div className="flex-1 p-1.5 text-center bg-indigo-50/50"><p className="text-[8px] font-black text-indigo-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-indigo-700 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.clientCallingYesterday}</p></div>
                                             </div>
                                         </div>
 
@@ -177,8 +285,8 @@ export default function MorningReportPage() {
                                         <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col">
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Contract Share</p></div>
                                             <div className="flex divide-x divide-slate-100">
-                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">24</p></div>
-                                                <div className="flex-1 p-1.5 text-center bg-indigo-50/50"><p className="text-[8px] font-black text-indigo-400 uppercase">Yest</p><p className="text-base font-black text-indigo-700 leading-none mt-1">2</p></div>
+                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.contractShareTotal}</p></div>
+                                                <div className="flex-1 p-1.5 text-center bg-indigo-50/50"><p className="text-[8px] font-black text-indigo-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-indigo-700 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.contractShareYesterday}</p></div>
                                             </div>
                                         </div>
 
@@ -186,8 +294,8 @@ export default function MorningReportPage() {
                                         <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col">
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Startup Search</p></div>
                                             <div className="flex divide-x divide-slate-100">
-                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">85</p></div>
-                                                <div className="flex-1 p-1.5 text-center bg-orange-50/50"><p className="text-[8px] font-black text-orange-400 uppercase">Yest</p><p className="text-base font-black text-orange-700 leading-none mt-1">8</p></div>
+                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.startupSearchTotal}</p></div>
+                                                <div className="flex-1 p-1.5 text-center bg-orange-50/50"><p className="text-[8px] font-black text-orange-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-orange-700 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.startupSearchYesterday}</p></div>
                                             </div>
                                         </div>
 
@@ -195,8 +303,8 @@ export default function MorningReportPage() {
                                         <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col">
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Startup Calling</p></div>
                                             <div className="flex divide-x divide-slate-100">
-                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">190</p></div>
-                                                <div className="flex-1 p-1.5 text-center bg-orange-50/50"><p className="text-[8px] font-black text-orange-400 uppercase">Yest</p><p className="text-base font-black text-orange-700 leading-none mt-1">20</p></div>
+                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.startupCallingTotal}</p></div>
+                                                <div className="flex-1 p-1.5 text-center bg-orange-50/50"><p className="text-[8px] font-black text-orange-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-orange-700 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.startupCallingYesterday}</p></div>
                                             </div>
                                         </div>
 
@@ -205,16 +313,21 @@ export default function MorningReportPage() {
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Master Union Clients</p></div>
                                             <div className="flex-1 p-1.5 text-center bg-purple-50/30 flex flex-col justify-center">
                                                 <p className="text-[8px] font-black text-purple-400 uppercase">Total Only</p>
-                                                <p className="text-base font-black text-purple-800 leading-none mt-1">42</p>
+                                                <p className="text-base font-black text-purple-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.masterUnionClientsTotal}</p>
                                             </div>
                                         </div>
 
-                                        {/* Master Union Profiles (Only Total) */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-purple-400 transition-all flex flex-col">
-                                            <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Master Union Profiles</p></div>
-                                            <div className="flex-1 p-1.5 text-center bg-purple-50/30 flex flex-col justify-center">
-                                                <p className="text-[8px] font-black text-purple-400 uppercase">Total Only</p>
-                                                <p className="text-base font-black text-purple-800 leading-none mt-1">110</p>
+                                        {/* Master Union Profiles (Input Field) */}
+                                        <div className="border border-purple-200 rounded-lg bg-purple-50/50 overflow-hidden shadow-sm hover:border-purple-400 transition-all flex flex-col">
+                                            <div className="bg-purple-50 py-1.5 text-center border-b border-purple-100"><p className="text-[9px] font-bold text-purple-600 uppercase tracking-widest truncate px-1">Master Union Profiles</p></div>
+                                            <div className="flex-1 p-2 text-center flex flex-col justify-center items-center">
+                                                <input 
+                                                    type="text" 
+                                                    className="text-lg font-black text-purple-800 bg-transparent border-b border-dashed border-purple-300 outline-none text-center w-20 focus:border-purple-600 transition-colors"
+                                                    placeholder="0"
+                                                    value={inputValues.masterUnionProfiles}
+                                                    onChange={(e) => saveToLocalStorage('masterUnionProfiles', e.target.value)}
+                                                />
                                             </div>
                                         </div>
 
@@ -223,7 +336,7 @@ export default function MorningReportPage() {
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Master Union Calling</p></div>
                                             <div className="flex-1 p-1.5 text-center bg-purple-50/30 flex flex-col justify-center">
                                                 <p className="text-[8px] font-black text-purple-400 uppercase">Total Only</p>
-                                                <p className="text-base font-black text-purple-800 leading-none mt-1">315</p>
+                                                <p className="text-base font-black text-purple-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.masterUnionCallingTotal}</p>
                                             </div>
                                         </div>
 
@@ -231,8 +344,8 @@ export default function MorningReportPage() {
                                         <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-rose-400 transition-all flex flex-col">
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Fran. Discussed</p></div>
                                             <div className="flex divide-x divide-slate-100">
-                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">55</p></div>
-                                                <div className="flex-1 p-1.5 text-center bg-rose-50/50"><p className="text-[8px] font-black text-rose-400 uppercase">Yest</p><p className="text-base font-black text-rose-700 leading-none mt-1">5</p></div>
+                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.franchiseDiscussedTotal}</p></div>
+                                                <div className="flex-1 p-1.5 text-center bg-rose-50/50"><p className="text-[8px] font-black text-rose-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-rose-700 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.franchiseDiscussedYesterday}</p></div>
                                             </div>
                                         </div>
 
@@ -240,8 +353,8 @@ export default function MorningReportPage() {
                                         <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-rose-400 transition-all flex flex-col">
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Form Ask</p></div>
                                             <div className="flex divide-x divide-slate-100">
-                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">28</p></div>
-                                                <div className="flex-1 p-1.5 text-center bg-rose-50/50"><p className="text-[8px] font-black text-rose-400 uppercase">Yest</p><p className="text-base font-black text-rose-700 leading-none mt-1">2</p></div>
+                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.formSharedTotal}</p></div>
+                                                <div className="flex-1 p-1.5 text-center bg-rose-50/50"><p className="text-[8px] font-black text-rose-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-rose-700 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.formSharedYesterday}</p></div>
                                             </div>
                                         </div>
 
@@ -249,8 +362,8 @@ export default function MorningReportPage() {
                                         <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-rose-400 transition-all flex flex-col">
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Form Shared</p></div>
                                             <div className="flex divide-x divide-slate-100">
-                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">20</p></div>
-                                                <div className="flex-1 p-1.5 text-center bg-rose-50/50"><p className="text-[8px] font-black text-rose-400 uppercase">Yest</p><p className="text-base font-black text-rose-700 leading-none mt-1">1</p></div>
+                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.formSharedTotal}</p></div>
+                                                <div className="flex-1 p-1.5 text-center bg-rose-50/50"><p className="text-[8px] font-black text-rose-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-rose-700 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.formSharedYesterday}</p></div>
                                             </div>
                                         </div>
 
@@ -263,7 +376,8 @@ export default function MorningReportPage() {
                                             className="w-full text-xs font-bold text-slate-700 p-2 border border-slate-300 rounded-lg outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 bg-white shadow-inner resize-none" 
                                             rows="2" 
                                             placeholder="Enter your remarks for the Corporate Sales team..."
-                                            defaultValue="Good progress on Startup Calling, focus more on Contract conversions today."
+                                            value={inputValues.corporateRemarks}
+                                            onChange={(e) => saveToLocalStorage('corporateRemarks', e.target.value)}
                                         ></textarea>
                                     </div>
                                 </div>
@@ -291,7 +405,7 @@ export default function MorningReportPage() {
                                             </div>
                                         </div>
                                         <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all">
-                                            <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Yest. Visits ({yesterdayDate})</p>
+                                            <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Yest. Visits ({domesticStats.lastWorkingDay})</p>
                                             <div className="flex items-end justify-center gap-1">
                                                 <p className="text-lg font-black text-slate-800 leading-none">
                                                     {domesticStats.loading ? '-' : domesticStats.yesterdayVisits}
@@ -333,6 +447,8 @@ export default function MorningReportPage() {
                                                     type="text" 
                                                     className="text-lg font-black text-orange-800 bg-transparent border-b border-dashed border-orange-300 outline-none text-center w-32 focus:border-orange-600 transition-colors"
                                                     placeholder="0"
+                                                    value={inputValues.totalCtc}
+                                                    onChange={(e) => saveToLocalStorage('totalCtc', e.target.value)}
                                                 />
                                             </div>
                                         </div>
@@ -359,6 +475,8 @@ export default function MorningReportPage() {
                                             className="w-full text-xs font-bold text-slate-700 p-2 border border-slate-300 rounded-lg outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 bg-white shadow-inner resize-none" 
                                             rows="2" 
                                             placeholder="Enter your remarks for the Domestic Sales team..."
+                                            value={inputValues.domesticRemarks}
+                                            onChange={(e) => saveToLocalStorage('domesticRemarks', e.target.value)}
                                         ></textarea>
                                     </div>
                                 </div>

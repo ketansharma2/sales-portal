@@ -77,11 +77,27 @@ export async function GET(request) {
     }
     const yesterdayStr = yesterday.toISOString().split('T')[0]
 
-    // Get yesterday's visits (distinct client + date)
+    // Get the most recent contact_date available in the database
+    // This ensures we show data from the latest available date (not just yesterday)
+    const { data: latestDateData, error: latestDateError } = await supabaseServer
+      .from('domestic_clients_interaction')
+      .select('contact_date')
+      .order('contact_date', { ascending: false })
+      .limit(1)
+      .single()
+
+    let lastWorkingDayStr = yesterdayStr
+    if (latestDateData?.contact_date) {
+      lastWorkingDayStr = latestDateData.contact_date
+    } else if (latestDateError) {
+      console.error('Latest date error:', latestDateError)
+    }
+
+    // Get last working day's visits (distinct client + date)
     const { data: yesterdayData, error: yesterdayError } = await supabaseServer
       .from('domestic_clients_interaction')
       .select('client_id, contact_date')
-      .eq('contact_date', yesterdayStr)
+      .eq('contact_date', lastWorkingDayStr)
       .ilike('contact_mode', 'visit')
 
     if (yesterdayError) {
@@ -97,11 +113,11 @@ export async function GET(request) {
 
     const yesterdayVisits = yesterdayUniqueVisits.size
 
-    // Get yesterday's onboarded (unique client_ids where status = 'Onboarded')
+    // Get last working day's onboarded (unique client_ids where status = 'Onboarded')
     const { data: yesterdayOnboardData, error: yesterdayOnboardError } = await supabaseServer
       .from('domestic_clients_interaction')
       .select('client_id, status, contact_date')
-      .eq('contact_date', yesterdayStr)
+      .eq('contact_date', lastWorkingDayStr)
       .ilike('status', 'Onboarded')
 
     if (yesterdayOnboardError) {
@@ -134,11 +150,11 @@ export async function GET(request) {
       yesterdayOnboardNames = onboardClientData?.map(c => c.company_name).filter(name => name) || []
     }
 
-    // Get yesterday's Reached Out and Interested (unique client_ids)
+    // Get last working day's Reached Out and Interested (unique client_ids)
     const { data: yesterdayStatusData, error: yesterdayStatusError } = await supabaseServer
       .from('domestic_clients_interaction')
       .select('client_id, status, contact_date')
-      .eq('contact_date', yesterdayStr)
+      .eq('contact_date', lastWorkingDayStr)
 
     if (yesterdayStatusError) {
       console.error('Yesterday status error:', yesterdayStatusError)
@@ -164,7 +180,7 @@ export async function GET(request) {
     const { data: yesterdayVisitData, error: yesterdayVisitError } = await supabaseServer
       .from('domestic_clients_interaction')
       .select('client_id, contact_date')
-      .eq('contact_date', yesterdayStr)
+      .eq('contact_date', lastWorkingDayStr)
       .ilike('contact_mode', 'visit')
 
     if (yesterdayVisitError) {
@@ -224,7 +240,8 @@ export async function GET(request) {
         individualVisits,
         repeatVisits,
         yesterdayReachedOut,
-        yesterdayInterested
+        yesterdayInterested,
+        lastWorkingDay: lastWorkingDayStr
       }
     })
 
