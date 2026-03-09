@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
     FileText, ArrowLeft, Briefcase, Users, 
     Laptop, SunMedium , TrendingUp, Building2, Home, Rocket,IndianRupee, CheckCircle2, Globe2, Store
@@ -8,6 +8,73 @@ import {
 export default function MorningReportPage() {
     // --- STATE FOR TABS ---
     const [activeTab, setActiveTab] = useState("Sales & Delivery");
+
+    // --- GET CURRENT MONTH ---
+    const currentMonth = new Date().toLocaleString('en-US', { month: 'long' });
+
+    // --- GET YESTERDAY'S DATE ---
+    // If yesterday is Sunday (day 0), use Saturday instead
+    const getLastWorkingDay = () => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        // If Sunday (0), go back to Saturday (6)
+        if (yesterday.getDay() === 0) {
+            yesterday.setDate(yesterday.getDate() - 1);
+        }
+        return yesterday;
+    };
+    
+    const lastWorkingDay = getLastWorkingDay();
+    const yesterdayDate = lastWorkingDay.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }); // e.g., "08 Mar"
+
+    // --- STATE FOR DOMESTIC SECTOR DATA ---
+    const [domesticStats, setDomesticStats] = useState({
+        totalVisits: 0,
+        yesterdayVisits: 0,
+        totalOnboarded: 0,
+        yesterdayOnboarded: 0,
+        yesterdayOnboardNames: [],
+        individualVisits: 0,
+        repeatVisits: 0,
+        yesterdayReachedOut: 0,
+        yesterdayInterested: 0,
+        loading: true
+    });
+
+    // --- FETCH DOMESTIC SECTOR DATA ---
+    useEffect(() => {
+        const fetchDomesticStats = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const response = await fetch('/api/admin/morning-report/domestic', {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    setDomesticStats({
+                        totalVisits: data.data.totalVisits || 0,
+                        yesterdayVisits: data.data.yesterdayVisits || 0,
+                        totalOnboarded: data.data.totalOnboarded || 0,
+                        yesterdayOnboarded: data.data.yesterdayOnboarded || 0,
+                        yesterdayOnboardNames: data.data.yesterdayOnboardNames || [],
+                        individualVisits: data.data.individualVisits || 0,
+                        repeatVisits: data.data.repeatVisits || 0,
+                        yesterdayReachedOut: data.data.yesterdayReachedOut || 0,
+                        yesterdayInterested: data.data.yesterdayInterested || 0,
+                        loading: false
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching domestic stats:', error);
+                setDomesticStats(prev => ({ ...prev, loading: false }));
+            }
+        };
+
+        fetchDomesticStats();
+    }, []);
 
     // --- TAB DEFINITIONS ---
     const tabs = [
@@ -216,33 +283,45 @@ export default function MorningReportPage() {
                                         
                                         {/* Visit Metrics */}
                                         <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all">
-                                            <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">March Visits (Tot)</p>
-                                            <div className="flex items-end justify-center gap-1"><p className="text-lg font-black text-slate-800 leading-none">184</p></div>
+                                            <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">{currentMonth} Visits (Tot)</p>
+                                            <div className="flex items-end justify-center gap-1">
+                                                <p className="text-lg font-black text-slate-800 leading-none">
+                                                    {domesticStats.loading ? '-' : domesticStats.totalVisits}
+                                                </p>
+                                            </div>
                                         </div>
                                         <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all">
-                                            <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Yest. Visits</p>
-                                            <div className="flex items-end justify-center gap-1"><p className="text-lg font-black text-slate-800 leading-none">18</p></div>
+                                            <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Yest. Visits ({yesterdayDate})</p>
+                                            <div className="flex items-end justify-center gap-1">
+                                                <p className="text-lg font-black text-slate-800 leading-none">
+                                                    {domesticStats.loading ? '-' : domesticStats.yesterdayVisits}
+                                                </p>
+                                            </div>
                                         </div>
                                         <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all">
                                             <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Individual / Repeat</p>
                                             <div className="flex items-end justify-center gap-2">
-                                                <p className="text-lg font-black text-slate-800 leading-none">12 <span className="text-[9px] font-bold text-slate-400">Ind</span></p>
-                                                <p className="text-lg font-black text-slate-800 leading-none">6 <span className="text-[9px] font-bold text-slate-400">Rep</span></p>
+                                                <p className="text-lg font-black text-slate-800 leading-none">{domesticStats.loading ? '-' : domesticStats.individualVisits} <span className="text-[9px] font-bold text-slate-400">Ind</span></p>
+                                                <p className="text-lg font-black text-slate-800 leading-none">{domesticStats.loading ? '-' : domesticStats.repeatVisits} <span className="text-[9px] font-bold text-slate-400">Rep</span></p>
                                             </div>
                                         </div>
 
                                         {/* Pipeline Metrics */}
                                         <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all">
-                                            <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Reached Out</p>
-                                            <div className="flex items-end justify-center gap-1"><p className="text-lg font-black text-slate-800 leading-none">65</p></div>
+                                            <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Reached Out (Yest)</p>
+                                            <div className="flex items-end justify-center gap-1"><p className="text-lg font-black text-slate-800 leading-none">{domesticStats.loading ? '-' : domesticStats.yesterdayReachedOut}</p></div>
                                         </div>
                                         <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all">
-                                            <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Interested</p>
-                                            <div className="flex items-end justify-center gap-1"><p className="text-lg font-black text-slate-800 leading-none">22</p></div>
+                                            <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Interested (Yest)</p>
+                                            <div className="flex items-end justify-center gap-1"><p className="text-lg font-black text-slate-800 leading-none">{domesticStats.loading ? '-' : domesticStats.yesterdayInterested}</p></div>
                                         </div>
                                         <div className="border border-emerald-200 p-2 rounded-lg bg-emerald-50 text-center shadow-sm hover:border-emerald-300 transition-all">
-                                            <p className="text-[9px] font-black text-emerald-700 uppercase leading-tight mb-1 truncate">Total Onboard</p>
-                                            <div className="flex items-end justify-center gap-1"><p className="text-lg font-black text-emerald-900 leading-none">15</p></div>
+                                            <p className="text-[9px] font-black text-emerald-700 uppercase leading-tight mb-1 truncate">Total Onboard ({currentMonth})</p>
+                                            <div className="flex items-end justify-center gap-1">
+                                                <p className="text-lg font-black text-emerald-900 leading-none">
+                                                    {domesticStats.loading ? '-' : domesticStats.totalOnboarded}
+                                                </p>
+                                            </div>
                                         </div>
 
                                         {/* EDITABLE KPI: Total Expected CTC */}
@@ -253,7 +332,7 @@ export default function MorningReportPage() {
                                                 <input 
                                                     type="text" 
                                                     className="text-lg font-black text-orange-800 bg-transparent border-b border-dashed border-orange-300 outline-none text-center w-32 focus:border-orange-600 transition-colors"
-                                                    defaultValue="8,50,000"
+                                                    placeholder="0"
                                                 />
                                             </div>
                                         </div>
@@ -262,12 +341,12 @@ export default function MorningReportPage() {
                                         <div className="col-span-2 sm:col-span-3 border border-slate-200 p-2.5 rounded-lg bg-white flex flex-col justify-center gap-1 shadow-sm hover:border-orange-300 transition-all">
                                             <p className="text-[9px] font-bold text-slate-500 uppercase">Onboarded (Yest) & Names</p>
                                             <div className="flex items-center gap-3">
-                                                <span className="text-xl font-black text-slate-800 bg-slate-100 px-2 rounded">3</span>
+                                                <span className="text-xl font-black text-slate-800 bg-slate-100 px-2 rounded">{domesticStats.loading ? '-' : domesticStats.yesterdayOnboarded}</span>
                                                 <input 
                                                     type="text" 
                                                     className="text-[11px] font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded px-2 py-1 outline-none focus:border-orange-400 focus:bg-white w-full transition-colors"
                                                     placeholder="Type client names here..."
-                                                    defaultValue="TechCorp, Skyline, MKS"
+                                                    defaultValue={domesticStats.yesterdayOnboardNames.join(', ')}
                                                 />
                                             </div>
                                         </div>
