@@ -164,12 +164,11 @@ export async function GET(request) {
       }, { status: 400 })
     }
 
-    // Build query
+    // Build query - Get all interactions for this client (no user filter)
     let query = supabaseServer
       .from('domestic_clients_interaction')
       .select('*')
       .eq('client_id', clientId)
-      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
     const { data, error } = await query

@@ -14,6 +14,10 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
+    // Get filter parameter
+    const { searchParams } = new URL(request.url)
+    const filter = searchParams.get('filter') || 'all'
+
     // Get current month date range
     const now = new Date()
     const currentYear = now.getFullYear()
@@ -21,6 +25,426 @@ export async function GET(request) {
     const startDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`
     const endDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(currentYear, currentMonth, 0).getDate()}`
 
+    // If filter is provided, return detailed data
+    if (filter !== 'all') {
+      let details = []
+      let filterTitle = 'All Records'
+      
+      // Get yesterday's date for comparison
+      const yesterday = new Date(now)
+      yesterday.setDate(yesterday.getDate() - 1)
+      if (yesterday.getDay() === 0) { // Sunday
+          yesterday.setDate(yesterday.getDate() - 1) // Go back to Saturday
+      }
+      const yesterdayStr = yesterday.toISOString().split('T')[0]
+
+      // Get the most recent contact_date available in the database
+      const { data: latestDateData } = await supabaseServer
+        .from('domestic_clients_interaction')
+        .select('contact_date')
+        .order('contact_date', { ascending: false })
+        .limit(1)
+        .single()
+
+      let lastWorkingDayStr = yesterdayStr
+      if (latestDateData?.contact_date) {
+        lastWorkingDayStr = latestDateData.contact_date
+      }
+
+      // Helper function to get user names
+      const getUserNames = async (userIds) => {
+        if (!userIds || userIds.length === 0) return new Map()
+        const { data: usersData } = await supabaseServer
+          .from('users')
+          .select('user_id, name')
+          .in('user_id', userIds)
+        const userMap = new Map()
+        usersData?.forEach(user => {
+          userMap.set(user.user_id, user.name)
+        })
+        return userMap
+      }
+
+      switch (filter) {
+        case 'yesterday-visits':
+          filterTitle = 'Yesterday Visits'
+          // Get all clients visited on last working day
+          const { data: visitInteractions } = await supabaseServer
+            .from('domestic_clients_interaction')
+            .select('client_id, user_id, contact_date, contact_mode, contact_person, contact_no, email, remarks, next_follow_up, status, sub_status')
+            .eq('contact_date', lastWorkingDayStr)
+            .ilike('contact_mode', 'visit')
+          
+          const visitedClientIds = [...new Set(visitInteractions?.map(r => r.client_id).filter(Boolean) || [])]
+          
+          if (visitedClientIds.length > 0) {
+            const { data: visitedClients } = await supabaseServer
+              .from('domestic_clients')
+              .select('*')
+              .in('client_id', visitedClientIds)
+            
+            const { data: allVisitInteractions } = await supabaseServer
+              .from('domestic_clients_interaction')
+              .select('client_id, user_id, contact_date, contact_person, contact_no, email, remarks, next_follow_up, status, sub_status')
+              .in('client_id', visitedClientIds)
+              .eq('contact_date', lastWorkingDayStr)
+            
+            const visitInteractionsMap = new Map()
+            allVisitInteractions?.forEach(interaction => {
+              if (!visitInteractionsMap.has(interaction.client_id)) {
+                visitInteractionsMap.set(interaction.client_id, interaction)
+              }
+            })
+            
+            // Get user names for owners using user_id from interactions
+            const visitedOwnerIds = [...new Set(allVisitInteractions?.map(c => c.user_id).filter(Boolean) || [])]
+            const userNamesMap = await getUserNames(visitedOwnerIds)
+            
+            details = visitedClients?.map(client => {
+              const interaction = visitInteractionsMap.get(client.client_id)
+              const ownerName = userNamesMap.get(interaction?.user_id) || interaction?.user_id || 'Unknown'
+              return {
+                id: client.client_id,
+                client_id: client.client_id,
+                companyName: client.company_name,
+                contactName: interaction?.contact_person || client.contact_person || '',
+                contactNumber: interaction?.contact_no || client.contact_no || '',
+                email: interaction?.email || '',
+                lastInteraction: interaction?.remarks || '',
+                lastInteractionDate: interaction?.contact_date || '',
+                nextFollowup: interaction?.next_follow_up || '',
+                status: interaction?.status || '',
+                substatus: interaction?.sub_status || '',
+                projection: client.projection || '',
+                owner: ownerName
+              }
+            }) || []
+          }
+          break
+
+        case 'individual-repeat':
+          filterTitle = 'Individual / Repeat Visits'
+          // Get Individual and Repeat clients for last working day
+          const { data: irVisitData, error: irVisitError } = await supabaseServer
+            .from('domestic_clients_interaction')
+            .select('client_id, user_id, contact_date, contact_person, contact_no, email, remarks, next_follow_up, status, sub_status')
+            .eq('contact_date', lastWorkingDayStr)
+            .ilike('contact_mode', 'visit')
+          
+          const irUniqueClientMap = new Map()
+          irVisitData?.forEach(record => {
+            if (!irUniqueClientMap.has(record.client_id)) {
+              irUniqueClientMap.set(record.client_id, record.contact_date)
+            }
+          })
+
+          const irClientIds = Array.from(irUniqueClientMap.keys())
+          
+          if (irClientIds.length > 0) {
+            // Get client data - use * like yesterday-visits
+            const { data: irClientData, error: irClientError } = await supabaseServer
+              .from('domestic_clients')
+              .select('*')
+              .in('client_id', irClientIds)
+            
+            // Get interactions on the same day - like yesterday-visits does
+            const { data: irInteractions, error: irInteractionsError } = await supabaseServer
+              .from('domestic_clients_interaction')
+              .select('client_id, user_id, contact_date, contact_person, contact_no, email, remarks, next_follow_up, status, sub_status')
+              .in('client_id', irClientIds)
+              .eq('contact_date', lastWorkingDayStr)
+            
+            // Debug
+            console.log('irClientData:', irClientData)
+            console.log('irInteractions:', irInteractions)
+            
+            const irInteractionsMap = new Map()
+            irInteractions?.forEach(interaction => {
+              if (!irInteractionsMap.has(interaction.client_id)) {
+                irInteractionsMap.set(interaction.client_id, interaction)
+              }
+            })
+
+            const clientSourcingMap = new Map()
+            irClientData?.forEach(client => {
+              clientSourcingMap.set(client.client_id, client.sourcing_date)
+            })
+
+            // Get user names for owners using user_id from interactions
+            const irOwnerIds = [...new Set(irInteractions?.map(c => c.user_id).filter(Boolean) || [])]
+            const irUserNamesMap = await getUserNames(irOwnerIds)
+            
+            details = irClientData?.map(client => {
+              const interaction = irInteractionsMap.get(client.client_id)
+              const sourcingDate = clientSourcingMap.get(client.client_id)
+              const contactDate = irUniqueClientMap.get(client.client_id)
+              
+              // Handle null/undefined dates and compare properly
+              let visitType = 'Repeat'
+              if (sourcingDate && contactDate) {
+                // Compare just the date part (YYYY-MM-DD) to handle any format differences
+                const sourcingStr = String(sourcingDate).split('T')[0]
+                const contactStr = String(contactDate).split('T')[0]
+                visitType = (sourcingStr === contactStr) ? 'Individual' : 'Repeat'
+              }
+              
+              const ownerName = irUserNamesMap.get(interaction?.user_id) || interaction?.user_id || 'Unknown'
+              return {
+                id: client.client_id,
+                client_id: client.client_id,
+                companyName: client.company_name,
+                contactName: interaction?.contact_person || client.contact_person || '',
+                contactNumber: interaction?.contact_no || client.contact_no || '',
+                email: interaction?.email || '',
+                lastInteraction: interaction?.remarks || '',
+                lastInteractionDate: interaction?.contact_date || '',
+                nextFollowup: interaction?.next_follow_up || '',
+                status: visitType,
+                substatus: interaction?.sub_status || '',
+                projection: client.projection || '',
+                owner: ownerName
+              }
+            }) || []
+          }
+          break
+
+        case 'total-onboard':
+          filterTitle = 'Total Onboard (Current Month)'
+          // Get all clients with Onboarded status in current month
+          const { data: onboardData } = await supabaseServer
+            .from('domestic_clients_interaction')
+            .select('client_id, user_id, status, contact_date')
+            .gte('contact_date', startDate)
+            .lte('contact_date', endDate)
+            .ilike('status', 'Onboarded')
+          
+          // Get unique client IDs
+          const onboardClientIds = [...new Set(onboardData?.map(r => r.client_id).filter(Boolean) || [])]
+          
+          if (onboardClientIds.length > 0) {
+            const { data: clientData } = await supabaseServer
+              .from('domestic_clients')
+              .select('*')
+              .in('client_id', onboardClientIds)
+            
+            // Get latest interactions for each client
+            const { data: allInteractions } = await supabaseServer
+              .from('domestic_clients_interaction')
+              .select('client_id, user_id, contact_date, contact_person, contact_no, email, remarks, next_follow_up, status, sub_status')
+              .in('client_id', onboardClientIds)
+              .order('contact_date', { ascending: false })
+            
+            // Group interactions by client_id and get the latest
+            const latestInteractionsMap = new Map()
+            allInteractions?.forEach(interaction => {
+              if (!latestInteractionsMap.has(interaction.client_id)) {
+                latestInteractionsMap.set(interaction.client_id, interaction)
+              }
+            })
+            
+            // Get user names for owners using user_id from interactions
+            const onboardOwnerIds = [...new Set(allInteractions?.map(c => c.user_id).filter(Boolean) || [])]
+            const onboardUserNamesMap = await getUserNames(onboardOwnerIds)
+            
+            details = clientData?.map(client => {
+              const interaction = latestInteractionsMap.get(client.client_id)
+              const ownerName = onboardUserNamesMap.get(interaction?.user_id) || interaction?.user_id || 'Unknown'
+              return {
+                id: client.client_id,
+                client_id: client.client_id,
+                companyName: client.company_name,
+                contactName: interaction?.contact_person || client.contact_person || '',
+                contactNumber: interaction?.contact_no || client.contact_no || '',
+                email: interaction?.email || '',
+                lastInteraction: interaction?.remarks || '',
+                lastInteractionDate: interaction?.contact_date || '',
+                nextFollowup: interaction?.next_follow_up || '',
+                status: 'Onboarded',
+                substatus: interaction?.sub_status || '',
+                projection: client.projection || '',
+                owner: ownerName
+              }
+            }) || []
+          }
+          break
+
+        case 'onboarded-yesterday':
+          filterTitle = 'Onboarded (Yesterday)'
+          // Get clients with Onboarded status on last working day
+          const { data: yesterdayOnboardData } = await supabaseServer
+            .from('domestic_clients_interaction')
+            .select('client_id, user_id, status, contact_date')
+            .eq('contact_date', lastWorkingDayStr)
+            .ilike('status', 'Onboarded')
+          
+          const yesterdayOnboardClientIds = [...new Set(yesterdayOnboardData?.map(r => r.client_id).filter(Boolean) || [])]
+          
+          if (yesterdayOnboardClientIds.length > 0) {
+            const { data: yesterdayClientData } = await supabaseServer
+              .from('domestic_clients')
+              .select('*')
+              .in('client_id', yesterdayOnboardClientIds)
+            
+            const { data: yesterdayInteractions } = await supabaseServer
+              .from('domestic_clients_interaction')
+              .select('client_id, user_id, contact_date, contact_person, contact_no, email, remarks, next_follow_up, status, sub_status')
+              .in('client_id', yesterdayOnboardClientIds)
+              .eq('contact_date', lastWorkingDayStr)
+            
+            const yesterdayInteractionsMap = new Map()
+            yesterdayInteractions?.forEach(interaction => {
+              yesterdayInteractionsMap.set(interaction.client_id, interaction)
+            })
+            
+            // Get user names for owners using user_id from interactions
+            const yesterdayOnboardOwnerIds = [...new Set(yesterdayInteractions?.map(c => c.user_id).filter(Boolean) || [])]
+            const yesterdayOnboardUserNamesMap = await getUserNames(yesterdayOnboardOwnerIds)
+            
+            details = yesterdayClientData?.map(client => {
+              const interaction = yesterdayInteractionsMap.get(client.client_id)
+              const ownerName = yesterdayOnboardUserNamesMap.get(interaction?.user_id) || interaction?.user_id || 'Unknown'
+              return {
+                id: client.client_id,
+                client_id: client.client_id,
+                companyName: client.company_name,
+                contactName: interaction?.contact_person || client.contact_person || '',
+                contactNumber: interaction?.contact_no || client.contact_no || '',
+                email: interaction?.email || '',
+                lastInteraction: interaction?.remarks || '',
+                lastInteractionDate: interaction?.contact_date || '',
+                nextFollowup: interaction?.next_follow_up || '',
+                status: 'Onboarded',
+                substatus: interaction?.sub_status || '',
+                projection: client.projection || '',
+                owner: ownerName
+              }
+            }) || []
+          }
+          break
+
+        case 'reached-out':
+          filterTitle = 'Reached Out (Yesterday)'
+          // Get clients with Reached Out status on last working day
+          const { data: reachedOutData } = await supabaseServer
+            .from('domestic_clients_interaction')
+            .select('client_id, user_id, status, contact_date')
+            .eq('contact_date', lastWorkingDayStr)
+            .ilike('status', 'Reached Out')
+          
+          const reachedOutClientIds = [...new Set(reachedOutData?.map(r => r.client_id).filter(Boolean) || [])]
+          
+          if (reachedOutClientIds.length > 0) {
+            const { data: reachedOutClients } = await supabaseServer
+              .from('domestic_clients')
+              .select('*')
+              .in('client_id', reachedOutClientIds)
+            
+            const { data: reachedOutInteractions } = await supabaseServer
+              .from('domestic_clients_interaction')
+              .select('client_id, user_id, contact_date, contact_person, contact_no, email, remarks, next_follow_up, status, sub_status')
+              .in('client_id', reachedOutClientIds)
+              .eq('contact_date', lastWorkingDayStr)
+            
+            const reachedOutMap = new Map()
+            reachedOutInteractions?.forEach(interaction => {
+              reachedOutMap.set(interaction.client_id, interaction)
+            })
+            
+            // Get user names for owners using user_id from interactions
+            const reachedOutOwnerIds = [...new Set(reachedOutInteractions?.map(c => c.user_id).filter(Boolean) || [])]
+            const reachedOutUserNamesMap = await getUserNames(reachedOutOwnerIds)
+            
+            details = reachedOutClients?.map(client => {
+              const interaction = reachedOutMap.get(client.client_id)
+              const ownerName = reachedOutUserNamesMap.get(interaction?.user_id) || interaction?.user_id || 'Unknown'
+              return {
+                id: client.client_id,
+                client_id: client.client_id,
+                companyName: client.company_name,
+                contactName: interaction?.contact_person || client.contact_person || '',
+                contactNumber: interaction?.contact_no || client.contact_no || '',
+                email: interaction?.email || '',
+                lastInteraction: interaction?.remarks || '',
+                lastInteractionDate: interaction?.contact_date || '',
+                nextFollowup: interaction?.next_follow_up || '',
+                status: 'Reached Out',
+                substatus: interaction?.sub_status || '',
+                projection: client.projection || '',
+                owner: ownerName
+              }
+            }) || []
+          }
+          break
+
+        case 'interested':
+          filterTitle = 'Interested (Yesterday)'
+          // Get clients with Interested status on last working day
+          const { data: interestedData } = await supabaseServer
+            .from('domestic_clients_interaction')
+            .select('client_id, user_id, status, contact_date')
+            .eq('contact_date', lastWorkingDayStr)
+            .ilike('status', 'Interested')
+          
+          const interestedClientIds = [...new Set(interestedData?.map(r => r.client_id).filter(Boolean) || [])]
+          
+          if (interestedClientIds.length > 0) {
+            const { data: interestedClients } = await supabaseServer
+              .from('domestic_clients')
+              .select('*')
+              .in('client_id', interestedClientIds)
+            
+            const { data: interestedInteractions } = await supabaseServer
+              .from('domestic_clients_interaction')
+              .select('client_id, user_id, contact_date, contact_person, contact_no, email, remarks, next_follow_up, status, sub_status')
+              .in('client_id', interestedClientIds)
+              .eq('contact_date', lastWorkingDayStr)
+            
+            const interestedMap = new Map()
+            interestedInteractions?.forEach(interaction => {
+              interestedMap.set(interaction.client_id, interaction)
+            })
+            
+            // Get user names for owners using user_id from interactions
+            const interestedOwnerIds = [...new Set(interestedInteractions?.map(c => c.user_id).filter(Boolean) || [])]
+            const interestedUserNamesMap = await getUserNames(interestedOwnerIds)
+            
+            details = interestedClients?.map(client => {
+              const interaction = interestedMap.get(client.client_id)
+              const ownerName = interestedUserNamesMap.get(interaction?.user_id) || interaction?.user_id || 'Unknown'
+              return {
+                id: client.client_id,
+                client_id: client.client_id,
+                companyName: client.company_name,
+                contactName: interaction?.contact_person || client.contact_person || '',
+                contactNumber: interaction?.contact_no || client.contact_no || '',
+                email: interaction?.email || '',
+                lastInteraction: interaction?.remarks || '',
+                lastInteractionDate: interaction?.contact_date || '',
+                nextFollowup: interaction?.next_follow_up || '',
+                status: 'Interested',
+                substatus: interaction?.sub_status || '',
+                projection: client.projection || '',
+                owner: ownerName
+              }
+            }) || []
+          }
+          break
+
+        default:
+          details = []
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          filter,
+          filterTitle,
+          details
+        }
+      })
+    }
+
+    // Original code for summary data (when no filter or filter is 'yesterday-visits' or 'individual-repeat')
     // Get distinct client_id + contact_date combinations where contact_mode = 'visit'
     // This counts each client once per day, even if visited multiple times
     const { data: visitData, error: visitError } = await supabaseServer
@@ -79,7 +503,7 @@ export async function GET(request) {
 
     // Get the most recent contact_date available in the database
     // This ensures we show data from the latest available date (not just yesterday)
-    const { data: latestDateData, error: latestDateError } = await supabaseServer
+    const { data: latestDateDataSummary, error: latestDateError } = await supabaseServer
       .from('domestic_clients_interaction')
       .select('contact_date')
       .order('contact_date', { ascending: false })
@@ -87,8 +511,8 @@ export async function GET(request) {
       .single()
 
     let lastWorkingDayStr = yesterdayStr
-    if (latestDateData?.contact_date) {
-      lastWorkingDayStr = latestDateData.contact_date
+    if (latestDateDataSummary?.contact_date) {
+      lastWorkingDayStr = latestDateDataSummary.contact_date
     } else if (latestDateError) {
       console.error('Latest date error:', latestDateError)
     }

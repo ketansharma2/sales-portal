@@ -1,11 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
 import { 
     FileText, ArrowLeft, Briefcase, Users, 
     Laptop, SunMedium , TrendingUp, Building2, Home, Rocket,IndianRupee, CheckCircle2, Globe2, Store
 } from "lucide-react";
 
 export default function MorningReportPage() {
+    const router = useRouter();
     // --- STATE FOR TABS ---
     const [activeTab, setActiveTab] = useState("Sales & Delivery");
 
@@ -404,7 +406,7 @@ export default function MorningReportPage() {
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all">
+                                        <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all cursor-pointer" onClick={() => router.push('/admin/morning-report/domestic?filter=yesterday-visits')}>
                                             <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Yest. Visits ({domesticStats.lastWorkingDay})</p>
                                             <div className="flex items-end justify-center gap-1">
                                                 <p className="text-lg font-black text-slate-800 leading-none">
@@ -412,7 +414,7 @@ export default function MorningReportPage() {
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all">
+                                        <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all cursor-pointer" onClick={() => router.push('/admin/morning-report/domestic?filter=individual-repeat')}>
                                             <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Individual / Repeat</p>
                                             <div className="flex items-end justify-center gap-2">
                                                 <p className="text-lg font-black text-slate-800 leading-none">{domesticStats.loading ? '-' : domesticStats.individualVisits} <span className="text-[9px] font-bold text-slate-400">Ind</span></p>
@@ -421,15 +423,15 @@ export default function MorningReportPage() {
                                         </div>
 
                                         {/* Pipeline Metrics */}
-                                        <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all">
+                                        <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all cursor-pointer" onClick={() => router.push('/admin/morning-report/domestic?filter=reached-out')}>
                                             <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Reached Out (Yest)</p>
                                             <div className="flex items-end justify-center gap-1"><p className="text-lg font-black text-slate-800 leading-none">{domesticStats.loading ? '-' : domesticStats.yesterdayReachedOut}</p></div>
                                         </div>
-                                        <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all">
+                                        <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all cursor-pointer" onClick={() => router.push('/admin/morning-report/domestic?filter=interested')}>
                                             <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Interested (Yest)</p>
                                             <div className="flex items-end justify-center gap-1"><p className="text-lg font-black text-slate-800 leading-none">{domesticStats.loading ? '-' : domesticStats.yesterdayInterested}</p></div>
                                         </div>
-                                        <div className="border border-emerald-200 p-2 rounded-lg bg-emerald-50 text-center shadow-sm hover:border-emerald-300 transition-all">
+                                        <div className="border border-emerald-200 p-2 rounded-lg bg-emerald-50 text-center shadow-sm hover:border-emerald-300 transition-all cursor-pointer" onClick={() => router.push('/admin/morning-report/domestic?filter=total-onboard')}>
                                             <p className="text-[9px] font-black text-emerald-700 uppercase leading-tight mb-1 truncate">Total Onboard ({currentMonth})</p>
                                             <div className="flex items-end justify-center gap-1">
                                                 <p className="text-lg font-black text-emerald-900 leading-none">
@@ -454,7 +456,7 @@ export default function MorningReportPage() {
                                         </div>
 
                                         {/* Onboarded Detail Row (Names) */}
-                                        <div className="col-span-2 sm:col-span-3 border border-slate-200 p-2.5 rounded-lg bg-white flex flex-col justify-center gap-1 shadow-sm hover:border-orange-300 transition-all">
+                                        <div className="col-span-2 sm:col-span-3 border border-slate-200 p-2.5 rounded-lg bg-white flex flex-col justify-center gap-1 shadow-sm hover:border-orange-300 transition-all cursor-pointer" onClick={() => router.push('/admin/morning-report/domestic?filter=onboarded-yesterday')}>
                                             <p className="text-[9px] font-bold text-slate-500 uppercase">Onboarded (Yest) & Names</p>
                                             <div className="flex items-center gap-3">
                                                 <span className="text-xl font-black text-slate-800 bg-slate-100 px-2 rounded">{domesticStats.loading ? '-' : domesticStats.yesterdayOnboarded}</span>
