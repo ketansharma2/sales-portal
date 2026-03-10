@@ -44,14 +44,17 @@ export default function JobPosterPanel() {
 
   // New Link Form State
   const getTodayDate = () => new Date().toISOString().split('T')[0];
-  const initialLinkForm = { platform: "Naukri.com", live_url: "", stage: "Active", postedOn: getTodayDate() };
+  const initialLinkForm = { platform: "Indeed", live_url: "", stage: "Active", postedOn: getTodayDate() };
   const [newLink, setNewLink] = useState(initialLinkForm);
 
   // New CV Log Form State
-  const initialLogForm = { date: getTodayDate(), platform: "Naukri.com", count: "", callingCount: "" };
+  const initialLogForm = { date: getTodayDate(), platform: "Indeed", count: "", callingCount: "" };
   const [newLog, setNewLog] = useState(initialLogForm);
 
-  const platformOptions = ["Naukri.com", "LinkedIn", "Indeed", "Apna", "Internshala", "Direct/Email", "Other"];
+  const platformOptions = [
+    { label: "Indeed", value: "Indeed" },
+    { label: "Naukri", value: "Naukri.com" }
+  ];
 
   // --- HANDLERS ---
   const handleViewJD = (job) => {
@@ -657,7 +660,7 @@ export default function JobPosterPanel() {
                                 <div className="w-full md:w-[30%]">
                                     <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Source / Platform</label>
                                     <select className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold outline-none focus:border-indigo-600" value={newLog.platform} onChange={(e) => setNewLog({...newLog, platform: e.target.value})}>
-                                        {platformOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                        {platformOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                                     </select>
                                 </div>
                                 <div className="w-full md:w-[20%]">
@@ -744,7 +747,7 @@ export default function JobPosterPanel() {
                                 <div className="w-full md:w-1/4">
                                     <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Platform</label>
                                     <select className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold outline-none focus:border-[#103c7f]" value={newLink.platform} onChange={(e) => setNewLink({...newLink, platform: e.target.value})}>
-                                        {platformOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                        {platformOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                                     </select>
                                 </div>
                                 <div className="w-full md:w-2/4">
