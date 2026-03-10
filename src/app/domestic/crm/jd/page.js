@@ -314,7 +314,7 @@ export default function JobRequirementsPage() {
                                     </td>
                             <td className="p-2 text-center align-middle">
                                 <div className="flex justify-center gap-2">
-                                    <button onClick={() => handleSendToPoster(jd.jd_id)} disabled={jd.status !== 'Draft' && jd.status !== 'Pending'} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-100 rounded hover:bg-blue-600 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed font-bold text-[10px] uppercase tracking-wider">
+                                    <button onClick={() => handleSendToPoster(jd.jd_id)} disabled={jd.status !== 'Draft'} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-100 rounded hover:bg-blue-600 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed font-bold text-[10px] uppercase tracking-wider">
                                         <Send size={12}/> Send
                                     </button>
                                     <button onClick={() => { setSelectedJD(jd); setIsCVModalOpen(true); fetchCVModalData(jd.jd_id); }} className="flex items-center gap-1.5 bg-purple-50 text-purple-700 px-3 py-1.5 rounded border border-purple-100 hover:bg-purple-100 transition font-bold text-[10px] uppercase tracking-wider whitespace-nowrap">
