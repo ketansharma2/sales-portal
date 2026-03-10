@@ -13,6 +13,11 @@ export default function JobRequirementsPage() {
   // --- STATE ---
   const [jds, setJds] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [clientNameSuggestions, setClientNameSuggestions] = useState([]);
+  const [showClientSuggestions, setShowClientSuggestions] = useState(false);
+  const [filteredClientSuggestions, setFilteredClientSuggestions] = useState([]);
+  const [showJobTitleSuggestions, setShowJobTitleSuggestions] = useState(false);
+  const [filteredJobTitleSuggestions, setFilteredJobTitleSuggestions] = useState([]);
 
   // Fetch JDs from Supabase
   useEffect(() => {
@@ -28,6 +33,14 @@ export default function JobRequirementsPage() {
       const data = await response.json();
       if (data.error) throw new Error(data.error);
       setJds(data || []);
+      
+      // Extract unique client names for suggestions
+      const uniqueClients = [...new Set((data || []).map(jd => jd.client_name).filter(Boolean))].sort();
+      setClientNameSuggestions(uniqueClients);
+      setFilteredClientSuggestions(uniqueClients);
+      
+      // Store full JD data for job title suggestions
+      setFilteredJobTitleSuggestions(data || []);
     } catch (error) {
       console.error('Error fetching JDs:', error);
     } finally {
@@ -328,8 +341,85 @@ export default function JobRequirementsPage() {
                 <div className="p-6 overflow-y-auto custom-scrollbar grid grid-cols-2 gap-4">
                     <div className="col-span-2"><h4 className="text-xs font-black text-gray-400 uppercase border-b pb-1 mb-2">Job Details</h4></div>
                     
-                    <div><label className={labelClass}>Client / Company Name (Internal)</label><input type="text" placeholder="e.g. TechCorp Solutions" className={inputClass} value={formData.client_name || ""} onChange={(e)=>setFormData({...formData, client_name: e.target.value})}/></div>
-                    <div><label className={labelClass}>Job Title</label><input type="text" className={inputClass} value={formData.job_title || ""} onChange={(e)=>setFormData({...formData, job_title: e.target.value})}/></div>
+                    <div className="relative"><label className={labelClass}>Client / Company Name (Internal)</label><input 
+                        type="text" 
+                        placeholder="e.g. TechCorp Solutions" 
+                        className={inputClass} 
+                        value={formData.client_name || ""} 
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setFormData({...formData, client_name: value});
+                          const filtered = clientNameSuggestions.filter(client => 
+                            client.toLowerCase().includes(value.toLowerCase())
+                          );
+                          setFilteredClientSuggestions(filtered);
+                          setShowClientSuggestions(true);
+                        }}
+                        onFocus={() => {
+                          setFilteredClientSuggestions(clientNameSuggestions);
+                          setShowClientSuggestions(true);
+                        }}
+                        onBlur={() => setTimeout(() => setShowClientSuggestions(false), 200)}
+                      />
+                        {showClientSuggestions && filteredClientSuggestions.length > 0 && (
+                          <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto mt-1">
+                            {filteredClientSuggestions.map((client, idx) => (
+                              <div 
+                                key={idx} 
+                                className="px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 cursor-pointer font-medium"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setFormData({...formData, client_name: client});
+                                  setShowClientSuggestions(false);
+                                }}
+                              >
+                                {client}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                    </div>
+                    <div className="relative"><label className={labelClass}>Job Title</label><input 
+                        type="text" 
+                        placeholder="e.g. Software Engineer" 
+                        className={inputClass} 
+                        value={formData.job_title || ""} 
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setFormData({...formData, job_title: value});
+                          const filtered = (jds || []).filter(jd => 
+                            jd.job_title && jd.job_title.toLowerCase().includes(value.toLowerCase())
+                          ).sort((a, b) => (a.job_title || '').localeCompare(b.job_title || ''));
+                          setFilteredJobTitleSuggestions(filtered);
+                          setShowJobTitleSuggestions(true);
+                        }}
+                        onFocus={() => {
+                          const sorted = [...(jds || [])].sort((a, b) => (a.job_title || '').localeCompare(b.job_title || ''));
+                          setFilteredJobTitleSuggestions(sorted);
+                          setShowJobTitleSuggestions(true);
+                        }}
+                        onBlur={() => setTimeout(() => setShowJobTitleSuggestions(false), 200)}
+                      />
+                        {showJobTitleSuggestions && filteredJobTitleSuggestions.length > 0 && (
+                          <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto mt-1">
+                            {filteredJobTitleSuggestions.map((jd, idx) => (
+                              <div 
+                                key={idx} 
+                                className="px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 cursor-pointer font-medium"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  const { client_name, ...otherFields } = jd;
+                                  setFormData({...formData, ...otherFields});
+                                  setShowJobTitleSuggestions(false);
+                                }}
+                              >
+                                <div className="font-bold">{jd.job_title}</div>
+                                <div className="text-xs text-gray-500">{jd.client_name} - {jd.location}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                    </div>
                     
                     <div><label className={labelClass}>Location</label><input type="text" className={inputClass} value={formData.location || ""} onChange={(e)=>setFormData({...formData, location: e.target.value})}/></div>
                     <div><label className={labelClass}>Experience</label><input type="text" className={inputClass} value={formData.experience || ""} onChange={(e)=>setFormData({...formData, experience: e.target.value})}/></div>
