@@ -314,6 +314,37 @@ export default function RevenuePage() {
     }
   };
 
+  // Helper function to convert Google Drive links to direct display URLs
+  const getDirectLink = (url) => {
+    if (!url) return url;
+    
+    // Check if it's a Google Drive link
+    if (url.includes('drive.google.com')) {
+      // Extract file ID from various Google Drive URL formats
+      let fileId = '';
+      
+      // Format: https://drive.google.com/file/d/FILE_ID/view...
+      const fileMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (fileMatch && fileMatch[1]) {
+        fileId = fileMatch[1];
+      }
+      
+      if (fileId) {
+        // Use the direct download URL for images
+        // For PDFs, use the preview URL
+        return `https://drive.google.com/uc?export=download&id=${fileId}`;
+      }
+    }
+    
+    return url;
+  };
+
+  // Helper to check if URL is a Google Drive link
+  const isGoogleDriveLink = (url) => {
+    if (!url) return false;
+    return url.includes('drive.google.com');
+  };
+
   // Filter Logic
   const filteredData = revenueData.filter(item => {
       const matchesSearch = item.candidate_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -891,19 +922,26 @@ export default function RevenuePage() {
                                 <h4 className="text-lg font-black text-gray-800">{selectedRecord.candidate_name}</h4>
                                 <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">KYC Document</p>
                             </div>
+                            {isGoogleDriveLink(selectedRecord.kyc_link) && (
+                                <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded border border-blue-200 font-bold">
+                                    Google Drive
+                                </span>
+                            )}
                         </div>
                         
                         {/* Document Preview */}
                         <div className="bg-gray-100 rounded-xl border border-gray-200 overflow-hidden" style={{height: '60vh'}}>
-                            {selectedRecord.kyc_link.toLowerCase().endsWith('.pdf') ? (
+                            {selectedRecord.kyc_link.toLowerCase().endsWith('.pdf') || isGoogleDriveLink(selectedRecord.kyc_link) ? (
                                 <iframe 
-                                    src={selectedRecord.kyc_link} 
+                                    src={isGoogleDriveLink(selectedRecord.kyc_link) 
+                                        ? selectedRecord.kyc_link.replace('/view?usp=sharing', '/preview') 
+                                        : selectedRecord.kyc_link} 
                                     className="w-full h-full"
                                     title="KYC Document"
                                 />
                             ) : (
                                 <img 
-                                    src={selectedRecord.kyc_link} 
+                                    src={getDirectLink(selectedRecord.kyc_link)} 
                                     alt="KYC Document" 
                                     className="w-full h-full object-contain"
                                 />
