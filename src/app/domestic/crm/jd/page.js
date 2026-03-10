@@ -373,7 +373,7 @@ export default function JobRequirementsPage() {
                                   setShowClientSuggestions(false);
                                 }}
                               >
-                                {client}
+                                <div className="font-bold">{client}</div>
                               </div>
                             ))}
                           </div>
