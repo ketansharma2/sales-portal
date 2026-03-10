@@ -116,7 +116,7 @@ export default function JobRequirementsPage() {
           'Content-Type': 'application/json' 
         },
         body: JSON.stringify({ 
-          status: 'Sent',
+          status: 'Pending',
           sent_to: selectedPosterUser || null,
           sent_date: new Date().toISOString().split('T')[0]
         })
@@ -241,7 +241,7 @@ export default function JobRequirementsPage() {
                         <th className="p-3 border-r border-blue-800 w-64">Job Title</th>
                         <th className="p-3 border-r border-blue-800">Location & Package</th>
                         <th className="p-3 border-r border-blue-800 text-center">JD</th>
-                        <th className="p-3 border-r border-blue-800 text-center">Status</th>
+                        <th className="p-3 border-r border-blue-800 text-center">Status / Sent To</th>
                         <th className="p-3 text-center">Actions</th>
                     </tr>
                 </thead>
@@ -279,19 +279,29 @@ export default function JobRequirementsPage() {
                                 </div>
                             </td>
                             <td className="p-2 border-r border-gray-100 text-center">
-                                <span className={`px-2 py-1 rounded text-[9px] font-black uppercase border whitespace-nowrap ${
-                                    jd.status === 'Sent' ? 'bg-green-50 text-green-700 border-green-200' :
-                                    jd.status === 'Live' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                    jd.status === 'Paused' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                                    jd.status === 'Deleted' ? 'bg-red-50 text-red-700 border-red-200' :
-                                    'bg-gray-100 text-gray-500 border-gray-200'
-                                }`}>
-                                    {jd.status === 'Sent' && jd.sent_to_name ? `Sent to ${jd.sent_to_name}` : (jd.status || 'Draft')}
-                                </span>
-                            </td>
+                                        <div className="flex flex-col items-center gap-1">
+                                            {/* Status Badge */}
+                                            <span className={`px-2 py-1 rounded text-[9px] font-black uppercase border whitespace-nowrap ${
+                                                jd.status === 'Pending' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                                                jd.status === 'Sent' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                jd.status === 'Live' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                jd.status === 'Paused' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                                jd.status === 'Deleted' ? 'bg-red-50 text-red-700 border-red-200' :
+                                                'bg-gray-100 text-gray-500 border-gray-200'
+                                            }`}>
+                                                {jd.status || 'Draft'}
+                                            </span>
+                                            {/* Sent To Badge */}
+                                            {jd.sent_to && (
+                                                <span className="px-2 py-0.5 rounded text-[8px] font-bold uppercase bg-purple-50 text-purple-700 border border-purple-200 whitespace-nowrap">
+                                                    Sent to {jd.sent_to_name || 'User'}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
                             <td className="p-2 text-center align-middle">
                                 <div className="flex justify-center gap-2">
-                                    <button onClick={() => handleSendToPoster(jd.jd_id)} disabled={jd.status !== 'Draft'} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-100 rounded hover:bg-blue-600 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed font-bold text-[10px] uppercase tracking-wider">
+                                    <button onClick={() => handleSendToPoster(jd.jd_id)} disabled={jd.status !== 'Draft' && jd.status !== 'Pending'} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-100 rounded hover:bg-blue-600 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed font-bold text-[10px] uppercase tracking-wider">
                                         <Send size={12}/> Send
                                     </button>
                                     <button onClick={() => { setSelectedJD(jd); setIsCVModalOpen(true); fetchCVModalData(jd.jd_id); }} className="flex items-center gap-1.5 bg-purple-50 text-purple-700 px-3 py-1.5 rounded border border-purple-100 hover:bg-purple-100 transition font-bold text-[10px] uppercase tracking-wider whitespace-nowrap">
