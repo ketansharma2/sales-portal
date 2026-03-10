@@ -66,7 +66,7 @@ export async function GET(request) {
     const { count: totalClientSearch, error: totalCSError } = await supabaseServer
       .from('corporate_leadgen_leads')
       .select('*', { count: 'exact', head: true })
-      .or('startup.eq.NO,startup.is.null')
+      .or('startup.ilike.%no%,startup.is.null')
 
     if (totalCSError) {
       console.error('Total client search error:', totalCSError)
@@ -80,7 +80,7 @@ export async function GET(request) {
         .from('corporate_leadgen_leads')
         .select('*', { count: 'exact', head: true })
         .eq('sourcing_date', lastWorkingDayStr)
-        .or('startup.eq.NO,startup.is.null')
+        .or('startup.ilike.%no%,startup.is.null')
 
       if (yesterdayCSError) {
         console.error('Yesterday client search error:', yesterdayCSError)
@@ -279,7 +279,6 @@ export async function GET(request) {
     formSharedYesterday = formSharedYesterdaySet.size
 
     // Get Client Calling Total: distinct client_id + date from corporate_leads_interaction
-    // where startup = 'NO' in corporate_leadgen_leads (include NULL dates as well)
     const { data: callingData, error: callingError } = await supabaseServer
       .from('corporate_leads_interaction')
       .select('client_id, date, corporate_leadgen_leads!inner(startup)')
@@ -288,11 +287,10 @@ export async function GET(request) {
       console.error('Client calling data error:', callingError)
     }
 
-    // Filter where startup = 'NO' or NULL and count distinct client_id + date (treating NULL date as a valid value)
+    // Filter where startup is NULL and count distinct client_id + date (treating NULL date as a valid value)
     const callingSet = new Set()
     callingData?.forEach(record => {
-      const startupValue = record.corporate_leadgen_leads?.startup
-      if ((!startupValue || startupValue.toLowerCase() === 'no') && record.client_id) {
+      if (record.client_id) {
         // Use 'NULL' string for null dates to include them in count
         const dateKey = record.date || 'NULL'
         callingSet.add(`${record.client_id}_${dateKey}`)
@@ -313,8 +311,7 @@ export async function GET(request) {
 
     const callingYesterdaySet = new Set()
     callingYesterdayData?.forEach(record => {
-      const startupValue = record.corporate_leadgen_leads?.startup
-      if ((!startupValue || startupValue.toLowerCase() === 'no') && record.client_id && record.date) {
+      if (record.client_id && record.date) {
         callingYesterdaySet.add(`${record.client_id}_${record.date}`)
       }
     })
@@ -412,7 +409,7 @@ export async function GET(request) {
               .from('corporate_leadgen_leads')
               .select('*')
               .eq('sourcing_date', lastWorkingDayStr)
-              .or('startup.eq.NO,startup.is.null')
+              .or('startup.ilike.%no%,startup.is.null')
             
             if (clientSearchData && clientSearchData.length > 0) {
               const clientIds = clientSearchData.map(c => c.client_id).filter(Boolean)
@@ -466,9 +463,7 @@ export async function GET(request) {
               .eq('date', lastWorkingDayStr)
             
             if (callingData && callingData.length > 0) {
-              const filteredData = callingData.filter(rec => 
-                !rec.corporate_leadgen_leads?.startup || rec.corporate_leadgen_leads?.startup?.toLowerCase() === 'no'
-              )
+              const filteredData = callingData
               
               const uniqueClients = new Map()
               filteredData.forEach(rec => {
