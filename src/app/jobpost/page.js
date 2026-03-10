@@ -9,6 +9,23 @@ export default function JobPosterReportDetailed() {
   const getTodayDate = () => new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
 
+  // --- STATE FOR REMARKS (stored in localStorage) ---
+  const [remarks, setRemarks] = useState('');
+
+  // Load remarks from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('jobpostRemarks');
+    if (saved) {
+      setRemarks(saved);
+    }
+  }, []);
+
+  // Save remarks to localStorage
+  const saveRemarks = (value) => {
+    setRemarks(value);
+    localStorage.setItem('jobpostRemarks', value);
+  };
+
   // --- API DATABASE 1: JOBS POSTED TODAY (from job_postings + domestic_crm_jd/corporate_crm_jd) ---
   const [jobsPosted, setJobsPosted] = useState([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
@@ -58,8 +75,7 @@ export default function JobPosterReportDetailed() {
   // --- API DATABASE 3: LIFETIME GRAND TOTALS (from posting_data table) ---
   const [lifetimeTotals, setLifetimeTotals] = useState({
     indeedCvs: 0, indeedCalls: 0,
-    naukriCvs: 0, naukriCalls: 0,
-    internshalaCvs: 0, internshalaCalls: 0
+    naukriCvs: 0, naukriCalls: 0
   });
   const [loadingTotals, setLoadingTotals] = useState(true);
 
@@ -73,9 +89,7 @@ export default function JobPosterReportDetailed() {
             indeedCvs: data.platformTotals.indeed?.cvs || 0,
             indeedCalls: data.platformTotals.indeed?.calls || 0,
             naukriCvs: data.platformTotals.naukri?.cvs || 0,
-            naukriCalls: data.platformTotals.naukri?.calls || 0,
-            internshalaCvs: data.platformTotals.internshala?.cvs || 0,
-            internshalaCalls: data.platformTotals.internshala?.calls || 0
+            naukriCalls: data.platformTotals.naukri?.calls || 0
           });
         }
       } catch (error) {
@@ -231,6 +245,18 @@ export default function JobPosterReportDetailed() {
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-4">
+                    {/* Remarks Section */}
+                    <div className="text-center bg-white rounded-lg p-3 border border-gray-200 print:border-gray-300">
+                        <p className="text-xs font-bold uppercase tracking-widest text-gray-600 mb-2">Remarks</p>
+                        <textarea 
+                            className="w-full text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded p-2 resize-none focus:outline-none focus:border-gray-400"
+                            rows="3"
+                            placeholder="Add your remarks here..."
+                            value={remarks}
+                            onChange={(e) => saveRemarks(e.target.value)}
+                        ></textarea>
+                    </div>
+
                     {/* Indeed Lifetime */}
                     <div className="text-center bg-white/10 rounded-lg p-3 border border-white/10 print:border-blue-300">
                         <p className="text-xs font-bold uppercase tracking-widest text-blue-200 mb-2">Indeed</p>
@@ -262,22 +288,6 @@ export default function JobPosterReportDetailed() {
                             </div>
                         </div>
                     </div>
-
-                    {/* Internshala Lifetime */}
-                    <div className="text-center bg-white/10 rounded-lg p-3 border border-white/10 print:border-blue-300">
-                        <p className="text-xs font-bold uppercase tracking-widest text-blue-200 mb-2">Internshala</p>
-                        <div className="flex justify-between items-center text-left px-1">
-                            <div>
-                                <p className="text-[9px] text-gray-300 uppercase">CVs</p>
-                                <p className="text-lg font-black">{lifetimeTotals.internshalaCvs}</p>
-                            </div>
-                            <div className="w-px h-6 bg-blue-500"></div>
-                            <div className="text-right">
-                                <p className="text-[9px] text-gray-300 uppercase">Calls</p>
-                                <p className="text-lg font-black text-green-400">{lifetimeTotals.internshalaCalls}</p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
               )}
           </div>
@@ -290,20 +300,10 @@ export default function JobPosterReportDetailed() {
                 background-color: white !important; 
                 margin: 0 !important; 
                 padding: 0 !important;
-                height: 100vh !important;
-                width: 100vw !important;
             }
             @page { 
                 size: landscape; 
                 margin: 0;
-            }
-            .Print-wrapper {
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                width: 100% !important;
-                height: 100vh !important;
-                min-height: 100vh !important;
             }
             #report-paper { 
                 box-shadow: none !important; 

@@ -361,7 +361,7 @@ export default function JobRequirementsPage() {
                         <h3 className="font-bold text-lg uppercase tracking-wide">Document Preview</h3>
                     </div>
                     <div className="flex gap-3">
-                        <button onClick={downloadPDF} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider">
+                        <button onClick={downloadPDF} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider hidden">
                             <Download size={16}/> Save as PDF
                         </button>
                         <button onClick={() => setIsPreviewOpen(false)} className="hover:bg-white/20 p-2 rounded-full transition">
