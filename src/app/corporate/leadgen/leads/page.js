@@ -19,16 +19,20 @@ export default function LeadsTablePage() {
   const [managerName, setManagerName] = useState("Manager");
 
    const [newLeadData, setNewLeadData] = useState({
-     company: '',
-     category: '',
-     state: '',
-     location: '',
-     emp_count: '1 - 10',
-     reference: '',
-     sourcing_date: '',
-     startup: '',
-     district_city: ''
-   });
+      company: '',
+      category: '',
+      state: '',
+      location: '',
+      emp_count: '1 - 10',
+      reference: '',
+      sourcing_date: '',
+      startup: '',
+      district_city: ''
+    });
+
+    const [formErrors, setFormErrors] = useState({});
+    const [interactionFormErrors, setInteractionFormErrors] = useState({});
+
 
    const [interactionData, setInteractionData] = useState({
      date: new Date().toISOString().split('T')[0],
@@ -48,9 +52,9 @@ export default function LeadsTablePage() {
    const [showCompanySuggestions, setShowCompanySuggestions] = useState(false);
    const [suggestions, setSuggestions] = useState({ persons: [], nos: [], emails: [] });
 
-   const [districtsList, setDistrictsList] = useState([]);
+    const [districtsList, setDistrictsList] = useState([]);
 
-   // --- FULL LISTS ---
+    // --- FULL LISTS ---
    const [indianStates, setIndianStates] = useState([]);
    const [stateDistrictData, setStateDistrictData] = useState({});    
      // Helper to format date for display (YYYY-MM-DD -> DD MMM YY)
@@ -151,6 +155,7 @@ export default function LeadsTablePage() {
     };
 
     const fetchStateDistrictData = async () => {
+      // This function was previously doing validation - now it only fetches data
       try {
         const response = await fetch('/India-State-District.json');
         const data = await response.json();
@@ -172,7 +177,64 @@ export default function LeadsTablePage() {
       setDistrictsList(districts);
     };
 
-     const fetchManagerName = async () => {
+    // Validate form fields for new lead
+    const validateNewLeadForm = () => {
+      const errors = {};
+      
+      if (!newLeadData.company?.trim()) {
+        errors.company = 'Company Name is required';
+      }
+      if (!newLeadData.category) {
+        errors.category = 'Category is required';
+      }
+      if (!newLeadData.sourcing_date) {
+        errors.sourcing_date = 'Sourcing Date is required';
+      }
+      if (!newLeadData.state) {
+        errors.state = 'State is required';
+      }
+      if (!newLeadData.startup) {
+        errors.startup = 'Startup option is required';
+      }
+      
+      setFormErrors(errors);
+      return Object.keys(errors).length === 0;
+    };
+
+    // Validate form fields for interaction
+    const validateInteractionForm = () => {
+      const errors = {};
+      
+      if (!interactionData.date) {
+        errors.date = 'Interaction Date is required';
+      }
+      if (!interactionData.contact_person?.trim()) {
+        errors.contact_person = 'Contact Person is required';
+      }
+      if (!interactionData.contact_no?.trim()) {
+        errors.contact_no = 'Phone is required';
+      }
+      if (!interactionData.status) {
+        errors.status = 'Status is required';
+      }
+      if (!interactionData.sub_status) {
+        errors.sub_status = 'Sub-Status is required';
+      }
+      if (!interactionData.franchise_status) {
+        errors.franchise_status = 'Franchise Status is required';
+      }
+      if (!interactionData.remarks?.trim()) {
+        errors.remarks = 'Remarks is required';
+      }
+      if (!interactionData.next_follow_up) {
+        errors.next_follow_up = 'Next Follow-up Date is required';
+      }
+      
+      setInteractionFormErrors(errors);
+      return Object.keys(errors).length === 0;
+    };
+
+      const fetchManagerName = async () => {
        try {
          const session = JSON.parse(localStorage.getItem('session') || '{}');
          const response = await fetch('/api/corporate/leadgen/send-to-manager', {
@@ -394,9 +456,10 @@ export default function LeadsTablePage() {
      setEditingInteractionId(null); // Reset editing state when opening modal
      
      // Reset interactionData when opening add interaction form
-     if (type === 'add') {
-       setInteractionData({ date: new Date().toISOString().split('T')[0], status: '', sub_status: '', remarks: '', next_follow_up: '', contact_person: '', contact_no: '', email: '', franchise_status: '' });
-     }
+      if (type === 'add') {
+        setInteractionData({ date: new Date().toISOString().split('T')[0], status: '', sub_status: '', remarks: '', next_follow_up: '', contact_person: '', contact_no: '', email: '', franchise_status: '' });
+        setInteractionFormErrors({}); // Clear validation errors
+      }
      
      if (type === 'view') {
        await fetchInteractions(lead.id);
@@ -419,12 +482,13 @@ export default function LeadsTablePage() {
      }
    };
 
-   const handleCreateNew = () => {
-     setSelectedLead(null); // No selected lead yet
-     setModalType("create");
-     setIsFormOpen(true);
-      // Reset form data to ensure clean slate for new lead
-      setNewLeadData({
+    const handleCreateNew = () => {
+      setSelectedLead(null); // No selected lead yet
+      setModalType("create");
+      setIsFormOpen(true);
+      setFormErrors({}); // Clear any previous validation errors
+       // Reset form data to ensure clean slate for new lead
+       setNewLeadData({
         company: '',
         category: '',
         state: '',
@@ -438,7 +502,10 @@ export default function LeadsTablePage() {
    };
 
    const handleSaveOnly = async () => {
-     try {
+      if (!validateNewLeadForm()) {
+        return;
+      }
+      try {
        const session = JSON.parse(localStorage.getItem('session') || '{}');
        
        // Check for duplicate company name
@@ -492,7 +559,10 @@ export default function LeadsTablePage() {
    };
 
    const handleSaveAndFollowup = async () => {
-     try {
+      if (!validateNewLeadForm()) {
+        return;
+      }
+      try {
        const session = JSON.parse(localStorage.getItem('session') || '{}');
        
        // Check for duplicate company name
@@ -558,7 +628,10 @@ export default function LeadsTablePage() {
    };
 
    const handleUpdateLead = async () => {
-     try {
+      if (!validateNewLeadForm()) {
+        return;
+      }
+      try {
        const session = JSON.parse(localStorage.getItem('session') || '{}');
        // Assuming you use PUT or PATCH for updates. Adjust the method/URL if your API is different.
        const response = await fetch('/api/corporate/leadgen/leads', { 
@@ -584,8 +657,11 @@ export default function LeadsTablePage() {
        console.error('Failed to update lead:', error);
      }
    };
-   const handleSaveInteraction = async () => {
-     try {
+    const handleSaveInteraction = async () => {
+      if (!validateInteractionForm()) {
+        return;
+      }
+      try {
        const session = JSON.parse(localStorage.getItem('session') || '{}');
        const method = editingInteractionId ? 'PUT' : 'POST';
        const bodyData = editingInteractionId 
@@ -622,14 +698,14 @@ export default function LeadsTablePage() {
        {/* 1. HEADER & ACTIONS */}
  <div className="flex justify-between items-center mb-2 px-2 mt-1">
            <div>
-           <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight">Leads Database</h1>
-           <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">
-             Manage & Track Client Interactions
-             <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200">
-               {leads.length} rows
-             </span>
-           </p>
-         </div>
+             <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight">Leads Database</h1>
+             <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">
+               Manage & Track Client Interactions
+               <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200">
+                 {leads.length} rows
+               </span>
+             </p>
+          </div>
          <button onClick={handleCreateNew} className="bg-[#103c7f] hover:bg-blue-900 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-transform active:scale-95">
             <Plus size={18} /> Add New Lead
          </button>
@@ -963,6 +1039,9 @@ export default function LeadsTablePage() {
                     {modalType === 'create' ? 'Sourcing New Lead' : 
                      modalType === 'add' ? (editingInteractionId ? 'Edit Interaction' : 'Add Interaction') : 'Lead Details'}
                   </h3>
+                  {modalType === 'create' && (
+                    <p className="text-xs text-red-500 font-bold mt-1 bg-white p-1">Kindly fill all the required fields marked with an asterisk (*)</p>
+                  )}
                   {selectedLead && (
                       <p className="text-xs opacity-70 font-mono mt-1">{selectedLead.company}</p>
                   )}
@@ -982,7 +1061,8 @@ export default function LeadsTablePage() {
                       <div className="grid grid-cols-3 gap-4">
                           <div className="relative">
                               <label className="text-[10px] font-bold text-gray-400 uppercase">Company Name <span className="text-red-500">*</span></label>
-                              <input type="text" placeholder="Enter full name" value={newLeadData.company} onChange={(e) => { setNewLeadData({...newLeadData, company: e.target.value}); setShowCompanySuggestions(true); }} onBlur={() => setTimeout(() => setShowCompanySuggestions(false), 200)} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none" />
+                              <input type="text" placeholder="Enter full name" value={newLeadData.company} onChange={(e) => { setNewLeadData({...newLeadData, company: e.target.value}); setShowCompanySuggestions(true); }} onBlur={() => setTimeout(() => setShowCompanySuggestions(false), 200)} className={`w-full border rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none ${formErrors.company ? 'border-red-500 focus:border-red-500' : 'border-gray-300'}`} />
+                              {formErrors.company && <p className="text-red-500 text-xs mt-1">{formErrors.company}</p>}
                               {showCompanySuggestions && companySuggestions.length > 0 && modalType === 'create' && (
                                 <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
                                   {companySuggestions.map((suggestion) => (
@@ -1015,35 +1095,38 @@ export default function LeadsTablePage() {
                               )}
                           </div>
                           <div>
-                              <label className="text-[10px] font-bold text-gray-400 uppercase">Category</label>
-                              <select value={newLeadData.category} onChange={(e) => setNewLeadData({...newLeadData, category: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
-                                  <option>Select Category...</option>
+                              <label className="text-[10px] font-bold text-gray-400 uppercase">Category <span className="text-red-500">*</span></label>
+                              <select value={newLeadData.category} onChange={(e) => setNewLeadData({...newLeadData, category: e.target.value})} className={`w-full border rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none ${formErrors.category ? 'border-red-500' : 'border-gray-300'}`}>
+                                  <option value="">Select Category...</option>
                                   {industryCategories.map((cat, idx) => (
                                     <option key={idx} value={cat}>{cat}</option>
                                   ))}
                               </select>
+                              {formErrors.category && <p className="text-red-500 text-xs mt-1">{formErrors.category}</p>}
                           </div>
                           <div>
-                              <label className="text-[10px] font-bold text-gray-400 uppercase">Sourcing Date</label>
-                              <input type="date" value={newLeadData.sourcing_date} onChange={(e) => setNewLeadData({...newLeadData, sourcing_date: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none" />
+                              <label className="text-[10px] font-bold text-gray-400 uppercase">Sourcing Date <span className="text-red-500">*</span></label>
+                              <input type="date" value={newLeadData.sourcing_date} onChange={(e) => setNewLeadData({...newLeadData, sourcing_date: e.target.value})} className={`w-full border rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none ${formErrors.sourcing_date ? 'border-red-500' : 'border-gray-300'}`} />
+                              {formErrors.sourcing_date && <p className="text-red-500 text-xs mt-1">{formErrors.sourcing_date}</p>}
                           </div>
                       </div>
 
                        {/* Row 2: State, District/City & Emp Count */}
                        <div className="grid grid-cols-3 gap-4">
-                           <div>
-                               <label className="text-[10px] font-bold text-gray-400 uppercase">State</label>
-                               <select value={newLeadData.state} onChange={(e) => {
-                                 const selectedState = e.target.value;
-                                 setNewLeadData({...newLeadData, state: selectedState, district_city: ''});
-                                 fetchDistricts(selectedState);
-                               }} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
-                                   <option>Select State...</option>
-                                   {indianStates.map((state, idx) => (
-                                     <option key={idx} value={state}>{state}</option>
-                                   ))}
-                               </select>
-                           </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-gray-400 uppercase">State <span className="text-red-500">*</span></label>
+                                <select value={newLeadData.state} onChange={(e) => {
+                                  const selectedState = e.target.value;
+                                  setNewLeadData({...newLeadData, state: selectedState, district_city: ''});
+                                  fetchDistricts(selectedState);
+                                }} className={`w-full border rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none ${formErrors.state ? 'border-red-500' : 'border-gray-300'}`}>
+                                    <option value="">Select State...</option>
+                                    {indianStates.map((state, idx) => (
+                                      <option key={idx} value={state}>{state}</option>
+                                    ))}
+                                </select>
+                                {formErrors.state && <p className="text-red-500 text-xs mt-1">{formErrors.state}</p>}
+                            </div>
                            <div>
                                <label className="text-[10px] font-bold text-gray-400 uppercase">District/City</label>
                                <select value={newLeadData.district_city} onChange={(e) => setNewLeadData({...newLeadData, district_city: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none" disabled={!newLeadData.state}>
@@ -1080,15 +1163,16 @@ export default function LeadsTablePage() {
                                <label className="text-[10px] font-bold text-gray-400 uppercase">Reference / Source</label>
                                <input type="text" placeholder="LinkedIn, Google, Cold Call..." value={newLeadData.reference} onChange={(e) => setNewLeadData({...newLeadData, reference: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none" />
                            </div>
-                           <div>
-                               <label className="text-[10px] font-bold text-gray-400 uppercase">Startup</label>
-                               <select value={newLeadData.startup} onChange={(e) => setNewLeadData({...newLeadData, startup: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
-                                   <option value="">Select Option</option>
-                                   <option value="Yes">Yes</option>
-                                   <option value="No">No</option>
-                                   <option value="Master Union">Master Union</option>
-                               </select>
-                           </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-gray-400 uppercase">Startup <span className="text-red-500">*</span></label>
+                                <select value={newLeadData.startup} onChange={(e) => setNewLeadData({...newLeadData, startup: e.target.value})} className={`w-full border rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none ${formErrors.startup ? 'border-red-500' : 'border-gray-300'}`}>
+                                    <option value="">Select Option</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                    <option value="Master Union">Master Union</option>
+                                </select>
+                                {formErrors.startup && <p className="text-red-500 text-xs mt-1">{formErrors.startup}</p>}
+                            </div>
                        </div>
                   </div>
                 )}
@@ -1123,102 +1207,107 @@ export default function LeadsTablePage() {
       <div className="space-y-3 pt-2">
 
          {/* Row 1: Interaction Date */}
-         <div>
-           <label className="text-[10px] font-bold text-gray-500 uppercase">Interaction Date</label>
-           <input
-             type="date"
-             value={interactionData.date}
-             onChange={(e) => setInteractionData({...interactionData, date: e.target.value})}
-             className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none font-medium"
-           />
-         </div>
+          <div>
+            <label className="text-[10px] font-bold text-gray-500 uppercase">Interaction Date <span className="text-red-500">*</span></label>
+            <input
+              type="date"
+              value={interactionData.date}
+              onChange={(e) => setInteractionData({...interactionData, date: e.target.value})}
+              className={`w-full border rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none font-medium ${interactionFormErrors.date ? 'border-red-500' : 'border-gray-300'}`}
+            />
+            {interactionFormErrors.date && <p className="text-red-500 text-xs mt-1">{interactionFormErrors.date}</p>}
+          </div>
 
           {/* Row 2: Contact Person, Phone, Email */}
           <div className="grid grid-cols-3 gap-4">
-             <div>
-               <label className="text-[10px] font-bold text-gray-500 uppercase">Contact Person</label>
-               <input
-                 type="text"
-                 placeholder="Enter name"
-                 value={interactionData.contact_person}
-                 onChange={(e) => setInteractionData({...interactionData, contact_person: e.target.value})}
-                 className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
-                 list="persons"
-               />
-               <datalist id="persons">
-                 {suggestions.persons.map(p => <option key={p} value={p} />)}
-               </datalist>
-             </div>
-             <div>
-               <label className="text-[10px] font-bold text-gray-500 uppercase">Phone</label>
-               <input
-                 type="tel"
-                 placeholder="Enter phone number"
-                 value={interactionData.contact_no}
-                 onChange={(e) => setInteractionData({...interactionData, contact_no: e.target.value})}
-                 className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
-                 list="nos"
-               />
-               <datalist id="nos">
-                 {suggestions.nos.map(n => <option key={n} value={n} />)}
-               </datalist>
-             </div>
-             <div>
-               <label className="text-[10px] font-bold text-gray-500 uppercase">Email</label>
-               <input
-                 type="email"
-                 placeholder="Enter email"
-                 value={interactionData.email}
-                 onChange={(e) => setInteractionData({...interactionData, email: e.target.value})}
-                 className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
-                 list="emails"
-               />
-               <datalist id="emails">
-                 {suggestions.emails.map(e => <option key={e} value={e} />)}
-               </datalist>
-             </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 uppercase">Contact Person <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  placeholder="Enter name"
+                  value={interactionData.contact_person}
+                  onChange={(e) => setInteractionData({...interactionData, contact_person: e.target.value})}
+                  className={`w-full border rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none ${interactionFormErrors.contact_person ? 'border-red-500' : 'border-gray-300'}`}
+                  list="persons"
+                />
+                {interactionFormErrors.contact_person && <p className="text-red-500 text-xs mt-1">{interactionFormErrors.contact_person}</p>}
+                <datalist id="persons">
+                  {suggestions.persons.map(p => <option key={p} value={p} />)}
+                </datalist>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 uppercase">Phone <span className="text-red-500">*</span></label>
+                <input
+                  type="tel"
+                  placeholder="Enter phone number"
+                  value={interactionData.contact_no}
+                  onChange={(e) => setInteractionData({...interactionData, contact_no: e.target.value})}
+                  className={`w-full border rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none ${interactionFormErrors.contact_no ? 'border-red-500' : 'border-gray-300'}`}
+                  list="nos"
+                />
+                {interactionFormErrors.contact_no && <p className="text-red-500 text-xs mt-1">{interactionFormErrors.contact_no}</p>}
+                <datalist id="nos">
+                  {suggestions.nos.map(n => <option key={n} value={n} />)}
+                </datalist>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 uppercase">Email</label>
+                <input
+                  type="email"
+                  placeholder="Enter email"
+                  value={interactionData.email}
+                  onChange={(e) => setInteractionData({...interactionData, email: e.target.value})}
+                  className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
+                  list="emails"
+                />
+                <datalist id="emails">
+                  {suggestions.emails.map(e => <option key={e} value={e} />)}
+                </datalist>
+              </div>
           </div>
 
           {/* Row 3: Status & Sub-Status */}
           <div className="grid grid-cols-2 gap-4">
-             <div>
-               <label className="text-[10px] font-bold text-gray-500 uppercase">New Status</label>
-               <select value={interactionData.status} onChange={(e) => setInteractionData({...interactionData, status: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
-                 <option value="">Select Status</option>
-                 <option>Interested</option>
-                 <option>Not Interested</option>
-                 <option>Not Picked</option>
-                 <option>Onboard</option>
-                 <option>Call Later</option>
-               </select>
-             </div>
-             <div>
-               <label className="text-[10px] font-bold text-gray-500 uppercase">Sub-Status</label>
-               <select value={interactionData.sub_status} onChange={(e) => setInteractionData({...interactionData, sub_status: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
-                 <option value="">Select Sub-Status</option>
-                 <option>2nd time not picked</option>
-                 <option>Contract Share</option>
-                 <option>Enough Vendor Empanelment</option>
-                 <option>Hiring Sealed</option>
-                 <option>Manager Ask</option>
-                 <option>Meeting Align</option>
-                 <option>Misaligned T&C</option>
-                 <option>Not Right Person</option>
-                 <option>Official Mail Ask</option>
-                 <option>Reference Ask</option>
-                 <option>Self Hiring</option>
-                 <option>Ready To Visit</option>
-                 <option>Callback</option>
-                 <option>NA</option>
-               </select>
-             </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 uppercase">New Status <span className="text-red-500">*</span></label>
+                <select value={interactionData.status} onChange={(e) => setInteractionData({...interactionData, status: e.target.value})} className={`w-full border rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none ${interactionFormErrors.status ? 'border-red-500' : 'border-gray-300'}`}>
+                  <option value="">Select Status</option>
+                  <option>Interested</option>
+                  <option>Not Interested</option>
+                  <option>Not Picked</option>
+                  <option>Onboard</option>
+                  <option>Call Later</option>
+                </select>
+                {interactionFormErrors.status && <p className="text-red-500 text-xs mt-1">{interactionFormErrors.status}</p>}
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 uppercase">Sub-Status <span className="text-red-500">*</span></label>
+                <select value={interactionData.sub_status} onChange={(e) => setInteractionData({...interactionData, sub_status: e.target.value})} className={`w-full border rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none ${interactionFormErrors.sub_status ? 'border-red-500' : 'border-gray-300'}`}>
+                  <option value="">Select Sub-Status</option>
+                  <option>2nd time not picked</option>
+                  <option>Contract Share</option>
+                  <option>Enough Vendor Empanelment</option>
+                  <option>Hiring Sealed</option>
+                  <option>Manager Ask</option>
+                  <option>Meeting Align</option>
+                  <option>Misaligned T&C</option>
+                  <option>Not Right Person</option>
+                  <option>Official Mail Ask</option>
+                  <option>Reference Ask</option>
+                  <option>Self Hiring</option>
+                  <option>Ready To Visit</option>
+                  <option>Callback</option>
+                  <option>NA</option>
+                </select>
+                {interactionFormErrors.sub_status && <p className="text-red-500 text-xs mt-1">{interactionFormErrors.sub_status}</p>}
+              </div>
           </div>
 
           {/* Row 4: Franchise Status & Remarks */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-bold text-gray-500 uppercase">Franchise Status</label>
-              <select value={interactionData.franchise_status} onChange={(e) => setInteractionData({...interactionData, franchise_status: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none">
+              <label className="text-[10px] font-bold text-gray-500 uppercase">Franchise Status <span className="text-red-500">*</span></label>
+              <select value={interactionData.franchise_status} onChange={(e) => setInteractionData({...interactionData, franchise_status: e.target.value})} className={`w-full border rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none ${interactionFormErrors.franchise_status ? 'border-red-500' : 'border-gray-300'}`}>
                 <option value="">Select Franchise Status</option>
                 <option>Application Form Share</option>
                 <option>No Franchise Discuss</option>
@@ -1227,23 +1316,26 @@ export default function LeadsTablePage() {
                 <option>Form Filled</option>
                 <option>Form Not Filled</option>
               </select>
+              {interactionFormErrors.franchise_status && <p className="text-red-500 text-xs mt-1">{interactionFormErrors.franchise_status}</p>}
             </div>
             <div>
-              <label className="text-[10px] font-bold text-gray-500 uppercase">Remarks (Conversation Details)</label>
+              <label className="text-[10px] font-bold text-gray-500 uppercase">Remarks (Conversation Details) <span className="text-red-500">*</span></label>
               <textarea
                 value={interactionData.remarks}
                 onChange={(e) => setInteractionData({...interactionData, remarks: e.target.value})}
-                className="w-full border border-gray-300 rounded p-3 text-sm mt-1 h-20 focus:border-[#103c7f] outline-none resize-none placeholder:text-gray-300"
+                className={`w-full border rounded p-3 text-sm mt-1 h-20 focus:border-[#103c7f] outline-none resize-none placeholder:text-gray-300 ${interactionFormErrors.remarks ? 'border-red-500' : 'border-gray-300'}`}
                 placeholder="Client kya bola? Mention key points..."
               ></textarea>
+              {interactionFormErrors.remarks && <p className="text-red-500 text-xs mt-1">{interactionFormErrors.remarks}</p>}
             </div>
           </div>
 
          {/* Row 5: Next Follow-up */}
-         <div>
-           <label className="text-[10px] font-bold text-gray-500 uppercase text-orange-600">Next Follow-up Date</label>
-           <input type="date" value={interactionData.next_follow_up} onChange={(e) => setInteractionData({...interactionData, next_follow_up: e.target.value})} className="w-full border border-orange-200 bg-orange-50/30 rounded p-2 text-sm mt-1 focus:border-orange-500 outline-none font-bold text-gray-700" />
-         </div>
+          <div>
+            <label className="text-[10px] font-bold text-gray-500 uppercase text-orange-600">Next Follow-up Date <span className="text-red-500">*</span></label>
+            <input type="date" value={interactionData.next_follow_up} onChange={(e) => setInteractionData({...interactionData, next_follow_up: e.target.value})} className={`w-full border rounded p-2 text-sm mt-1 focus:border-orange-500 outline-none font-bold text-gray-700 ${interactionFormErrors.next_follow_up ? 'border-red-500' : 'border-orange-200'}`} />
+            {interactionFormErrors.next_follow_up && <p className="text-red-500 text-xs mt-1">{interactionFormErrors.next_follow_up}</p>}
+          </div>
 
       </div>
     </div>
