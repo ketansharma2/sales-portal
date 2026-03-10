@@ -38,19 +38,19 @@ export async function GET(request) {
       })
     }
 
-    // Extract all jd_ids
-    const jdIds = jobPostings.map(jp => jp.jd_id);
+    // Get unique jd_ids only (to avoid duplicate rows for same JD posted to multiple platforms)
+    const uniqueJdIds = [...new Set(jobPostings.map(jp => jp.jd_id))];
 
-    // Fetch matching JDs from both tables using jd_id
+    // Fetch matching JDs from both tables using unique jd_ids
     const [domesticJDs, corporateJDs] = await Promise.all([
       supabaseAdmin
         .from('domestic_crm_jd')
         .select('jd_id, client_name, job_title')
-        .in('jd_id', jdIds),
+        .in('jd_id', uniqueJdIds),
       supabaseAdmin
         .from('corporate_crm_jd')
         .select('jd_id, client_name, job_title')
-        .in('jd_id', jdIds)
+        .in('jd_id', uniqueJdIds)
     ]);
 
     // Create lookup maps using jd_id as key
@@ -64,26 +64,24 @@ export async function GET(request) {
       corporateMap[jd.jd_id] = { ...jd, sector: 'Corporate' };
     });
 
-    // Build final jobs list
-    const jobs = jobPostings.map(posting => {
-      const jdId = posting.jd_id;
-      
+    // Build final jobs list using unique jd_ids only
+    const jobs = uniqueJdIds.map(jdId => {
       // Check domestic first, then corporate
       const domesticJD = domesticMap[jdId];
       const corporateJD = corporateMap[jdId];
       
       if (domesticJD) {
         return {
-          id: posting.id,
-          date: posting.posted_on,
+          id: jdId,
+          date: date,
           sector: 'Domestic',
           client: domesticJD.client_name,
           profile: domesticJD.job_title
         };
       } else if (corporateJD) {
         return {
-          id: posting.id,
-          date: posting.posted_on,
+          id: jdId,
+          date: date,
           sector: 'Corporate',
           client: corporateJD.client_name,
           profile: corporateJD.job_title
@@ -92,8 +90,8 @@ export async function GET(request) {
       
       // If no match found
       return {
-        id: posting.id,
-        date: posting.posted_on,
+        id: jdId,
+        date: date,
         sector: 'Unknown',
         client: 'Unknown',
         profile: 'Unknown'
