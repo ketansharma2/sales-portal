@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { 
   ArrowLeft, FileText, Download, CheckCircle, Clock, AlertCircle, Plus, 
   Search, Filter, Calendar, User, Mail, Briefcase, IndianRupee, ShieldCheck, Eye, Edit, Save, X, 
-  MessageSquarePlus, History, UserSearch // Naye icons
+  MessageSquarePlus, History, UserSearch, ChevronLeft, ChevronRight // Naye icons
 } from "lucide-react";
 
 export default function RevenuePage() {
@@ -95,7 +95,10 @@ export default function RevenuePage() {
   };
 
   const [formData, setFormData] = useState(initialForm);
-  const [kycFile, setKycFile] = useState(null);
+  const [kycFiles, setKycFiles] = useState([]); // Multiple KYC files
+  const [kycPreviewIndex, setKycPreviewIndex] = useState(0); // Current preview index
+  const [existingKycLinks, setExistingKycLinks] = useState([]); // Existing KYC documents for edit
+  const [documentsToDelete, setDocumentsToDelete] = useState([]); // Documents marked for deletion
 
   // Payment Followup Form State
   const [followupForm, setFollowupForm] = useState({
@@ -111,9 +114,11 @@ export default function RevenuePage() {
   // Candidate Followup History State (for TL/Recruiter follow-ups)
   const [candidateFollowupHistory, setCandidateFollowupHistory] = useState([]);
 
-  // Handle KYC file upload
-  const handleKycUpload = async (file) => {
-    setKycFile(file);
+  // Handle KYC file upload (multiple files)
+  const handleKycUpload = (files) => {
+    if (files && files.length > 0) {
+      setKycFiles(Array.from(files)); // Convert FileList to array
+    }
   };
 
   const months = [
@@ -145,13 +150,23 @@ export default function RevenuePage() {
   // Open Modal
   const handleOpenModal = (type, record = null) => {
       setModalType(type);
+      setDocumentsToDelete([]); // Reset deletion list
+      setKycFiles([]); // Reset new files
       if (type === 'edit' && record) {
           setFormData(sanitizeFormData(record));
           setSelectedRecord(record);
+          // Load existing KYC links for editing
+          if (record.kyc_link) {
+              setExistingKycLinks(Array.isArray(record.kyc_link) ? record.kyc_link : [record.kyc_link]);
+          } else {
+              setExistingKycLinks([]);
+          }
       } else if (type === 'add') {
           setFormData({ ...initialForm, id: Date.now() });
+          setExistingKycLinks([]);
       } else if (record) {
           setSelectedRecord(record); 
+          setExistingKycLinks([]);
           
           // If opening candidate followup view, fetch the data
           if (type === 'viewCandidateFollowup' && record.id) {
@@ -193,7 +208,10 @@ export default function RevenuePage() {
       setIsModalOpen(false);
       setSelectedRecord(null);
       setFormData(initialForm);
-      setKycFile(null);
+      setKycFiles([]);
+      setKycPreviewIndex(0);
+      setExistingKycLinks([]);
+      setDocumentsToDelete([]);
       setCandidateFollowupHistory([]);
   };
 
@@ -203,12 +221,14 @@ export default function RevenuePage() {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const token = session.access_token;
       
-      // Helper to upload file
-      const uploadFile = async (revenueId) => {
-        if (!kycFile) return null;
+      // Helper to upload multiple files
+      const uploadFiles = async (revenueId) => {
+        if (kycFiles.length === 0) return null;
         
         const uploadFormData = new FormData();
-        uploadFormData.append('file', kycFile);
+        kycFiles.forEach(file => {
+          uploadFormData.append('files', file); // Use 'files' key for multiple files
+        });
         uploadFormData.append('revenue_id', revenueId);
         
         const response = await fetch('/api/domestic/crm/revenue/upload-kyc', {
@@ -234,9 +254,9 @@ export default function RevenuePage() {
         
         const result = await response.json();
         if (result.success) {
-          // If there's a file to upload, upload it
-          if (kycFile) {
-            await uploadFile(result.data.id);
+          // If there are files to upload, upload them
+          if (kycFiles.length > 0) {
+            await uploadFiles(result.data.id);
           }
           fetchRevenueData();
         } else {
@@ -255,9 +275,9 @@ export default function RevenuePage() {
         
         const result = await response.json();
         if (result.success) {
-          // If there's a new file to upload, upload it
-          if (kycFile) {
-            await uploadFile(formData.id);
+          // If there are new files to upload, upload them
+          if (kycFiles.length > 0) {
+            await uploadFiles(formData.id);
           }
           fetchRevenueData();
         } else {
@@ -265,7 +285,7 @@ export default function RevenuePage() {
           return;
         }
       }
-      setKycFile(null); // Clear file after save
+      setKycFiles([]); // Clear files after save
       handleCloseModal();
     } catch (error) {
       console.error('Error saving:', error);
@@ -343,6 +363,55 @@ export default function RevenuePage() {
   const isGoogleDriveLink = (url) => {
     if (!url) return false;
     return url.includes('drive.google.com');
+  };
+
+  // Helper function to delete a KYC document
+  const handleDeleteKycDocument = async (urlToDelete, revenueId) => {
+    if (!revenueId) {
+      alert('Error: Revenue ID not found');
+      return false;
+    }
+    
+    const confirmed = confirm('Are you sure you want to delete this document?');
+    if (!confirmed) return false;
+    
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      
+      const response = await fetch(
+        `/api/domestic/crm/revenue/upload-kyc?revenue_id=${revenueId}&url=${encodeURIComponent(urlToDelete)}`,
+        {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Remove from existing links locally
+        setExistingKycLinks(prev => prev.filter(link => link !== urlToDelete));
+        
+        // Show success message
+        alert('Document deleted successfully!');
+        
+        // Refresh the data
+        fetchRevenueData();
+        
+        // Close the modal - don't auto-reopen as the data is now stale
+        handleCloseModal();
+        
+        return true;
+      } else {
+        alert('Failed to delete: ' + (result.error || 'Unknown error') + '\n\nDetails: ' + (result.details || ''));
+        return false;
+      }
+    } catch (error) {
+      console.error('Error deleting KYC document:', error);
+      alert('Error deleting document: ' + error.message);
+      return false;
+    }
   };
 
   // Filter Logic
@@ -502,9 +571,9 @@ export default function RevenuePage() {
 
                         {/* KYC */}
                         <td className="p-3 border-r border-gray-100 text-center">
-                           {item.kyc_link ? (
+                           {item.kyc_link && (Array.isArray(item.kyc_link) ? item.kyc_link.length > 0 : item.kyc_link) ? (
                               <button onClick={() => handleOpenModal('viewKyc', item)} className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-100 hover:bg-blue-100 transition mx-auto" title="View Documents">
-                                 <Eye size={12}/> <span className="text-[9px] font-bold uppercase">View</span>
+                                 <Eye size={12}/> <span className="text-[9px] font-bold uppercase">View{Array.isArray(item.kyc_link) && item.kyc_link.length > 1 ? ` (${item.kyc_link.length})` : ''}</span>
                               </button>
                            ) : (
                               <span className="text-red-400 text-[9px] font-bold uppercase flex items-center justify-center gap-1"><AlertCircle size={12}/> Pending</span>
@@ -694,25 +763,60 @@ export default function RevenuePage() {
                             </div>
                             
                             <div>
-                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Upload KYC Document</label>
+                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Upload KYC Document(s)</label>
+                                
+                                {/* Show existing documents in edit mode */}
+                                {modalType === 'edit' && existingKycLinks.length > 0 && (
+                                    <div className="mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                        <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">Existing Documents:</p>
+                                        <div className="space-y-2 max-h-32 overflow-y-auto">
+                                            {existingKycLinks.map((link, idx) => (
+                                                <div key={idx} className="flex items-center justify-between bg-white p-2 rounded border border-gray-200">
+                                                    <div className="flex items-center gap-2 overflow-hidden">
+                                                        <FileText size={14} className="text-blue-500 shrink-0"/>
+                                                        <span className="text-[10px] text-gray-600 truncate" title={link}>
+                                                            Document {idx + 1}
+                                                        </span>
+                                                        {isGoogleDriveLink(link) && (
+                                                            <span className="text-[8px] bg-blue-100 text-blue-600 px-1 rounded shrink-0">GDrive</span>
+                                                        )}
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteKycDocument(link, selectedRecord?.id || formData.id)}
+                                                        className="text-red-500 hover:text-red-700 transition shrink-0 ml-2"
+                                                        title="Delete document"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* File input for new uploads */}
                                 <input 
                                     type="file" 
                                     accept=".pdf,.jpg,.jpeg,.png"
+                                    multiple
                                     onChange={(e) => {
-                                        const file = e.target.files[0];
-                                        if (file) {
-                                            handleKycUpload(file);
-                                        }
+                                        handleKycUpload(e.target.files);
                                     }} 
                                     className="w-full border border-gray-300 rounded p-1.5 text-sm focus:border-[#103c7f] outline-none bg-white file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-[#103c7f] hover:file:bg-blue-100 cursor-pointer"
                                 />
-                                {kycFile && (
-                                    <p className="text-[9px] text-green-600 mt-1">Selected: {kycFile.name}</p>
+                                {kycFiles.length > 0 ? (
+                                    <div className="mt-2 space-y-1">
+                                        {kycFiles.map((file, idx) => (
+                                            <p key={idx} className="text-[9px] text-green-600 flex items-center gap-1">
+                                                <FileText size={10}/> {file.name}
+                                            </p>
+                                        ))}
+                                        <p className="text-[8px] text-blue-600 font-bold">{kycFiles.length} new file(s) to upload</p>
+                                    </div>
+                                ) : (
+                                    <p className="text-[9px] text-gray-400 mt-1 italic">Supported formats: PDF, JPG, PNG (multiple allowed)</p>
                                 )}
-                                {formData.kyc_link && !kycFile && (
-                                    <p className="text-[9px] text-blue-600 mt-1">Current file uploaded</p>
-                                )}
-                                <p className="text-[9px] text-gray-400 mt-1 italic">Supported formats: PDF, JPG, PNG</p>
                             </div>
 
                         </div>
@@ -914,38 +1018,86 @@ export default function RevenuePage() {
                     </div>
                 )}
 
-                {/* --- 4. VIEW KYC DOCUMENT MODAL --- */}
+                {/* --- 4. VIEW KYC DOCUMENT MODAL (Multiple Documents) --- */}
                 {modalType === 'viewKyc' && selectedRecord && selectedRecord.kyc_link && (
                     <div className="p-6">
-                        <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
+                        <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-100">
                             <div>
                                 <h4 className="text-lg font-black text-gray-800">{selectedRecord.candidate_name}</h4>
-                                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">KYC Document</p>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                    KYC Document {Array.isArray(selectedRecord.kyc_link) ? `${kycPreviewIndex + 1} of ${selectedRecord.kyc_link.length}` : ''}
+                                </p>
                             </div>
-                            {isGoogleDriveLink(selectedRecord.kyc_link) && (
-                                <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded border border-blue-200 font-bold">
-                                    Google Drive
-                                </span>
+                            {/* Thumbnail Navigation for Multiple Documents */}
+                            {Array.isArray(selectedRecord.kyc_link) && selectedRecord.kyc_link.length > 1 && (
+                                <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1 border border-gray-200">
+                                    {selectedRecord.kyc_link.map((link, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => setKycPreviewIndex(idx)}
+                                            className={`w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold transition ${
+                                                idx === kycPreviewIndex 
+                                                    ? 'bg-[#103c7f] text-white' 
+                                                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'
+                                            }`}
+                                        >
+                                            {idx + 1}
+                                        </button>
+                                    ))}
+                                </div>
                             )}
                         </div>
                         
                         {/* Document Preview */}
-                        <div className="bg-gray-100 rounded-xl border border-gray-200 overflow-hidden" style={{height: '60vh'}}>
-                            {selectedRecord.kyc_link.toLowerCase().endsWith('.pdf') || isGoogleDriveLink(selectedRecord.kyc_link) ? (
-                                <iframe 
-                                    src={isGoogleDriveLink(selectedRecord.kyc_link) 
-                                        ? selectedRecord.kyc_link.replace('/view?usp=sharing', '/preview') 
-                                        : selectedRecord.kyc_link} 
-                                    className="w-full h-full"
-                                    title="KYC Document"
-                                />
-                            ) : (
-                                <img 
-                                    src={getDirectLink(selectedRecord.kyc_link)} 
-                                    alt="KYC Document" 
-                                    className="w-full h-full object-contain"
-                                />
+                        <div className="bg-gray-100 rounded-xl border border-gray-200 overflow-hidden relative" style={{height: '60vh'}}>
+                            {/* Navigation Arrows for Multiple Documents */}
+                            {Array.isArray(selectedRecord.kyc_link) && selectedRecord.kyc_link.length > 1 && (
+                                <>
+                                    {kycPreviewIndex > 0 && (
+                                        <button 
+                                            onClick={() => setKycPreviewIndex(kycPreviewIndex - 1)}
+                                            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white text-[#103c7f] p-2 rounded-full shadow-lg border border-gray-200 transition"
+                                        >
+                                            <ChevronLeft size={20}/>
+                                        </button>
+                                    )}
+                                    {kycPreviewIndex < selectedRecord.kyc_link.length - 1 && (
+                                        <button 
+                                            onClick={() => setKycPreviewIndex(kycPreviewIndex + 1)}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white text-[#103c7f] p-2 rounded-full shadow-lg border border-gray-200 transition"
+                                        >
+                                            <ChevronRight size={20}/>
+                                        </button>
+                                    )}
+                                </>
                             )}
+                            
+                            {/* Current Document */}
+                            {(() => {
+                                const currentLink = Array.isArray(selectedRecord.kyc_link) ? selectedRecord.kyc_link[kycPreviewIndex] : selectedRecord.kyc_link;
+                                const isPdf = currentLink.toLowerCase().endsWith('.pdf') || currentLink.toLowerCase().endsWith('.pdf');
+                                const isGoogle = isGoogleDriveLink(currentLink);
+                                
+                                if (isPdf || isGoogle) {
+                                    return (
+                                        <iframe 
+                                            src={isGoogle 
+                                                ? currentLink.replace('/view?usp=sharing', '/preview') 
+                                                : currentLink} 
+                                            className="w-full h-full"
+                                            title={`KYC Document ${kycPreviewIndex + 1}`}
+                                        />
+                                    );
+                                } else {
+                                    return (
+                                        <img 
+                                            src={getDirectLink(currentLink)} 
+                                            alt={`KYC Document ${kycPreviewIndex + 1}`} 
+                                            className="w-full h-full object-contain"
+                                        />
+                                    );
+                                }
+                            })()}
                         </div>
 
                         <div className="mt-6 text-right pt-4 border-t border-gray-100">
