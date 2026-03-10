@@ -39,17 +39,18 @@ export async function GET(request) {
       const yesterdayStr = yesterday.toISOString().split('T')[0]
 
       // Get the most recent contact_date available in the database
-      const { data: latestDateData } = await supabaseServer
+      // Fetch only dates that are NOT today, ordered by descending, limit 1
+      const today = new Date().toISOString().split('T')[0]
+      
+      const { data: latestDateDataArray } = await supabaseServer
         .from('domestic_clients_interaction')
         .select('contact_date')
+        .neq('contact_date', today)  // Exclude today's date
         .order('contact_date', { ascending: false })
         .limit(1)
         .single()
 
-      let lastWorkingDayStr = yesterdayStr
-      if (latestDateData?.contact_date) {
-        lastWorkingDayStr = latestDateData.contact_date
-      }
+      let lastWorkingDayStr = latestDateDataArray?.contact_date || yesterdayStr
 
       // Helper function to get user names
       const getUserNames = async (userIds) => {
@@ -502,18 +503,19 @@ export async function GET(request) {
     const yesterdayStr = yesterday.toISOString().split('T')[0]
 
     // Get the most recent contact_date available in the database
-    // This ensures we show data from the latest available date (not just yesterday)
+    // Exclude today's date to get the last working day's data
+    const today=new Date().toISOString().split('T')[0]
     const { data: latestDateDataSummary, error: latestDateError } = await supabaseServer
       .from('domestic_clients_interaction')
       .select('contact_date')
+      .neq('contact_date', today)  // Exclude today's date
       .order('contact_date', { ascending: false })
       .limit(1)
       .single()
 
-    let lastWorkingDayStr = yesterdayStr
-    if (latestDateDataSummary?.contact_date) {
-      lastWorkingDayStr = latestDateDataSummary.contact_date
-    } else if (latestDateError) {
+    let lastWorkingDayStr = latestDateDataSummary?.contact_date || yesterdayStr
+
+    if (latestDateError) {
       console.error('Latest date error:', latestDateError)
     }
 
