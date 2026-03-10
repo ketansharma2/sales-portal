@@ -1,94 +1,184 @@
-"use client";
-import { useState } from "react";
+    "use client";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from 'next/navigation';
 import { 
     ArrowLeft, Search, Filter, Download, FileText, 
-    Eye, Calendar, MapPin, Users, Briefcase, Edit, X , User, ChevronDown
+    Eye, Calendar, MapPin, Users, Briefcase, Edit, X , User, ChevronDown, Loader2
 } from "lucide-react";
 
-export default function KPIDetailsPage() {
+function CorporateDetailsContent() {
+    const searchParams = useSearchParams();
+    const filter = searchParams.get('filter');
+    
     // --- STATE FOR MODAL ---
     const [modalType, setModalType] = useState(null); // null | 'view'
     const [selectedLead, setSelectedLead] = useState(null);
+    const [interactions, setInteractions] = useState([]);
+    const [tableData, setTableData] = useState([]);
+    const [filteredData, setFilteredData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [filterTitle, setFilterTitle] = useState('All Records');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [leadgenUsers, setLeadgenUsers] = useState([]);
+    const [selectedOwner, setSelectedOwner] = useState('all');
 
-    // --- MOCK DATA FOR TABLE ---
-    const detailedData = [
-        {
-            id: 1,
-            companyName: "TechCorp Industries",
-            contactName: "Vikash Sharma",
-            contactNumber: "+91 98765 43210",
-            lastInteraction: "Discussed pricing & terms",
-            lastInteractionDate: "Mar 8, 2026",
-            nextFollowup: "Mar 10, 2026",
-            status: "Interested",
-            substatus: "Proposal Sent",
-            franchiseStatus: "Not Applicable",
-            owner: "Khushi Chawla", // New User Column Data
-            // Extra Data for Modal
-            startup: "Yes",
-            category: "IT Services",
-            city: "Noida",
-            state: "Haryana",
-            location: "Sector 62",
-            empCount: "50-100",
-            reference: "LinkedIn Lead"
-        },
-        {
-            id: 2,
-            companyName: "Skyline Ventures",
-            contactName: "Priya Singh",
-            contactNumber: "+91 91234 56789",
-            lastInteraction: "Initial intro call done",
-            lastInteractionDate: "Mar 7, 2026",
-            nextFollowup: "Mar 9, 2026",
-            status: "Follow Up",
-            substatus: "Call Back Requested",
-            franchiseStatus: "Interested",
-            owner: "Aman Gupta", // New User Column Data
-            // Extra Data for Modal
-            startup: "No",
-            category: "Real Estate",
-            city: "Gurugram",
-            state: "Haryana",
-            location: "DLF Cyber City",
-            empCount: "200+",
-            reference: "Direct Call"
-        }
-    ];
+    // --- FETCH DATA BASED ON FILTER ---
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                
+                // Determine which filter to use
+                let filterParam = 'all';
+                
+                switch(filter) {
+                    case 'client-search-yesterday':
+                        filterParam = 'client-search-yesterday';
+                        setFilterTitle('Client Search (Yesterday)');
+                        break;
+                    case 'client-calling-yesterday':
+                        filterParam = 'client-calling-yesterday';
+                        setFilterTitle('Client Calling (Yesterday)');
+                        break;
+                    case 'contract-share-yesterday':
+                        filterParam = 'contract-share-yesterday';
+                        setFilterTitle('Contract Share (Yesterday)');
+                        break;
+                    case 'startup-search-yesterday':
+                        filterParam = 'startup-search-yesterday';
+                        setFilterTitle('Startup Search (Yesterday)');
+                        break;
+                    case 'startup-calling-yesterday':
+                        filterParam = 'startup-calling-yesterday';
+                        setFilterTitle('Startup Calling (Yesterday)');
+                        break;
+                    case 'franchise-discussed-yesterday':
+                        filterParam = 'franchise-discussed-yesterday';
+                        setFilterTitle('Franchise Discussed (Yesterday)');
+                        break;
+                    case 'form-ask-yesterday':
+                        filterParam = 'form-ask-yesterday';
+                        setFilterTitle('Form Ask (Yesterday)');
+                        break;
+                    case 'form-shared-yesterday':
+                        filterParam = 'form-shared-yesterday';
+                        setFilterTitle('Form Shared (Yesterday)');
+                        break;
+                    default:
+                        filterParam = 'all';
+                        setFilterTitle('All Records');
+                }
+                
+                const response = await fetch(`/api/admin/morning-report/corporate?filter=${filterParam}`, {
+                    headers: { 'Authorization': `Bearer ${session.access_token}` }
+                });
+                const data = await response.json();
+                
+                if (data.success && data.data.details) {
+                    setTableData(data.data.details);
+                    setFilteredData(data.data.details);
+                } else {
+                    setTableData([]);
+                    setFilteredData([]);
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                setTableData([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+        
+        fetchData();
+    }, [filter]);
 
-    // --- MOCK INTERACTIONS DATA FOR MODAL ---
-    const interactions = [
-        {
-            date: "2026-03-08",
-            contact_person: "Vikash Sharma",
-            contact_no: "+91 98765 43210",
-            email: "vikash@techcorp.com",
-            remarks: "Discussed pricing & terms. Asked to send the final proposal by evening.",
-            status: "Interested",
-            sub_status: "Proposal Sent",
-            franchise_status: "Not Applicable",
-            next_follow_up: "2026-03-10"
-        },
-        {
-            date: "2026-03-05",
-            contact_person: "Vikash Sharma",
-            contact_no: "+91 98765 43210",
-            email: "vikash@techcorp.com",
-            remarks: "Initial product demo given. Client seemed positive.",
-            status: "Follow Up",
-            sub_status: "Demo Done",
-            franchise_status: "Not Applicable",
-            next_follow_up: "2026-03-08"
+    // --- FETCH LEADGEN USERS FOR DROPDOWN ---
+    useEffect(() => {
+        const fetchLeadgenUsers = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const response = await fetch('/api/admin/morning-report/corporate/leadgen-users', {
+                    headers: { 'Authorization': `Bearer ${session.access_token}` }
+                });
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    setLeadgenUsers(data.data);
+                }
+            } catch (error) {
+                console.error('Error fetching Leadgen users:', error);
+            }
+        };
+        
+        fetchLeadgenUsers();
+    }, []);
+
+    // --- FILTER DATA WHEN SEARCH QUERY CHANGES ---
+    useEffect(() => {
+        let result = [...tableData];
+        
+        // Filter by search query
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            result = result.filter(row => {
+                const companyName = (row.companyName || '').toLowerCase();
+                const contactName = (row.contactName || '').toLowerCase();
+                return companyName.includes(query) || contactName.includes(query);
+            });
         }
-    ];
+        
+        setFilteredData(result);
+    }, [searchQuery, tableData]);
 
     // --- HANDLER TO OPEN MODAL ---
     const handleViewClick = (lead) => {
+        // Get the client_id - try multiple field names
+        const leadClientId = lead.client_id || lead.clientId || lead.id;
+        
         setSelectedLead({
             ...lead,
-            latestFollowup: lead.lastInteractionDate // Mapping for modal UI
+            latestFollowup: lead.lastInteractionDate
         });
         setModalType('view');
+        // Fetch interactions for this lead
+        fetchInteractions(leadClientId);
+    };
+
+    // --- FETCH INTERACTIONS FOR MODAL ---
+    const fetchInteractions = async (clientId) => {
+        if (!clientId) return;
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const response = await fetch(`/api/admin/morning-report/corporate/client?client_id=${clientId}`, {
+                headers: { 'Authorization': `Bearer ${session.access_token}` }
+            });
+            const data = await response.json();
+            if (data.success && data.data) {
+                // Map API response fields to frontend expected fields
+                const client = data.data.client;
+                if (client) {
+                    setSelectedLead({
+                        ...client,
+                        companyName: client.company,
+                        latestFollowup: client.sourcing_date,
+                        empCount: client.emp_count,
+                        city: client.district_city,
+                        state: client.state,
+                        location: client.location,
+                        category: client.category,
+                        reference: client.reference,
+                        startup: client.startup
+                    });
+                }
+                setInteractions(data.data.interactions || []);
+            } else {
+                setInteractions([]);
+            }
+        } catch (error) {
+            console.error('Error fetching interactions:', error);
+            setInteractions([]);
+        }
     };
 
     return (
@@ -109,7 +199,7 @@ export default function KPIDetailsPage() {
                             <FileText size={20} className="text-indigo-600"/> Corporate Sales Details
                         </h1>
                         <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
-                            Detailed Data Logs
+                            {filterTitle}
                         </p>
                     </div>
                 </div>
@@ -133,6 +223,8 @@ export default function KPIDetailsPage() {
                                 type="text" 
                                 placeholder="Search company or contact..." 
                                 className="w-full pl-9 pr-3 py-2 text-xs font-bold border border-slate-200 rounded-lg outline-none focus:border-indigo-500 bg-white"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
 
@@ -141,12 +233,15 @@ export default function KPIDetailsPage() {
                             <User size={14} className="absolute left-3 top-2.5 text-slate-400" />
                             <select 
                                 className="w-full pl-9 pr-8 py-2 text-xs font-bold border border-slate-200 rounded-lg outline-none focus:border-indigo-500 appearance-none bg-white cursor-pointer text-slate-600"
-                                defaultValue="all"
+                                value={selectedOwner}
+                                onChange={(e) => setSelectedOwner(e.target.value)}
                             >
                                 <option value="all">All Leadgens</option>
-                                <option value="khushi_chawla">Khushi Chawla</option>
-                                <option value="riya_desai">Riya Desai</option>
-                                <option value="rahul_verma">Rahul Verma</option>
+                                {leadgenUsers.map(user => (
+                                    <option key={user.user_id} value={user.name}>
+                                        {user.name}
+                                    </option>
+                                ))}
                             </select>
                             {/* Custom drop-down arrow */}
                             <ChevronDown size={14} className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" />
@@ -176,8 +271,21 @@ export default function KPIDetailsPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {detailedData.map((row) => (
-                                <tr key={row.id} className="hover:bg-slate-50/80 transition-colors group">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="8" className="py-10 text-center">
+                                        <Loader2 className="animate-spin mx-auto text-indigo-600" size={24}/>
+                                    </td>
+                                </tr>
+                            ) : filteredData.length === 0 ? (
+                                <tr>
+                                    <td colSpan="8" className="py-10 text-center text-gray-400 font-bold">
+                                        No data available
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredData.map((row) => (
+                                <tr key={row.client_id || row.id} className="hover:bg-slate-50/80 transition-colors group">
                                     {/* Company Name */}
                                     <td className="py-3 px-4">
                                         <p className="text-xs font-black text-slate-800">{row.companyName}</p>
@@ -248,14 +356,14 @@ export default function KPIDetailsPage() {
                                         </button>
                                     </td>
                                 </tr>
-                            ))}
+                            )))}
                         </tbody>
                     </table>
                 </div>
                 
                 {/* Pagination Placeholder */}
                 <div className="p-4 border-t border-slate-100 bg-white flex justify-between items-center text-xs font-bold text-slate-500">
-                    <p>Showing 1 to {detailedData.length} of {detailedData.length} entries</p>
+                    <p>Showing 1 to {filteredData.length} of {filteredData.length} entries</p>
                     <div className="flex gap-1">
                         <button className="px-3 py-1 border border-slate-200 rounded hover:bg-slate-50">Prev</button>
                         <button className="px-3 py-1 border border-slate-200 rounded hover:bg-slate-50">Next</button>
@@ -466,5 +574,16 @@ export default function KPIDetailsPage() {
             )}
 
         </div>
+    );
+}
+
+// ============================================================================
+// --- WRAPPER COMPONENT WITH SUSPENSE ---
+// ============================================================================
+export default function CorporateDetailsPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-[#f8fafc] flex items-center justify-center"><Loader2 className="animate-spin text-indigo-600" size={32}/></div>}>
+            <CorporateDetailsContent />
+        </Suspense>
     );
 }

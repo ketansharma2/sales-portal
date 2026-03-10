@@ -266,7 +266,7 @@ export default function MorningReportPage() {
                                     <div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-3 flex-1 bg-slate-50/30">
                                         
                                         {/* Client Search */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col">
+                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/corporate?filter=client-search-yesterday')}>
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Client Search</p></div>
                                             <div className="flex divide-x divide-slate-100">
                                                 <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.clientSearchTotal}</p></div>
@@ -275,7 +275,7 @@ export default function MorningReportPage() {
                                         </div>
 
                                         {/* Client Calling */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col">
+                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/corporate?filter=client-calling-yesterday')}>
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Client Calling</p></div>
                                             <div className="flex divide-x divide-slate-100">
                                                 <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.clientCallingTotal}</p></div>
@@ -284,7 +284,7 @@ export default function MorningReportPage() {
                                         </div>
 
                                         {/* Contract Share */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col">
+                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/corporate?filter=contract-share-yesterday')}>
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Contract Share</p></div>
                                             <div className="flex divide-x divide-slate-100">
                                                 <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.contractShareTotal}</p></div>
@@ -293,7 +293,7 @@ export default function MorningReportPage() {
                                         </div>
 
                                         {/* Startup Search */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col">
+                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/corporate?filter=startup-search-yesterday')}>
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Startup Search</p></div>
                                             <div className="flex divide-x divide-slate-100">
                                                 <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.startupSearchTotal}</p></div>
@@ -302,7 +302,7 @@ export default function MorningReportPage() {
                                         </div>
 
                                         {/* Startup Calling */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col">
+                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/corporate?filter=startup-calling-yesterday')}>
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Startup Calling</p></div>
                                             <div className="flex divide-x divide-slate-100">
                                                 <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.startupCallingTotal}</p></div>
@@ -343,7 +343,7 @@ export default function MorningReportPage() {
                                         </div>
 
                                         {/* Franchise Discussed */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-rose-400 transition-all flex flex-col">
+                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-rose-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/corporate?filter=franchise-discussed-yesterday')}>
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Fran. Discussed</p></div>
                                             <div className="flex divide-x divide-slate-100">
                                                 <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.franchiseDiscussedTotal}</p></div>
@@ -352,7 +352,7 @@ export default function MorningReportPage() {
                                         </div>
 
                                         {/* Form Ask */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-rose-400 transition-all flex flex-col">
+                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-rose-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/corporate?filter=form-ask-yesterday')}>
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Form Ask</p></div>
                                             <div className="flex divide-x divide-slate-100">
                                                 <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.formSharedTotal}</p></div>
@@ -361,7 +361,7 @@ export default function MorningReportPage() {
                                         </div>
 
                                         {/* Form Shared */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-rose-400 transition-all flex flex-col">
+                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-rose-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/corporate?filter=form-shared-yesterday')}>
                                             <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Form Shared</p></div>
                                             <div className="flex divide-x divide-slate-100">
                                                 <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.formSharedTotal}</p></div>
@@ -465,6 +465,7 @@ export default function MorningReportPage() {
                                                     className="text-[11px] font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded px-2 py-1 outline-none focus:border-orange-400 focus:bg-white w-full transition-colors"
                                                     placeholder="Type client names here..."
                                                     defaultValue={domesticStats.yesterdayOnboardNames.join(', ')}
+                                                    onClick={(e) => e.stopPropagation()}
                                                 />
                                             </div>
                                         </div>

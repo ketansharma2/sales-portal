@@ -221,8 +221,12 @@ function DomesticDetailsContent() {
     const [modalType, setModalType] = useState(null); // null | 'view'
     const [selectedLead, setSelectedLead] = useState(null);
     const [tableData, setTableData] = useState([]);
+    const [filteredData, setFilteredData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterTitle, setFilterTitle] = useState('All Records');
+    const [fseUsers, setFseUsers] = useState([]);
+    const [selectedOwner, setSelectedOwner] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
 
     // --- FETCH DATA BASED ON FILTER ---
     useEffect(() => {
@@ -271,8 +275,10 @@ function DomesticDetailsContent() {
                 
                 if (data.success && data.data.details) {
                     setTableData(data.data.details);
+                    setFilteredData(data.data.details);
                 } else {
                     setTableData([]);
+                    setFilteredData([]);
                 }
             } catch (error) {
                 console.error('Error fetching data:', error);
@@ -284,6 +290,52 @@ function DomesticDetailsContent() {
         
         fetchData();
     }, [filter]);
+
+    // --- FETCH FSE USERS FOR DROPDOWN ---
+    useEffect(() => {
+        const fetchFseUsers = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const response = await fetch('/api/admin/morning-report/domestic/fse-users?sector=Domestic', {
+                    headers: { 'Authorization': `Bearer ${session.access_token}` }
+                });
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    setFseUsers(data.data);
+                }
+            } catch (error) {
+                console.error('Error fetching FSE users:', error);
+            }
+        };
+        
+        fetchFseUsers();
+    }, []);
+
+    // --- FILTER DATA WHEN SELECTED OWNER OR SEARCH QUERY CHANGES ---
+    useEffect(() => {
+        let result = [...tableData];
+        
+        // Filter by selected owner
+        if (selectedOwner !== 'all') {
+            const selectedUser = fseUsers.find(u => u.user_id === selectedOwner);
+            if (selectedUser) {
+                result = result.filter(row => row.owner === selectedUser.name);
+            }
+        }
+        
+        // Filter by search query
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            result = result.filter(row => {
+                const companyName = (row.companyName || row.company_name || '').toLowerCase();
+                const contactName = (row.contactName || row.contact_person || '').toLowerCase();
+                return companyName.includes(query) || contactName.includes(query);
+            });
+        }
+        
+        setFilteredData(result);
+    }, [selectedOwner, searchQuery, tableData, fseUsers]);
 
     // --- HANDLER TO OPEN MODAL ---
     const handleViewClick = (lead) => {
@@ -332,6 +384,8 @@ function DomesticDetailsContent() {
                                 type="text" 
                                 placeholder="Search company or contact..." 
                                 className="w-full pl-9 pr-3 py-2 text-xs font-bold border border-slate-200 rounded-lg outline-none focus:border-orange-500 bg-white"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
 
@@ -340,12 +394,15 @@ function DomesticDetailsContent() {
                             <User size={14} className="absolute left-3 top-2.5 text-slate-400" />
                             <select 
                                 className="w-full pl-9 pr-8 py-2 text-xs font-bold border border-slate-200 rounded-lg outline-none focus:border-orange-500 appearance-none bg-white cursor-pointer text-slate-600"
-                                defaultValue="all"
+                                value={selectedOwner}
+                                onChange={(e) => setSelectedOwner(e.target.value)}
                             >
                                 <option value="all">All FSEs (Owners)</option>
-                                <option value="aman_gupta">Aman Gupta</option>
-                                <option value="riya_desai">Riya Desai</option>
-                                <option value="khushi_chawla">Khushi Chawla</option>
+                                {fseUsers.map(user => (
+                                    <option key={user.user_id} value={user.user_id}>
+                                        {user.name}
+                                    </option>
+                                ))}
                             </select>
                             {/* Custom drop-down arrow */}
                             <ChevronDown size={14} className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" />
@@ -382,14 +439,14 @@ function DomesticDetailsContent() {
                                         <Loader2 className="animate-spin mx-auto text-orange-600" size={24}/>
                                     </td>
                                 </tr>
-                            ) : tableData.length === 0 ? (
+                            ) : filteredData.length === 0 ? (
                                 <tr>
                                     <td colSpan="8" className="py-10 text-center text-gray-400 font-bold">
                                         No data available
                                     </td>
                                 </tr>
                             ) : (
-                                tableData.map((row) => (
+                                filteredData.map((row) => (
                                     <tr key={row.id || row.client_id || row.company_id} className="hover:bg-orange-50/30 transition-colors group">
                                         {/* Company Name */}
                                         <td className="py-3 px-4">
@@ -471,7 +528,7 @@ function DomesticDetailsContent() {
                 
                 {/* Pagination Placeholder */}
                 <div className="p-4 border-t border-slate-100 bg-white flex justify-between items-center text-xs font-bold text-slate-500">
-                    <p>Showing 1 to {tableData.length} of {tableData.length} entries</p>
+                    <p>Showing 1 to {filteredData.length} of {filteredData.length} entries</p>
                     <div className="flex gap-1">
                         <button className="px-3 py-1 border border-slate-200 rounded hover:bg-slate-50">Prev</button>
                         <button className="px-3 py-1 border border-slate-200 rounded hover:bg-slate-50">Next</button>
