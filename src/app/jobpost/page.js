@@ -197,7 +197,7 @@ export default function JobPosterReportDetailed() {
                       <h3 className="font-black text-green-700 uppercase text-sm tracking-widest">Today's Sourcing</h3>
                   </div>
                   
-                  <div className="p-4 flex-1 bg-white flex items-center justify-center">
+                  <div className="p-4 flex-1 bg-white flex items-start justify-start">
                     {loadingDaily ? (
                       <div className="flex items-center justify-center py-8">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-700"></div>
