@@ -408,8 +408,10 @@ export default function JobRequirementsPage() {
                                 className="px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 cursor-pointer font-medium"
                                 onMouseDown={(e) => {
                                   e.preventDefault();
-                                  const { client_name, ...otherFields } = jd;
-                                  setFormData({...formData, ...otherFields});
+                                  // Get existing client_name from form, fill rest from suggestion, exclude jd_id for new JD
+                                  const { client_name } = formData;
+                                  const { jd_id, ...otherFields } = jd;
+                                  setFormData({...otherFields, client_name});
                                   setShowJobTitleSuggestions(false);
                                 }}
                               >
