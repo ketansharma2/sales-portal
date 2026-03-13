@@ -101,6 +101,12 @@ export default function MorningReportPage() {
         franchiseDiscussedYesterday: 0,
         formSharedTotal: 0,
         formSharedYesterday: 0,
+        // NEW: Total Client Search (all rows)
+        totalClientSearchNew: 0,
+        totalClientSearchYesterdayNew: 0,
+        // NEW: Total Client Calling (all rows)
+        totalClientCallingNew: 0,
+        totalClientCallingYesterdayNew: 0,
         loading: true
     });
 
@@ -192,6 +198,12 @@ export default function MorningReportPage() {
                         franchiseDiscussedYesterday: data.data.franchiseDiscussedYesterday || 0,
                         formSharedTotal: data.data.formSharedTotal || 0,
                         formSharedYesterday: data.data.formSharedYesterday || 0,
+                        // NEW: Total Client Search (all rows)
+                        totalClientSearchNew: data.data.totalClientSearchNew || 0,
+                        totalClientSearchYesterdayNew: data.data.totalClientSearchYesterdayNew || 0,
+                        // NEW: Total Client Calling (all rows)
+                        totalClientCallingNew: data.data.totalClientCallingNew || 0,
+                        totalClientCallingYesterdayNew: data.data.totalClientCallingYesterdayNew || 0,
                         loading: false
                     });
                 }
@@ -309,117 +321,188 @@ export default function MorningReportPage() {
                                         <span className="bg-white text-indigo-500 text-[9px] font-bold px-2 py-0.5 rounded border border-indigo-200">Sales</span>
                                     </div>
                                     
-                                    {/* High-Density Split-Card Grid */}
-                                    <div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-3 flex-1 bg-slate-50/30">
-                                        
-                                        {/* Client Search */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/corporate?filter=client-search-yesterday')}>
-                                            <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Client Search</p></div>
-                                            <div className="flex divide-x divide-slate-100">
-                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.clientSearchTotal}</p></div>
-                                                <div className="flex-1 p-1.5 text-center bg-indigo-50/50"><p className="text-[8px] font-black text-indigo-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-indigo-700 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.clientSearchYesterday}</p></div>
+                                     {/* High-Density Split-Card Grid - Row 1: 5 cards */}
+                                    <div className="p-3 flex gap-2 bg-slate-50/30 overflow-x-auto">
+                                        {/* Total Database Container */}
+                                        <div className="w-[60%] border-2 border-blue-200 rounded-lg overflow-hidden">
+                                            <div className="bg-blue-50 px-3 py-1.5 border-b border-blue-200">
+                                                <p className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Total Database</p>
+                                            </div>
+                                            <div className="p-2 flex gap-2 bg-white">
+                                                {/* Total Client Search */}
+                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=client-search-yesterday')}>
+                                                    <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Total Client Search</p></div>
+                                                    <div className="flex divide-x divide-slate-100 h-[60px]">
+                                                        <div className="flex-1 p-1.5 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none">{corporateStats.loading ? '-' : corporateStats.totalClientSearchNew}</p></div>
+                                                        <div className="flex-1 p-1.5 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-indigo-700 leading-none">{corporateStats.loading ? '-' : corporateStats.totalClientSearchYesterdayNew}</p></div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Total Client Calling */}
+                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=client-calling-yesterday')}>
+                                                    <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Total Client Calling</p></div>
+                                                    <div className="flex divide-x divide-slate-100 h-[60px]">
+                                                        <div className="flex-1 p-1.5 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none">{corporateStats.loading ? '-' : corporateStats.totalClientCallingNew}</p></div>
+                                                        <div className="flex-1 p-1.5 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-indigo-700 leading-none">{corporateStats.loading ? '-' : corporateStats.totalClientCallingYesterdayNew}</p></div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Contract Share */}
+                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=contract-share-yesterday')}>
+                                                    <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Contract Share</p></div>
+                                                    <div className="flex divide-x divide-slate-100 h-[60px]">
+                                                        <div className="flex-1 p-1.5 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none">{corporateStats.loading ? '-' : corporateStats.contractShareTotal}</p></div>
+                                                        <div className="flex-1 p-1.5 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-indigo-700 leading-none">{corporateStats.loading ? '-' : corporateStats.contractShareYesterday}</p></div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Yesterday Calls */}
+                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=yesterday-calls')}>
+                                                    <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Yesterday Calls</p></div>
+                                                    <div className="flex divide-x divide-slate-100 h-[60px]">
+                                                        <div className="flex-1 p-1.5 text-center bg-blue-50/50 flex flex-col justify-center"><p className="text-[8px] font-bold text-blue-500 uppercase">New</p><p className="text-base font-black text-blue-700 leading-none">-</p></div>
+                                                        <div className="flex-1 p-1.5 text-center bg-amber-50/50 flex flex-col justify-center"><p className="text-[8px] font-bold text-amber-500 uppercase">Followup</p><p className="text-base font-black text-amber-700 leading-none">-</p></div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        {/* Client Calling */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/corporate?filter=client-calling-yesterday')}>
-                                            <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Client Calling</p></div>
-                                            <div className="flex divide-x divide-slate-100">
-                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.clientCallingTotal}</p></div>
-                                                <div className="flex-1 p-1.5 text-center bg-indigo-50/50"><p className="text-[8px] font-black text-indigo-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-indigo-700 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.clientCallingYesterday}</p></div>
+                                        {/* Normal Clients Container */}
+                                        <div className="w-[40%] border-2 border-green-200 rounded-lg overflow-hidden">
+                                            <div className="bg-green-50 px-3 py-1.5 border-b border-green-200">
+                                                <p className="text-[10px] font-black text-green-700 uppercase tracking-widest">Normal Clients</p>
+                                            </div>
+                                            <div className="p-2 flex gap-2 bg-white">
+                                                {/* Client Search */}
+                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=client-search-yesterday')}>
+                                                    <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Client Search</p></div>
+                                                    <div className="flex divide-x divide-slate-100 h-[60px]">
+                                                        <div className="flex-1 p-1.5 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none">{corporateStats.loading ? '-' : corporateStats.clientSearchTotal}</p></div>
+                                                        <div className="flex-1 p-1.5 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-indigo-700 leading-none">{corporateStats.loading ? '-' : corporateStats.clientSearchYesterday}</p></div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Client Calling */}
+                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=client-calling-yesterday')}>
+                                                    <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Client Calling</p></div>
+                                                    <div className="flex divide-x divide-slate-100 h-[60px]">
+                                                        <div className="flex-1 p-1.5 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none">{corporateStats.loading ? '-' : corporateStats.clientCallingTotal}</p></div>
+                                                        <div className="flex-1 p-1.5 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-indigo-700 leading-none">{corporateStats.loading ? '-' : corporateStats.clientCallingYesterday}</p></div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-
-                                        {/* Contract Share */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/corporate?filter=contract-share-yesterday')}>
-                                            <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Contract Share</p></div>
-                                            <div className="flex divide-x divide-slate-100">
-                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.contractShareTotal}</p></div>
-                                                <div className="flex-1 p-1.5 text-center bg-indigo-50/50"><p className="text-[8px] font-black text-indigo-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-indigo-700 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.contractShareYesterday}</p></div>
-                                            </div>
-                                        </div>
-
-                                        {/* Startup Search */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/corporate?filter=startup-search-yesterday')}>
-                                            <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Startup Search</p></div>
-                                            <div className="flex divide-x divide-slate-100">
-                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.startupSearchTotal}</p></div>
-                                                <div className="flex-1 p-1.5 text-center bg-orange-50/50"><p className="text-[8px] font-black text-orange-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-orange-700 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.startupSearchYesterday}</p></div>
-                                            </div>
-                                        </div>
-
-                                        {/* Startup Calling */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/corporate?filter=startup-calling-yesterday')}>
-                                            <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Startup Calling</p></div>
-                                            <div className="flex divide-x divide-slate-100">
-                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.startupCallingTotal}</p></div>
-                                                <div className="flex-1 p-1.5 text-center bg-orange-50/50"><p className="text-[8px] font-black text-orange-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-orange-700 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.startupCallingYesterday}</p></div>
-                                            </div>
-                                        </div>
-
-                                        {/* Master Union Clients (Only Total) */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-purple-400 transition-all flex flex-col">
-                                            <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Master Union Clients</p></div>
-                                            <div className="flex-1 p-1.5 text-center bg-purple-50/30 flex flex-col justify-center">
-                                                <p className="text-[8px] font-black text-purple-400 uppercase">Total Only</p>
-                                                <p className="text-base font-black text-purple-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.masterUnionClientsTotal}</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Master Union Profiles (Input Field) */}
-                                        <div className="border border-purple-200 rounded-lg bg-purple-50/50 overflow-hidden shadow-sm hover:border-purple-400 transition-all flex flex-col">
-                                            <div className="bg-purple-50 py-1.5 text-center border-b border-purple-100"><p className="text-[9px] font-bold text-purple-600 uppercase tracking-widest truncate px-1">Master Union Profiles</p></div>
-                                            <div className="flex-1 p-2 text-center flex flex-col justify-center items-center">
-                                                <input 
-                                                    type="text" 
-                                                    className="text-lg font-black text-purple-800 bg-transparent border-b border-dashed border-purple-300 outline-none text-center w-20 focus:border-purple-600 transition-colors"
-                                                    placeholder="0"
-                                                    value={inputValues.masterUnionProfiles}
-                                                    onChange={(e) => saveToLocalStorage('masterUnionProfiles', e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Master Union Calling (Only Total) */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-purple-400 transition-all flex flex-col">
-                                            <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Master Union Calling</p></div>
-                                            <div className="flex-1 p-1.5 text-center bg-purple-50/30 flex flex-col justify-center">
-                                                <p className="text-[8px] font-black text-purple-400 uppercase">Total Only</p>
-                                                <p className="text-base font-black text-purple-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.masterUnionCallingTotal}</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Franchise Discussed */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-rose-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/corporate?filter=franchise-discussed-yesterday')}>
-                                            <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Fran. Discussed</p></div>
-                                            <div className="flex divide-x divide-slate-100">
-                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.franchiseDiscussedTotal}</p></div>
-                                                <div className="flex-1 p-1.5 text-center bg-rose-50/50"><p className="text-[8px] font-black text-rose-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-rose-700 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.franchiseDiscussedYesterday}</p></div>
-                                            </div>
-                                        </div>
-
-                                        {/* Form Ask */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-rose-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/corporate?filter=form-ask-yesterday')}>
-                                            <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Form Ask</p></div>
-                                            <div className="flex divide-x divide-slate-100">
-                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.formSharedTotal}</p></div>
-                                                <div className="flex-1 p-1.5 text-center bg-rose-50/50"><p className="text-[8px] font-black text-rose-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-rose-700 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.formSharedYesterday}</p></div>
-                                            </div>
-                                        </div>
-
-                                        {/* Form Shared */}
-                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-rose-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/corporate?filter=form-shared-yesterday')}>
-                                            <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Form Shared</p></div>
-                                            <div className="flex divide-x divide-slate-100">
-                                                <div className="flex-1 p-1.5 text-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.formSharedTotal}</p></div>
-                                                <div className="flex-1 p-1.5 text-center bg-rose-50/50"><p className="text-[8px] font-black text-rose-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-rose-700 leading-none mt-1">{corporateStats.loading ? '-' : corporateStats.formSharedYesterday}</p></div>
-                                            </div>
-                                        </div>
-
                                     </div>
-                                    
+
+                                    {/* Row 2: 5 cards */}
+                                    <div className="p-3 flex gap-2 bg-slate-50/30 overflow-x-auto">
+                                        {/* Startup Details Container */}
+                                        <div className="w-[45%] border-2 border-orange-200 rounded-lg overflow-hidden">
+                                            <div className="bg-orange-50 px-3 py-1.5 border-b border-orange-200">
+                                                <p className="text-[10px] font-black text-orange-700 uppercase tracking-widest">Startup Details</p>
+                                            </div>
+                                            <div className="p-2 flex gap-2 bg-white">
+                                                {/* Startup Search */}
+                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=startup-search-yesterday')}>
+                                                    <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Startup Search</p></div>
+                                                    <div className="flex divide-x divide-slate-100 h-[60px]">
+                                                        <div className="flex-1 p-1.5 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none">{corporateStats.loading ? '-' : corporateStats.startupSearchTotal}</p></div>
+                                                        <div className="flex-1 p-1.5 text-center bg-orange-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-orange-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-orange-700 leading-none">{corporateStats.loading ? '-' : corporateStats.startupSearchYesterday}</p></div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Startup Calling */}
+                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=startup-calling-yesterday')}>
+                                                    <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Startup Calling</p></div>
+                                                    <div className="flex divide-x divide-slate-100 h-[60px]">
+                                                        <div className="flex-1 p-1.5 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none">{corporateStats.loading ? '-' : corporateStats.startupCallingTotal}</p></div>
+                                                        <div className="flex-1 p-1.5 text-center bg-orange-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-orange-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-orange-700 leading-none">{corporateStats.loading ? '-' : corporateStats.startupCallingYesterday}</p></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Master Union Container */}
+                                        <div className="w-[55%] border-2 border-purple-200 rounded-lg overflow-hidden">
+                                            <div className="bg-purple-50 px-3 py-1.5 border-b border-purple-200">
+                                                <p className="text-[10px] font-black text-purple-700 uppercase tracking-widest">Master Union Details</p>
+                                            </div>
+                                            <div className="p-2 flex gap-2 bg-white">
+                                                {/* Master Union Clients */}
+                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-purple-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=master-union-clients')}>
+                                                    <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Master Union Clients</p></div>
+                                                    <div className="flex-1 p-1.5 text-center bg-purple-50/30 flex flex-col justify-center h-[60px]">
+                                                        <p className="text-[8px] font-black text-purple-400 uppercase">Total Only</p>
+                                                        <p className="text-base font-black text-purple-800 leading-none">{corporateStats.loading ? '-' : corporateStats.masterUnionClientsTotal}</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Master Union Profiles */}
+                                                <div className="border border-purple-200 rounded-lg bg-purple-50/50 overflow-hidden shadow-sm hover:border-purple-400 transition-all flex flex-col flex-1 min-w-[120px]">
+                                                    <div className="bg-purple-50 py-1.5 text-center border-b border-purple-100"><p className="text-[9px] font-bold text-purple-600 uppercase tracking-widest truncate px-1">Master Union Profiles</p></div>
+                                                    <div className="flex-1 p-2 text-center flex flex-col justify-center items-center h-[60px]">
+                                                        <input 
+                                                            type="text" 
+                                                            className="text-lg font-black text-purple-800 bg-transparent border-b border-dashed border-purple-300 outline-none text-center w-20 focus:border-purple-600 transition-colors"
+                                                            placeholder="0"
+                                                            value={inputValues.masterUnionProfiles}
+                                                            onChange={(e) => saveToLocalStorage('masterUnionProfiles', e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* Master Union Calling */}
+                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-purple-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=master-union-calling')}>
+                                                    <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Master Union Calling</p></div>
+                                                    <div className="flex-1 p-1.5 text-center bg-purple-50/30 flex flex-col justify-center h-[60px]">
+                                                        <p className="text-[8px] font-black text-purple-400 uppercase">Total Only</p>
+                                                        <p className="text-base font-black text-purple-800 leading-none">{corporateStats.loading ? '-' : corporateStats.masterUnionCallingTotal}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 3: 3 cards + remarks */}
+                                    <div className="p-3 flex gap-2 bg-slate-50/30 overflow-x-auto">
+                                        {/* Franchise Details Container */}
+                                        <div className="w-full border-2 border-rose-200 rounded-lg overflow-hidden">
+                                            <div className="bg-rose-50 px-3 py-1.5 border-b border-rose-200">
+                                                <p className="text-[10px] font-black text-rose-700 uppercase tracking-widest">Franchise Details</p>
+                                            </div>
+                                            <div className="p-2 flex gap-2 bg-white">
+                                                {/* Franchise Discussed */}
+                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-rose-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[180px]" onClick={() => router.push('/admin/morning-report/corporate?filter=franchise-discussed-yesterday')}>
+                                                    <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Fran. Discussed</p></div>
+                                                    <div className="flex divide-x divide-slate-100 h-[60px]">
+                                                        <div className="flex-1 p-1.5 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none">{corporateStats.loading ? '-' : corporateStats.franchiseDiscussedTotal}</p></div>
+                                                        <div className="flex-1 p-1.5 text-center bg-rose-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-rose-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-rose-700 leading-none">{corporateStats.loading ? '-' : corporateStats.franchiseDiscussedYesterday}</p></div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Form Ask */}
+                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-rose-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[180px]" onClick={() => router.push('/admin/morning-report/corporate?filter=form-ask-yesterday')}>
+                                                    <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Form Ask</p></div>
+                                                    <div className="flex divide-x divide-slate-100 h-[60px]">
+                                                        <div className="flex-1 p-1.5 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none">{corporateStats.loading ? '-' : corporateStats.formSharedTotal}</p></div>
+                                                        <div className="flex-1 p-1.5 text-center bg-rose-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-rose-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-rose-700 leading-none">{corporateStats.loading ? '-' : corporateStats.formSharedYesterday}</p></div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Form Shared */}
+                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-rose-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[180px]" onClick={() => router.push('/admin/morning-report/corporate?filter=form-shared-yesterday')}>
+                                                    <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Form Shared</p></div>
+                                                    <div className="flex divide-x divide-slate-100 h-[60px]">
+                                                        <div className="flex-1 p-1.5 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none">{corporateStats.loading ? '-' : corporateStats.formSharedTotal}</p></div>
+                                                        <div className="flex-1 p-1.5 text-center bg-rose-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-rose-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-rose-700 leading-none">{corporateStats.loading ? '-' : corporateStats.formSharedYesterday}</p></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     {/* Editable Remarks Area */}
-                                    <div className="p-3 bg-indigo-50/50 border-t border-indigo-100 mt-auto">
+                                    <div className="p-3 bg-indigo-50/50 border-t border-indigo-100">
                                         <label className="text-[10px] font-black text-indigo-800 uppercase mb-1 block">Remarks</label>
                                         <textarea 
                                             className="w-full text-xs font-bold text-slate-700 p-2 border border-slate-300 rounded-lg outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 bg-white shadow-inner resize-none" 

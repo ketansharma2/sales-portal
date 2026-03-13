@@ -61,6 +61,79 @@ export async function GET(request) {
     let franchiseDiscussedYesterday = 0
     let formSharedTotal = 0
     let formSharedYesterday = 0
+    
+    // NEW: Total Client Search (all rows from corporate_leadgen_leads)
+    let totalClientSearchNew = 0
+    let totalClientSearchYesterdayNew = 0
+    
+    // NEW: Total Client Calling (all rows from corporate_leads_interaction)
+    let totalClientCallingNew = 0
+    let totalClientCallingYesterdayNew = 0
+
+    // Get Total Client Search NEW: Count ALL rows from corporate_leadgen_leads (no filter)
+    const { count: totalClientSearchAll, error: totalClientSearchAllError } = await supabaseServer
+      .from('corporate_leadgen_leads')
+      .select('*', { count: 'exact', head: true })
+
+    if (totalClientSearchAllError) {
+      console.error('Total client search all error:', totalClientSearchAllError)
+    }
+
+    totalClientSearchNew = totalClientSearchAll || 0
+
+    // Get Yesterday: Count ALL rows from corporate_leadgen_leads where sourcing_date = lastWorkingDay
+    if (lastWorkingDayStr) {
+      const { count: yesterdayClientSearchAll, error: yesterdayClientSearchAllError } = await supabaseServer
+        .from('corporate_leadgen_leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('sourcing_date', lastWorkingDayStr)
+
+      if (yesterdayClientSearchAllError) {
+        console.error('Yesterday client search all error:', yesterdayClientSearchAllError)
+      }
+
+      totalClientSearchYesterdayNew = yesterdayClientSearchAll || 0
+    }
+
+    // Get Total Client Calling NEW: Count ALL rows from corporate_leads_interaction (distinct client_id + date)
+    const { data: totalCallingAllData, error: totalCallingAllError } = await supabaseServer
+      .from('corporate_leads_interaction')
+      .select('client_id, date')
+
+    if (totalCallingAllError) {
+      console.error('Total client calling all error:', totalCallingAllError)
+    }
+
+    const totalCallingAllSet = new Set()
+    totalCallingAllData?.forEach(record => {
+      if (record.client_id) {
+        const dateKey = record.date || 'NULL'
+        totalCallingAllSet.add(`${record.client_id}_${dateKey}`)
+      }
+    })
+
+    totalClientCallingNew = totalCallingAllSet.size
+
+    // Get Yesterday Client Calling: Count rows where date = lastWorkingDay
+    if (lastWorkingDayStr) {
+      const { data: yesterdayCallingAllData, error: yesterdayCallingAllError } = await supabaseServer
+        .from('corporate_leads_interaction')
+        .select('client_id, date')
+        .eq('date', lastWorkingDayStr)
+
+      if (yesterdayCallingAllError) {
+        console.error('Yesterday client calling all error:', yesterdayCallingAllError)
+      }
+
+      const yesterdayCallingAllSet = new Set()
+      yesterdayCallingAllData?.forEach(record => {
+        if (record.client_id && record.date) {
+          yesterdayCallingAllSet.add(`${record.client_id}_${record.date}`)
+        }
+      })
+
+      totalClientCallingYesterdayNew = yesterdayCallingAllSet.size
+    }
 
     // Get Total: Count from corporate_leadgen_leads where startup = 'NO' or NULL
     const { count: totalClientSearch, error: totalCSError } = await supabaseServer
@@ -279,6 +352,7 @@ export async function GET(request) {
     formSharedYesterday = formSharedYesterdaySet.size
 
     // Get Client Calling Total: distinct client_id + date from corporate_leads_interaction
+    // where startup is NULL or 'NO' (not 'YES' and not 'Master Union')
     const { data: callingData, error: callingError } = await supabaseServer
       .from('corporate_leads_interaction')
       .select('client_id, date, corporate_leadgen_leads!inner(startup)')
@@ -287,11 +361,12 @@ export async function GET(request) {
       console.error('Client calling data error:', callingError)
     }
 
-    // Filter where startup is NULL and count distinct client_id + date (treating NULL date as a valid value)
+    // Filter where startup is NULL or 'NO' and count distinct client_id + date
     const callingSet = new Set()
     callingData?.forEach(record => {
-      if (record.client_id) {
-        // Use 'NULL' string for null dates to include them in count
+      const startupValue = record.corporate_leadgen_leads?.startup
+      // Include only if startup is NULL or contains 'no' (case insensitive)
+      if (record.client_id && (!startupValue || startupValue.toLowerCase().includes('no'))) {
         const dateKey = record.date || 'NULL'
         callingSet.add(`${record.client_id}_${dateKey}`)
       }
@@ -311,7 +386,8 @@ export async function GET(request) {
 
     const callingYesterdaySet = new Set()
     callingYesterdayData?.forEach(record => {
-      if (record.client_id && record.date) {
+      const startupValue = record.corporate_leadgen_leads?.startup
+      if (record.client_id && record.date && (!startupValue || startupValue.toLowerCase().includes('no'))) {
         callingYesterdaySet.add(`${record.client_id}_${record.date}`)
       }
     })
@@ -861,7 +937,13 @@ export async function GET(request) {
         franchiseDiscussedTotal,
         franchiseDiscussedYesterday,
         formSharedTotal,
-        formSharedYesterday
+        formSharedYesterday,
+        // NEW: Total Client Search (all rows)
+        totalClientSearchNew,
+        totalClientSearchYesterdayNew,
+        // NEW: Total Client Calling (all rows)
+        totalClientCallingNew,
+        totalClientCallingYesterdayNew
       }
     })
 
