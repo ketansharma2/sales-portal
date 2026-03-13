@@ -65,6 +65,14 @@ function CorporateDetailsContent() {
                         filterParam = 'form-shared-yesterday';
                         setFilterTitle('Form Shared (Yesterday)');
                         break;
+                    case 'master-union-clients':
+                        filterParam = 'master-union-clients';
+                        setFilterTitle('Master Union Clients');
+                        break;
+                    case 'master-union-calling':
+                        filterParam = 'master-union-calling';
+                        setFilterTitle('Master Union Calling');
+                        break;
                     default:
                         filterParam = 'all';
                         setFilterTitle('All Records');

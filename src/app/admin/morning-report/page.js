@@ -1,10 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
-import { 
-    FileText, ArrowLeft, Briefcase, Users, 
-    Laptop, SunMedium , TrendingUp, Building2, Home, Rocket,IndianRupee, CheckCircle2, Globe2, Store, FileSpreadsheet, Database, PhoneCall
+import {
+    FileText, ArrowLeft, Briefcase, Users,
+    Laptop, SunMedium , TrendingUp, Building2, Home, Rocket,IndianRupee, CheckCircle2, Globe2, Store, FileSpreadsheet, Database, PhoneCall, File, X
 } from "lucide-react";
+import Image from "next/image";
 
 export default function MorningReportPage() {
     const router = useRouter();
@@ -111,6 +112,10 @@ export default function MorningReportPage() {
         totals: { indeedCvs: 0, indeedCalls: 0, naukriCvs: 0, naukriCalls: 0 },
         loading: true
     });
+    
+    // JD Preview Modal State
+    const [isJDPreviewOpen, setIsJDPreviewOpen] = useState(false);
+    const [selectedJD, setSelectedJD] = useState(null);
     
     // Load jobPostRemarks from inputValues (already in localStorage)
 
@@ -281,7 +286,6 @@ export default function MorningReportPage() {
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 min-h-[500px] animate-in fade-in zoom-in-95 duration-300">
                 
                 {/* 1. SALES & DELIVERY TAB */}
-                {/* 1. SALES & DELIVERY TAB */}
                 {activeTab === "Sales & Delivery" && (
                     <div className="animate-in fade-in duration-500">
                         
@@ -292,9 +296,10 @@ export default function MorningReportPage() {
                             <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
                                 <TrendingUp size={18} className="text-blue-600"/> Sales
                             </h2>
-                                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                                
-                               {/* --- CORPORATE SALES (SPLIT-CARD DESIGN) --- */}
+                            
+                            {/* Row 1: Corporate Sector */}
+                            <div className="mb-6">
+                                {/* --- CORPORATE SALES (SPLIT-CARD DESIGN) --- */}
                                 <div className="bg-white rounded-xl border border-indigo-200 shadow-sm overflow-hidden flex flex-col">
                                     <div className="bg-indigo-50 p-3 border-b border-indigo-100 flex justify-between items-center">
                                         <div className="flex items-center gap-2">
@@ -425,8 +430,11 @@ export default function MorningReportPage() {
                                         ></textarea>
                                     </div>
                                 </div>
-
-                               {/* --- DOMESTIC SALES --- */}
+                            </div>
+                            
+                            {/* Row 2: Domestic Sector */}
+                            <div>
+                                {/* --- DOMESTIC SALES --- */}
                                 <div className="bg-white rounded-xl border border-orange-200 shadow-sm overflow-hidden flex flex-col">
                                     <div className="bg-orange-50 p-3 border-b border-orange-100 flex justify-between items-center">
                                         <div className="flex items-center gap-2">
@@ -436,19 +444,19 @@ export default function MorningReportPage() {
                                         <span className="bg-white text-orange-500 text-[9px] font-bold px-2 py-0.5 rounded border border-orange-200">Sales</span>
                                     </div>
                                     
-                                    {/* High-Density Metrics Grid */}
-                                    <div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-2 flex-1 bg-slate-50/30">
+                                    {/* Row 1: First 6 cards - using flex */}
+                                    <div className="p-3 flex gap-2 bg-slate-50/30 overflow-x-auto">
                                         
                                         {/* Visit Metrics */}
-                                        <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all">
-                                            <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">{currentMonth} Visits (Tot)</p>
+                                        <div className="border border-slate-200 p-3 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all cursor-pointer w-1/6 min-w-[120px] h-[70px]" onClick={() => router.push('/admin/morning-report/domestic?filter=current-month-visits')}>
+                                            <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Client Visits ({currentMonth}) </p>
                                             <div className="flex items-end justify-center gap-1">
                                                 <p className="text-lg font-black text-slate-800 leading-none">
                                                     {domesticStats.loading ? '-' : domesticStats.totalVisits}
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all cursor-pointer" onClick={() => router.push('/admin/morning-report/domestic?filter=yesterday-visits')}>
+                                        <div className="border border-slate-200 p-3 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all cursor-pointer w-1/6 min-w-[120px] h-[70px]" onClick={() => router.push('/admin/morning-report/domestic?filter=yesterday-visits')}>
                                             <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Yest. Visits ({domesticStats.lastWorkingDay})</p>
                                             <div className="flex items-end justify-center gap-1">
                                                 <p className="text-lg font-black text-slate-800 leading-none">
@@ -456,24 +464,23 @@ export default function MorningReportPage() {
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all cursor-pointer" onClick={() => router.push('/admin/morning-report/domestic?filter=individual-repeat')}>
-                                            <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Individual / Repeat</p>
-                                            <div className="flex items-end justify-center gap-2">
-                                                <p className="text-lg font-black text-slate-800 leading-none">{domesticStats.loading ? '-' : domesticStats.individualVisits} <span className="text-[9px] font-bold text-slate-400">Ind</span></p>
-                                                <p className="text-lg font-black text-slate-800 leading-none">{domesticStats.loading ? '-' : domesticStats.repeatVisits} <span className="text-[9px] font-bold text-slate-400">Rep</span></p>
+                                        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-300 transition-all flex flex-col cursor-pointer w-1/6 min-w-[120px] h-[70px]" onClick={() => router.push('/admin/morning-report/domestic?filter=individual-repeat')}>
+                                            <div className="flex divide-x divide-slate-100 h-full">
+                                                <div className="flex-1 p-2 text-center bg-blue-50/50 flex flex-col justify-center"><p className="text-[9px] font-bold text-blue-500 uppercase">Individual</p><p className="text-lg font-black text-blue-700 leading-none mt-1">{domesticStats.loading ? '-' : domesticStats.individualVisits}</p></div>
+                                                <div className="flex-1 p-2 text-center bg-amber-50/50 flex flex-col justify-center"><p className="text-[9px] font-bold text-amber-500 uppercase">Repeat</p><p className="text-lg font-black text-amber-700 leading-none mt-1">{domesticStats.loading ? '-' : domesticStats.repeatVisits}</p></div>
                                             </div>
                                         </div>
 
                                         {/* Pipeline Metrics */}
-                                        <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all cursor-pointer" onClick={() => router.push('/admin/morning-report/domestic?filter=reached-out')}>
+                                        <div className="border border-slate-200 p-3 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all cursor-pointer w-1/6 min-w-[120px] h-[70px]" onClick={() => router.push('/admin/morning-report/domestic?filter=reached-out')}>
                                             <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Reached Out (Yest)</p>
                                             <div className="flex items-end justify-center gap-1"><p className="text-lg font-black text-slate-800 leading-none">{domesticStats.loading ? '-' : domesticStats.yesterdayReachedOut}</p></div>
                                         </div>
-                                        <div className="border border-slate-200 p-2 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all cursor-pointer" onClick={() => router.push('/admin/morning-report/domestic?filter=interested')}>
+                                        <div className="border border-slate-200 p-3 rounded-lg bg-white text-center shadow-sm hover:border-orange-300 transition-all cursor-pointer w-1/6 min-w-[120px] h-[70px]" onClick={() => router.push('/admin/morning-report/domestic?filter=interested')}>
                                             <p className="text-[9px] font-bold text-slate-500 uppercase leading-tight mb-1 truncate">Interested (Yest)</p>
                                             <div className="flex items-end justify-center gap-1"><p className="text-lg font-black text-slate-800 leading-none">{domesticStats.loading ? '-' : domesticStats.yesterdayInterested}</p></div>
                                         </div>
-                                        <div className="border border-emerald-200 p-2 rounded-lg bg-emerald-50 text-center shadow-sm hover:border-emerald-300 transition-all cursor-pointer" onClick={() => router.push('/admin/morning-report/domestic?filter=total-onboard')}>
+                                        <div className="border border-emerald-200 p-3 rounded-lg bg-emerald-50 text-center shadow-sm hover:border-emerald-300 transition-all cursor-pointer w-1/6 min-w-[120px] h-[70px]" onClick={() => router.push('/admin/morning-report/domestic?filter=total-onboard')}>
                                             <p className="text-[9px] font-black text-emerald-700 uppercase leading-tight mb-1 truncate">Total Onboard ({currentMonth})</p>
                                             <div className="flex items-end justify-center gap-1">
                                                 <p className="text-lg font-black text-emerald-900 leading-none">
@@ -481,9 +488,12 @@ export default function MorningReportPage() {
                                                 </p>
                                             </div>
                                         </div>
+                                    </div>
 
+                                    {/* Row 2: Total CTC, Onboarded Yesterday Names, Remarks - using flex */}
+                                    <div className="p-3 flex gap-2 bg-slate-50/30 overflow-x-auto">
                                         {/* EDITABLE KPI: Total Expected CTC */}
-                                        <div className="col-span-2 sm:col-span-3 border border-orange-200 p-2 rounded-lg bg-orange-50/50 text-center shadow-sm hover:border-orange-400 transition-all group relative">
+                                        <div className="border border-orange-200 p-2 rounded-lg bg-orange-50/50 text-center shadow-sm hover:border-orange-400 transition-all group relative w-1/3 min-w-[200px]">
                                             <p className="text-[9px] font-bold text-orange-600 uppercase leading-tight mb-1">Total CTC</p>
                                             <div className="flex items-center justify-center">
                                                 <span className="text-lg font-black text-orange-800 mr-1">₹</span>
@@ -498,7 +508,7 @@ export default function MorningReportPage() {
                                         </div>
 
                                         {/* Onboarded Detail Row (Names) */}
-                                        <div className="col-span-2 sm:col-span-3 border border-slate-200 p-2.5 rounded-lg bg-white flex flex-col justify-center gap-1 shadow-sm hover:border-orange-300 transition-all cursor-pointer" onClick={() => router.push('/admin/morning-report/domestic?filter=onboarded-yesterday')}>
+                                        <div className="border border-slate-200 p-2.5 rounded-lg bg-white flex flex-col justify-center gap-1 shadow-sm hover:border-orange-300 transition-all cursor-pointer w-1/3 min-w-[200px]" onClick={() => router.push('/admin/morning-report/domestic?filter=onboarded-yesterday')}>
                                             <p className="text-[9px] font-bold text-slate-500 uppercase">Onboarded (Yest) & Names</p>
                                             <div className="flex items-center gap-3">
                                                 <span className="text-xl font-black text-slate-800 bg-slate-100 px-2 rounded">{domesticStats.loading ? '-' : domesticStats.yesterdayOnboarded}</span>
@@ -511,18 +521,18 @@ export default function MorningReportPage() {
                                                 />
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {/* Editable Remarks Area */}
-                                    <div className="p-3 bg-orange-50/50 border-t border-orange-100 mt-auto">
-                                        <label className="text-[10px] font-black text-orange-800 uppercase mb-1 block">Remarks</label>
-                                        <textarea 
-                                            className="w-full text-xs font-bold text-slate-700 p-2 border border-slate-300 rounded-lg outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 bg-white shadow-inner resize-none" 
-                                            rows="2" 
-                                            placeholder="Enter your remarks for the Domestic Sales team..."
-                                            value={inputValues.domesticRemarks}
-                                            onChange={(e) => saveToLocalStorage('domesticRemarks', e.target.value)}
-                                        ></textarea>
+                                        {/* Editable Remarks Area */}
+                                        <div className="border border-slate-200 p-2 rounded-lg bg-white shadow-sm hover:border-orange-300 transition-all w-1/3 min-w-[200px]">
+                                            <label className="text-[9px] font-bold text-slate-500 uppercase mb-1 block">Remarks</label>
+                                            <textarea 
+                                                className="w-full text-xs font-bold text-slate-700 p-2 border border-slate-300 rounded-lg outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 bg-white shadow-inner resize-none" 
+                                                rows="2" 
+                                                placeholder="Enter your remarks for the Domestic Sales team..."
+                                                value={inputValues.domesticRemarks}
+                                                onChange={(e) => saveToLocalStorage('domesticRemarks', e.target.value)}
+                                            ></textarea>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -569,25 +579,48 @@ export default function MorningReportPage() {
                                                 <table className="w-full text-left text-xs">
                                                     <thead className="bg-white border-b border-gray-200 text-[9px] uppercase text-gray-400 font-bold sticky top-0">
                                                         <tr>
-                                                            <th className="py-2 px-4 w-[20%]">Sector</th>
-                                                            <th className="py-2 px-3 w-[35%]">Client</th>
-                                                            <th className="py-2 px-3 w-[45%]">Profile</th>
+                                                         <th className="py-2 px-4 w-[20%]">Sector</th>
+                                                         <th className="py-2 px-3 w-[20%]">Client</th>
+                                                         <th className="py-2 px-3 w-[20%]">Profile</th>
+                                                         <th className="py-2 px-3 w-[15%] text-center">Platform</th>
+                                                         <th className="py-2 px-3 w-[10%] text-center">JD View</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-gray-100 text-gray-700">
-                                                        {jobPostData.jobs.length > 0 ? jobPostData.jobs.slice(0, 20).map(job => (
-                                                            <tr key={job.id} className="hover:bg-gray-50">
-                                                                <td className="py-2 px-4">
-                                                                    <span className={`text-[8px] px-2 py-0.5 rounded font-black uppercase tracking-widest ${job.sector === 'Domestic' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
-                                                                        {job.sector}
-                                                                    </span>
-                                                                </td>
-                                                                <td className="py-2 px-3 font-bold truncate max-w-[150px]">{job.client}</td>
-                                                                <td className="py-2 px-3 text-[#103c7f] font-bold truncate max-w-[200px]">{job.profile}</td>
-                                                            </tr>
-                                                        )) : (
-                                                            <tr><td colSpan="3" className="py-4 text-center text-gray-400 italic text-xs">No jobs posted.</td></tr>
-                                                        )}
+                                                         {jobPostData.jobs.length > 0 ? jobPostData.jobs.slice(0, 20).map(job => (
+                                                             <tr key={job.id} className="hover:bg-gray-50">
+                                                                 <td className="py-2 px-4">
+                                                                     <span className={`text-[8px] px-2 py-0.5 rounded font-black uppercase tracking-widest ${job.sector === 'Domestic' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
+                                                                         {job.sector}
+                                                                     </span>
+                                                                 </td>
+                                                                 <td className="py-2 px-3 font-bold truncate max-w-[120px]">{job.client_name}</td>
+                                                                 <td className="py-2 px-3 text-[#103c7f] font-bold truncate max-w-[160px]">{job.job_title}</td>
+                                                                 <td className="py-2 px-3 font-bold truncate max-w-[80px] text-center">
+                                                                     {job.platforms && job.platforms.length > 0 ? (
+                                                                         <span className="text-[8px] px-1 py-0.5 rounded bg-blue-50 text-blue-700 font-bold">
+                                                                             {job.platforms.join(', ')}
+                                                                         </span>
+                                                                     ) : (
+                                                                         <span className="text-[8px] text-gray-400 italic">-</span>
+                                                                     )}
+                                                                 </td>
+                                                                  <td className="py-2 px-3 text-center">
+                                                                      <button 
+                                                                          onClick={() => {
+                                                                              setSelectedJD(job);
+                                                                              setIsJDPreviewOpen(true);
+                                                                          }}
+                                                                          title="Preview JD"
+                                                                          className="p-1.5 bg-red-50 text-red-600 border border-red-100 rounded hover:bg-red-600 hover:text-white transition"
+                                                                      >
+                                                                          <FileText size={14}/>
+                                                                      </button>
+                                                                  </td>
+                                                             </tr>
+                                                         )) : (
+                                                             <tr><td colSpan="4" className="py-4 text-center text-gray-400 italic text-xs">No jobs posted.</td></tr>
+                                                         )}
                                                     </tbody>
                                                 </table>
                                             )}
@@ -750,22 +783,73 @@ export default function MorningReportPage() {
                     </div>
                 )}
 
-                {/* 3. TECH TAB */}
-                {activeTab === "Tech" && (
-                    <div>
-                        <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
-                            <Laptop size={16} className="text-emerald-600"/> Tech Department Updates
-                        </h2>
-                        
-                        <div className="p-12 border-2 border-dashed border-slate-200 rounded-xl text-center text-slate-400">
-                            <p className="text-sm font-bold uppercase tracking-widest">Waiting for Tech KPIs...</p>
-                            <p className="text-[10px] mt-2">Dev sprints, Bugs, and Deployment metrics will be rendered here.</p>
-                        </div>
-                    </div>
-                )}
-
-            </div>
-
-        </div>
-    );
-}
+                 {/* 3. TECH TAB */}
+                 {activeTab === "Tech" && (
+                     <div>
+                         <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
+                             <Laptop size={16} className="text-emerald-600"/> Tech Department Updates
+                         </h2>
+                         
+                         <div className="p-12 border-2 border-dashed border-slate-200 rounded-xl text-center text-slate-400">
+                             <p className="text-sm font-bold uppercase tracking-widest">Waiting for Tech KPIs...</p>
+                             <p className="text-[10px] mt-2">Dev sprints, Bugs, and Deployment metrics will be rendered here.</p>
+                         </div>
+                     </div>
+                 )}
+                 
+                 {/* JD Preview Modal */}
+                 {isJDPreviewOpen && selectedJD && (
+                     <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-xl flex justify-center items-center z-[9999] p-0 md:p-4 print:static print:block print:bg-white print:p-0 print:z-auto" style={{ zIndex: 99999 }}>
+                         <div className="bg-transparent w-full max-w-[800px] h-full md:h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 relative shadow-2xl rounded-2xl print:block print:h-auto print:max-w-full print:shadow-none print:rounded-none">
+                             
+                             <div className="bg-[#103c7f] text-white p-4 flex justify-between items-center shrink-0 border-b border-blue-900 print:hidden">
+                                 <div className="flex items-center gap-3">
+                                     <FileText size={20} />
+                                     <div>
+                                         <h3 className="font-bold text-lg uppercase tracking-wide">Document Preview</h3>
+                                         <p className="text-[10px] text-blue-200 font-bold tracking-widest uppercase">For Client: {selectedJD.client_name}</p>
+                                     </div>
+                                 </div>
+                                 <div className="flex gap-3">
+                                     <button onClick={() => setIsJDPreviewOpen(false)} className="hover:bg-white/20 p-2 rounded-full transition"><X size={20}/></button>
+                                 </div>
+                             </div>
+ 
+                             <div className="flex-1 min-h-0 overflow-y-auto bg-gray-200 p-4 md:p-8 block print:bg-white print:p-0">
+                                 <div className="bg-white w-full max-w-[210mm] min-h-[297mm] h-max mx-auto p-[10mm] md:p-[15mm] shadow-xl text-black font-['Calibri'] relative print:shadow-none print:m-0" id="pdf-content">
+                                     
+                                     <div className="mb-10"><Image src="/maven-logo.png" alt="Maven Jobs" width={220} height={70} className="object-contain" priority /></div>
+ 
+                                     <div className="border border-black p-8 min-h-[850px] relative print:border-none print:p-0">
+                                         
+                                         <div className="space-y-4 mb-10 text-[15px] leading-relaxed">
+                                             {selectedJD.job_title && <p><span className="font-bold">JOB TITLE : </span> {selectedJD.job_title}</p>}
+                                             {selectedJD.location && <p><span className="font-bold">LOCATION : </span> {selectedJD.location}</p>}
+                                             {selectedJD.experience && <p><span className="font-bold">EXPERIENCE : </span> {selectedJD.experience}</p>}
+                                             {selectedJD.employment_type && <p><span className="font-bold">EMPLOYMENT TYPE : </span> {selectedJD.employment_type}</p>}
+                                             {selectedJD.working_days && <p><span className="font-bold">WORKING DAYS : </span> {selectedJD.working_days}</p>}
+                                             {selectedJD.timings && <p><span className="font-bold">TIMINGS : </span> {selectedJD.timings}</p>}
+                                             {selectedJD.package && <p><span className="font-bold">PACKAGE : </span> {selectedJD.package}</p>}
+                                             {selectedJD.tool_requirement && <p><span className="font-bold">TOOL REQUIREMENT : </span> {selectedJD.tool_requirement}</p>}
+                                         </div>
+ 
+                                         <div className="space-y-8 text-[15px]">
+                                             {selectedJD.job_summary && <div><h4 className="font-bold mb-2 uppercase text-[16px]">Job Summary :</h4><p className="leading-relaxed text-justify text-gray-800">{selectedJD.job_summary}</p></div>}
+                                             {selectedJD.rnr && <div><h4 className="font-bold mb-2 uppercase text-[16px]">Role & Responsibilities :</h4><ul className="list-disc pl-5 space-y-1.5 text-gray-800">{selectedJD.rnr?.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}</ul></div>}
+                                             {selectedJD.req_skills && <div><h4 className="font-bold mb-2 uppercase text-[16px]">Required Skills :</h4><ul className="list-disc pl-5 space-y-1.5 text-gray-800">{selectedJD.req_skills?.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}</ul></div>}
+                                             {selectedJD.preferred_qual && <div><h4 className="font-bold mb-2 uppercase text-[16px]">Preferred Qualifications :</h4><ul className="list-disc pl-5 space-y-1.5 text-gray-800">{selectedJD.preferred_qual?.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}</ul></div>}
+                                             {selectedJD.company_offers && <div><h4 className="font-bold mb-2 uppercase text-[16px]">What Company Offer :</h4><ul className="list-disc pl-5 space-y-1.5 text-gray-800">{selectedJD.company_offers?.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}</ul></div>}
+                                             {selectedJD.contact_details && <div className="mt-12 pt-6 border-t border-black/20"><h4 className="font-bold mb-3 uppercase text-[16px]">Contact Us To Apply :</h4><div className="whitespace-pre-line leading-loose text-gray-900 font-medium">{selectedJD.contact_details}</div></div>}
+                                         </div>
+ 
+                                     </div>
+                                 </div>
+                             </div>
+ 
+                         </div>
+                     </div>
+                 )}
+             </div>
+         </div>
+     );
+ }

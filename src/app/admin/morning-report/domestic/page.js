@@ -263,6 +263,10 @@ function DomesticDetailsContent() {
                         filterParam = 'onboarded-yesterday';
                         setFilterTitle('Onboarded (Yesterday)');
                         break;
+                    case 'current-month-visits':
+                        filterParam = 'current-month-visits';
+                        setFilterTitle('Client Visits (Current Month)');
+                        break;
                     default:
                         filterParam = 'all';
                         setFilterTitle('All Records');
@@ -423,6 +427,7 @@ function DomesticDetailsContent() {
                         <thead>
                             <tr className="bg-orange-50/50 border-b border-orange-100">
                                 <th className="py-3 px-4 text-[10px] font-black text-orange-900 uppercase tracking-widest">Company Name</th>
+                                <th className="py-3 px-4 text-[10px] font-black text-orange-900 uppercase tracking-widest">Location & State</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-orange-900 uppercase tracking-widest">Contact Info</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-orange-900 uppercase tracking-widest">Latest Interaction & Date</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-orange-900 uppercase tracking-widest">Next Follow-Up</th>
@@ -441,7 +446,7 @@ function DomesticDetailsContent() {
                                 </tr>
                             ) : filteredData.length === 0 ? (
                                 <tr>
-                                    <td colSpan="8" className="py-10 text-center text-gray-400 font-bold">
+                                    <td colSpan="9" className="py-10 text-center text-gray-400 font-bold">
                                         No data available
                                     </td>
                                 </tr>
@@ -455,6 +460,16 @@ function DomesticDetailsContent() {
                                                 {row.status === 'Individual' && (
                                                     <span className="bg-green-100 text-green-700 text-[9px] font-black px-1.5 py-0.5 rounded uppercase">New</span>
                                                 )}
+                                            </div>
+                                        </td>
+                                        
+                                        {/* Location & State */}
+                                        <td className="py-3 px-4">
+                                            <div className="flex items-center gap-1">
+                                                <MapPin size={12} className="text-orange-500 shrink-0"/>
+                                                <p className="text-xs font-bold text-slate-600 truncate max-w-[150px]" title={row.location || row.state ? `${row.location}, ${row.state}` : '-'}>
+                                                    {row.location || row.state ? `${row.location}${row.location && row.state ? ', ' : ''}${row.state}` : '-'}
+                                                </p>
                                             </div>
                                         </td>
                                         

@@ -78,7 +78,7 @@ export async function GET(request) {
     // 4. Fetch jobs posted for the selected date
     const { data: jobPostings, error: jobsError } = await supabaseAdmin
       .from('job_postings')
-      .select('id, jd_id, posted_on')
+      .select('id, jd_id, posted_on, platform')
       .eq('posted_on', selectedDate);
 
     if (jobsError) {
@@ -87,16 +87,18 @@ export async function GET(request) {
 
     let jobs = [];
     if (jobPostings && jobPostings.length > 0) {
+      // Get unique jd_ids
       const uniqueJdIds = [...new Set(jobPostings.map(jp => jp.jd_id))];
 
+      // Fetch JD details
       const [domesticJDs, corporateJDs] = await Promise.all([
         supabaseAdmin
           .from('domestic_crm_jd')
-          .select('jd_id, client_name, job_title')
+          .select('*')
           .in('jd_id', uniqueJdIds),
         supabaseAdmin
           .from('corporate_crm_jd')
-          .select('jd_id, client_name, job_title')
+          .select('*')
           .in('jd_id', uniqueJdIds)
       ]);
 
@@ -110,25 +112,39 @@ export async function GET(request) {
         corporateMap[jd.jd_id] = { ...jd, sector: 'Corporate' };
       });
 
+      // Group platforms by jd_id
+      const jdPlatformsMap = {};
+      jobPostings.forEach(jp => {
+        if (!jdPlatformsMap[jp.jd_id]) {
+          jdPlatformsMap[jp.jd_id] = new Set();
+        }
+        if (jp.platform) {
+          jdPlatformsMap[jp.jd_id].add(jp.platform);
+        }
+      });
+
       jobs = uniqueJdIds.map(jdId => {
         const domesticJD = domesticMap[jdId];
         const corporateJD = corporateMap[jdId];
         
+        // Get platforms for this JD
+        const platforms = jdPlatformsMap[jdId] ? Array.from(jdPlatformsMap[jdId]) : [];
+        
         if (domesticJD) {
           return {
+            ...domesticJD,
             id: jdId,
             date: selectedDate,
             sector: 'Domestic',
-            client: domesticJD.client_name,
-            profile: domesticJD.job_title
+            platforms: platforms
           };
         } else if (corporateJD) {
           return {
+            ...corporateJD,
             id: jdId,
             date: selectedDate,
             sector: 'Corporate',
-            client: corporateJD.client_name,
-            profile: corporateJD.job_title
+            platforms: platforms
           };
         }
         
@@ -136,8 +152,9 @@ export async function GET(request) {
           id: jdId,
           date: selectedDate,
           sector: 'Unknown',
-          client: 'Unknown',
-          profile: 'Unknown'
+          client_name: 'Unknown',
+          job_title: 'Unknown',
+          platforms: platforms
         };
       });
     }

@@ -108,6 +108,8 @@ export async function GET(request) {
                 id: client.client_id,
                 client_id: client.client_id,
                 companyName: client.company_name,
+                location: client.location || '',
+                state: client.state || '',
                 contactName: interaction?.contact_person || client.contact_person || '',
                 contactNumber: interaction?.contact_no || client.contact_no || '',
                 email: interaction?.email || '',
@@ -194,6 +196,8 @@ export async function GET(request) {
                 id: client.client_id,
                 client_id: client.client_id,
                 companyName: client.company_name,
+                location: client.location || '',
+                state: client.state || '',
                 contactName: interaction?.contact_person || client.contact_person || '',
                 contactNumber: interaction?.contact_no || client.contact_no || '',
                 email: interaction?.email || '',
@@ -254,6 +258,8 @@ export async function GET(request) {
                 id: client.client_id,
                 client_id: client.client_id,
                 companyName: client.company_name,
+                location: client.location || '',
+                state: client.state || '',
                 contactName: interaction?.contact_person || client.contact_person || '',
                 contactNumber: interaction?.contact_no || client.contact_no || '',
                 email: interaction?.email || '',
@@ -308,6 +314,8 @@ export async function GET(request) {
                 id: client.client_id,
                 client_id: client.client_id,
                 companyName: client.company_name,
+                location: client.location || '',
+                state: client.state || '',
                 contactName: interaction?.contact_person || client.contact_person || '',
                 contactNumber: interaction?.contact_no || client.contact_no || '',
                 email: interaction?.email || '',
@@ -362,6 +370,8 @@ export async function GET(request) {
                 id: client.client_id,
                 client_id: client.client_id,
                 companyName: client.company_name,
+                location: client.location || '',
+                state: client.state || '',
                 contactName: interaction?.contact_person || client.contact_person || '',
                 contactNumber: interaction?.contact_no || client.contact_no || '',
                 email: interaction?.email || '',
@@ -416,6 +426,8 @@ export async function GET(request) {
                 id: client.client_id,
                 client_id: client.client_id,
                 companyName: client.company_name,
+                location: client.location || '',
+                state: client.state || '',
                 contactName: interaction?.contact_person || client.contact_person || '',
                 contactNumber: interaction?.contact_no || client.contact_no || '',
                 email: interaction?.email || '',
@@ -423,6 +435,87 @@ export async function GET(request) {
                 lastInteractionDate: interaction?.contact_date || '',
                 nextFollowup: interaction?.next_follow_up || '',
                 status: 'Interested',
+                substatus: interaction?.sub_status || '',
+                projection: client.projection || '',
+                owner: ownerName
+              }
+            }) || []
+          }
+          break
+
+        case 'current-month-visits':
+          filterTitle = 'Client Visits (Current Month)'
+          // Get all clients visited in current month
+          const { data: monthVisitData } = await supabaseServer
+            .from('domestic_clients_interaction')
+            .select('client_id, user_id, contact_date, contact_mode, contact_person, contact_no, email, remarks, next_follow_up, status, sub_status')
+            .gte('contact_date', startDate)
+            .lte('contact_date', endDate)
+            .ilike('contact_mode', 'visit')
+          
+          // Get unique client IDs
+          const monthVisitedClientIds = [...new Set(monthVisitData?.map(r => r.client_id).filter(Boolean) || [])]
+          
+          if (monthVisitedClientIds.length > 0) {
+            const { data: monthVisitedClients } = await supabaseServer
+              .from('domestic_clients')
+              .select('*')
+              .in('client_id', monthVisitedClientIds)
+            
+            // Get all interactions for these clients in the current month
+            const { data: monthInteractions } = await supabaseServer
+              .from('domestic_clients_interaction')
+              .select('client_id, user_id, contact_date, contact_person, contact_no, email, remarks, next_follow_up, status, sub_status')
+              .in('client_id', monthVisitedClientIds)
+              .gte('contact_date', startDate)
+              .lte('contact_date', endDate)
+              .order('contact_date', { ascending: false })
+            
+            // Group interactions by client_id and get the latest
+            const monthLatestInteractionsMap = new Map()
+            monthInteractions?.forEach(interaction => {
+              if (!monthLatestInteractionsMap.has(interaction.client_id)) {
+                monthLatestInteractionsMap.set(interaction.client_id, interaction)
+              }
+            })
+            
+            // Get user names for owners
+            const monthOwnerIds = [...new Set(monthInteractions?.map(c => c.user_id).filter(Boolean) || [])]
+            const monthUserNamesMap = await getUserNames(monthOwnerIds)
+            
+            // Create a map of client visit dates to determine Individual vs Repeat
+            const clientFirstVisitMap = new Map()
+            monthVisitData?.forEach(record => {
+              if (!clientFirstVisitMap.has(record.client_id)) {
+                clientFirstVisitMap.set(record.client_id, record.contact_date)
+              }
+            })
+            
+            details = monthVisitedClients?.map(client => {
+              const interaction = monthLatestInteractionsMap.get(client.client_id)
+              const ownerName = monthUserNamesMap.get(interaction?.user_id) || interaction?.user_id || 'Unknown'
+              
+              // Determine if Individual or Repeat based on sourcing_date vs first visit date
+              let visitType = 'Repeat'
+              const sourcingDate = client.sourcing_date ? String(client.sourcing_date).split('T')[0] : null
+              const firstVisitDate = clientFirstVisitMap.get(client.client_id)
+              if (sourcingDate && firstVisitDate) {
+                visitType = (sourcingDate === firstVisitDate) ? 'Individual' : 'Repeat'
+              }
+              
+              return {
+                id: client.client_id,
+                client_id: client.client_id,
+                companyName: client.company_name,
+                location: client.location || '',
+                state: client.state || '',
+                contactName: interaction?.contact_person || client.contact_person || '',
+                contactNumber: interaction?.contact_no || client.contact_no || '',
+                email: interaction?.email || '',
+                lastInteraction: interaction?.remarks || '',
+                lastInteractionDate: interaction?.contact_date || '',
+                nextFollowup: interaction?.next_follow_up || '',
+                status: visitType,
                 substatus: interaction?.sub_status || '',
                 projection: client.projection || '',
                 owner: ownerName
