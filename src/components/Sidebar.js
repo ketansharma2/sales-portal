@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { 
   Users, Wallet, LayoutGrid, ShieldCheck, 
   Settings, FileText, Target, Search, BarChart, Phone,Calendar,MapPin,Truck,UserPlus,IndianRupee,UserCheck,Edit,Plus,
-  Package,PhoneCall,ClipboardList,KanbanSquare,TableProperties, SunMedium
+  Package,PhoneCall,ClipboardList,KanbanSquare,TableProperties, SunMedium, UploadCloud,Activity
 } from "lucide-react";
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
@@ -121,6 +121,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     menuItems = [
       { name: "Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "Workbench", href: `${roleBaseHref}/workbench`, icon: <TableProperties size={20} /> },
+      { name: "CV Parsing", href: `${roleBaseHref}/parsing`, icon: <UploadCloud size={20} /> },
       { name: "Candidate Follow-up", href: `${roleBaseHref}/followup`, icon: <PhoneCall size={20} /> }, 
     ];
   }
@@ -132,6 +133,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     menuItems = [
       { name: "Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "My Workbench", href: `${roleBaseHref}/workbench`, icon: <KanbanSquare size={20} /> },
+      { name: "Team Tracker", href: `${roleBaseHref}/tracker`, icon: <Activity size={20} /> },
       { name: "Candidate Follow-up", href: `${roleBaseHref}/followup`, icon: <PhoneCall size={20} /> }, // TL will use the same component here
     ];
   }

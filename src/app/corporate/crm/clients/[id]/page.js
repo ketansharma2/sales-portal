@@ -2,6 +2,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import {
   Building2, MapPin, Phone, Mail, User,
@@ -9,7 +10,7 @@ import {
   MessageSquare, Link as LinkIcon, Clock,
   Briefcase, CheckCircle, Edit, Share2,
   Calendar, CreditCard, Layout, ShieldCheck,
-  ImageIcon, ExternalLink, X, Save, Eye, Lock,
+  ImageIcon, ExternalLink, X, Save, Eye, Lock,Download,
   PlusCircle
 } from "lucide-react";
 
@@ -28,7 +29,72 @@ export default function ClientMasterProfile() {
   const [isAllContactsOpen, setIsAllContactsOpen] = useState(false);
   const [isAllReqsOpen, setIsAllReqsOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
+ // --- STATE FOR JD BUILDER MODAL ---
+  const [isJdModalOpen, setIsJdModalOpen] = useState(false);
+  const [jdTab, setJdTab] = useState('create');
+  const [viewJdData, setViewJdData] = useState(null);
+  
+  const [jdFormData, setJdFormData] = useState({
+      jd_id: null, client_name: '', job_title: '', location: '', experience: '',
+      employment_type: '', working_days: '', timings: '', package: '',
+      tool_requirement: '', job_summary: '', rnr: '', req_skills: '',
+      preferred_qual: '', company_offers: '', contact_details: ''
+  });
 
+  // --- MOCK PAST JDs DATABASE (For Auto-fill Feature) ---
+  const mockPastJDs = [
+      {
+          id: 101, client_name: "TechCorp Solutions", job_title: "Java Developer", location: "Bangalore", 
+          experience: "3-5 Years", employment_type: "Full Time", working_days: "5 Days", 
+          timings: "10:00 AM - 07:00 PM", package: "12-15 LPA", tool_requirement: "IntelliJ, Jira", 
+          job_summary: "Looking for a strong backend Java developer...", 
+          rnr: "1. Build microservices.\n2. Optimize database queries.", 
+          req_skills: "Java 8+, Spring Boot, Microservices, MySQL", 
+          preferred_qual: "B.Tech/B.E in Computer Science", 
+          company_offers: "Health Insurance, Free Cab, Flexible Timings", 
+          contact_details: "hr@techcorp.com"
+      },
+      {
+          id: 102, client_name: "Urban Money", job_title: "Telesales Executive", location: "Delhi", 
+          experience: "1-3 Years", employment_type: "Full Time", working_days: "6 Days", 
+          timings: "09:30 AM - 06:30 PM", package: "3-4 LPA", tool_requirement: "CRM, Dialer", 
+          job_summary: "Outbound calling to prospective B2B clients.", 
+          rnr: "1. Lead Generation.\n2. Conversion tracking.", 
+          req_skills: "Excellent Communication, Sales Pitching", 
+          preferred_qual: "Any Graduate", 
+          company_offers: "High Incentives, Fast Growth", 
+          contact_details: "careers@urbanmoney.com"
+      }
+  ];
+
+  // --- HANDLER FOR JD AUTO-FILL ---
+  const handleImportSelect = (e) => {
+      const selectedId = parseInt(e.target.value);
+      if (!selectedId) return;
+
+      const selectedJD = mockPastJDs.find(jd => jd.id === selectedId);
+      if (selectedJD) {
+          // Fill Core Req Data
+          setNewReqData(prev => ({
+              ...prev,
+              jobTitle: selectedJD.job_title,
+              experience: selectedJD.experience,
+              package: selectedJD.package
+          }));
+          
+          // Fill JD Details Data
+          setJdFormData({ 
+              ...jdFormData, 
+              ...selectedJD, 
+              jd_id: null // remove ID so it saves as new
+          });
+      }
+  };
+
+  // --- REUSABLE TAILWIND CLASSES FOR MODAL ---
+  const labelClass = "text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 block mt-3";
+  const inputClass = "w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none shadow-sm bg-white";
+  const textAreaClass = "w-full border border-gray-300 rounded p-3 text-sm focus:border-[#103c7f] outline-none resize-y shadow-sm bg-white";
   // --- 1. MASTER CLIENT DATA ---
   const [clientData, setClientData] = useState({
     id: '',
@@ -1473,25 +1539,45 @@ return (
         </div>
       )}
       {/* ================= MODAL 6: ADD REQUIREMENT ================= */}
+     {/* ================= MODAL 6: ADD REQUIREMENT & JD ================= */}
       {isReqModalOpen && (
-        <div className="fixed inset-0 bg-[#103c7f]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-[#103c7f]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 print:hidden animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[95vh] max-h-[850px] flex flex-col overflow-hidden animate-in zoom-in-95 border-4 border-white relative z-[10000]">
                 
                 {/* Header */}
-                <div className="bg-[#103c7f] px-6 py-4 flex justify-between items-center text-white">
+                <div className="bg-[#103c7f] px-6 py-4 flex justify-between items-center text-white shrink-0">
                     <div>
-                        <h3 className="text-lg font-black uppercase tracking-wide">Add Requirement</h3>
-                        <p className="text-xs text-blue-200 opacity-80">Post a new job requirement for this client.</p>
+                        <h3 className="font-black text-lg uppercase tracking-wide flex items-center gap-2">
+                            <Briefcase size={20}/> Add Requirement
+                        </h3>
+                        <p className="text-[10px] text-blue-200 font-bold uppercase tracking-widest mt-0.5">Post a new job requirement and define JD details.</p>
                     </div>
-                    <button onClick={() => setIsReqModalOpen(false)} className="hover:bg-white/10 p-1.5 rounded-full transition-colors"><X size={20}/></button>
+                    <button onClick={() => setIsReqModalOpen(false)} className="hover:bg-white/20 p-1.5 rounded-full transition"><X size={20}/></button>
                 </div>
-
-                {/* Body */}
-                <div className="p-8 space-y-5">
+                
+                {/* Scrollable Form Body */}
+                <div className="p-6 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/50">
                     
-                    {/* Row 1: Job Title & JD Link */}
-                    <div className="grid grid-cols-2 gap-5">
+                    {/* AUTO-FILL STRIP */}
+                    <div className="mb-6 bg-blue-50 border border-blue-200 p-4 rounded-xl shadow-sm flex flex-col md:flex-row md:items-center gap-4 justify-between">
                         <div>
+                            <p className="text-xs font-black text-[#103c7f] uppercase tracking-widest flex items-center gap-1.5"><Layout size={14}/> Auto-Fill From Past JDs</p>
+                            <p className="text-[9px] text-blue-600 font-bold uppercase mt-1">Selecting a profile will overwrite current JD form values.</p>
+                        </div>
+                        <select onChange={handleImportSelect} className="w-full md:w-72 border border-blue-300 rounded-lg p-2.5 text-sm font-bold text-slate-700 bg-white focus:border-[#103c7f] outline-none cursor-pointer shadow-sm">
+                            <option value="">-- Select from Database --</option>
+                            {mockPastJDs && mockPastJDs.map(jd => (
+                                <option key={jd.id} value={jd.id}>{jd.job_title} ({jd.client_name})</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-3">
+                        
+                        {/* SECTION 1: CORE DETAILS */}
+                        <div className="col-span-1 md:col-span-4 mb-2"><h4 className="text-xs font-black text-[#103c7f] uppercase border-b border-blue-100 pb-2 flex items-center gap-1.5"><Building2 size={14}/> Core Details</h4></div>
+                        
+                        <div className="md:col-span-2">
                             <label className="text-[10px] font-bold text-gray-500 uppercase">Job Title</label>
                             <input 
                               type="text" 
@@ -1500,45 +1586,17 @@ return (
                               className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
                             />
                         </div>
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase">JD Link</label>
+                        <div className="md:col-span-2">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase">Requirement Received Date</label>
                             <input 
-                              type="text" 
-                              value={newReqData.jdLink}
-                              onChange={(e) => setNewReqData({...newReqData, jdLink: e.target.value})}
-                              className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none text-blue-600 underline"
-                              placeholder="https://..."
-                            />
-                        </div>
-                    </div>
-
-                    {/* Row 2: Experience & Package */}
-                    <div className="grid grid-cols-2 gap-5">
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase">Experience</label>
-                            <input 
-                              type="text" 
-                              value={newReqData.experience}
-                              onChange={(e) => setNewReqData({...newReqData, experience: e.target.value})}
+                              type="date" 
+                              value={newReqData.receivedDate}
+                              onChange={(e) => setNewReqData({...newReqData, receivedDate: e.target.value})}
                               className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
-                              placeholder="e.g. 2-4 Years"
                             />
                         </div>
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase">Package</label>
-                            <input 
-                              type="text" 
-                              value={newReqData.package}
-                              onChange={(e) => setNewReqData({...newReqData, package: e.target.value})}
-                              className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
-                              placeholder="e.g. 12 LPA"
-                            />
-                        </div>
-                    </div>
 
-                    {/* Row 3: Openings & Priority */}
-                    <div className="grid grid-cols-2 gap-5">
-                        <div>
+                        <div className="md:col-span-2">
                             <label className="text-[10px] font-bold text-gray-500 uppercase">No. of Openings</label>
                             <input 
                               type="number" 
@@ -1547,7 +1605,7 @@ return (
                               className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
                             />
                         </div>
-                        <div>
+                        <div className="md:col-span-2">
                             <label className="text-[10px] font-bold text-gray-500 uppercase">Hiring Priority</label>
                             <select 
                               value={newReqData.priority}
@@ -1560,11 +1618,8 @@ return (
                                 <option value="Low">Low</option>
                             </select>
                         </div>
-                    </div>
 
-                    {/* Row 4: Status & Timeline */}
-                    <div className="grid grid-cols-2 gap-5">
-                        <div>
+                        <div className="md:col-span-2">
                             <label className="text-[10px] font-bold text-gray-500 uppercase">Status</label>
                             <select 
                               value={newReqData.status}
@@ -1576,7 +1631,7 @@ return (
                                 <option value="Done">Done</option>
                             </select>
                         </div>
-                        <div>
+                        <div className="md:col-span-2">
                             <label className="text-[10px] font-bold text-gray-500 uppercase">Timeline</label>
                             <input 
                               type="date" 
@@ -1585,28 +1640,39 @@ return (
                               className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
                             />
                         </div>
+
+                        {/* SECTION 2: JD SPECIFIC DETAILS */}
+                        <div className="col-span-1 md:col-span-4 mt-6 mb-2"><h4 className="text-xs font-black text-[#103c7f] uppercase border-b border-blue-100 pb-2 flex items-center gap-1.5"><FileText size={14}/> Job Description Details</h4></div>
+
+                        <div><label className={labelClass}>Location</label><input type="text" className={inputClass} value={jdFormData.location || ""} onChange={(e)=>setJdFormData({...jdFormData, location: e.target.value})}/></div>
+                        <div><label className="text-[10px] font-bold text-gray-500 uppercase">Experience</label><input type="text" placeholder="e.g. 2-4 Yrs" className={inputClass} value={newReqData.experience} onChange={(e) => setNewReqData({...newReqData, experience: e.target.value})}/></div>
+                        <div><label className="text-[10px] font-bold text-gray-500 uppercase">Package (LPA)</label><input type="text" placeholder="e.g. 12 LPA" className={inputClass} value={newReqData.package} onChange={(e) => setNewReqData({...newReqData, package: e.target.value})}/></div>
+                        <div><label className={labelClass}>Employment Type</label><input type="text" placeholder="e.g. Full Time" className={inputClass} value={jdFormData.employment_type || ""} onChange={(e)=>setJdFormData({...jdFormData, employment_type: e.target.value})}/></div>
+                        
+                        <div><label className={labelClass}>Working Days</label><input type="text" placeholder="e.g. 5 Days" className={inputClass} value={jdFormData.working_days || ""} onChange={(e)=>setJdFormData({...jdFormData, working_days: e.target.value})}/></div>
+                        <div><label className={labelClass}>Timings</label><input type="text" placeholder="e.g. 10 AM - 7 PM" className={inputClass} value={jdFormData.timings || ""} onChange={(e)=>setJdFormData({...jdFormData, timings: e.target.value})}/></div>
+                        <div className="md:col-span-2"><label className={labelClass}>Tool Requirement</label><input type="text" className={inputClass} value={jdFormData.tool_requirement || ""} onChange={(e)=>setJdFormData({...jdFormData, tool_requirement: e.target.value})}/></div>
+
+                        {/* SECTION 3: TEXT AREAS */}
+                        <div className="col-span-1 md:col-span-4 mt-4 mb-2"><h4 className="text-xs font-black text-[#103c7f] uppercase border-b border-blue-100 pb-2 flex items-center gap-1.5"><Layout size={14}/> Description & Requirements</h4></div>
+                        
+                        <div className="col-span-1 md:col-span-4"><label className={labelClass}>Job Summary</label><textarea rows="3" className={textAreaClass} value={jdFormData.job_summary || ""} onChange={(e)=>setJdFormData({...jdFormData, job_summary: e.target.value})}></textarea></div>
+                        <div className="col-span-1 md:col-span-4"><label className={labelClass}>Role & Responsibilities</label><textarea rows="4" className={`${textAreaClass} h-24`} value={jdFormData.rnr || ""} onChange={(e)=>setJdFormData({...jdFormData, rnr: e.target.value})}></textarea></div>
+                        <div className="md:col-span-2"><label className={labelClass}>Required Skills</label><textarea rows="3" className={textAreaClass} value={jdFormData.req_skills || ""} onChange={(e)=>setJdFormData({...jdFormData, req_skills: e.target.value})}></textarea></div>
+                        <div className="md:col-span-2"><label className={labelClass}>Preferred Qualifications</label><textarea rows="3" className={textAreaClass} value={jdFormData.preferred_qual || ""} onChange={(e)=>setJdFormData({...jdFormData, preferred_qual: e.target.value})}></textarea></div>
+                        <div className="md:col-span-2"><label className={labelClass}>What Company Offers</label><textarea rows="3" className={textAreaClass} value={jdFormData.company_offers || ""} onChange={(e)=>setJdFormData({...jdFormData, company_offers: e.target.value})}></textarea></div>
+                        <div className="md:col-span-2"><label className={labelClass}>Contact Info (For Candidates)</label><textarea rows="3" className={textAreaClass} value={jdFormData.contact_details || ""} onChange={(e)=>setJdFormData({...jdFormData, contact_details: e.target.value})}></textarea></div>
+
                     </div>
-
-                    
-
-                    {/* Row 6: Requirement Received Date */}
-                    <div>
-                        <label className="text-[10px] font-bold text-gray-500 uppercase">Requirement Received Date</label>
-                        <input 
-                          type="date" 
-                          value={newReqData.receivedDate}
-                          onChange={(e) => setNewReqData({...newReqData, receivedDate: e.target.value})}
-                          className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
-                        />
-                    </div>
-
                 </div>
 
-                {/* Footer */}
-                <div className="p-5 bg-gray-50 border-t flex justify-end gap-3">
-                    <button onClick={() => setIsReqModalOpen(false)} className="px-5 py-2.5 text-gray-500 font-bold hover:text-gray-700 text-sm">Cancel</button>
-                    <button onClick={handleSaveRequirement} className="bg-[#103c7f] hover:bg-blue-900 text-white px-8 py-2.5 rounded-lg font-bold text-sm shadow-md flex items-center gap-2">
-                        <Briefcase size={16}/> Save Requirement
+                {/* Footer Actions */}
+                <div className="p-5 border-t border-slate-200 bg-white flex justify-end gap-3 shrink-0">
+                    <button onClick={() => setIsReqModalOpen(false)} className="px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition shadow-sm border border-slate-200">
+                        Cancel
+                    </button>
+                    <button onClick={handleSaveRequirement} className="bg-[#103c7f] text-white px-8 py-2.5 rounded-lg font-black text-xs uppercase tracking-widest shadow-md hover:bg-blue-900 transition flex items-center gap-2">
+                        <Save size={16}/> Save Complete Requirement
                     </button>
                 </div>
             </div>
@@ -1899,7 +1965,7 @@ return (
                                    <thead>
                                       <tr className="bg-gray-50 text-[10px] uppercase text-gray-500 font-bold border-b border-gray-100 whitespace-nowrap">
                                          <th className="px-4 py-3 min-w-[150px]">Job Title</th>
-                                         <th className="px-4 py-3 text-center">JD Link</th>
+                                         <th className="px-4 py-3 text-center">JD Details</th>
                                          <th className="px-4 py-3">Experience</th>
                                          <th className="px-4 py-3">Package</th>
                                          <th className="px-4 py-3 text-center">Openings</th>
@@ -1918,10 +1984,14 @@ return (
                                                {req.job_title}
                                             </td>
 
-                                            {/* JD Link */}
+                                            {/* JD View Button */}
                                             <td className="px-4 py-3 text-center">
-                                               <button className="text-blue-600 hover:text-blue-800 bg-blue-50 p-1.5 rounded-md transition-colors" title="View JD">
-                                                  <LinkIcon size={12}/>
+                                               <button 
+                                                  onClick={() => setViewJdData(req)} 
+                                                  className="text-blue-600 hover:text-white bg-blue-50 hover:bg-blue-600 px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 mx-auto font-bold text-[10px] uppercase tracking-widest" 
+                                                  title="View Full JD"
+                                               >
+                                                  <Eye size={12}/> View JD
                                                </button>
                                             </td>
 
@@ -2048,6 +2118,107 @@ return (
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ================= MODAL 10: VIEW JD DETAILS (PDF PREVIEW STYLE) ================= */}
+      {viewJdData && (
+        <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-xl flex justify-center items-center z-[9999] p-0 md:p-4 print:static print:block print:bg-white print:p-0 print:z-auto">
+            
+            <div className="bg-transparent w-full max-w-[800px] h-full md:h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 relative shadow-2xl rounded-2xl print:block print:h-auto print:max-w-full print:shadow-none print:rounded-none print:overflow-visible">
+                
+                {/* Header (Hidden in Print) */}
+                <div className="bg-[#103c7f] text-white p-4 flex justify-between items-center shrink-0 border-b border-blue-900 print:hidden">
+                    <div className="flex items-center gap-3">
+                        <FileText size={20} />
+                        <h3 className="font-bold text-lg uppercase tracking-wide">Job Description Preview</h3>
+                    </div>
+                    <div className="flex gap-3">
+                        <button onClick={() => window.print()} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider">
+                            <Download size={16}/> Save as PDF
+                        </button>
+                        <button onClick={() => setViewJdData(null)} className="hover:bg-white/20 p-2 rounded-full transition">
+                            <X size={20}/>
+                        </button>
+                    </div>
+                </div>
+
+                {/* --- PDF CONTENT --- */}
+                <div className="flex-1 min-h-0 overflow-y-auto bg-gray-200 p-4 md:p-8 block print:block print:overflow-visible print:bg-white print:p-0 custom-scrollbar">
+                    <div className="bg-white w-full max-w-[210mm] min-h-[297mm] h-max mx-auto p-[10mm] md:p-[15mm] shadow-xl text-black font-['Calibri'] relative print:w-full print:max-w-none print:shadow-none print:m-0 print:border-none" id="pdf-content">
+                        
+                        {/* 1. Header Logo */}
+                        <div className="mb-10">
+                            {/* Ensure you have maven-logo.png in your public folder */}
+                            <Image src="/maven-logo.png" alt="Maven Jobs" width={220} height={70} className="object-contain" priority />
+                        </div>
+
+                        {/* 2. Bordered Container */}
+                        <div className="border border-black p-8 min-h-[850px] relative print:border-none print:p-0">
+                            
+                            {/* Key Value Pairs */}
+                            <div className="space-y-4 mb-10 text-[15px] leading-relaxed">
+                                {viewJdData.job_title && <p><span className="font-bold">JOB TITLE : </span> {viewJdData.job_title}</p>}
+                                {viewJdData.location && <p><span className="font-bold">LOCATION : </span> {viewJdData.location}</p>}
+                                {viewJdData.experience && <p><span className="font-bold">EXPERIENCE : </span> {viewJdData.experience}</p>}
+                                {viewJdData.employment_type && <p><span className="font-bold">EMPLOYMENT TYPE : </span> {viewJdData.employment_type}</p>}
+                                {viewJdData.working_days && <p><span className="font-bold">WORKING DAYS : </span> {viewJdData.working_days}</p>}
+                                {viewJdData.timings && <p><span className="font-bold">TIMINGS : </span> {viewJdData.timings}</p>}
+                                {viewJdData.package && <p><span className="font-bold">PACKAGE : </span> {viewJdData.package}</p>}
+                                {viewJdData.tool_requirement && <p><span className="font-bold">TOOL REQUIREMENT : </span> {viewJdData.tool_requirement}</p>}
+                            </div>
+
+                            {/* Sections */}
+                            <div className="space-y-8 text-[15px]">
+                                {viewJdData.job_summary && (
+                                    <div><h4 className="font-bold mb-2 uppercase text-[16px]">Job Summary :</h4><p className="leading-relaxed text-justify text-gray-800">{viewJdData.job_summary}</p></div>
+                                )}
+                                
+                                {viewJdData.rnr && (
+                                    <div><h4 className="font-bold mb-2 uppercase text-[16px]">Role & Responsibilities :</h4>
+                                        <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                            {viewJdData.rnr.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                        </ul>
+                                    </div>
+                                )}
+                                
+                                {viewJdData.req_skills && (
+                                    <div><h4 className="font-bold mb-2 uppercase text-[16px]">Required Skills :</h4>
+                                        <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                            {viewJdData.req_skills.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                        </ul>
+                                    </div>
+                                )}
+                                
+                                {viewJdData.preferred_qual && (
+                                    <div><h4 className="font-bold mb-2 uppercase text-[16px]">Preferred Qualifications :</h4>
+                                        <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                            {viewJdData.preferred_qual.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                        </ul>
+                                    </div>
+                                )}
+                                
+                                {viewJdData.company_offers && (
+                                    <div><h4 className="font-bold mb-2 uppercase text-[16px]">What Company Offer :</h4>
+                                        <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                            {viewJdData.company_offers.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                        </ul>
+                                    </div>
+                                )}
+                                
+                                {viewJdData.contact_details && (
+                                    <div className="mt-12 pt-6 border-t border-black/20">
+                                        <h4 className="font-bold mb-3 uppercase text-[16px]">Contact Us To Apply :</h4>
+                                        <div className="whitespace-pre-line leading-loose text-gray-900 font-medium">{viewJdData.contact_details}</div>
+                                    </div>
+                                )}
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </div>
       )}
     </div>

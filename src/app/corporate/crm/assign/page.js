@@ -1,10 +1,11 @@
 "use client";
 import { useState } from "react";
+import Image from "next/image";
 import { 
     ClipboardList, Calendar, Users, Briefcase, IndianRupee, 
     Target, Plus, Trash2, Search, Edit, Activity, X, 
     BarChart2, FileText, Send, UserCheck, TrendingUp, Database, 
-    MessageSquarePlus, Building2, Clock
+    MessageSquarePlus, Building2, Clock, Eye , Download, AlertTriangle
 } from "lucide-react";
 
 export default function AssignWorkPage() {
@@ -18,10 +19,39 @@ export default function AssignWorkPage() {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [selectedWork, setSelectedWork] = useState(null);
 
+    // JD View Modal State
+    const [isJdViewModalOpen, setIsJdViewModalOpen] = useState(false);
+    const [currentJdView, setCurrentJdView] = useState(null);
+
     // Mock Lists for Dropdowns
     const clientsList = ["Frankfin", "Urban Money", "Steel Craft Export", "MKS", "TechCorp Solutions"];
     const tlList = ["Gurmeet", "Shruti", "Rohan", "Amit"];
-    const profilesList = ["Telecouncellor", "Telesales Executive", "Senior Merchandiser", "AutoCAD", "Java Developer"];
+    
+    // --- MOCK DATA FOR AUTOFILL ---
+    // Yahan profile ke hisaab se uska package, requirement aur JD pehle se mapped hai
+    const mockProfilesData = {
+        "Telecouncellor": { 
+            package_salary: "30k", requirement: "350", 
+            jd: { title: "Telecouncellor", summary: "Handle inbound inquiries and counsel students for aviation courses.", skills: "Excellent Communication, Convincing Power, CRM Handling" } 
+        },
+        "Telesales Executive": { 
+            package_salary: "21k", requirement: "30", 
+            jd: { title: "Telesales Executive", summary: "Outbound B2B/B2C sales and lead generation.", skills: "Sales Strategy, Target Oriented, Fluent Hindi/English" } 
+        },
+        "Senior Merchandiser": { 
+            package_salary: "50k", requirement: "5", 
+            jd: { title: "Senior Merchandiser", summary: "Manage export orders, sampling, and vendor negotiations.", skills: "Garment Export, Vendor Management, Costing" } 
+        },
+        "AutoCAD": { 
+            package_salary: "25k", requirement: "12", 
+            jd: { title: "AutoCAD Draftsman", summary: "Create detailed 2D/3D layouts for interior design projects.", skills: "AutoCAD 2D/3D, SketchUp, Fast Typing" } 
+        },
+        "Java Developer": { 
+            package_salary: "12 LPA", requirement: "8", 
+            jd: { title: "Java Developer", summary: "Develop and maintain backend microservices using Spring Boot.", skills: "Java 8+, Spring Boot, Microservices, MySQL, AWS" } 
+        }
+    };
+    const profilesList = Object.keys(mockProfilesData);
 
     // Initial Form State
     const getTodayDate = () => new Date().toISOString().split('T')[0];
@@ -31,25 +61,28 @@ export default function AssignWorkPage() {
         profile: "",
         package_salary: "",
         requirement: "",
-        tl_assigned: ""
+        tl_assigned: "",
+        jd: null // Added JD object
     };
     const [formData, setFormData] = useState(initialForm);
 
     // --- MOCK TABLE DATA ---
-    // Added mock downstream data (recruiter, progress, tlRemarks) to simulate work already started
     const [assignments, setAssignments] = useState([
         { 
             id: 1, date: "2026-03-02", client: "Frankfin", profile: "Telecouncellor", package_salary: "30k", requirement: "350", tl_assigned: "Gurmeet",
+            jd: mockProfilesData["Telecouncellor"].jd, // Mock JD attached
             recruiter: "Pooja", slot: "09:30 AM - 01:00 PM", 
             progress: { cv_naukri: 45, cv_indeed: 20, cv_other: 5, totalCv: 70, advance_sti: 15, today_conversion: 2, today_asset: 5, tracker_sent: 1, notes: "Good response today. Client was happy with the first batch of profiles." },
             tlRemarks: [{ date: "2026-03-03", text: "Asked Pooja to focus only on immediate joiners." }]
         },
         { 
             id: 2, date: "2026-03-02", client: "Urban Money", profile: "Telesales Executive", package_salary: "21k", requirement: "30", tl_assigned: "Gurmeet",
+            jd: mockProfilesData["Telesales Executive"].jd, // Mock JD attached
             recruiter: "", slot: "", progress: null, tlRemarks: []
         },
         { 
             id: 3, date: "2026-03-02", client: "Urban Money", profile: "Telesales Executive", package_salary: "21k", requirement: "30", tl_assigned: "Shruti",
+            jd: mockProfilesData["Telesales Executive"].jd, // Mock JD attached
             recruiter: "Khushi Chawla", slot: "Full Day (10-6)", 
             progress: { cv_naukri: 20, cv_indeed: 10, cv_other: 2, totalCv: 32, advance_sti: 5, today_conversion: 1, today_asset: 3, tracker_sent: 1, notes: "1 conversion done. Need to parse more data from Indeed for backup." },
             tlRemarks: []
@@ -57,6 +90,25 @@ export default function AssignWorkPage() {
     ]);
 
     // --- HANDLERS ---
+
+    // Handle Profile Change with Auto-fill Logic
+    const handleProfileChange = (e) => {
+        const val = e.target.value;
+        const autoFillData = mockProfilesData[val];
+        
+        if (autoFillData) {
+            setFormData({
+                ...formData,
+                profile: val,
+                package_salary: autoFillData.package_salary,
+                requirement: autoFillData.requirement,
+                jd: autoFillData.jd
+            });
+        } else {
+            setFormData({ ...formData, profile: val, jd: null });
+        }
+    };
+
     const handleAddOrUpdate = () => {
         if (!formData.client || !formData.profile || !formData.tl_assigned || !formData.requirement) {
             alert("Please fill all mandatory fields (Client, Profile, Requirement, TL)!");
@@ -88,7 +140,8 @@ export default function AssignWorkPage() {
             profile: item.profile,
             package_salary: item.package_salary,
             requirement: item.requirement,
-            tl_assigned: item.tl_assigned
+            tl_assigned: item.tl_assigned,
+            jd: item.jd
         });
         setIsEditMode(true);
         setEditId(item.id);
@@ -114,7 +167,7 @@ export default function AssignWorkPage() {
     );
 
     return (
-        <div className="min-h-screen bg-gray-50 font-['Calibri'] p-4 md:p-6">
+        <div className="min-h-screen bg-gray-50 font-['Calibri'] p-4 md:p-6 relative">
             
             {/* HEADER */}
             <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
@@ -161,7 +214,7 @@ export default function AssignWorkPage() {
                 <div className="flex flex-wrap lg:flex-nowrap gap-3 items-end">
                     
                     {/* Date */}
-                    <div className="flex-1 min-w-[120px]">
+                    <div className="flex-[0.8] min-w-[110px]">
                         <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Date</label>
                         <input 
                             type="date" 
@@ -172,7 +225,7 @@ export default function AssignWorkPage() {
                     </div>
 
                     {/* Client Dropdown */}
-                    <div className="flex-[2] min-w-[180px]">
+                    <div className="flex-[2] min-w-[150px]">
                         <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Client Name</label>
                         <select 
                             className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold text-gray-700 focus:border-[#103c7f] outline-none shadow-sm bg-white"
@@ -185,14 +238,14 @@ export default function AssignWorkPage() {
                     </div>
 
                     {/* Profile Dropdown / Datalist */}
-                    <div className="flex-[2] min-w-[180px]">
+                    <div className="flex-[2] min-w-[150px]">
                         <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Profile</label>
                         <input 
                             list="profiles"
                             placeholder="Type or select profile"
                             className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold text-gray-700 focus:border-[#103c7f] outline-none shadow-sm"
                             value={formData.profile}
-                            onChange={(e) => setFormData({...formData, profile: e.target.value})}
+                            onChange={handleProfileChange}
                         />
                         <datalist id="profiles">
                             {profilesList.map(p => <option key={p} value={p}/>)}
@@ -200,7 +253,7 @@ export default function AssignWorkPage() {
                     </div>
 
                     {/* Package */}
-                    <div className="flex-1 min-w-[100px]">
+                    <div className="flex-1 min-w-[90px]">
                         <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Package</label>
                         <input 
                             type="text" 
@@ -212,7 +265,7 @@ export default function AssignWorkPage() {
                     </div>
 
                     {/* Requirement Number */}
-                    <div className="flex-1 min-w-[100px]">
+                    <div className="flex-[0.8] min-w-[90px]">
                         <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Requirement</label>
                         <input 
                             type="number" 
@@ -223,8 +276,20 @@ export default function AssignWorkPage() {
                         />
                     </div>
 
+                    {/* View JD Button (NEW) */}
+                    <div className="flex-[0.8] min-w-[90px]">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">View JD</label>
+                        <button
+                            disabled={!formData.jd}
+                            onClick={() => { setCurrentJdView(formData.jd); setIsJdViewModalOpen(true); }}
+                            className={`w-full py-2 rounded-lg text-sm font-bold shadow-sm transition flex items-center justify-center gap-1.5 border ${formData.jd ? 'bg-blue-50 text-[#103c7f] border-blue-200 hover:bg-blue-100' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}
+                        >
+                            <Eye size={14}/> JD
+                        </button>
+                    </div>
+
                     {/* TL Dropdown */}
-                    <div className="flex-[1.5] min-w-[150px]">
+                    <div className="flex-[1.5] min-w-[130px]">
                         <label className="text-[10px] font-bold text-[#103c7f] uppercase block mb-1">Assign To TL</label>
                         <select 
                             className="w-full border border-[#103c7f] rounded-lg p-2 text-sm font-black text-[#103c7f] bg-blue-50 focus:border-blue-800 outline-none shadow-sm"
@@ -261,6 +326,7 @@ export default function AssignWorkPage() {
                                 <th className="p-3 border-r border-blue-800"><div className="flex items-center gap-1.5"><Briefcase size={12}/> Profile</div></th>
                                 <th className="p-3 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><IndianRupee size={12}/> Package</div></th>
                                 <th className="p-3 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Target size={12}/> Requirement</div></th>
+                                <th className="p-3 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><FileText size={12}/> JD</div></th>
                                 <th className="p-3 border-r border-blue-800"><div className="flex items-center gap-1.5"><Users size={12}/> TL Assigned</div></th>
                                 <th className="p-3 text-center bg-[#0d316a] sticky right-0 z-20 w-36">Actions</th>
                             </tr>
@@ -292,6 +358,17 @@ export default function AssignWorkPage() {
                                     
                                     <td className="p-3 border-r border-gray-100 text-center font-black text-lg text-[#103c7f]">
                                         {item.requirement}
+                                    </td>
+
+                                    <td className="p-3 border-r border-gray-100 text-center align-middle">
+                                        <button 
+                                            onClick={() => { setCurrentJdView(item.jd); setIsJdViewModalOpen(true); }}
+                                            disabled={!item.jd}
+                                            className={`p-1.5 mx-auto flex items-center justify-center rounded transition ${item.jd ? 'text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200' : 'text-gray-400 bg-gray-50 cursor-not-allowed'}`}
+                                            title={item.jd ? "View Attached JD" : "No JD Attached"}
+                                        >
+                                            <FileText size={14} />
+                                        </button>
                                     </td>
                                     
                                     <td className="p-3 border-r border-gray-100">
@@ -334,7 +411,7 @@ export default function AssignWorkPage() {
                                 </tr>
                             ))) : (
                                 <tr>
-                                    <td colSpan="8" className="p-10 text-center text-gray-400 font-bold uppercase tracking-widest">
+                                    <td colSpan="9" className="p-10 text-center text-gray-400 font-bold uppercase tracking-widest">
                                         No assignments found
                                     </td>
                                 </tr>
@@ -343,6 +420,107 @@ export default function AssignWorkPage() {
                     </table>
                 </div>
             </div>
+
+           {/* --- VIEW JD DETAILS MODAL (DOCUMENT PREVIEW) --- */}
+            {isJdViewModalOpen && currentJdView && (
+                <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-xl flex justify-center items-center z-[10000] p-0 md:p-4 print:static print:block print:bg-white print:p-0 print:z-auto">
+                    
+                    <div className="bg-transparent w-full max-w-[800px] h-full md:h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 relative shadow-2xl rounded-2xl print:block print:h-auto print:max-w-full print:shadow-none print:rounded-none print:overflow-visible">
+                        
+                        {/* Header (Hidden in Print) */}
+                        <div className="bg-[#103c7f] text-white p-4 flex justify-between items-center shrink-0 border-b border-blue-900 print:hidden">
+                            <div className="flex items-center gap-3">
+                                <FileText size={20} />
+                                <h3 className="font-bold text-lg uppercase tracking-wide">Document Preview</h3>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={() => window.print()} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider">
+                                    <Download size={16}/> Save as PDF
+                                </button>
+                                <button onClick={() => setIsJdViewModalOpen(false)} className="hover:bg-white/20 p-2 rounded-full transition">
+                                    <X size={20}/>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* --- PDF CONTENT --- */}
+                        <div className="flex-1 min-h-0 overflow-y-auto bg-gray-200 p-4 md:p-8 block print:block print:overflow-visible print:bg-white print:p-0 custom-scrollbar">
+                            <div className="bg-white w-full max-w-[210mm] min-h-[297mm] h-max mx-auto p-[10mm] md:p-[15mm] shadow-xl text-black font-['Calibri'] relative print:w-full print:max-w-none print:shadow-none print:m-0 print:border-none" id="pdf-content">
+                                
+                                {/* 1. Header Logo */}
+                                <div className="mb-10">
+                                    {/* Agar logo display na ho, toh next.js Image ki jagah standard <img/> use kar sakte hain */}
+                                    <img src="/maven-logo.png" alt="Maven Jobs" style={{ width: '220px', height: '70px', objectFit: 'contain' }} />
+                                </div>
+
+                                {/* 2. Bordered Container */}
+                                <div className="border border-black p-8 min-h-[850px] relative print:border-none print:p-0">
+                                    
+                                    {/* Key Value Pairs */}
+                                    <div className="space-y-4 mb-10 text-[15px] leading-relaxed">
+                                        {currentJdView.title && <p><span className="font-bold">JOB TITLE : </span> {currentJdView.title}</p>}
+                                        {currentJdView.location && <p><span className="font-bold">LOCATION : </span> {currentJdView.location}</p>}
+                                        {currentJdView.experience && <p><span className="font-bold">EXPERIENCE : </span> {currentJdView.experience}</p>}
+                                        {currentJdView.employment_type && <p><span className="font-bold">EMPLOYMENT TYPE : </span> {currentJdView.employment_type}</p>}
+                                        {currentJdView.working_days && <p><span className="font-bold">WORKING DAYS : </span> {currentJdView.working_days}</p>}
+                                        {currentJdView.timings && <p><span className="font-bold">TIMINGS : </span> {currentJdView.timings}</p>}
+                                        {currentJdView.package_salary && <p><span className="font-bold">PACKAGE : </span> {currentJdView.package_salary}</p>}
+                                        {currentJdView.tool_requirement && <p><span className="font-bold">TOOL REQUIREMENT : </span> {currentJdView.tool_requirement}</p>}
+                                    </div>
+
+                                    {/* Sections */}
+                                    <div className="space-y-8 text-[15px]">
+                                        {currentJdView.summary && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Job Summary :</h4><p className="leading-relaxed text-justify text-gray-800">{currentJdView.summary}</p></div>
+                                        )}
+                                        
+                                        {currentJdView.rnr && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Role & Responsibilities :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {currentJdView.rnr.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {currentJdView.skills && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Required Skills :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {currentJdView.skills.split(',').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {currentJdView.preferred_qual && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Preferred Qualifications :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {currentJdView.preferred_qual.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {currentJdView.company_offers && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">What Company Offer :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {currentJdView.company_offers.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {currentJdView.contact_details && (
+                                            <div className="mt-12 pt-6 border-t border-black/20">
+                                                <h4 className="font-bold mb-3 uppercase text-[16px]">Contact Us To Apply :</h4>
+                                                <div className="whitespace-pre-line leading-loose text-gray-900 font-medium">{currentJdView.contact_details}</div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            )}
 
             {/* --- VIEW WORK MODAL (CRM SIDE) --- */}
             {isViewModalOpen && selectedWork && (

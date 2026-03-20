@@ -1,9 +1,10 @@
 "use client";
 import { useState } from "react";
 import { 
-    Search, Calendar, Building2, Briefcase, IndianRupee, 
+    Search, Calendar, Briefcase, IndianRupee, 
     Target, Clock, TableProperties, Activity, CheckCircle2, 
-    FileText, TrendingUp, Send, UserCheck, X, Database
+    FileText, TrendingUp, Send, UserCheck, X, Database,
+    Eye, Download, MapPin, CreditCard
 } from "lucide-react";
 
 export default function RecruiterWorkbenchPage() {
@@ -12,6 +13,10 @@ export default function RecruiterWorkbenchPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState(null);
+
+    // JD View Modal State (PDF Style)
+    const [isJdViewModalOpen, setIsJdViewModalOpen] = useState(false);
+    const [currentJdView, setCurrentJdView] = useState(null);
 
     // Form State for Work Done
     const initialForm = {
@@ -26,12 +31,17 @@ export default function RecruiterWorkbenchPage() {
     };
     const [formData, setFormData] = useState(initialForm);
 
-    // --- MOCK DATA: Tasks assigned to the logged-in Recruiter (e.g., "Pooja") ---
+    // --- MOCK JD DATA ---
+    const mockJd1 = { title: "Telecouncellor", location: "Bangalore", experience: "1-3 Yrs", package_salary: "30k", employment_type: "Full Time", working_days: "6 Days", timings: "9:30 AM - 6 PM", tool_requirement: "CRM, Dialpad", summary: "Handle inbound inquiries and counsel students.", skills: "Communication, Convincing", preferred_qual: "Graduate", company_offers: "Incentives", contact_details: "hr@company.com", rnr: "Call leads\nCounsel students" };
+    const mockJd2 = { title: "HR Manager", location: "Mumbai", experience: "5-7 Yrs", package_salary: "8LPA", employment_type: "Full Time", working_days: "5 Days", timings: "10 AM - 7 PM", tool_requirement: "HRIS", summary: "Manage HR operations.", skills: "Recruitment, Payroll", preferred_qual: "MBA HR", company_offers: "Health Insurance", contact_details: "hr@global.com", rnr: "Manage end to end HR\nPolicy making" };
+    const mockJd3 = { title: "Java Developer", location: "Pune", experience: "3-5 Yrs", package_salary: "12LPA", employment_type: "Full Time", working_days: "5 Days", timings: "Flexible", tool_requirement: "Eclipse, Git", summary: "Backend development.", skills: "Java, Spring Boot", preferred_qual: "B.Tech", company_offers: "WFH options", contact_details: "tech@techcorp.com", rnr: "API creation\nBug fixing" };
+
+    // --- MOCK DATA: Tasks assigned to the logged-in Recruiter (Client Name Removed) ---
     const [myTasks, setMyTasks] = useState([
-        { id: 1, date: "2026-03-02", client: "Frankfin", profile: "Telecouncellor", package: "30k", requirement: "350", slot: "09:30 AM - 01:00 PM", status: "Pending", lastLog: null },
-        { id: 2, date: "2026-03-03", client: "Global Logistics", profile: "HR Manager", package: "8LPA", requirement: "1", slot: "Urgent (Immediate)", status: "Updated", lastLog: { totalCv: 15, sti: 2 } },
-        { id: 3, date: "2026-03-04", client: "TechCorp Solutions", profile: "Java Developer", package: "12LPA", requirement: "5", slot: "Full Day (10-6)", status: "Pending", lastLog: null },
-        { id: 4, date: "2026-03-04", client: "MKS", profile: "AutoCAD", package: "40k", requirement: "2", slot: "02:00 PM - 06:00 PM", status: "Pending", lastLog: null }
+        { id: 1, date: "2026-03-02", profile: "Telecouncellor", package: "30k", requirement: "350", slot: "09:30 AM - 01:00 PM", status: "Pending", lastLog: null, jd: mockJd1 },
+        { id: 2, date: "2026-03-03", profile: "HR Manager", package: "8LPA", requirement: "1", slot: "Urgent (Immediate)", status: "Updated", lastLog: { totalCv: 15, sti: 2 }, jd: mockJd2 },
+        { id: 3, date: "2026-03-04", profile: "Java Developer", package: "12LPA", requirement: "5", slot: "Full Day (10-6)", status: "Pending", lastLog: null, jd: mockJd3 },
+        { id: 4, date: "2026-03-04", profile: "AutoCAD", package: "40k", requirement: "2", slot: "02:00 PM - 06:00 PM", status: "Pending", lastLog: null, jd: null }
     ]);
 
     // --- HANDLERS ---
@@ -74,12 +84,11 @@ export default function RecruiterWorkbenchPage() {
 
     // Filter Logic
     const filteredTasks = myTasks.filter(item => 
-        item.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.profile.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
-        <div className="min-h-screen bg-gray-50 font-['Calibri'] p-4 md:p-6">
+        <div className="min-h-screen bg-gray-50 font-['Calibri'] p-4 md:p-6 relative">
             
             {/* HEADER & SEARCH */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
@@ -95,7 +104,7 @@ export default function RecruiterWorkbenchPage() {
                 <div className="relative">
                     <input 
                         type="text" 
-                        placeholder="Search client, profile..." 
+                        placeholder="Search profile..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs font-bold w-72 outline-none focus:border-[#103c7f] transition shadow-sm"
@@ -109,16 +118,16 @@ export default function RecruiterWorkbenchPage() {
             {/* --- TASK TABLE --- */}
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                 <div className="overflow-x-auto custom-scrollbar min-h-[60vh]">
-                    <table className="w-full text-left border-collapse min-w-[1000px]">
+                    <table className="w-full text-left border-collapse min-w-[900px]">
                         
                         <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-10 shadow-sm">
                             <tr>
                                 <th className="p-4 border-r border-blue-800 w-10 text-center">#</th>
                                 <th className="p-4 border-r border-blue-800"><div className="flex items-center gap-1.5"><Calendar size={12}/> Date</div></th>
-                                <th className="p-4 border-r border-blue-800 min-w-[150px]"><div className="flex items-center gap-1.5"><Building2 size={12}/> Client</div></th>
                                 <th className="p-4 border-r border-blue-800 min-w-[150px]"><div className="flex items-center gap-1.5"><Briefcase size={12}/> Profile</div></th>
                                 <th className="p-4 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><IndianRupee size={12}/> Pkg</div></th>
                                 <th className="p-4 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Target size={12}/> Req.</div></th>
+                                <th className="p-4 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><FileText size={12}/> JD</div></th>
                                 <th className="p-4 border-r border-blue-800 bg-[#0d316a] text-yellow-300"><div className="flex items-center gap-1.5"><Clock size={12}/> Slot Timing</div></th>
                                 <th className="p-4 border-r border-blue-800 text-center">Status</th>
                                 <th className="p-4 text-center bg-[#0d316a] w-36 sticky right-0 z-20">Action</th>
@@ -138,10 +147,6 @@ export default function RecruiterWorkbenchPage() {
                                         {item.date}
                                     </td>
                                     
-                                    <td className="p-3 border-r border-gray-200 font-black text-[#103c7f]">
-                                        {item.client}
-                                    </td>
-                                    
                                     <td className="p-3 border-r border-gray-200 font-bold text-gray-700">
                                         {item.profile}
                                     </td>
@@ -152,6 +157,18 @@ export default function RecruiterWorkbenchPage() {
                                     
                                     <td className="p-3 border-r border-gray-200 text-center font-black text-[13px] text-gray-800">
                                         {item.requirement}
+                                    </td>
+
+                                    {/* JD View */}
+                                    <td className="p-2 border-r border-gray-200 text-center align-middle">
+                                        <button 
+                                            onClick={() => { setCurrentJdView(item.jd); setIsJdViewModalOpen(true); }}
+                                            disabled={!item.jd}
+                                            className={`p-1.5 mx-auto flex items-center justify-center rounded transition ${item.jd ? 'text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200' : 'text-gray-400 bg-gray-50 cursor-not-allowed'}`}
+                                            title={item.jd ? "View Attached JD" : "No JD Attached"}
+                                        >
+                                            <Eye size={14} />
+                                        </button>
                                     </td>
                                     
                                     <td className="p-3 border-r border-gray-200 font-bold text-purple-700 bg-purple-50/30">
@@ -216,7 +233,7 @@ export default function RecruiterWorkbenchPage() {
                                 <div>
                                     <h4 className="text-lg font-black text-[#103c7f]">{selectedTask.profile}</h4>
                                     <p className="text-xs font-bold text-gray-600 mt-0.5 flex items-center gap-1">
-                                        <Building2 size={12}/> {selectedTask.client} | Req: {selectedTask.requirement}
+                                        <Target size={12}/> Req: {selectedTask.requirement}
                                     </p>
                                 </div>
                                 <div className="text-right">
@@ -339,6 +356,106 @@ export default function RecruiterWorkbenchPage() {
                             <button onClick={handleSaveWork} className="bg-[#103c7f] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-blue-900 transition flex items-center gap-2">
                                 <CheckCircle2 size={16}/> Submit Work Report
                             </button>
+                        </div>
+
+                    </div>
+                </div>
+            )}
+
+            {/* --- VIEW JD DETAILS MODAL (DOCUMENT PREVIEW) --- */}
+            {isJdViewModalOpen && currentJdView && (
+                <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-xl flex justify-center items-center z-[10000] p-0 md:p-4 print:static print:block print:bg-white print:p-0 print:z-auto">
+                    
+                    <div className="bg-transparent w-full max-w-[800px] h-full md:h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 relative shadow-2xl rounded-2xl print:block print:h-auto print:max-w-full print:shadow-none print:rounded-none print:overflow-visible">
+                        
+                        {/* Header (Hidden in Print) */}
+                        <div className="bg-[#103c7f] text-white p-4 flex justify-between items-center shrink-0 border-b border-blue-900 print:hidden">
+                            <div className="flex items-center gap-3">
+                                <FileText size={20} />
+                                <h3 className="font-bold text-lg uppercase tracking-wide">Document Preview</h3>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={() => window.print()} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider">
+                                    <Download size={16}/> Save as PDF
+                                </button>
+                                <button onClick={() => setIsJdViewModalOpen(false)} className="hover:bg-white/20 p-2 rounded-full transition">
+                                    <X size={20}/>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* --- PDF CONTENT --- */}
+                        <div className="flex-1 min-h-0 overflow-y-auto bg-gray-200 p-4 md:p-8 block print:block print:overflow-visible print:bg-white print:p-0 custom-scrollbar">
+                            <div className="bg-white w-full max-w-[210mm] min-h-[297mm] h-max mx-auto p-[10mm] md:p-[15mm] shadow-xl text-black font-['Calibri'] relative print:w-full print:max-w-none print:shadow-none print:m-0 print:border-none" id="pdf-content">
+                                
+                                {/* 1. Header Logo */}
+                                <div className="mb-10">
+                                    <img src="/maven-logo.png" alt="Maven Jobs" style={{ width: '220px', height: '70px', objectFit: 'contain' }} />
+                                </div>
+
+                                {/* 2. Bordered Container */}
+                                <div className="border border-black p-8 min-h-[850px] relative print:border-none print:p-0">
+                                    
+                                    {/* Key Value Pairs */}
+                                    <div className="space-y-4 mb-10 text-[15px] leading-relaxed">
+                                        {currentJdView.title && <p><span className="font-bold">JOB TITLE : </span> {currentJdView.title}</p>}
+                                        {currentJdView.location && <p><span className="font-bold">LOCATION : </span> {currentJdView.location}</p>}
+                                        {currentJdView.experience && <p><span className="font-bold">EXPERIENCE : </span> {currentJdView.experience}</p>}
+                                        {currentJdView.employment_type && <p><span className="font-bold">EMPLOYMENT TYPE : </span> {currentJdView.employment_type}</p>}
+                                        {currentJdView.working_days && <p><span className="font-bold">WORKING DAYS : </span> {currentJdView.working_days}</p>}
+                                        {currentJdView.timings && <p><span className="font-bold">TIMINGS : </span> {currentJdView.timings}</p>}
+                                        {currentJdView.package_salary && <p><span className="font-bold">PACKAGE : </span> {currentJdView.package_salary}</p>}
+                                        {currentJdView.tool_requirement && <p><span className="font-bold">TOOL REQUIREMENT : </span> {currentJdView.tool_requirement}</p>}
+                                    </div>
+
+                                    {/* Sections */}
+                                    <div className="space-y-8 text-[15px]">
+                                        {currentJdView.summary && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Job Summary :</h4><p className="leading-relaxed text-justify text-gray-800">{currentJdView.summary}</p></div>
+                                        )}
+                                        
+                                        {currentJdView.rnr && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Role & Responsibilities :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {currentJdView.rnr.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {currentJdView.skills && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Required Skills :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {currentJdView.skills.split(',').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {currentJdView.preferred_qual && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Preferred Qualifications :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {currentJdView.preferred_qual.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {currentJdView.company_offers && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">What Company Offer :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {currentJdView.company_offers.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {currentJdView.contact_details && (
+                                            <div className="mt-12 pt-6 border-t border-black/20">
+                                                <h4 className="font-bold mb-3 uppercase text-[16px]">Contact Us To Apply :</h4>
+                                                <div className="whitespace-pre-line leading-loose text-gray-900 font-medium">{currentJdView.contact_details}</div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                </div>
+                            </div>
                         </div>
 
                     </div>
