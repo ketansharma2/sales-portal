@@ -1,8 +1,8 @@
 "use client";
-import { useState } from "react";
-import { 
-    ClipboardList, Calendar, Users, Briefcase, IndianRupee, 
-    Target, Search, Activity, X, BarChart2, FileText, Send, 
+import { useState, useEffect } from "react";
+import {
+    ClipboardList, Calendar, Users, Briefcase, IndianRupee,
+    Target, Search, Activity, X, BarChart2, FileText, Send,
     UserCheck, TrendingUp, Database, MessageSquarePlus, Clock, Eye, Download
 } from "lucide-react";
 
@@ -10,6 +10,10 @@ export default function TLWorkbenchPage() {
     
     // --- STATE ---
     const [searchTerm, setSearchTerm] = useState("");
+    const [assignments, setAssignments] = useState([]);
+    const [loadingAssignments, setLoadingAssignments] = useState(true);
+    const [rcUsersList, setRcUsersList] = useState([]);
+    const [loadingRcUsers, setLoadingRcUsers] = useState(true);
     
     // View Work Modal State
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -24,37 +28,88 @@ export default function TLWorkbenchPage() {
     const [selectedRemarkTask, setSelectedRemarkTask] = useState(null);
     const [remarkForm, setRemarkForm] = useState({ date: "", remark: "" });
 
-    // Mock Lists for Dropdowns
-    const recruitersList = ["Pooja", "Sneha", "Khushi Chawla", "Ankita"];
+    // Slots List
     const slotsList = [
-        "10:00 - 11:30", 
-        "12:00 - 01:30", 
-        "02:00 - 03:30", 
+        "10:00 - 11:30",
+        "12:00 - 01:30",
+        "02:00 - 03:30",
         "Other"
     ];
 
-    // --- MOCK DATA (Sourced from CRM assignments) ---
-    // Note: Client name removed, JD data integrated.
-    const [assignments, setAssignments] = useState([
-        { 
-            id: 1, date: "2026-03-02", profile: "Telecouncellor", package_salary: "30k", requirement: "350", 
-            jd: { title: "Telecouncellor", location: "Bangalore", experience: "1-3 Yrs", package_salary: "30k", employment_type: "Full Time", working_days: "6 Days", timings: "9:30 AM - 6 PM", tool_requirement: "CRM, Dialpad", summary: "Handle inbound inquiries.", skills: "Communication, Convincing", preferred_qual: "Graduate", company_offers: "Incentives", contact_details: "hr@company.com", rnr: "Call leads\nCounsel students" },
-            recruiter: "Pooja", slot: "09:30 AM - 01:00 PM", isFinalAssigned: true, tlRemarks: [],
-            progress: { cv_naukri: 45, cv_indeed: 20, cv_other: 5, totalCv: 70, advance_sti: 15, today_conversion: 2, today_asset: 5, tracker_sent: 1, notes: "Good response today." } 
-        },
-        { 
-            id: 2, date: "2026-03-02", profile: "Telesales Executive", package_salary: "21k", requirement: "30", 
-            jd: { title: "Telesales Executive", location: "Delhi", experience: "Fresher", package_salary: "21k", employment_type: "Full Time", working_days: "5 Days", timings: "10 AM - 7 PM", tool_requirement: "Basic PC", summary: "Outbound sales.", skills: "Sales, Hindi", preferred_qual: "Any", company_offers: "Bonus", contact_details: "jobs@company.com", rnr: "Lead Gen\nFollow ups" },
-            recruiter: "", slot: "", isFinalAssigned: false, tlRemarks: [],
-            progress: { cv_naukri: 0, cv_indeed: 0, cv_other: 0, totalCv: 0, advance_sti: 0, today_conversion: 0, today_asset: 0, tracker_sent: 0, notes: "" } 
-        },
-        { 
-            id: 3, date: "2026-03-02", profile: "Senior Merchandiser", package_salary: "70k", requirement: "2", 
-            jd: null, // Example with no JD
-            recruiter: "Sneha", slot: "Full Day (10-6)", isFinalAssigned: true, tlRemarks: [],
-            progress: { cv_naukri: 5, cv_indeed: 5, cv_other: 0, totalCv: 10, advance_sti: 2, today_conversion: 0, today_asset: 1, tracker_sent: 1, notes: "Niche profile." } 
-        }
-    ]);
+    // Fetch RC users on component mount
+    useEffect(() => {
+        const fetchRcUsers = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const response = await fetch('/api/corporate/tl/rc-users', {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    setRcUsersList(data.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch RC users:', error);
+            } finally {
+                setLoadingRcUsers(false);
+            }
+        };
+        fetchRcUsers();
+    }, []);
+
+    // Fetch workbench assignments on component mount
+    useEffect(() => {
+        const fetchWorkbenchAssignments = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const response = await fetch('/api/corporate/tl/workbench', {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    // Transform workbench data to match assignments format
+                    const transformedAssignments = data.data.map(item => ({
+                        id: item.id,
+                        date: item.date,
+                        profile: item.job_title,
+                        package_salary: item.package || '',
+                        requirement: item.requirement?.toString() || '',
+                        jd: {
+                            title: item.job_title,
+                            summary: item.job_summary || '',
+                            skills: item.req_skills || '',
+                            location: item.location || '',
+                            experience: item.experience || '',
+                            employment_type: item.employment_type || '',
+                            working_days: item.working_days || '',
+                            timings: item.timings || '',
+                            package_salary: item.package || '',
+                            tool_requirement: item.tool_requirement || '',
+                            rnr: item.rnr || '',
+                            preferred_qual: item.preferred_qual || '',
+                            company_offers: item.company_offers || '',
+                            contact_details: item.contact_details || ''
+                        },
+                        recruiter: item.recruiter_name || '',
+                        slot: item.slot || '',
+                        isFinalAssigned: !!item.sent_to_rc,
+                        tlRemarks: [],
+                        progress: { cv_naukri: 0, cv_indeed: 0, cv_other: 0, totalCv: 0, advance_sti: 0, today_conversion: 0, today_asset: 0, tracker_sent: 0, notes: '' }
+                    }));
+                    setAssignments(transformedAssignments);
+                }
+            } catch (error) {
+                console.error('Failed to fetch workbench assignments:', error);
+            } finally {
+                setLoadingAssignments(false);
+            }
+        };
+        fetchWorkbenchAssignments();
+    }, []);
 
     // --- HANDLERS ---
     
@@ -66,13 +121,48 @@ export default function TLWorkbenchPage() {
     };
 
     // Individual Assign Button Handler
-    const handleIndividualAssign = (item) => {
+    const handleIndividualAssign = async (item) => {
         if (!item.recruiter || !item.slot) {
             alert("Please select both Recruiter and Slot Timings before assigning.");
             return;
         }
-        setAssignments(prev => prev.map(a => a.id === item.id ? { ...a, isFinalAssigned: true } : a));
-        alert(`Task assigned to ${item.recruiter} successfully!`);
+
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            
+            // Find the selected RC user to get their user_id
+            const selectedRc = rcUsersList.find(rc => rc.name === item.recruiter);
+            
+            if (!selectedRc) {
+                alert("Selected recruiter not found. Please try again.");
+                return;
+            }
+
+            const response = await fetch('/api/corporate/tl/workbench/assign', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    workbench_id: item.id,
+                    sent_to_rc: selectedRc.user_id,
+                    slot: item.slot
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setAssignments(prev => prev.map(a => a.id === item.id ? { ...a, isFinalAssigned: true } : a));
+                alert(`Task assigned to ${item.recruiter} successfully!`);
+            } else {
+                alert(`Failed to assign task: ${data.error}`);
+            }
+        } catch (error) {
+            console.error('Error assigning task:', error);
+            alert("Failed to assign task. Please try again.");
+        }
     };
 
     // Modals
@@ -165,7 +255,13 @@ export default function TLWorkbenchPage() {
                         </thead>
                         
                         <tbody className="text-xs text-gray-800 font-medium divide-y divide-gray-200 bg-gray-50">
-                            {filteredData.length > 0 ? (
+                            {loadingAssignments ? (
+                                <tr>
+                                    <td colSpan="9" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest bg-white">
+                                        Loading assignments...
+                                    </td>
+                                </tr>
+                            ) : filteredData.length > 0 ? (
                                 filteredData.map((item, index) => {
                                     
                                     return (
@@ -205,13 +301,14 @@ export default function TLWorkbenchPage() {
                                             
                                             {/* --- EDITABLE COLUMN: RECRUITER --- */}
                                             <td className="p-1 border-r border-gray-200 bg-blue-50/10">
-                                                <select 
+                                                <select
                                                     className="w-full bg-transparent border-none p-2 text-xs font-bold text-blue-700 outline-none cursor-pointer focus:ring-2 focus:ring-blue-500 focus:bg-white rounded"
                                                     value={item.recruiter}
                                                     onChange={(e) => handleRowChange(item.id, 'recruiter', e.target.value)}
+                                                    disabled={loadingRcUsers}
                                                 >
-                                                    <option value="" className="text-gray-400">-- Select Recruiter --</option>
-                                                    {recruitersList.map(r => <option key={r} value={r}>{r}</option>)}
+                                                    <option value="" className="text-gray-400">{loadingRcUsers ? "Loading..." : "-- Select Recruiter --"}</option>
+                                                    {rcUsersList.map(rc => <option key={rc.user_id} value={rc.name}>{rc.name}</option>)}
                                                 </select>
                                             </td>
                                             
@@ -270,7 +367,7 @@ export default function TLWorkbenchPage() {
                                 })) : (
                                 <tr>
                                     <td colSpan="9" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest bg-white">
-                                        No requirements pending for allocation
+                                        No workbench assignments found
                                     </td>
                                 </tr>
                             )}
