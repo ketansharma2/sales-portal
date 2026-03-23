@@ -1,10 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { 
-    ClipboardList, Calendar, Users, Briefcase, IndianRupee, 
-    Target, Plus, Trash2, Search, Edit, Activity, X, 
-    BarChart2, FileText, Send, UserCheck, TrendingUp, Database, 
+import {
+    ClipboardList, Calendar, Users, Briefcase, IndianRupee,
+    Target, Plus, Trash2, Search, Edit, Activity, X,
+    BarChart2, FileText, Send, UserCheck, TrendingUp, Database,
     MessageSquarePlus, Building2, Clock, Eye , Download, AlertTriangle
 } from "lucide-react";
 
@@ -14,6 +14,8 @@ export default function AssignWorkPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [isEditMode, setIsEditMode] = useState(false);
     const [editId, setEditId] = useState(null);
+    const [assignments, setAssignments] = useState([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     
     // View Work Modal State
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -23,36 +25,22 @@ export default function AssignWorkPage() {
     const [isJdViewModalOpen, setIsJdViewModalOpen] = useState(false);
     const [currentJdView, setCurrentJdView] = useState(null);
 
-    // Mock Lists for Dropdowns
-    const clientsList = ["Frankfin", "Urban Money", "Steel Craft Export", "MKS", "TechCorp Solutions"];
-    const tlList = ["Gurmeet", "Shruti", "Rohan", "Amit"];
-    
-    // --- MOCK DATA FOR AUTOFILL ---
-    // Yahan profile ke hisaab se uska package, requirement aur JD pehle se mapped hai
-    const mockProfilesData = {
-        "Telecouncellor": { 
-            package_salary: "30k", requirement: "350", 
-            jd: { title: "Telecouncellor", summary: "Handle inbound inquiries and counsel students for aviation courses.", skills: "Excellent Communication, Convincing Power, CRM Handling" } 
-        },
-        "Telesales Executive": { 
-            package_salary: "21k", requirement: "30", 
-            jd: { title: "Telesales Executive", summary: "Outbound B2B/B2C sales and lead generation.", skills: "Sales Strategy, Target Oriented, Fluent Hindi/English" } 
-        },
-        "Senior Merchandiser": { 
-            package_salary: "50k", requirement: "5", 
-            jd: { title: "Senior Merchandiser", summary: "Manage export orders, sampling, and vendor negotiations.", skills: "Garment Export, Vendor Management, Costing" } 
-        },
-        "AutoCAD": { 
-            package_salary: "25k", requirement: "12", 
-            jd: { title: "AutoCAD Draftsman", summary: "Create detailed 2D/3D layouts for interior design projects.", skills: "AutoCAD 2D/3D, SketchUp, Fast Typing" } 
-        },
-        "Java Developer": { 
-            package_salary: "12 LPA", requirement: "8", 
-            jd: { title: "Java Developer", summary: "Develop and maintain backend microservices using Spring Boot.", skills: "Java 8+, Spring Boot, Microservices, MySQL, AWS" } 
-        }
-    };
-    const profilesList = Object.keys(mockProfilesData);
+    // Dynamic Clients List
+    const [clientsList, setClientsList] = useState([]);
+    const [loadingClients, setLoadingClients] = useState(true);
 
+    // Dynamic Branches List (for selected client)
+    const [branchesList, setBranchesList] = useState([]);
+    const [loadingBranches, setLoadingBranches] = useState(false);
+
+    // Dynamic Requirements/Profiles List (for selected branches)
+    const [requirementsList, setRequirementsList] = useState([]);
+    const [loadingRequirements, setLoadingRequirements] = useState(false);
+
+    // Dynamic TL Users List (from database)
+    const [tlUsersList, setTlUsersList] = useState([]);
+    const [loadingTlUsers, setLoadingTlUsers] = useState(true);
+    
     // Initial Form State
     const getTodayDate = () => new Date().toISOString().split('T')[0];
     const initialForm = {
@@ -66,71 +54,385 @@ export default function AssignWorkPage() {
     };
     const [formData, setFormData] = useState(initialForm);
 
-    // --- MOCK TABLE DATA ---
-    const [assignments, setAssignments] = useState([
-        { 
-            id: 1, date: "2026-03-02", client: "Frankfin", profile: "Telecouncellor", package_salary: "30k", requirement: "350", tl_assigned: "Gurmeet",
-            jd: mockProfilesData["Telecouncellor"].jd, // Mock JD attached
-            recruiter: "Pooja", slot: "09:30 AM - 01:00 PM", 
-            progress: { cv_naukri: 45, cv_indeed: 20, cv_other: 5, totalCv: 70, advance_sti: 15, today_conversion: 2, today_asset: 5, tracker_sent: 1, notes: "Good response today. Client was happy with the first batch of profiles." },
-            tlRemarks: [{ date: "2026-03-03", text: "Asked Pooja to focus only on immediate joiners." }]
-        },
-        { 
-            id: 2, date: "2026-03-02", client: "Urban Money", profile: "Telesales Executive", package_salary: "21k", requirement: "30", tl_assigned: "Gurmeet",
-            jd: mockProfilesData["Telesales Executive"].jd, // Mock JD attached
-            recruiter: "", slot: "", progress: null, tlRemarks: []
-        },
-        { 
-            id: 3, date: "2026-03-02", client: "Urban Money", profile: "Telesales Executive", package_salary: "21k", requirement: "30", tl_assigned: "Shruti",
-            jd: mockProfilesData["Telesales Executive"].jd, // Mock JD attached
-            recruiter: "Khushi Chawla", slot: "Full Day (10-6)", 
-            progress: { cv_naukri: 20, cv_indeed: 10, cv_other: 2, totalCv: 32, advance_sti: 5, today_conversion: 1, today_asset: 3, tracker_sent: 1, notes: "1 conversion done. Need to parse more data from Indeed for backup." },
-            tlRemarks: []
-        }
-    ]);
+    // Fetch clients on component mount
+    useEffect(() => {
+        const fetchClients = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const response = await fetch('/api/corporate/crm/clients', {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    setClientsList(data.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch clients:', error);
+            } finally {
+                setLoadingClients(false);
+            }
+        };
+        fetchClients();
+    }, []);
 
+    // Fetch TL users on component mount
+    useEffect(() => {
+        const fetchTlUsers = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const response = await fetch('/api/corporate/crm/tl-users', {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    setTlUsersList(data.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch TL users:', error);
+            } finally {
+                setLoadingTlUsers(false);
+            }
+        };
+        fetchTlUsers();
+    }, []);
+
+    // Fetch workbench assignments on component mount
+    useEffect(() => {
+        const fetchWorkbenchAssignments = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const response = await fetch('/api/corporate/crm/workbench', {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    // Transform workbench data to match assignments format
+                    const transformedAssignments = data.data.map(item => ({
+                        id: item.id,
+                        date: item.date,
+                        client: item.client_id,
+                        client_name: item.client_name,
+                        profile: item.job_title,
+                        package_salary: item.package || '',
+                        requirement: item.requirement?.toString() || '',
+                        tl_assigned: item.sent_to_tl,
+                        tl_name: item.tl_name,
+                        jd: {
+                            title: item.job_title,
+                            summary: item.job_summary || '',
+                            skills: item.req_skills || '',
+                            location: item.location || '',
+                            experience: item.experience || '',
+                            employment_type: item.employment_type || '',
+                            working_days: item.working_days || '',
+                            timings: item.timings || '',
+                            package_salary: item.package || '',
+                            tool_requirement: item.tool_requirement || '',
+                            rnr: item.rnr || '',
+                            preferred_qual: item.preferred_qual || '',
+                            company_offers: item.company_offers || '',
+                            contact_details: item.contact_details || ''
+                        },
+                        recruiter: '', slot: '', progress: null, tlRemarks: []
+                    }));
+                    setAssignments(transformedAssignments);
+                }
+            } catch (error) {
+                console.error('Failed to fetch workbench assignments:', error);
+            }
+        };
+        fetchWorkbenchAssignments();
+    }, []);
+
+    // Fetch branches when client is selected
+    useEffect(() => {
+        if (!formData.client) {
+            setBranchesList([]);
+            setRequirementsList([]);
+            return;
+        }
+
+        const fetchBranches = async () => {
+            setLoadingBranches(true);
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const response = await fetch(`/api/corporate/crm/branches?client_id=${formData.client}`, {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    setBranchesList(data.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch branches:', error);
+            } finally {
+                setLoadingBranches(false);
+            }
+        };
+        fetchBranches();
+    }, [formData.client]);
+
+    // Fetch requirements when branches are loaded
+    useEffect(() => {
+        if (branchesList.length === 0) {
+            setRequirementsList([]);
+            return;
+        }
+
+        const fetchRequirements = async () => {
+            setLoadingRequirements(true);
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const branchIds = branchesList.map(b => b.branch_id).join(',');
+                const response = await fetch(`/api/corporate/crm/requirements?branch_ids=${branchIds}`, {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    setRequirementsList(data.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch requirements:', error);
+            } finally {
+                setLoadingRequirements(false);
+            }
+        };
+        fetchRequirements();
+    }, [branchesList]);
+
+    // --- MOCK TABLE DATA ---
+    
     // --- HANDLERS ---
 
     // Handle Profile Change with Auto-fill Logic
     const handleProfileChange = (e) => {
         const val = e.target.value;
-        const autoFillData = mockProfilesData[val];
         
-        if (autoFillData) {
+        // Find in requirementsList (from database)
+        const selectedRequirement = requirementsList.find(r => r.job_title === val);
+        
+        if (selectedRequirement) {
+            // Auto-fill from database requirement
             setFormData({
                 ...formData,
                 profile: val,
-                package_salary: autoFillData.package_salary,
-                requirement: autoFillData.requirement,
-                jd: autoFillData.jd
+                package_salary: selectedRequirement.package || "",
+                requirement: selectedRequirement.openings?.toString() || "",
+                jd: {
+                    title: selectedRequirement.job_title,
+                    summary: selectedRequirement.job_summary || "",
+                    skills: selectedRequirement.req_skills || "",
+                    location: selectedRequirement.location || "",
+                    experience: selectedRequirement.experience || "",
+                    employment_type: selectedRequirement.employment_type || "",
+                    working_days: selectedRequirement.working_days || "",
+                    timings: selectedRequirement.timings || "",
+                    package_salary: selectedRequirement.package || "",
+                    tool_requirement: selectedRequirement.tool_req || "",
+                    rnr: selectedRequirement.rnr || "",
+                    preferred_qual: selectedRequirement.preferred_qual || "",
+                    company_offers: selectedRequirement.company_offers || "",
+                    contact_details: selectedRequirement.contact_details || ""
+                }
             });
         } else {
             setFormData({ ...formData, profile: val, jd: null });
         }
     };
 
-    const handleAddOrUpdate = () => {
+    const handleAddOrUpdate = async () => {
         if (!formData.client || !formData.profile || !formData.tl_assigned || !formData.requirement) {
             alert("Please fill all mandatory fields (Client, Profile, Requirement, TL)!");
             return;
         }
 
-        if (isEditMode) {
-            setAssignments(assignments.map(item => item.id === editId ? { ...item, ...formData } : item));
-            setIsEditMode(false);
-            setEditId(null);
-            alert("Assignment updated successfully!");
-        } else {
-            const newAssignment = {
-                ...formData,
-                id: Date.now(),
-                recruiter: "", slot: "", progress: null, tlRemarks: [] // Initialize empty downstream data
-            };
-            setAssignments([newAssignment, ...assignments]);
-            alert("Assignment created successfully!");
+        setIsSubmitting(true);
+
+        try {
+            if (isEditMode) {
+                // Find the selected requirement to get req_id
+                const selectedRequirement = requirementsList.find(r => r.job_title === formData.profile);
+                
+                if (!selectedRequirement) {
+                    alert("Please select a valid profile from the dropdown!");
+                    return;
+                }
+
+                try {
+                    const session = JSON.parse(localStorage.getItem('session') || '{}');
+                    const response = await fetch('/api/corporate/crm/workbench', {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${session.access_token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            workbench_id: editId,
+                            date: formData.date,
+                            client_id: formData.client,
+                            req_id: selectedRequirement.req_id,
+                            package_salary: formData.package_salary,
+                            req: formData.requirement,
+                            sent_to_tl: formData.tl_assigned,
+                            sent_to_rc: null
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // Refresh assignments from API to get complete data with joins
+                        const refreshResponse = await fetch('/api/corporate/crm/workbench', {
+                            headers: {
+                                'Authorization': `Bearer ${session.access_token}`
+                            }
+                        });
+                        const refreshData = await refreshResponse.json();
+                        if (refreshData.success) {
+                            const transformedAssignments = refreshData.data.map(item => ({
+                                id: item.id,
+                                date: item.date,
+                                client: item.client_id,
+                                client_name: item.client_name,
+                                profile: item.job_title,
+                                package_salary: item.package || '',
+                                requirement: item.requirement?.toString() || '',
+                                tl_assigned: item.sent_to_tl,
+                                tl_name: item.tl_name,
+                                jd: {
+                                    title: item.job_title,
+                                    summary: item.job_summary || '',
+                                    skills: item.req_skills || '',
+                                    location: item.location || '',
+                                    experience: item.experience || '',
+                                    employment_type: item.employment_type || '',
+                                    working_days: item.working_days || '',
+                                    timings: item.timings || '',
+                                    package_salary: item.package || '',
+                                    tool_requirement: item.tool_requirement || '',
+                                    rnr: item.rnr || '',
+                                    preferred_qual: item.preferred_qual || '',
+                                    company_offers: item.company_offers || '',
+                                    contact_details: item.contact_details || ''
+                                },
+                                recruiter: '', slot: '', progress: null, tlRemarks: []
+                            }));
+                            setAssignments(transformedAssignments);
+                        }
+                        alert("Assignment updated successfully!");
+                    } else {
+                        alert(`Failed to update assignment: ${data.error}`);
+                    }
+                } catch (error) {
+                    console.error('Error updating assignment:', error);
+                    alert("Failed to update assignment. Please try again.");
+                }
+            } else {
+                // Find the selected requirement to get req_id
+                const selectedRequirement = requirementsList.find(r => r.job_title === formData.profile);
+                
+                if (!selectedRequirement) {
+                    alert("Please select a valid profile from the dropdown!");
+                    return;
+                }
+
+                // Check for duplicate assignment (same date, client_id, req_id, and sent_to_tl)
+                const duplicateExists = assignments.some(item =>
+                    item.date === formData.date &&
+                    item.client === formData.client &&
+                    item.profile === formData.profile &&
+                    item.tl_assigned === formData.tl_assigned
+                );
+
+                if (duplicateExists) {
+                    alert("An assignment with the same Date, Client, Profile, and TL already exists!");
+                    return;
+                }
+
+                try {
+                    const session = JSON.parse(localStorage.getItem('session') || '{}');
+                    const response = await fetch('/api/corporate/crm/workbench', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${session.access_token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            date: formData.date,
+                            client_id: formData.client,
+                            req_id: selectedRequirement.req_id,
+                            package_salary: formData.package_salary,
+                            req: formData.requirement,
+                            sent_to_tl: formData.tl_assigned,
+                            sent_to_rc: null
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // Refresh assignments from API to get complete data with joins
+                        const refreshResponse = await fetch('/api/corporate/crm/workbench', {
+                            headers: {
+                                'Authorization': `Bearer ${session.access_token}`
+                            }
+                        });
+                        const refreshData = await refreshResponse.json();
+                        if (refreshData.success) {
+                            const transformedAssignments = refreshData.data.map(item => ({
+                                id: item.id,
+                                date: item.date,
+                                client: item.client_id,
+                                client_name: item.client_name,
+                                profile: item.job_title,
+                                package_salary: item.package || '',
+                                requirement: item.requirement?.toString() || '',
+                                tl_assigned: item.sent_to_tl,
+                                tl_name: item.tl_name,
+                                jd: {
+                                    title: item.job_title,
+                                    summary: item.job_summary || '',
+                                    skills: item.req_skills || '',
+                                    location: item.location || '',
+                                    experience: item.experience || '',
+                                    employment_type: item.employment_type || '',
+                                    working_days: item.working_days || '',
+                                    timings: item.timings || '',
+                                    package_salary: item.package || '',
+                                    tool_requirement: item.tool_requirement || '',
+                                    rnr: item.rnr || '',
+                                    preferred_qual: item.preferred_qual || '',
+                                    company_offers: item.company_offers || '',
+                                    contact_details: item.contact_details || ''
+                                },
+                                recruiter: '', slot: '', progress: null, tlRemarks: []
+                            }));
+                            setAssignments(transformedAssignments);
+                        }
+                        alert("Assignment created successfully!");
+                    } else {
+                        alert(`Failed to create assignment: ${data.error}`);
+                    }
+                } catch (error) {
+                    console.error('Error creating assignment:', error);
+                    alert("Failed to create assignment. Please try again.");
+                }
+            }
+            
+            setFormData({ ...initialForm, date: formData.date });
+        } finally {
+            setIsSubmitting(false);
         }
-        
-        setFormData({ ...initialForm, date: formData.date });
     };
 
     const handleEdit = (item) => {
@@ -141,16 +443,75 @@ export default function AssignWorkPage() {
             package_salary: item.package_salary,
             requirement: item.requirement,
             tl_assigned: item.tl_assigned,
-            jd: item.jd
+            jd: item.jd,
+            client_name: item.client_name,
+            tl_name: item.tl_name
         });
         setIsEditMode(true);
         setEditId(item.id);
         window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to top form
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
         if(window.confirm("Are you sure you want to delete this assignment?")) {
-            setAssignments(assignments.filter(item => item.id !== id));
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const response = await fetch(`/api/corporate/crm/workbench?workbench_id=${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Refresh assignments from API
+                    const refreshResponse = await fetch('/api/corporate/crm/workbench', {
+                        headers: {
+                            'Authorization': `Bearer ${session.access_token}`
+                        }
+                    });
+                    const refreshData = await refreshResponse.json();
+                    if (refreshData.success) {
+                        const transformedAssignments = refreshData.data.map(item => ({
+                            id: item.id,
+                            date: item.date,
+                            client: item.client_id,
+                            client_name: item.client_name,
+                            profile: item.job_title,
+                            package_salary: item.package || '',
+                            requirement: item.requirement?.toString() || '',
+                            tl_assigned: item.sent_to_tl,
+                            tl_name: item.tl_name,
+                            jd: {
+                                title: item.job_title,
+                                summary: item.job_summary || '',
+                                skills: item.req_skills || '',
+                                location: item.location || '',
+                                experience: item.experience || '',
+                                employment_type: item.employment_type || '',
+                                working_days: item.working_days || '',
+                                timings: item.timings || '',
+                                package_salary: item.package || '',
+                                tool_requirement: item.tool_requirement || '',
+                                rnr: item.rnr || '',
+                                preferred_qual: item.preferred_qual || '',
+                                company_offers: item.company_offers || '',
+                                contact_details: item.contact_details || ''
+                            },
+                            recruiter: '', slot: '', progress: null, tlRemarks: []
+                        }));
+                        setAssignments(transformedAssignments);
+                    }
+                    alert("Assignment deleted successfully!");
+                } else {
+                    alert(`Failed to delete assignment: ${data.error}`);
+                }
+            } catch (error) {
+                console.error('Error deleting assignment:', error);
+                alert("Failed to delete assignment. Please try again.");
+            }
         }
     };
 
@@ -160,11 +521,13 @@ export default function AssignWorkPage() {
     };
 
     // Filter Logic
-    const filteredData = assignments.filter(item => 
-        item.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.profile.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.tl_assigned.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredData = assignments.filter(item => {
+        const clientName = item.client_name || clientsList.find(c => c.client_id === item.client)?.company_name || item.client;
+        const tlName = item.tl_name || tlUsersList.find(tl => tl.user_id === item.tl_assigned)?.name || item.tl_assigned;
+        return clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.profile.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            tlName.toLowerCase().includes(searchTerm.toLowerCase());
+    });
 
     return (
         <div className="min-h-screen bg-gray-50 font-['Calibri'] p-4 md:p-6 relative">
@@ -227,29 +590,29 @@ export default function AssignWorkPage() {
                     {/* Client Dropdown */}
                     <div className="flex-[2] min-w-[150px]">
                         <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Client Name</label>
-                        <select 
+                        <select
                             className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold text-gray-700 focus:border-[#103c7f] outline-none shadow-sm bg-white"
                             value={formData.client}
                             onChange={(e) => setFormData({...formData, client: e.target.value})}
+                            disabled={loadingClients}
                         >
-                            <option value="">Select Client...</option>
-                            {clientsList.map(c => <option key={c} value={c}>{c}</option>)}
+                            <option value="">{loadingClients ? "Loading..." : "Select Client..."}</option>
+                            {clientsList.map(c => <option key={c.client_id} value={c.client_id}>{c.company_name}</option>)}
                         </select>
                     </div>
 
-                    {/* Profile Dropdown / Datalist */}
+                    {/* Profile Dropdown */}
                     <div className="flex-[2] min-w-[150px]">
                         <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Profile</label>
-                        <input 
-                            list="profiles"
-                            placeholder="Type or select profile"
-                            className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold text-gray-700 focus:border-[#103c7f] outline-none shadow-sm"
+                        <select
+                            className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold text-gray-700 focus:border-[#103c7f] outline-none shadow-sm bg-white"
                             value={formData.profile}
                             onChange={handleProfileChange}
-                        />
-                        <datalist id="profiles">
-                            {profilesList.map(p => <option key={p} value={p}/>)}
-                        </datalist>
+                            disabled={loadingRequirements || !formData.client}
+                        >
+                            <option value="">{loadingRequirements ? "Loading..." : (formData.client ? "Select Profile..." : "Select client first")}</option>
+                            {requirementsList.map(r => <option key={r.req_id} value={r.job_title}>{r.job_title}</option>)}
+                        </select>
                     </div>
 
                     {/* Package */}
@@ -291,23 +654,31 @@ export default function AssignWorkPage() {
                     {/* TL Dropdown */}
                     <div className="flex-[1.5] min-w-[130px]">
                         <label className="text-[10px] font-bold text-[#103c7f] uppercase block mb-1">Assign To TL</label>
-                        <select 
+                        <select
                             className="w-full border border-[#103c7f] rounded-lg p-2 text-sm font-black text-[#103c7f] bg-blue-50 focus:border-blue-800 outline-none shadow-sm"
                             value={formData.tl_assigned}
                             onChange={(e) => setFormData({...formData, tl_assigned: e.target.value})}
+                            disabled={loadingTlUsers}
                         >
-                            <option value="">Select TL...</option>
-                            {tlList.map(tl => <option key={tl} value={tl}>{tl}</option>)}
+                            <option value="">{loadingTlUsers ? "Loading..." : "Select TL..."}</option>
+                            {tlUsersList.map(tl => <option key={tl.user_id} value={tl.user_id}>{tl.name}</option>)}
                         </select>
                     </div>
 
                     {/* Submit Button */}
                     <div>
-                        <button 
+                        <button
                             onClick={handleAddOrUpdate}
-                            className={`text-white px-5 py-2.5 rounded-lg font-bold text-sm shadow-md transition flex items-center gap-2 h-[38px] ${isEditMode ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#103c7f] hover:bg-blue-900'}`}
+                            disabled={isSubmitting}
+                            className={`text-white px-5 py-2.5 rounded-lg font-bold text-sm shadow-md transition flex items-center gap-2 h-[38px] ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''} ${isEditMode ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#103c7f] hover:bg-blue-900'}`}
                         >
-                            {isEditMode ? <><Edit size={16}/> Update</> : <><Plus size={16}/> Assign</>}
+                            {isSubmitting ? (
+                                <>Please wait...</>
+                            ) : isEditMode ? (
+                                <><Edit size={16}/> Update</>
+                            ) : (
+                                <><Plus size={16}/> Assign</>
+                            )}
                         </button>
                     </div>
 
@@ -345,7 +716,7 @@ export default function AssignWorkPage() {
                                     </td>
                                     
                                     <td className="p-3 border-r border-gray-100 font-black">
-                                        {item.client}
+                                        {item.client_name || clientsList.find(c => c.client_id === item.client)?.company_name || item.client}
                                     </td>
                                     
                                     <td className="p-3 border-r border-gray-100">
@@ -361,7 +732,7 @@ export default function AssignWorkPage() {
                                     </td>
 
                                     <td className="p-3 border-r border-gray-100 text-center align-middle">
-                                        <button 
+                                        <button
                                             onClick={() => { setCurrentJdView(item.jd); setIsJdViewModalOpen(true); }}
                                             disabled={!item.jd}
                                             className={`p-1.5 mx-auto flex items-center justify-center rounded transition ${item.jd ? 'text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200' : 'text-gray-400 bg-gray-50 cursor-not-allowed'}`}
@@ -373,14 +744,14 @@ export default function AssignWorkPage() {
                                     
                                     <td className="p-3 border-r border-gray-100">
                                         <span className="bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest">
-                                            {item.tl_assigned}
+                                            {item.tl_name || tlUsersList.find(tl => tl.user_id === item.tl_assigned)?.name || item.tl_assigned}
                                         </span>
                                     </td>
                                     
                                     <td className="p-3 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)]">
                                         <div className="flex justify-center items-center gap-1.5">
                                             {/* Edit Button */}
-                                            <button 
+                                            <button
                                                 onClick={() => handleEdit(item)}
                                                 className="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 transition"
                                                 title="Edit Assignment"
@@ -389,7 +760,7 @@ export default function AssignWorkPage() {
                                             </button>
 
                                             {/* View Work Button */}
-                                            <button 
+                                            <button
                                                 onClick={() => handleViewWork(item)}
                                                 className="p-1.5 text-purple-600 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 transition"
                                                 title="View Downstream Progress"
@@ -398,7 +769,7 @@ export default function AssignWorkPage() {
                                             </button>
 
                                             {/* Delete Button */}
-                                            <button 
+                                            <button
                                                 onClick={() => handleDelete(item.id)}
                                                 className="p-1.5 text-red-600 bg-red-50 border border-red-200 rounded hover:bg-red-100 transition"
                                                 title="Delete Assignment"
@@ -545,13 +916,13 @@ export default function AssignWorkPage() {
                                 <div>
                                     <h4 className="text-lg font-black text-[#103c7f]">{selectedWork.profile}</h4>
                                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1 mt-0.5">
-                                        <Building2 size={12}/> {selectedWork.client} | Req: {selectedWork.requirement}
+                                        <Building2 size={12}/> {selectedWork.client_name || clientsList.find(c => c.client_id === selectedWork.client)?.company_name || selectedWork.client} | Req: {selectedWork.requirement}
                                     </p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-[10px] font-bold text-gray-500 uppercase">Team Lead</p>
                                     <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-lg text-[10px] font-black border border-purple-200 block mt-1">
-                                        {selectedWork.tl_assigned}
+                                        {selectedWork.tl_name || tlUsersList.find(tl => tl.user_id === selectedWork.tl_assigned)?.name || selectedWork.tl_assigned}
                                     </span>
                                 </div>
                             </div>
