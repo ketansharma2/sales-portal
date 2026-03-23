@@ -925,7 +925,14 @@ export default function LeadsTablePage() {
        </span>
      )}
 
-     {/* 2. Company Name */}
+     {/* 2. Master Union Badge */}
+      {String(lead?.startup).toLowerCase() === 'master union' && (
+        <span className="bg-purple-100 text-purple-700 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-purple-200 shrink-0" title="Master Union">
+          M
+        </span>
+      )}
+
+      {/* 3. Company Name */}
      <span className="truncate">{lead.company}</span>
      
    </div>

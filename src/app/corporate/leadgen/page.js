@@ -9,6 +9,33 @@ import {
   Rocket, ChevronDown, Filter
 } from "lucide-react";
 
+// --- Helper function to build filter URL ---
+const buildFilterUrl = (router, fromDate, toDate, isAllData, filters) => {
+  const params = new URLSearchParams();
+  
+  // Add date params ONLY when NOT "All" - for "All" we show all records without date filter
+  // This ensures the details page count matches the card count
+  if (isAllData) {
+    // Don't add any date params - show all records
+  } else if (fromDate && toDate) {
+    params.append('fromDate', fromDate);
+    params.append('toDate', toDate);
+  }
+  
+  // Add filter params
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value && value !== 'All') {
+      if (key === 'status') params.append('status', value);
+      if (key === 'subStatus') params.append('subStatus', value);
+      if (key === 'franchiseStatus') params.append('franchiseStatus', value);
+      if (key === 'startup') params.append('startup', value);
+    }
+  });
+  
+  const queryString = params.toString();
+  router.push(`/corporate/leadgen/details${queryString ? '?' + queryString : ''}`);
+};
+
 export default function LeadGenHome() {
   const router = useRouter();
   
@@ -24,8 +51,6 @@ export default function LeadGenHome() {
   const [selectedLabel, setSelectedLabel] = useState("Today");
 
   // --- KPI DATA ---
- // --- KPI DATA ---
- // --- KPI DATA ---
   const [kpiData, setKpiData] = useState({
     searched: { total: 0, startup: 0 },
     contacts: { total: 0, startup: 0 },
@@ -36,16 +61,14 @@ export default function LeadGenHome() {
     sentToManager: { total: 0, startup: 0 },
     onboarded: { total: 0, startup: 0 },
     interested: { total: 0, startup: 0 },
+    masterUnion: { total: 0, calling: 0 },
 
     franchise: {
         discussed: { total: 0, startup: 0 },
         formShared: { total: 0, startup: 0 },
-        accepted: { total: 0, startup: 0 } //
+        accepted: { total: 0, startup: 0 }
     }
   });
-
-  // ... (Inside fetchDashboardData function) ...
- 
 
   const [followUps, setFollowUps] = useState([]);
 
@@ -69,41 +92,33 @@ export default function LeadGenHome() {
     return [current - 2, current - 1, current, current + 1, current + 2];
   };
 
-  // Generate Weeks (Last 6 weeks)
   // Generate Weeks for the Selected Month
   const getWeeks = () => {
     const weeks = [];
-    const targetDate = new Date(fromDate); // Jo date selected hai uska month lenge
+    const targetDate = new Date(fromDate);
     const year = targetDate.getFullYear();
     const month = targetDate.getMonth();
 
-    // Month ki 1st date se shuru karenge
     let currentDate = new Date(year, month, 1);
     let weekCount = 1;
 
-    // Jab tak month same hai, loop chalega
     while (currentDate.getMonth() === month) {
         let start = new Date(currentDate);
-        
-        // Week ka end nikalo (Saturday ya Month End)
-        let dayOfWeek = currentDate.getDay(); // 0 = Sunday
+        let dayOfWeek = currentDate.getDay();
         let daysToSaturday = 6 - dayOfWeek; 
-        
         let end = new Date(currentDate);
         end.setDate(end.getDate() + daysToSaturday);
 
-        // Agar Saturday next month mein ja raha hai, toh month ke end pe rok do
         if (end.getMonth() !== month) {
            end = new Date(year, month + 1, 0);
         }
 
         weeks.push({
-          label: `Week ${weekCount}`, // Output: Week 1, Week 2...
+          label: `Week ${weekCount}`,
           start: start.toISOString().split('T')[0],
           end: end.toISOString().split('T')[0]
         });
 
-        // Next week ke liye date set karo (End date + 1 day)
         currentDate = new Date(end);
         currentDate.setDate(currentDate.getDate() + 1);
         weekCount++;
@@ -120,7 +135,6 @@ export default function LeadGenHome() {
         end = `${value}-12-31`;
         setSelectedLabel(`Year: ${value}`);
     } else if (type === 'Month') {
-        // value is index 0-11
         start = new Date(today.getFullYear(), value, 1).toISOString().split('T')[0];
         end = new Date(today.getFullYear(), value + 1, 0).toISOString().split('T')[0];
         const monthName = new Date(today.getFullYear(), value).toLocaleString('default', { month: 'long' });
@@ -130,7 +144,7 @@ export default function LeadGenHome() {
         end = value.end;
         setSelectedLabel(value.label);
     } else if (type === 'All') {
-        start = '2024-01-01'; // Static start
+        start = '2024-01-01';
         end = new Date().toISOString().split('T')[0];
         setSelectedLabel('All Data');
         setIsAllData(true);
@@ -138,9 +152,8 @@ export default function LeadGenHome() {
 
     setFromDate(start);
     setToDate(end);
-    setActiveDropdown(null); // Close dropdown
+    setActiveDropdown(null);
   };
-
 
   // Fetch latest interaction date on mount
   useEffect(() => {
@@ -157,7 +170,6 @@ export default function LeadGenHome() {
           setToDate(data.rawDate);
           setSelectedLabel(`Latest: ${data.latestDate}`);
         } else {
-          // Fallback: use today's date if no interaction data
           const today = new Date().toISOString().split('T')[0];
           setLatestInteractionDate(today);
           setFromDate(today);
@@ -167,7 +179,6 @@ export default function LeadGenHome() {
         setIsInitialLoading(false);
       } catch (error) {
         console.error('Failed to fetch latest interaction date:', error);
-        // Fallback: use today's date
         const today = new Date().toISOString().split('T')[0];
         setLatestInteractionDate(today);
         setFromDate(today);
@@ -192,9 +203,7 @@ export default function LeadGenHome() {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       
-      // Build query params
       const params = new URLSearchParams();
-      // Only add date params when NOT "All" mode
       if (!isAllData && fromDate && toDate) {
         params.append('fromDate', fromDate);
         params.append('toDate', toDate);
@@ -202,10 +211,9 @@ export default function LeadGenHome() {
 
       const queryString = params.toString();
 
-      // Fetch all KPI data in parallel
       const [searchedRes, contactsRes, callsRes, notPickedRes,
               contractRes, onboardedRes, interestedRes, franchiseDiscussedRes,
-              franchiseFormSharedRes, franchiseAcceptedRes, sentToManagerRes] = await Promise.all([
+              franchiseFormSharedRes, franchiseAcceptedRes, sentToManagerRes, masterUnionRes, masterUnionCallingRes] = await Promise.all([
         fetch(`/api/corporate/leadgen/leads-count${queryString ? '?' + queryString : ''}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         }),
@@ -239,12 +247,17 @@ export default function LeadGenHome() {
         fetch(`/api/corporate/leadgen/sent-to-manager-count${queryString ? '?' + queryString : ''}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         }),
+        fetch(`/api/corporate/leadgen/master-union-count${queryString ? '?' + queryString : ''}`, {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        }),
+        fetch(`/api/corporate/leadgen/master-union-calling${queryString ? '?' + queryString : ''}`, {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        }),
       ]);
 
-      // Parse all responses
       const [searchedData, contactsData, callsData, notPickedData,
               contractData, onboardedData, interestedData, franchiseDiscussedData,
-              franchiseFormSharedData, franchiseAcceptedData, sentToManagerData] = await Promise.all([
+              franchiseFormSharedData, franchiseAcceptedData, sentToManagerData, masterUnionData, masterUnionCallingData] = await Promise.all([
         searchedRes.json(),
         contactsRes.json(),
         callsRes.json(),
@@ -256,9 +269,10 @@ export default function LeadGenHome() {
         franchiseFormSharedRes.json(),
         franchiseAcceptedRes.json(),
         sentToManagerRes.json(),
+        masterUnionRes.json(),
+        masterUnionCallingRes.json(),
       ]);
 
-      // Set KPI data from responses
       setKpiData({
         searched: { total: searchedData.data?.searched?.total || 0, startup: searchedData.data?.searched?.startup || 0 },
         contacts: { total: contactsData.data?.contacts?.total || 0, startup: contactsData.data?.contacts?.startup || 0 },
@@ -277,6 +291,7 @@ export default function LeadGenHome() {
         sentToManager: { total: sentToManagerData.data?.sentToManager?.total || 0, startup: sentToManagerData.data?.sentToManager?.startup || 0 },
         onboarded: { total: onboardedData.data?.onboarded?.total || 0, startup: onboardedData.data?.onboarded?.startup || 0 },
         interested: { total: interestedData.data?.interested?.total || 0, startup: interestedData.data?.interested?.startup || 0 },
+        masterUnion: { total: masterUnionData.data?.masterUnion?.total || 0, calling: masterUnionCallingData.data?.masterUnion?.calling || 0 },
 
         franchise: {
           discussed: { total: franchiseDiscussedData.data?.discussed?.total || 0, startup: franchiseDiscussedData.data?.discussed?.startup || 0 },
@@ -288,25 +303,27 @@ export default function LeadGenHome() {
       console.error('Dashboard API error:', error);
     }
   };
+
   const fetchFollowUps = async () => {
-  try {
-    const session = JSON.parse(localStorage.getItem('session') || '{}');
-    const response = await fetch('/api/corporate/leadgen/today-followups', {
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/corporate/leadgen/today-followups', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setFollowUps(data.data);
+      } else {
+        setFollowUps([]);
       }
-    });
-    const data = await response.json();
-    if (data.success) {
-      setFollowUps(data.data);
-    } else {
+    } catch (error) {
+      console.error('Failed to fetch follow-ups:', error);
       setFollowUps([]);
     }
-  } catch (error) {
-    console.error('Failed to fetch follow-ups:', error);
-    setFollowUps([]);
-  }
-};;
+  };
+
   return (
     <div className="flex h-screen bg-[#f8fafc] overflow-hidden font-['Calibri'] text-slate-800">
       
@@ -407,8 +424,7 @@ export default function LeadGenHome() {
 
         <div className="p-4 flex flex-col gap-5">
           
-        {/* ---------------- ROW 1: SUCCESS METRICS (Compact) ---------------- */}
-         {/* ---------------- ROW 1: SUCCESS METRICS (Updated Layout) ---------------- */}
+        {/* ---------------- ROW 1: SUCCESS METRICS ---------------- */}
           <div>
             <h4 className="text-xs font-black text-teal-600 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
                <CheckCircle size={14} /> Success Metrics
@@ -423,6 +439,7 @@ export default function LeadGenHome() {
                      startup={kpiData.onboarded.startup}
                      icon={<Briefcase size={20}/>}
                      color="teal"
+                     onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { status: 'Onboard' })}
                  />
 
                  {/* 2. Interested */}
@@ -432,6 +449,7 @@ export default function LeadGenHome() {
                      startup={kpiData.interested.startup}
                      icon={<TrendingUp size={20}/>}
                      color="blue"
+                     onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { status: 'Interested' })}
                  />
 
                   {/* 3. Form Filled */}
@@ -442,12 +460,13 @@ export default function LeadGenHome() {
                       icon={<Award size={20}/>}
                       color="green"
                       isFranchise={true}
+                      onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { franchiseStatus: 'Form Filled' })}
                   />
 
              </div>
           </div>
 
-         {/* ---------------- ROW 2: COMBINED PIPELINE & OPERATIONS ---------------- */}
+         {/* ---------------- ROW 2: LEADS OVERVIEW ---------------- */}
 
          <div>
             <h4 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
@@ -458,8 +477,22 @@ export default function LeadGenHome() {
             <div className="grid grid-cols-3 gap-3">
               
               {/* --- Row 1 --- */}
-              <KpiCard title="Companies Searched" total={kpiData.searched.total} startup={kpiData.searched.startup} icon={<SearchIcon/>} color="blue" />
-              <KpiCard title="Contact Persons" total={kpiData.contacts.total} startup={kpiData.contacts.startup} icon={<UserCheck size={18}/>} color="blue" />
+              <KpiCard 
+                title="Companies Searched" 
+                total={kpiData.searched.total} 
+                startup={kpiData.searched.startup} 
+                icon={<SearchIcon/>} 
+                color="blue" 
+                onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})}
+              />
+              <KpiCard 
+                title="Contact Persons" 
+                total={kpiData.contacts.total} 
+                startup={kpiData.contacts.startup} 
+                icon={<UserCheck size={18}/>} 
+                color="blue" 
+                onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})}
+              />
               <KpiCard 
                 title="Total Calls" 
                 total={kpiData.calls.total} 
@@ -470,19 +503,80 @@ export default function LeadGenHome() {
                   { label: 'New:', value: kpiData.calls.new?.total || 0, bgColor: 'bg-blue-50', textColor: 'text-blue-700', borderColor: 'border-blue-100' },
                   { label: 'Followup:', value: kpiData.calls.followup?.total || 0, bgColor: 'bg-orange-50', textColor: 'text-orange-700', borderColor: 'border-orange-100' }
                 ] : undefined}
+                onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})}
               />
 
               {/* --- Row 2 --- */}
-                <KpiCard title="Calls Picked" total={kpiData.picked.total} startup={kpiData.picked.startup} icon={<PhoneOutgoing size={18}/>} color="green" />
-                <KpiCard title="Not Picked" total={kpiData.notPicked.total} startup={kpiData.notPicked.startup} icon={<XCircle size={18}/>} color="red" />
-                <KpiCard title="Contracts Share" total={kpiData.contract.total} startup={kpiData.contract.startup} icon={<FileText size={18}/>} color="orange" />
+                <KpiCard 
+                  title="Calls Picked" 
+                  total={kpiData.picked.total} 
+                  startup={kpiData.picked.startup} 
+                  icon={<PhoneOutgoing size={18}/>} 
+                  color="green" 
+                  onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { status: 'Interested' })}
+                />
+                <KpiCard 
+                  title="Not Picked" 
+                  total={kpiData.notPicked.total} 
+                  startup={kpiData.notPicked.startup} 
+                  icon={<XCircle size={18}/>} 
+                  color="red" 
+                  onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { status: 'Not Picked' })}
+                />
+                <KpiCard 
+                  title="Contracts Share" 
+                  total={kpiData.contract.total} 
+                  startup={kpiData.contract.startup} 
+                  icon={<FileText size={18}/>} 
+                  color="orange" 
+                  onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { subStatus: 'Contract Share' })}
+                />
               
               {/* --- Row 3 --- */}
-              <KpiCard title="Franchise Discussed" total={kpiData.franchise.discussed.total} startup={kpiData.franchise.discussed.startup} icon={<Phone size={18}/>} color="purple" />
-              <KpiCard title="App. Form Shared" total={kpiData.franchise.formShared.total} startup={kpiData.franchise.formShared.startup} icon={<FileText size={18}/>} color="purple" />
+              <KpiCard 
+                title="Franchise Discussed" 
+                total={kpiData.franchise.discussed.total} 
+                startup={kpiData.franchise.discussed.startup} 
+                icon={<Phone size={18}/>} 
+                color="purple" 
+                onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { franchiseStatus: 'Application Form Share' })}
+              />
+              <KpiCard 
+                title="App. Form Shared" 
+                total={kpiData.franchise.formShared.total} 
+                startup={kpiData.franchise.formShared.startup} 
+                icon={<FileText size={18}/>} 
+                color="purple" 
+                onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { franchiseStatus: 'Application Form Share' })}
+              />
               
-              {/* Sent to Manager Card (Replaces Performance) */}
-              <KpiCard title="Sent to Manager" total={kpiData.sentToManager.total} startup={kpiData.sentToManager.startup} icon={<Send size={18}/>} color="orange" />
+              {/* Sent to Manager Card */}
+              <KpiCard 
+                title="Sent to Manager" 
+                total={kpiData.sentToManager.total} 
+                startup={kpiData.sentToManager.startup} 
+                icon={<Send size={18}/>} 
+                color="orange" 
+                onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Yes' })}
+              />
+
+              {/* --- Row 4: Master Union Cards --- */}
+              <KpiCard 
+                title="Master Union Clients" 
+                total={kpiData.masterUnion.total} 
+                icon={<Rocket size={18}/>} 
+                color="purple" 
+                onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union' })}
+                showStartupStrip={false}
+              />
+              <KpiCard 
+                title="Master Union Calling" 
+                total={kpiData.masterUnion.calling} 
+                icon={<Phone size={18}/>} 
+                color="purple" 
+                onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union' })}
+                showStartupStrip={false}
+              />
 
             </div>
           </div>
@@ -493,7 +587,6 @@ export default function LeadGenHome() {
       
 
       {/* ================= RIGHT SECTION (SIDEBAR) ================= */}
-     {/* 2. UPDATE SIDEBAR JSX */}
   <div className="w-80 bg-white border-l border-gray-200 h-full flex flex-col shadow-xl z-10 shrink-0">
     <div className="bg-white px-6 py-4 border-b border-gray-200 shadow-sm sticky top-0 z-10 flex items-center justify-between">
       <h2 className="text-sm font-black text-[#103c7f] flex items-center gap-2 tracking-tight uppercase italic">
@@ -503,19 +596,14 @@ export default function LeadGenHome() {
 
     <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
         {followUps.map((item) => (
-            <div key={item.client_id} className="p-3 bg-white border border-gray-200 rounded-xl hover:shadow-md hover:border-blue-300 transition-all group relative">
-              {/* Color Bar based on Type */}
-              
+            <div key={item.id} className="p-3 bg-white border border-gray-200 rounded-xl hover:shadow-md hover:border-blue-300 transition-all group relative">
               <div className="pl-2.5">
-                  {/* Row 1: Company Name & Type Badge */}
                   <div className="flex justify-between items-start mb-1.5">
                     <h4 className="font-bold text-gray-800 text-sm leading-tight line-clamp-1" title={item.company}>
                         {item.company}
                     </h4>
-                   
                   </div>
 
-                  {/* Row 2: Contact Person (Highlighted) */}
                   <div className="flex items-center gap-1.5 mb-2">
                      <div className="p-1 bg-gray-100 rounded-full text-gray-500">
                         <UserCheck size={10} />
@@ -525,7 +613,6 @@ export default function LeadGenHome() {
                      </span>
                   </div>
 
-                  {/* Row 3: Remark (Context Box) */}
                   <div className="bg-gray-50 border border-gray-100 rounded-lg p-2 mb-3">
                      <p className="text-[9px] font-bold text-gray-400 uppercase mb-0.5 flex items-center gap-1">
                         <FileText size={10}/> Last Discussion
@@ -535,7 +622,6 @@ export default function LeadGenHome() {
                      </p>
                   </div>
 
-                  {/* Call Action Button */}
                   <button
                     onClick={() => router.push(`/corporate/leadgen/leads?search=${encodeURIComponent(item.company)}`)}
                     className="w-full bg-blue-50 border border-blue-100 text-[#103c7f] text-[10px] font-bold py-2 rounded-lg hover:bg-[#103c7f] hover:text-white transition-colors flex items-center justify-center gap-1.5 group-hover:shadow-sm"
@@ -561,10 +647,8 @@ export default function LeadGenHome() {
   );
 }
 
-// --- HELPER 1: BIG SUCCESS CARD (Top Row) ---
-// --- HELPER 1: BIG SUCCESS CARD (Compact Version) ---
-// --- HELPER 1: BIG SUCCESS CARD (Compact Version) ---
-function BigSuccessCard({ title, total, startup, icon, color, isFranchise = false }) {
+// --- HELPER 1: BIG SUCCESS CARD ---
+function BigSuccessCard({ title, total, startup, icon, color, isFranchise = false, onClick }) {
     const colors = {
         teal: "from-teal-50 to-white border-teal-100 text-teal-600",
         blue: "from-blue-50 to-white border-blue-100 text-blue-600",
@@ -573,8 +657,10 @@ function BigSuccessCard({ title, total, startup, icon, color, isFranchise = fals
     const style = colors[color] || colors.blue;
 
     return (
-        <div className={`bg-gradient-to-br ${style} p-3 rounded-xl border shadow-sm relative overflow-hidden group`}>
-            {/* Background Icon (Smaller & Fainter) */}
+        <div 
+          className={`bg-gradient-to-br ${style} p-3 rounded-xl border shadow-sm relative overflow-hidden group cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all`}
+          onClick={onClick}
+        >
             <div className="absolute right-[-5px] top-[-5px] p-0 opacity-5 scale-75">{icon}</div>
             
             <div className="flex justify-between items-start mb-1">
@@ -585,7 +671,6 @@ function BigSuccessCard({ title, total, startup, icon, color, isFranchise = fals
                 <div className="p-2 bg-white rounded-lg shadow-sm">{icon}</div>
             </div>
             
-            {/* Startup Bar (Always Visible Now) */}
             <div className="mt-2 bg-white/60 rounded-lg p-1.5 border border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                     <div className="p-1 bg-orange-100 text-orange-600 rounded-md"><Rocket size={10}/></div>
@@ -597,9 +682,8 @@ function BigSuccessCard({ title, total, startup, icon, color, isFranchise = fals
     )
 }
 
-
-// --- HELPER 2: UPDATED KPI CARD (Icon + Title Side-by-Side) ---
-function KpiCard({ title, total, startup, icon, color, badges }) {
+// --- HELPER 2: KPI CARD ---
+function KpiCard({ title, total, startup, icon, color, badges, onClick, showStartupStrip = true }) {
     const colorClasses = {
         blue: "bg-blue-50 text-blue-700 border-blue-100",
         purple: "bg-purple-50 text-purple-700 border-purple-100",
@@ -611,9 +695,11 @@ function KpiCard({ title, total, startup, icon, color, badges }) {
     const activeColor = colorClasses[color] || colorClasses.blue;
 
     return (
-        <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
+        <div 
+          className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full cursor-pointer"
+          onClick={onClick}
+        >
             
-            {/* Header: Icon + Title Side-by-Side */}
             <div className="flex items-center gap-3 mb-2">
                 <div className={`p-2 rounded-lg ${activeColor} border shrink-0`}>
                     {icon}
@@ -621,13 +707,10 @@ function KpiCard({ title, total, startup, icon, color, badges }) {
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider leading-tight">{title}</p>
             </div>
 
-            {/* Content Body */}
             <div className="flex flex-col gap-1.5">
-                {/* Total Count with Badges */}
                 <div className="flex items-start justify-between">
                     <h3 className="text-2xl font-black text-slate-800 leading-none ml-1">{total}</h3>
                     
-                    {/* Badges Section - Right aligned */}
                     {badges && badges.length > 0 && (
                         <div className="flex flex-col gap-0.5 items-end">
                             {badges.map((badge, idx) => (
@@ -640,37 +723,17 @@ function KpiCard({ title, total, startup, icon, color, badges }) {
                     )}
                 </div>
                  
-                 {/* Startup Breakdown Section (Always Visible) */}
-                 <div className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-lg px-2 py-1">
-                     <div className="flex items-center gap-1.5">
-                         <div className="bg-white p-0.5 rounded-full shadow-sm">
-                             <Rocket size={8} className="text-orange-600"/>
-                         </div>
-                         <span className="text-[9px] font-bold text-orange-700 uppercase tracking-tight">Startup</span>
-                     </div>
-                     <span className="text-xs font-black text-orange-600">{startup}</span>
-                 </div>
-            </div>
-        </div>
-    );
-}
-
-// --- HELPER 3: SIMPLE KPI CARD (Compact) ---
-function SimpleKpiCard({ title, value, icon, color }) {
-    const colorClasses = {
-        purple: "text-purple-600 bg-purple-50 border-purple-100",
-        green: "text-green-600 bg-green-50 border-green-100",
-    };
-    const style = colorClasses[color] || colorClasses.purple;
-
-    return (
-        <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex items-center gap-3">
-            <div className={`p-2 rounded-full ${style} border`}>
-                {icon}
-            </div>
-            <div>
-                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{title}</p>
-                <h3 className="text-xl font-black text-slate-800 leading-none mt-0.5">{value}</h3>
+                {showStartupStrip && (
+                    <div className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-lg px-2 py-1">
+                        <div className="flex items-center gap-1.5">
+                            <div className="bg-white p-0.5 rounded-full shadow-sm">
+                                <Rocket size={8} className="text-orange-600"/>
+                            </div>
+                            <span className="text-[9px] font-bold text-orange-700 uppercase tracking-tight">Startup</span>
+                        </div>
+                        <span className="text-xs font-black text-orange-600">{startup}</span>
+                    </div>
+                )}
             </div>
         </div>
     );

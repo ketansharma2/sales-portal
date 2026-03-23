@@ -25,6 +25,8 @@ export default function ClientMasterProfile() {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [isConversationModalOpen, setIsConversationModalOpen] = useState(false);
   const [isReqModalOpen, setIsReqModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingReqId, setEditingReqId] = useState(null);
   const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
   const [isAllContactsOpen, setIsAllContactsOpen] = useState(false);
   const [isAllReqsOpen, setIsAllReqsOpen] = useState(false);
@@ -593,7 +595,19 @@ const [newConversationData, setNewConversationData] = useState({
          priority: newReqData.priority,
          status: newReqData.status,
          timeline: newReqData.timeline,
-         date: newReqData.receivedDate
+         date: newReqData.receivedDate,
+         // JD fields from jdFormData
+         location: jdFormData.location,
+         employment_type: jdFormData.employment_type,
+         working_days: jdFormData.working_days,
+         timings: jdFormData.timings,
+         tool_requirement: jdFormData.tool_requirement,
+         job_summary: jdFormData.job_summary,
+         rnr: jdFormData.rnr,
+         req_skills: jdFormData.req_skills,
+         preferred_qual: jdFormData.preferred_qual,
+         company_offers: jdFormData.company_offers,
+         contact_details: jdFormData.contact_details
        })
      });
 
@@ -607,6 +621,14 @@ const [newConversationData, setNewConversationData] = useState({
          openings: '', priority: '', status: 'Not Started', timeline: '',
          receivedDate: new Date().toISOString().split('T')[0]
        });
+       // Reset JD form data
+       setJdFormData({
+         jd_id: null, client_name: '', job_title: '', location: '', experience: '',
+         employment_type: '', working_days: '', timings: '', package: '',
+         tool_requirement: '', job_summary: '', rnr: '', req_skills: '',
+         preferred_qual: '', company_offers: '', contact_details: ''
+       });
+       alert('Successfully created the req');
      } else {
        alert('Failed to save requirement: ' + (data.error || 'Unknown error'));
      }
@@ -616,7 +638,72 @@ const [newConversationData, setNewConversationData] = useState({
    }
  };
 
-return (
+ // Handler to update existing requirement
+ const handleUpdateRequirement = async () => {
+   try {
+     const session = JSON.parse(localStorage.getItem('session') || '{}');
+     const response = await fetch(`/api/corporate/crm/requirements/${editingReqId}`, {
+       method: 'PUT',
+       headers: {
+         'Content-Type': 'application/json',
+         'Authorization': `Bearer ${session.access_token}`
+       },
+       body: JSON.stringify({
+         branch_id: selectedBranchId,
+         job_title: newReqData.jobTitle,
+         jd_link: newReqData.jdLink,
+         experience: newReqData.experience,
+         package: newReqData.package,
+         openings: newReqData.openings,
+         priority: newReqData.priority,
+         status: newReqData.status,
+         timeline: newReqData.timeline,
+         date: newReqData.receivedDate,
+         // JD fields from jdFormData
+         location: jdFormData.location,
+         employment_type: jdFormData.employment_type,
+         working_days: jdFormData.working_days,
+         timings: jdFormData.timings,
+         tool_requirement: jdFormData.tool_requirement,
+         job_summary: jdFormData.job_summary,
+         rnr: jdFormData.rnr,
+         req_skills: jdFormData.req_skills,
+         preferred_qual: jdFormData.preferred_qual,
+         company_offers: jdFormData.company_offers,
+         contact_details: jdFormData.contact_details
+       })
+     });
+
+     const data = await response.json();
+     if (data.success) {
+       // Refresh requirements
+       fetchRequirements();
+       setIsReqModalOpen(false);
+       setIsEditMode(false);
+       setEditingReqId(null);
+       setNewReqData({
+         jobTitle: '', jdLink: '', experience: '', package: '',
+         openings: '', priority: '', status: 'Not Started', timeline: '',
+         receivedDate: new Date().toISOString().split('T')[0]
+       });
+       // Reset JD form data
+       setJdFormData({
+         jd_id: null, client_name: '', job_title: '', location: '', experience: '',
+         employment_type: '', working_days: '', timings: '', package: '',
+         tool_requirement: '', job_summary: '', rnr: '', req_skills: '',
+         preferred_qual: '', company_offers: '', contact_details: ''
+       });
+       alert('Edit req done');
+     } else {
+       alert('Failed to update requirement: ' + (data.error || 'Unknown error'));
+     }
+   } catch (error) {
+     console.error('Error updating requirement:', error);
+     alert('Error updating requirement');
+   }
+ };
+ 
+ return (
     <div className="flex h-screen bg-[#f8fafc] font-['Calibri'] text-slate-800 overflow-hidden">
       
       {/* ================= COLUMN 1: FUNDAMENTALS + BRANCHES (Fixed Width) ================= */}
@@ -1548,11 +1635,29 @@ return (
                 <div className="bg-[#103c7f] px-6 py-4 flex justify-between items-center text-white shrink-0">
                     <div>
                         <h3 className="font-black text-lg uppercase tracking-wide flex items-center gap-2">
-                            <Briefcase size={20}/> Add Requirement
+                            <Briefcase size={20}/> {isEditMode ? 'Update Req' : 'Add Requirement'}
                         </h3>
-                        <p className="text-[10px] text-blue-200 font-bold uppercase tracking-widest mt-0.5">Post a new job requirement and define JD details.</p>
+                        <p className="text-[10px] text-blue-200 font-bold uppercase tracking-widest mt-0.5">
+                            {isEditMode ? 'Modify existing job requirement and JD details.' : 'Post a new job requirement and define JD details.'}
+                        </p>
                     </div>
-                    <button onClick={() => setIsReqModalOpen(false)} className="hover:bg-white/20 p-1.5 rounded-full transition"><X size={20}/></button>
+                    <button onClick={() => {
+                        setIsReqModalOpen(false);
+                        setIsEditMode(false);
+                        setEditingReqId(null);
+                        // Reset form data
+                        setNewReqData({
+                            jobTitle: '', jdLink: '', experience: '', package: '',
+                            openings: '', priority: '', status: 'Not Started', timeline: '',
+                            receivedDate: new Date().toISOString().split('T')[0]
+                        });
+                        setJdFormData({
+                            jd_id: null, client_name: '', job_title: '', location: '', experience: '',
+                            employment_type: '', working_days: '', timings: '', package: '',
+                            tool_requirement: '', job_summary: '', rnr: '', req_skills: '',
+                            preferred_qual: '', company_offers: '', contact_details: ''
+                        });
+                    }} className="hover:bg-white/20 p-1.5 rounded-full transition"><X size={20}/></button>
                 </div>
                 
                 {/* Scrollable Form Body */}
@@ -1668,11 +1773,15 @@ return (
 
                 {/* Footer Actions */}
                 <div className="p-5 border-t border-slate-200 bg-white flex justify-end gap-3 shrink-0">
-                    <button onClick={() => setIsReqModalOpen(false)} className="px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition shadow-sm border border-slate-200">
+                    <button onClick={() => {
+                        setIsReqModalOpen(false);
+                        setIsEditMode(false);
+                        setEditingReqId(null);
+                    }} className="px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition shadow-sm border border-slate-200">
                         Cancel
                     </button>
-                    <button onClick={handleSaveRequirement} className="bg-[#103c7f] text-white px-8 py-2.5 rounded-lg font-black text-xs uppercase tracking-widest shadow-md hover:bg-blue-900 transition flex items-center gap-2">
-                        <Save size={16}/> Save Complete Requirement
+                    <button onClick={isEditMode ? handleUpdateRequirement : handleSaveRequirement} className="bg-[#103c7f] text-white px-8 py-2.5 rounded-lg font-black text-xs uppercase tracking-widest shadow-md hover:bg-blue-900 transition flex items-center gap-2">
+                        <Save size={16}/> {isEditMode ? 'Update Requirement' : 'Save Complete Requirement'}
                     </button>
                 </div>
             </div>
@@ -1973,6 +2082,7 @@ return (
                                          <th className="px-4 py-3">Status</th>
                                          <th className="px-4 py-3">Timeline</th>
                                          <th className="px-4 py-3 text-right">Received Date</th>
+                                         <th className="px-4 py-3 text-center">Action</th>
                                       </tr>
                                    </thead>
                                    <tbody className="text-xs text-gray-700">
@@ -2039,6 +2149,51 @@ return (
                                             {/* Received Date */}
                                             <td className="px-4 py-3 text-right text-gray-500 font-mono">
                                                {req.date ? new Date(req.date).toLocaleDateString('en-GB') : "N/A"}
+                                            </td>
+
+                                            {/* Action */}
+                                            <td className="px-4 py-3 text-center">
+                                               <button
+                                                  onClick={() => {
+                                                     // Set edit mode and populate form with existing data
+                                                     setIsEditMode(true);
+                                                     setEditingReqId(req.req_id);
+                                                     setNewReqData({
+                                                        jobTitle: req.job_title || '',
+                                                        jdLink: req.jd_link || '',
+                                                        experience: req.experience || '',
+                                                        package: req.package || '',
+                                                        openings: req.openings || '',
+                                                        priority: req.priority || '',
+                                                        status: req.status || 'Not Started',
+                                                        timeline: req.timeline || '',
+                                                        receivedDate: req.date ? new Date(req.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+                                                     });
+                                                     setJdFormData({
+                                                        jd_id: req.req_id,
+                                                        client_name: clientData.name || '',
+                                                        job_title: req.job_title || '',
+                                                        location: req.location || '',
+                                                        experience: req.experience || '',
+                                                        employment_type: req.employment_type || '',
+                                                        working_days: req.working_days || '',
+                                                        timings: req.timings || '',
+                                                        package: req.package || '',
+                                                        tool_requirement: req.tool_req || '',
+                                                        job_summary: req.job_summary || '',
+                                                        rnr: req.rnr || '',
+                                                        req_skills: req.req_skills || '',
+                                                        preferred_qual: req.preferred_qual || '',
+                                                        company_offers: req.company_offers || '',
+                                                        contact_details: req.contact_details || ''
+                                                     });
+                                                     setIsAllReqsOpen(false);
+                                                     setIsReqModalOpen(true);
+                                                  }}
+                                                  className="text-blue-600 hover:text-white bg-blue-50 hover:bg-blue-600 px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 mx-auto font-bold text-[10px] uppercase tracking-widest"
+                                               >
+                                                  <Edit size={12}/> Edit
+                                               </button>
                                             </td>
 
                                          </tr>

@@ -39,6 +39,7 @@ export async function GET(request) {
 
     // Format the data
     const formattedFollowups = followupsData?.map(followup => ({
+      id: followup.id,
       client_id: followup.client_id,
       company: followup.corporate_leadgen_leads.company,
       remarks: followup.remarks,

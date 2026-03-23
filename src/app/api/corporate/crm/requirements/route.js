@@ -1,6 +1,8 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
+// Force reload
+
 export async function GET(request) {
   try {
     // Authentication
@@ -64,19 +66,44 @@ export async function POST(request) {
     }
 
     const body = await request.json()
-    const { branch_id, job_title, jd_link, experience, package: pkg, openings, priority, status, timeline, date } = body
+    const { 
+      branch_id, 
+      job_title, 
+      jd_link, 
+      experience, 
+      package: pkg, 
+      openings, 
+      priority, 
+      status, 
+      timeline, 
+      date,
+      // JD fields to save in corporate_crm_reqs table
+      location,
+      employment_type,
+      working_days,
+      timings,
+      tool_requirement,
+      job_summary,
+      rnr,
+      req_skills,
+      preferred_qual,
+      company_offers,
+      contact_details
+    } = body
 
     // Validate required fields
     if (!branch_id || !job_title) {
       return NextResponse.json({ error: 'Branch ID and job title are required' }, { status: 400 })
     }
 
-    // Insert into corporate_crm_reqs table
+    const userId = user.user_id || user.id
+
+    // Insert into corporate_crm_reqs table with all JD fields
     const { data: newRequirement, error: insertError } = await supabaseServer
       .from('corporate_crm_reqs')
       .insert({
         branch_id,
-        user_id: user.id,
+        user_id: userId,
         job_title,
         jd_link,
         experience,
@@ -85,7 +112,19 @@ export async function POST(request) {
         priority,
         status,
         timeline,
-        date: date || new Date().toISOString().split('T')[0]
+        date: date || new Date().toISOString().split('T')[0],
+        // JD fields
+        location: location || null,
+        employment_type: employment_type || null,
+        working_days: working_days || null,
+        timings: timings || null,
+        tool_req: tool_requirement || null,
+        job_summary: job_summary || null,
+        rnr: rnr || null,
+        req_skills: req_skills || null,
+        preferred_qual: preferred_qual || null,
+        company_offers: company_offers || null,
+        contact_details: contact_details || null
       })
       .select()
       .single()
