@@ -52,7 +52,7 @@ export async function POST(request) {
 
     // Generate unique filename (encode the original file name to handle special characters)
     const encodedFileName = encodeURIComponent(file.name)
-    const fileName = `cv-parsing/${user.user_id || user.id}/${cvParsingId}_${encodedFileName}`
+    const fileName = `${cvParsingId}_${encodedFileName}`
 
     // Convert file to buffer
     console.log('Converting file to buffer...')
