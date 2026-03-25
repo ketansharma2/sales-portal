@@ -276,8 +276,8 @@ export default function LeadGenHome() {
       setKpiData({
         searched: { total: searchedData.data?.searched?.total || 0, startup: searchedData.data?.searched?.startup || 0 },
         contacts: { total: contactsData.data?.contacts?.total || 0, startup: contactsData.data?.contacts?.startup || 0 },
-        calls: { 
-          total: callsData.data?.calls?.total || 0, 
+        calls: {
+          total: callsData.data?.calls?.total || 0,
           startup: callsData.data?.calls?.startup || 0,
           new: { total: callsData.data?.new?.total || 0, startup: callsData.data?.new?.startup || 0 },
           followup: { total: callsData.data?.followup?.total || 0, startup: callsData.data?.followup?.startup || 0 }

@@ -60,12 +60,17 @@ export async function GET(request) {
     // Find latest interaction per client
     const latestInteractionsMap = new Map()
     leadsToConsider.forEach(lead => {
-      const interaction = lead.corporate_leads_interaction?.[0] || null
-      if (interaction) {
+      const interactions = lead.corporate_leads_interaction || []
+      if (interactions.length > 0) {
+        // Find the interaction with the latest created_at
+        const latestInteraction = interactions.reduce((latest, current) => {
+          return new Date(current.created_at) > new Date(latest.created_at) ? current : latest
+        })
+        
         const existing = latestInteractionsMap.get(lead.client_id)
-        if (!existing || new Date(interaction.created_at) > new Date(existing.created_at)) {
+        if (!existing || new Date(latestInteraction.created_at) > new Date(existing.created_at)) {
           latestInteractionsMap.set(lead.client_id, {
-            ...interaction,
+            ...latestInteraction,
             startup: lead.startup
           })
         }
@@ -74,7 +79,7 @@ export async function GET(request) {
 
     // Count clients where latest interaction status contains 'onboard'
     const latestInteractions = Array.from(latestInteractionsMap.values())
-    const onboardedClients = latestInteractions.filter(i => 
+    const onboardedClients = latestInteractions.filter(i =>
       i.status?.toLowerCase().includes('onboard')
     )
     
