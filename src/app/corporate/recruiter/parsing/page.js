@@ -649,9 +649,23 @@ export default function CVParsingPage() {
                             <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
                                 <FileText size={18}/> Original Resume: {selectedCandidateCV.name}
                             </h2>
-                            <button onClick={() => setCvModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
-                                <X size={20} />
-                            </button>
+                            <div className="flex items-center gap-3">
+                                {selectedCandidateCV.cvUrl && (
+                                    <a
+                                        href={selectedCandidateCV.cvUrl}
+                                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors"
+                                        download={`${selectedCandidateCV.name}_CV.pdf`}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        Download
+                                    </a>
+                                )}
+                                <button onClick={() => setCvModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                                    <X size={20} />
+                                </button>
+                            </div>
                         </div>
                         <div className="flex-1 bg-slate-200 flex items-center justify-center p-2">
                             {selectedCandidateCV.cvUrl ? (

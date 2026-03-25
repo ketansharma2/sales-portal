@@ -90,7 +90,7 @@ export async function POST(request) {
       Key: fileName,
       Body: buffer,
       ContentType: file.type,
-      ContentDisposition: `attachment; filename="${encodedFileName}"`,
+      ContentDisposition: `inline; filename="${encodedFileName}"`,
     })
 
     await s3Client.send(command)

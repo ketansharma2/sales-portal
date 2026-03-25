@@ -1,9 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { 
-  Users, Briefcase, FileText, CheckCircle, 
-  Phone, Mail, Calendar, TrendingUp, 
+import {
+  Users, Briefcase, FileText, CheckCircle,
+  Phone, Mail, Calendar, TrendingUp,
   Share2, UserCheck, Award, MessageSquare,
   Clock, ArrowUpRight, Filter, Search
 } from "lucide-react";
@@ -16,50 +16,165 @@ export default function CRMDashboard() {
     to: new Date().toISOString().split('T')[0]    // Default Today
   });
 
+  // --- STATE FOR TOTAL ONBOARDED CLIENTS ---
+  const [totalOnboarded, setTotalOnboarded] = useState(0);
+  const [acknowledged, setAcknowledged] = useState(0);
+  const [callsMade, setCallsMade] = useState(0);
+  const [followUps, setFollowUps] = useState([]);
+
+  // --- FETCH TOTAL ONBOARDED CLIENTS ---
+  useEffect(() => {
+    const fetchTotalOnboarded = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const response = await fetch('/api/domestic/crm/onboarded', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setTotalOnboarded(data.data?.totalOnboarded || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching total onboarded:', error);
+      }
+    };
+
+    const fetchAcknowledged = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const response = await fetch('/api/domestic/crm/acknowledged', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setAcknowledged(data.data?.acknowledged || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching acknowledged:', error);
+      }
+    };
+
+    fetchTotalOnboarded();
+    fetchAcknowledged();
+  }, []);
+
+  // --- FETCH CALLS MADE (DIRECTLY ON DATE CHANGE) ---
+  useEffect(() => {
+    const fetchCallsMade = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const response = await fetch(`/api/domestic/crm/calls-made?fromDate=${dateRange.from}&toDate=${dateRange.to}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setCallsMade(data.data?.callsMade || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching calls made:', error);
+      }
+    };
+
+    fetchCallsMade();
+  }, [dateRange.from, dateRange.to]);
+
+  // --- FETCH TODAY'S FOLLOW-UPS ---
+  useEffect(() => {
+    const fetchTodayFollowUps = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const response = await fetch('/api/domestic/crm/today-followups', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setFollowUps(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching today followups:', error);
+      }
+    };
+
+    fetchTodayFollowUps();
+  }, []);
+
   // --- MOCK DATA: ROW 1 (LIFETIME TOTALS - Always Visible) ---
   const totalStats = [
-    { label: "Total Clients", value: "142", icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-    { label: "Total Reqs", value: "320", icon: FileText, color: "text-purple-600", bg: "bg-purple-50" },
-    { label: "Total Package", value: "₹4.2Cr", icon: Award, color: "text-orange-600", bg: "bg-orange-50" },
-    { label: "Trackers Shared", value: "850", icon: Share2, color: "text-indigo-600", bg: "bg-indigo-50" },
-    { label: "Total Interviews", value: "410", icon: Phone, color: "text-pink-600", bg: "bg-pink-50" },
-    { label: "Total Selected", value: "120", icon: CheckCircle, color: "text-green-600", bg: "bg-green-50" },
-    { label: "Total Joined", value: "98", icon: UserCheck, color: "text-teal-600", bg: "bg-teal-50" },
+    { label: "Total Onboarded Clients", value: totalOnboarded, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+    { label: "Acknowledged", value: acknowledged, icon: Mail, color: "text-green-600", bg: "bg-green-50" },
+    { label: "Total Reqs", value: "-", icon: FileText, color: "text-purple-600", bg: "bg-purple-50" },
+    { label: "Total Package", value: "-", icon: Award, color: "text-orange-600", bg: "bg-orange-50" },
+    { label: "Trackers Shared", value: "-", icon: Share2, color: "text-indigo-600", bg: "bg-indigo-50" },
+    { label: "Total Interviews", value: "-", icon: Phone, color: "text-pink-600", bg: "bg-pink-50" },
+    { label: "Total Selected", value: "-", icon: CheckCircle, color: "text-green-600", bg: "bg-green-50" },
+    { label: "Total Joined", value: "-", icon: UserCheck, color: "text-teal-600", bg: "bg-teal-50" },
   ];
 
   // --- MOCK DATA: ROW 2 (FILTERED ACTIVITY) ---
   // This data represents metrics ONLY for the Selected Date Range
   const filteredStats = [
-    { label: "Acknowledged", value: "12", icon: Mail },
-    { label: "Calls Made", value: "45", icon: Phone },
-    { label: "Reqs Worked", value: "8", icon: Briefcase },
-    { label: "Trackers Shared", value: "24", icon: Share2 },
-    { label: "Interviews", value: "9", icon: Users },
-    { label: "Selected", value: "3", icon: CheckCircle },
-    { label: "Joined", value: "1", icon: UserCheck },
+    { label: "Calls Made", value: callsMade, icon: Phone },
+    { label: "Reqs Worked", value: "-", icon: Briefcase },
+    { label: "Trackers Shared", value: "-", icon: Share2 },
+    { label: "Interviews", value: "-", icon: Users },
+    { label: "Selected", value: "-", icon: CheckCircle },
+    { label: "Joined", value: "-", icon: UserCheck },
   ];
 
   // --- MOCK DATA: ROW 3 (TABLE DATA) ---
   const tableData = [
-    { id: 1, client: "Nexus Retail", reqs: "Senior Analyst (2)", shared: 12, interview: 4, selected: 1, joined: 0 },
-    { id: 2, client: "Urban Clap", reqs: "Java Dev (5)", shared: 25, interview: 8, selected: 2, joined: 1 },
-    { id: 3, client: "TechSys Sol", reqs: "DevOps Eng (1)", shared: 5, interview: 2, selected: 0, joined: 0 },
-    { id: 4, client: "Green Agro", reqs: "Sales Mgr (2)", shared: 10, interview: 3, selected: 1, joined: 1 },
-    { id: 5, client: "Alpha Corp", reqs: "HR BP (1)", shared: 8, interview: 1, selected: 0, joined: 0 },
-    { id: 6, client: "Blue Star", reqs: "React Native (3)", shared: 18, interview: 6, selected: 2, joined: 0 },
-    { id: 7, client: "FinEdge", reqs: "Accountant (2)", shared: 4, interview: 1, selected: 0, joined: 0 },
-    { id: 8, client: "Rapid Logistics", reqs: "Ops Manager (1)", shared: 6, interview: 2, selected: 1, joined: 0 },
+    { id: 1, client: "Nexus Retail", reqs: "Senior Analyst (2)", shared: "-", interview: "-", selected: "-", joined: "-" },
+    { id: 2, client: "Urban Clap", reqs: "Java Dev (5)", shared: "-", interview: "-", selected: "-", joined: "-" },
+    { id: 3, client: "TechSys Sol", reqs: "DevOps Eng (1)", shared: "-", interview: "-", selected: "-", joined: "-" },
+    { id: 4, client: "Green Agro", reqs: "Sales Mgr (2)", shared: "-", interview: "-", selected: "-", joined: "-" },
+    { id: 5, client: "Alpha Corp", reqs: "HR BP (1)", shared: "-", interview: "-", selected: "-", joined: "-" },
+    { id: 6, client: "Blue Star", reqs: "React Native (3)", shared: "-", interview: "-", selected: "-", joined: "-" },
+    { id: 7, client: "FinEdge", reqs: "Accountant (2)", shared: "-", interview: "-", selected: "-", joined: "-" },
+    { id: 8, client: "Rapid Logistics", reqs: "Ops Manager (1)", shared: "-", interview: "-", selected: "-", joined: "-" },
   ];
 
   // --- MOCK DATA: RIGHT SIDEBAR ---
-  const followUpList = Array.from({ length: 15 }).map((_, i) => ({
-    id: i,
-    company: i % 2 === 0 ? `Nexus Retail Group ${i+1}` : `Tech Solutions ${i+1}`,
-    contact: i % 2 === 0 ? "Mr. Vikram Singh" : "Ms. Priya Sharma",
-    lastConvo: i % 2 === 0 ? "Asked for new JD profiles." : "Discussed commercial terms.",
-    time: `${9 + (i % 8)}:30 ${i < 4 ? 'AM' : 'PM'}`,
-    type: i % 3 === 0 ? "Call" : "Email"
-  }));
+  const followUpList = followUps.length > 0
+    ? followUps.map((item, i) => ({
+        id: i,
+        company: item.company_name,
+        contact: item.contact_name,
+        lastConvo: item.discussion,
+        time: "-",
+        type: "Call"
+      }))
+    : Array.from({ length: 15 }).map((_, i) => ({
+        id: i,
+        company: "-",
+        contact: "-",
+        lastConvo: "-",
+        time: "-",
+        type: i % 3 === 0 ? "Call" : "Email"
+      }));
 
   return (
     <div className="flex h-screen bg-[#f8fafc] font-['Calibri'] text-slate-800 overflow-hidden">
@@ -97,9 +212,6 @@ export default function CRMDashboard() {
                   className="bg-[#0d316a] text-white text-xs font-bold px-2 py-1.5 rounded border border-blue-800 outline-none focus:border-blue-400"
                 />
              </div>
-             <button className="bg-blue-500 hover:bg-blue-400 text-white text-[10px] font-bold uppercase px-3 py-1.5 rounded ml-2 transition-colors">
-                Apply
-             </button>
           </div>
         </div>
 
@@ -111,7 +223,7 @@ export default function CRMDashboard() {
             <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
               <Briefcase size={14}/> Database Overview (Lifetime)
             </h3>
-            <div className="grid grid-cols-7 gap-3">
+            <div className="grid grid-cols-8 gap-3">
               {totalStats.map((stat, idx) => (
                 <div key={idx} className="bg-white p-2.5 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center hover:shadow-md transition-all">
                   <div className={`p-1.5 rounded-full ${stat.bg} mb-1.5`}>
@@ -204,39 +316,46 @@ export default function CRMDashboard() {
             <h2 className="text-sm font-black text-[#103c7f] uppercase tracking-widest flex items-center gap-2">
               <Clock size={16} /> Follow-ups
             </h2>
-            <p className="text-[10px] text-gray-400 font-bold mt-0.5">For Selected Range</p>
+            <p className="text-[10px] text-gray-400 font-bold mt-0.5">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
           </div>
           <span className="bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-1 rounded-full">
-            {followUpList.length} Pending
+            {followUps.length} Pending
           </span>
         </div>
 
         {/* SCROLLABLE LIST */}
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-3 bg-gray-50/50">
-          {followUpList.map((item) => (
-            <div key={item.id} className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all group cursor-pointer">
-              
-              <div className="mb-2">
-                <h4 className="text-xs font-black text-gray-800 group-hover:text-[#103c7f] transition-colors line-clamp-1 leading-tight">
-                  {item.company}
-                </h4>
-              </div>
-
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-[10px] font-bold text-gray-600 truncate">{item.contact}</span>
-              </div>
-
-              <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-100">
-                <p className="text-[9px] text-gray-400 font-bold uppercase mb-1 flex items-center gap-1">
-                  <MessageSquare size={10} className="text-gray-300"/> Last Discussion
-                </p>
-                <p className="text-[10px] text-gray-600 font-medium italic line-clamp-3 leading-relaxed">
-                  "{item.lastConvo}"
-                </p>
-              </div>
-
+          {followUps.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-400">
+              <MessageSquare size={32} className="opacity-20 mb-2"/>
+              <p className="text-sm font-bold">No followups for today</p>
             </div>
-          ))}
+          ) : (
+            followUpList.map((item) => (
+              <div key={item.id} className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all group cursor-pointer">
+                
+                <div className="mb-2">
+                  <h4 className="text-xs font-black text-gray-800 group-hover:text-[#103c7f] transition-colors line-clamp-1 leading-tight">
+                    {item.company}
+                  </h4>
+                </div>
+
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-bold text-gray-600 truncate">{item.contact}</span>
+                </div>
+
+                <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                  <p className="text-[9px] text-gray-400 font-bold uppercase mb-1 flex items-center gap-1">
+                    <MessageSquare size={10} className="text-gray-300"/> Last Discussion
+                  </p>
+                  <p className="text-[10px] text-gray-600 font-medium italic line-clamp-3 leading-relaxed">
+                    "{item.lastConvo}"
+                  </p>
+                </div>
+
+              </div>
+            ))
+          )}
         </div>
 
       </div>

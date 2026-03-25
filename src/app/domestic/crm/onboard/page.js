@@ -41,7 +41,7 @@ export default function OnboardPage() {
               phone: client.phone || 'N/A'
             },
             remarks: client.remarks || 'No remarks',
-            isAcknowledged: false // Default to false, can be updated based on status
+            isAcknowledged: client.status === 'Done' // Set to true if status is 'Done'
           }));
           setOnboardingList(formattedClients);
         }
@@ -55,11 +55,30 @@ export default function OnboardPage() {
   }, []);
 
   // --- LOGIC: Toggle Status ---
-  const handleAcknowledge = (id) => {
-    const updatedList = onboardingList.map((item) => 
-      item.id === id ? { ...item, isAcknowledged: true } : item
-    );
-    setOnboardingList(updatedList);
+  const handleAcknowledge = async (id) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      if (!token) return;
+
+      const response = await fetch('/api/domestic/crm/acknowledge', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ client_id: id })
+      });
+
+      if (response.ok) {
+        const updatedList = onboardingList.map((item) =>
+          item.id === id ? { ...item, isAcknowledged: true } : item
+        );
+        setOnboardingList(updatedList);
+      }
+    } catch (error) {
+      console.error('Error acknowledging client:', error);
+    }
   };
 
   // --- LOGIC: Filter Data ---
