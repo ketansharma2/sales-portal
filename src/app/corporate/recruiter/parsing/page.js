@@ -7,6 +7,84 @@ import {
     Loader2, History, File, CheckCircle2, X
 } from "lucide-react";
 
+// CV Preview Component - Fetches PDF as blob to bypass Content-Disposition header
+function CVPreview({ url, name }) {
+    const [blobUrl, setBlobUrl] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchPdfAsBlob = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                
+                console.log('Fetching PDF as blob:', url);
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch PDF: ${response.status}`);
+                }
+                
+                const blob = await response.blob();
+                console.log('PDF blob size:', blob.size, 'type:', blob.type);
+                
+                const blobUrl = URL.createObjectURL(blob);
+                setBlobUrl(blobUrl);
+                setLoading(false);
+            } catch (err) {
+                console.error('Error fetching PDF:', err);
+                setError(err.message);
+                setLoading(false);
+            }
+        };
+
+        if (url) {
+            fetchPdfAsBlob();
+        }
+
+        // Cleanup blob URL on unmount
+        return () => {
+            if (blobUrl) {
+                URL.revokeObjectURL(blobUrl);
+            }
+        };
+    }, [url]);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center w-full h-full">
+                <Loader2 size={32} className="animate-spin text-blue-500" />
+                <span className="ml-3 text-sm font-bold text-slate-500">Loading PDF...</span>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="text-center text-slate-500">
+                <File size={48} className="mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-black uppercase tracking-widest mb-1">Error Loading PDF</p>
+                <p className="text-xs font-bold">{error}</p>
+                <button
+                    onClick={() => window.open(url, '_blank')}
+                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg text-xs font-bold hover:bg-blue-600"
+                >
+                    Open in New Tab
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <iframe
+            src={blobUrl}
+            className="w-full h-full border-0 rounded-lg"
+            title={`CV Preview: ${name}`}
+        />
+    );
+}
+
 export default function CVParsingPage() {
     const router = useRouter(); // Initialize router
     const fileInputRef = useRef(null);
@@ -472,10 +550,12 @@ export default function CVParsingPage() {
                                                     onClick={(e) => {
                                                         e.stopPropagation(); // Prevents row click
                                                         if (row.cvUrl) {
-                                                            window.open(row.cvUrl, '_blank');
-                                                        } else {
+                                                            // Try to open in modal first
                                                             setSelectedCandidateCV(row);
                                                             setCvModalOpen(true);
+                                                        } else {
+                                                            // If no CV URL, show alert
+                                                            alert("No CV available for this candidate");
                                                         }
                                                     }}
                                                     className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center mx-auto transition-colors"
@@ -561,24 +641,28 @@ export default function CVParsingPage() {
                 )}
             </div>
 
-            {/* ONLY ONE MODAL LEFT: Dummy View CV Modal */}
-            {cvModalOpen && (
+            {/* CV Preview Modal with iframe */}
+            {cvModalOpen && selectedCandidateCV && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[90vh] animate-in zoom-in-95 duration-200">
+                    <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[90vh] animate-in zoom-in-95 duration-200">
                         <div className="bg-slate-800 text-white p-4 flex justify-between items-center shrink-0">
                             <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                                <FileText size={18}/> Original Resume: {selectedCandidateCV?.name}
+                                <FileText size={18}/> Original Resume: {selectedCandidateCV.name}
                             </h2>
                             <button onClick={() => setCvModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
-                        <div className="flex-1 bg-slate-200 flex items-center justify-center p-8">
-                            <div className="text-center text-slate-500">
-                                <File size={48} className="mx-auto mb-4 opacity-50" />
-                                <p className="text-lg font-black uppercase tracking-widest mb-1">PDF Viewer Placeholder</p>
-                                <p className="text-xs font-bold">The uploaded document will be rendered here via iframe or PDF.js</p>
-                            </div>
+                        <div className="flex-1 bg-slate-200 flex items-center justify-center p-2">
+                            {selectedCandidateCV.cvUrl ? (
+                                <CVPreview url={selectedCandidateCV.cvUrl} name={selectedCandidateCV.name} />
+                            ) : (
+                                <div className="text-center text-slate-500">
+                                    <File size={48} className="mx-auto mb-4 opacity-50" />
+                                    <p className="text-lg font-black uppercase tracking-widest mb-1">No CV Available</p>
+                                    <p className="text-xs font-bold">This candidate's CV has not been uploaded yet</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
