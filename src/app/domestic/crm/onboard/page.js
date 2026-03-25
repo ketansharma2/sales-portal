@@ -66,10 +66,10 @@ export default function OnboardPage() {
   const filteredList = onboardingList.filter((item) => {
     const searchLower = searchQuery.toLowerCase();
     return (
-      item.company.toLowerCase().includes(searchLower) ||
-      item.contact.name.toLowerCase().includes(searchLower) ||
-      item.state.toLowerCase().includes(searchLower) ||
-      item.location.toLowerCase().includes(searchLower) ||
+      (item.company && item.company.toLowerCase().includes(searchLower)) ||
+      (item.contact.name && item.contact.name.toLowerCase().includes(searchLower)) ||
+      (item.state && item.state.toLowerCase().includes(searchLower)) ||
+      (item.location && item.location.toLowerCase().includes(searchLower)) ||
       item.id.toString().includes(searchLower)
     );
   });
