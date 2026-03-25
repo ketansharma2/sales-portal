@@ -17,9 +17,11 @@ function DetailsContent() {
   const fromDateFilter = searchParams.get('fromDate') || '';
   const toDateFilter = searchParams.get('toDate') || '';
   const startupFilter = searchParams.get('startup') || 'All';
+  const isSubmittedFilter = searchParams.get('isSubmitted') || '';
 
   // Get filter title for display
   const getFilterTitle = () => {
+    if (isSubmittedFilter === 'true') return 'Sent to Manager';
     if (statusFilter && statusFilter !== 'All') return `Status: ${statusFilter}`;
     if (subStatusFilter && subStatusFilter !== 'All') return `Sub-Status: ${subStatusFilter}`;
     if (franchiseStatusFilter && franchiseStatusFilter !== 'All') return `Franchise: ${franchiseStatusFilter}`;
@@ -89,6 +91,9 @@ function DetailsContent() {
       }
       if (startupFilter && startupFilter !== 'All') {
         params.append('startup', startupFilter);
+      }
+      if (isSubmittedFilter && isSubmittedFilter !== '') {
+        params.append('isSubmitted', isSubmittedFilter);
       }
       
       const queryString = params.toString();
@@ -181,7 +186,7 @@ function DetailsContent() {
   // Apply filters when filter params change
   useEffect(() => {
     fetchInteractions();
-  }, [statusFilter, subStatusFilter, franchiseStatusFilter, fromDateFilter, toDateFilter, startupFilter]);
+  }, [statusFilter, subStatusFilter, franchiseStatusFilter, fromDateFilter, toDateFilter, startupFilter, isSubmittedFilter]);
 
   // Handle action
   const handleAction = async (interaction, type) => {
@@ -317,9 +322,14 @@ function DetailsContent() {
       </div>
 
       {/* 2. ACTIVE FILTERS DISPLAY */}
-      {(statusFilter !== 'All' || subStatusFilter !== 'All' || franchiseStatusFilter !== 'All' || (fromDateFilter && toDateFilter)) && (
+      {(statusFilter !== 'All' || subStatusFilter !== 'All' || franchiseStatusFilter !== 'All' || (fromDateFilter && toDateFilter) || isSubmittedFilter === 'true') && (
         <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-200 mb-4 flex flex-wrap gap-2 items-center">
           <span className="text-xs font-bold text-gray-500 uppercase">Active Filters:</span>
+          {isSubmittedFilter === 'true' && (
+            <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs font-bold rounded border border-purple-200">
+              Sent to Manager
+            </span>
+          )}
           {statusFilter !== 'All' && (
             <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded border border-blue-200">
               Status: {statusFilter}

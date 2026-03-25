@@ -29,6 +29,7 @@ const buildFilterUrl = (router, fromDate, toDate, isAllData, filters) => {
       if (key === 'subStatus') params.append('subStatus', value);
       if (key === 'franchiseStatus') params.append('franchiseStatus', value);
       if (key === 'startup') params.append('startup', value);
+      if (key === 'isSubmitted') params.append('isSubmitted', value);
     }
   });
   
@@ -541,13 +542,13 @@ export default function LeadGenHome() {
               />
               
               {/* Sent to Manager Card */}
-              <KpiCard 
-                title="Sent to Manager" 
-                total={kpiData.sentToManager.total} 
-                startup={kpiData.sentToManager.startup} 
-                icon={<Send size={18}/>} 
-                color="orange" 
-                onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Yes' })}
+              <KpiCard
+                title="Sent to Manager"
+                total={kpiData.sentToManager.total}
+                startup={kpiData.sentToManager.startup}
+                icon={<Send size={18}/>}
+                color="orange"
+                onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { isSubmitted: 'true' })}
               />
 
               {/* --- Row 4: Master Union Cards --- */}

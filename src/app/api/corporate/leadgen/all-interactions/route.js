@@ -38,6 +38,7 @@ export async function GET(request) {
     const subStatusFilter = searchParams.get('subStatus');
     const franchiseStatusFilter = searchParams.get('franchiseStatus');
     const startupFilter = searchParams.get('startup');
+    const isSubmittedFilter = searchParams.get('isSubmitted');
 
     /* ---------------- FETCH DATA ---------------- */
     let query = supabaseServer
@@ -50,7 +51,8 @@ export async function GET(request) {
           category,
           state,
           district_city,
-          startup
+          startup,
+          sent_to_sm
         )
       `)
       .eq('leadgen_id', user.id);
@@ -109,6 +111,18 @@ export async function GET(request) {
       });
     }
 
+    /* ---------------- IS SUBMITTED FILTER ---------------- */
+    if (isSubmittedFilter && isSubmittedFilter !== 'All') {
+      filteredInteractions = filteredInteractions.filter(i => {
+        if (isSubmittedFilter === 'true') {
+          return i.corporate_leadgen_leads?.sent_to_sm === true;
+        } else if (isSubmittedFilter === 'false') {
+          return i.corporate_leadgen_leads?.sent_to_sm === false || !i.corporate_leadgen_leads?.sent_to_sm;
+        }
+        return true;
+      });
+    }
+
     /* ---------------- FORMAT DATA ---------------- */
     const formattedInteractions = filteredInteractions.map(interaction => ({
       id: interaction.id,
@@ -128,7 +142,7 @@ export async function GET(request) {
       state: interaction.corporate_leadgen_leads?.state || '',
       district_city: interaction.corporate_leadgen_leads?.district_city || '',
       startup: interaction.corporate_leadgen_leads?.startup || '',
-      isSubmitted: false // Will be set from leads table if needed
+      isSubmitted: interaction.corporate_leadgen_leads?.sent_to_sm || false
     }));
 
     /* ---------------- SORT BY DATE DESC ---------------- */
