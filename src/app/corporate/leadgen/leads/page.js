@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import {
   Search, Phone, Filter, X, Save, Plus, Eye,
-  Calendar, MapPin, ListFilter,ArrowRight,Send,Lock,Edit,Award,Users,Briefcase
+  Calendar, MapPin, ListFilter,ArrowRight,Send,Lock,Edit,Award,Users,Briefcase, Loader2
 } from "lucide-react";
 
 export default function LeadsTablePage() {
@@ -17,6 +17,8 @@ export default function LeadsTablePage() {
   const [selectedLead, setSelectedLead] = useState(null);
   const [modalType, setModalType] = useState("");
   const [managerName, setManagerName] = useState("Manager");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSavingInteraction, setIsSavingInteraction] = useState(false);
 
    const [newLeadData, setNewLeadData] = useState({
       company: '',
@@ -505,6 +507,7 @@ export default function LeadsTablePage() {
       if (!validateNewLeadForm()) {
         return;
       }
+      setIsSaving(true);
       try {
        const session = JSON.parse(localStorage.getItem('session') || '{}');
        
@@ -555,6 +558,8 @@ export default function LeadsTablePage() {
        }
      } catch (error) {
        console.error('Failed to save lead:', error);
+     } finally {
+       setIsSaving(false);
      }
    };
 
@@ -562,6 +567,7 @@ export default function LeadsTablePage() {
       if (!validateNewLeadForm()) {
         return;
       }
+      setIsSaving(true);
       try {
        const session = JSON.parse(localStorage.getItem('session') || '{}');
        
@@ -624,6 +630,8 @@ export default function LeadsTablePage() {
        }
      } catch (error) {
        console.error('Failed to save lead:', error);
+     } finally {
+       setIsSaving(false);
      }
    };
 
@@ -658,10 +666,11 @@ export default function LeadsTablePage() {
      }
    };
     const handleSaveInteraction = async () => {
-      if (!validateInteractionForm()) {
-        return;
-      }
-      try {
+       if (!validateInteractionForm()) {
+         return;
+       }
+       setIsSavingInteraction(true);
+       try {
        const session = JSON.parse(localStorage.getItem('session') || '{}');
        const method = editingInteractionId ? 'PUT' : 'POST';
        const bodyData = editingInteractionId 
@@ -690,6 +699,8 @@ export default function LeadsTablePage() {
        }
      } catch (error) {
        console.error('Failed to save interaction:', error);
+     } finally {
+       setIsSavingInteraction(false);
      }
    };
    return (
@@ -1587,22 +1598,56 @@ export default function LeadsTablePage() {
        {/* 2. Buttons for CREATE Mode */}
        {modalType === 'create' && (
          <>
-           <button onClick={handleSaveOnly} className="px-5 py-2 bg-white border border-[#103c7f] text-[#103c7f] rounded-lg font-bold text-sm shadow-sm hover:bg-blue-50">
-             Save Only
-           </button>
-           <button 
-             onClick={handleSaveAndFollowup}
-             className="bg-[#a1db40] hover:bg-[#8cc430] text-[#103c7f] px-5 py-2 rounded-lg font-black text-sm shadow-sm flex items-center gap-2"
+           <button
+             onClick={handleSaveOnly}
+             disabled={isSaving}
+             className="px-5 py-2 bg-white border border-[#103c7f] text-[#103c7f] rounded-lg font-bold text-sm shadow-sm hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
            >
-             Save & Add Follow-up <ArrowRight size={16} />
+             {isSaving ? (
+               <>
+                 <Loader2 size={16} className="animate-spin" />
+                 Please wait...
+               </>
+             ) : (
+               'Save Only'
+             )}
+           </button>
+           <button
+             onClick={handleSaveAndFollowup}
+             disabled={isSaving}
+             className="bg-[#a1db40] hover:bg-[#8cc430] text-[#103c7f] px-5 py-2 rounded-lg font-black text-sm shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+           >
+             {isSaving ? (
+               <>
+                 <Loader2 size={16} className="animate-spin" />
+                 Please wait...
+               </>
+             ) : (
+               <>
+                 Save & Add Follow-up <ArrowRight size={16} />
+               </>
+             )}
            </button>
          </>
        )}
 
        {/* 3. Button for ADD FOLLOWUP Mode */}
        {modalType === 'add' && (
-         <button onClick={handleSaveInteraction} className="bg-[#103c7f] hover:bg-blue-900 text-white px-2 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-2">
-           <Save size={16} /> {editingInteractionId ? 'Update Record' : 'Save Record'}
+         <button
+           onClick={handleSaveInteraction}
+           disabled={isSavingInteraction}
+           className="bg-[#103c7f] hover:bg-blue-900 text-white px-2 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+         >
+           {isSavingInteraction ? (
+             <>
+               <Loader2 size={16} className="animate-spin" />
+               Please wait...
+             </>
+           ) : (
+             <>
+               <Save size={16} /> {editingInteractionId ? 'Update Record' : 'Save Record'}
+             </>
+           )}
          </button>
        )}
 
