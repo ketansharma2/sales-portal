@@ -21,6 +21,11 @@ export default function CRMDashboard() {
   const [acknowledged, setAcknowledged] = useState(0);
   const [callsMade, setCallsMade] = useState(0);
   const [followUps, setFollowUps] = useState([]);
+  const [conversations, setConversations] = useState([]);
+  
+  // --- STATE FOR TOOLTIP ---
+  const [hoveredDiscussion, setHoveredDiscussion] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
   // --- FETCH TOTAL ONBOARDED CLIENTS ---
   useEffect(() => {
@@ -96,6 +101,32 @@ export default function CRMDashboard() {
     fetchCallsMade();
   }, [dateRange.from, dateRange.to]);
 
+  // --- FETCH CONVERSATIONS (DIRECTLY ON DATE CHANGE) ---
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const response = await fetch(`/api/domestic/crm/conversations?fromDate=${dateRange.from}&toDate=${dateRange.to}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setConversations(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching conversations:', error);
+      }
+    };
+
+    fetchConversations();
+  }, [dateRange.from, dateRange.to]);
+
   // --- FETCH TODAY'S FOLLOW-UPS ---
   useEffect(() => {
     const fetchTodayFollowUps = async () => {
@@ -145,17 +176,16 @@ export default function CRMDashboard() {
     { label: "Joined", value: "-", icon: UserCheck },
   ];
 
-  // --- MOCK DATA: ROW 3 (TABLE DATA) ---
-  const tableData = [
-    { id: 1, client: "Nexus Retail", reqs: "Senior Analyst (2)", shared: "-", interview: "-", selected: "-", joined: "-" },
-    { id: 2, client: "Urban Clap", reqs: "Java Dev (5)", shared: "-", interview: "-", selected: "-", joined: "-" },
-    { id: 3, client: "TechSys Sol", reqs: "DevOps Eng (1)", shared: "-", interview: "-", selected: "-", joined: "-" },
-    { id: 4, client: "Green Agro", reqs: "Sales Mgr (2)", shared: "-", interview: "-", selected: "-", joined: "-" },
-    { id: 5, client: "Alpha Corp", reqs: "HR BP (1)", shared: "-", interview: "-", selected: "-", joined: "-" },
-    { id: 6, client: "Blue Star", reqs: "React Native (3)", shared: "-", interview: "-", selected: "-", joined: "-" },
-    { id: 7, client: "FinEdge", reqs: "Accountant (2)", shared: "-", interview: "-", selected: "-", joined: "-" },
-    { id: 8, client: "Rapid Logistics", reqs: "Ops Manager (1)", shared: "-", interview: "-", selected: "-", joined: "-" },
-  ];
+  // --- TABLE DATA (FROM API) ---
+  const tableData = conversations.map((conv) => ({
+    id: conv.conversation_id,
+    dateMode: `${new Date(conv.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} - ${conv.mode}`,
+    company: conv.company_name,
+    contact: conv.contact_name,
+    email: conv.email,
+    phone: conv.phone,
+    conversation: conv.discussion
+  }));
 
   // --- MOCK DATA: RIGHT SIDEBAR ---
   const followUpList = followUps.length > 0
@@ -278,25 +308,42 @@ export default function CRMDashboard() {
                 <table className="w-full text-left border-collapse relative">
                   <thead className="bg-white text-[10px] font-black text-gray-500 uppercase tracking-wider sticky top-0 z-10 shadow-sm">
                     <tr>
-                      <th className="px-4 py-3 bg-gray-50/95 backdrop-blur">Client Name</th>
-                      <th className="px-4 py-3 bg-gray-50/95 backdrop-blur">Requirements</th>
-                      <th className="px-4 py-3 text-center bg-gray-50/95 backdrop-blur">Tracker Share</th>
-                      <th className="px-4 py-3 text-center bg-gray-50/95 backdrop-blur">Interview</th>
-                      <th className="px-4 py-3 text-center bg-gray-50/95 backdrop-blur">Selected</th>
-                      <th className="px-4 py-3 text-center bg-gray-50/95 backdrop-blur">Joined</th>
+                      <th className="px-4 py-3 bg-gray-50/95 backdrop-blur">Date & Mode</th>
+                      <th className="px-4 py-3 bg-gray-50/95 backdrop-blur">Company Name</th>
+                      <th className="px-4 py-3 bg-gray-50/95 backdrop-blur">Contact Info</th>
+                      <th className="px-4 py-3 bg-gray-50/95 backdrop-blur">Conversation</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 text-xs font-medium text-gray-700">
                     {tableData.map((row) => (
                       <tr key={row.id} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="px-4 py-3 font-bold text-[#103c7f]">{row.client}</td>
-                        <td className="px-4 py-3">{row.reqs}</td>
-                        <td className="px-4 py-3 text-center">
-                          <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-100 font-bold">{row.shared}</span>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-[#103c7f]">{row.dateMode.split(' - ')[0]}</span>
+                            <span className="text-[10px] text-gray-500">{row.dateMode.split(' - ')[1]}</span>
+                          </div>
                         </td>
-                        <td className="px-4 py-3 text-center">{row.interview}</td>
-                        <td className="px-4 py-3 text-center text-green-600 font-bold">{row.selected}</td>
-                        <td className="px-4 py-3 text-center text-teal-600 font-bold">{row.joined}</td>
+                        <td className="px-4 py-3 font-bold text-[#103c7f]">{row.company}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col gap-1">
+                            <span className="font-bold text-gray-800">{row.contact}</span>
+                            <span className="text-[10px] text-gray-500">{row.email}</span>
+                            <span className="text-[10px] text-gray-500">{row.phone}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div
+                            className="bg-gray-50 p-2 rounded-lg border border-gray-100 cursor-pointer relative"
+                            onMouseEnter={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setTooltipPosition({ x: rect.left, y: rect.bottom + 8 });
+                              setHoveredDiscussion(row.conversation);
+                            }}
+                            onMouseLeave={() => setHoveredDiscussion(null)}
+                          >
+                            <p className="text-[10px] text-gray-600 italic line-clamp-2">{row.conversation}</p>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -359,7 +406,20 @@ export default function CRMDashboard() {
         </div>
 
       </div>
-
+      
+      {/* DISCUSSION TOOLTIP */}
+      {hoveredDiscussion && (
+        <div
+          className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-xl p-4 max-w-md"
+          style={{ left: tooltipPosition.x, top: tooltipPosition.y }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <MessageSquare size={12} className="text-[#103c7f]" />
+            <span className="text-[10px] font-bold text-gray-500 uppercase">Full Discussion</span>
+          </div>
+          <p className="text-xs text-gray-700 leading-relaxed">{hoveredDiscussion}</p>
+        </div>
+      )}
     </div>
   );
 }

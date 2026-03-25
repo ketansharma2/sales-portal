@@ -1575,7 +1575,7 @@ const [newConversationData, setNewConversationData] = useState({
                         </div>
                         <div>
                             <label className="text-[10px] font-bold text-gray-500 uppercase">Mode</label>
-                            <select 
+                            <select
                               value={newConversationData.mode}
                               onChange={(e) => setNewConversationData({...newConversationData, mode: e.target.value})}
                               className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
@@ -1585,7 +1585,7 @@ const [newConversationData, setNewConversationData] = useState({
                                 <option value="Email">Email</option>
                                 <option value="Whatsapp">Whatsapp</option>
                                 <option value="Visit">Visit</option>
-                                <option value="Video Call">Video Call</option>
+                                <option value="Virtual Meeting">Virtual Meeting</option>
                             </select>
                         </div>
                     </div>
