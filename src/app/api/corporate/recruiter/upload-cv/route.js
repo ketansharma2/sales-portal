@@ -50,9 +50,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'File size exceeds 10MB limit' }, { status: 400 })
     }
 
-    // Generate unique filename (encode the original file name to handle special characters)
-    const encodedFileName = encodeURIComponent(file.name)
-    const fileName = `${cvParsingId}_${encodedFileName}`
+    // Generate unique filename (use original file name - S3 handles URL encoding automatically)
+    const fileName = `${cvParsingId}_${file.name}`
 
     // Convert file to buffer
     console.log('Converting file to buffer...')
@@ -90,7 +89,7 @@ export async function POST(request) {
       Key: fileName,
       Body: buffer,
       ContentType: file.type,
-      ContentDisposition: `inline; filename="${encodedFileName}"`,
+      ContentDisposition: `inline; filename="${file.name}"`,
     })
 
     await s3Client.send(command)
