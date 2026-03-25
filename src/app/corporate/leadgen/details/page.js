@@ -69,7 +69,7 @@ function DetailsContent() {
     return isNaN(parsed) ? null : parsed;
   };
 
-  // Fetch all leads
+  // Fetch all leads with interactions for status filtering
   const fetchLeads = async () => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');

@@ -57,23 +57,24 @@ export async function GET(request) {
       leadsToConsider = (rawData || []).filter(lead => clientIdsInRange.has(lead.client_id))
     }
 
-    // Find latest interaction per client
+    // Find latest interaction per client (matching details page logic)
     const latestInteractionsMap = new Map()
     leadsToConsider.forEach(lead => {
       const interactions = lead.corporate_leads_interaction || []
       if (interactions.length > 0) {
-        // Find the interaction with the latest created_at
-        const latestInteraction = interactions.reduce((latest, current) => {
-          return new Date(current.created_at) > new Date(latest.created_at) ? current : latest
-        })
+        // Sort interactions by created_at descending (most recent first) - same as details page
+        const sortedInteractions = interactions.sort((a, b) => {
+          if (!a.created_at && !b.created_at) return 0;
+          if (!a.created_at) return 1;
+          if (!b.created_at) return -1;
+          return new Date(b.created_at) - new Date(a.created_at);
+        });
+        const latestInteraction = sortedInteractions[0];
         
-        const existing = latestInteractionsMap.get(lead.client_id)
-        if (!existing || new Date(latestInteraction.created_at) > new Date(existing.created_at)) {
-          latestInteractionsMap.set(lead.client_id, {
-            ...latestInteraction,
-            startup: lead.startup
-          })
-        }
+        latestInteractionsMap.set(lead.client_id, {
+          ...latestInteraction,
+          startup: lead.startup
+        })
       }
     })
 
