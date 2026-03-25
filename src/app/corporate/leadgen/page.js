@@ -56,7 +56,6 @@ export default function LeadGenHome() {
     contacts: { total: 0, startup: 0 },
     calls: { total: 0, startup: 0, new: { total: 0, startup: 0 }, followup: { total: 0, startup: 0 } },
     picked: { total: 0, startup: 0 },
-    notPicked: { total: 0, startup: 0 },
     contract: { total: 0, startup: 0 },
     sentToManager: { total: 0, startup: 0 },
     onboarded: { total: 0, startup: 0 },
@@ -211,7 +210,7 @@ export default function LeadGenHome() {
 
       const queryString = params.toString();
 
-      const [searchedRes, contactsRes, callsRes, notPickedRes,
+      const [searchedRes, contactsRes, callsRes, callsPickedRes,
               contractRes, onboardedRes, interestedRes, franchiseDiscussedRes,
               franchiseFormSharedRes, franchiseAcceptedRes, sentToManagerRes, masterUnionRes, masterUnionCallingRes] = await Promise.all([
         fetch(`/api/corporate/leadgen/leads-count${queryString ? '?' + queryString : ''}`, {
@@ -223,7 +222,7 @@ export default function LeadGenHome() {
         fetch(`/api/corporate/leadgen/interactions-count${queryString ? '?' + queryString : ''}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         }),
-        fetch(`/api/corporate/leadgen/not-picked-count${queryString ? '?' + queryString : ''}`, {
+        fetch(`/api/corporate/leadgen/calls-picked-count${queryString ? '?' + queryString : ''}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         }),
         fetch(`/api/corporate/leadgen/contract-count${queryString ? '?' + queryString : ''}`, {
@@ -255,13 +254,13 @@ export default function LeadGenHome() {
         }),
       ]);
 
-      const [searchedData, contactsData, callsData, notPickedData,
+      const [searchedData, contactsData, callsData, callsPickedData,
               contractData, onboardedData, interestedData, franchiseDiscussedData,
               franchiseFormSharedData, franchiseAcceptedData, sentToManagerData, masterUnionData, masterUnionCallingData] = await Promise.all([
         searchedRes.json(),
         contactsRes.json(),
         callsRes.json(),
-        notPickedRes.json(),
+        callsPickedRes.json(),
         contractRes.json(),
         onboardedRes.json(),
         interestedRes.json(),
@@ -283,10 +282,9 @@ export default function LeadGenHome() {
           followup: { total: callsData.data?.followup?.total || 0, startup: callsData.data?.followup?.startup || 0 }
         },
         picked: {
-          total: (callsData.data?.calls?.total || 0) - (notPickedData.data?.notPicked?.total || 0),
-          startup: (callsData.data?.calls?.startup || 0) - (notPickedData.data?.notPicked?.startup || 0)
+          total: callsPickedData.data?.callsPicked?.total || 0,
+          startup: callsPickedData.data?.callsPicked?.startup || 0
         },
-        notPicked: { total: notPickedData.data?.notPicked?.total || 0, startup: notPickedData.data?.notPicked?.startup || 0 },
         contract: { total: contractData.data?.contract?.total || 0, startup: contractData.data?.contract?.startup || 0 },
         sentToManager: { total: sentToManagerData.data?.sentToManager?.total || 0, startup: sentToManagerData.data?.sentToManager?.startup || 0 },
         onboarded: { total: onboardedData.data?.onboarded?.total || 0, startup: onboardedData.data?.onboarded?.startup || 0 },
@@ -507,28 +505,20 @@ export default function LeadGenHome() {
               />
 
               {/* --- Row 2 --- */}
-                <KpiCard 
-                  title="Calls Picked" 
-                  total={kpiData.picked.total} 
-                  startup={kpiData.picked.startup} 
-                  icon={<PhoneOutgoing size={18}/>} 
-                  color="green" 
-                  onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { status: 'Interested' })}
+                <KpiCard
+                  title="Calls Picked"
+                  total={kpiData.picked.total}
+                  startup={kpiData.picked.startup}
+                  icon={<PhoneOutgoing size={18}/>}
+                  color="green"
+                  onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})}
                 />
-                <KpiCard 
-                  title="Not Picked" 
-                  total={kpiData.notPicked.total} 
-                  startup={kpiData.notPicked.startup} 
-                  icon={<XCircle size={18}/>} 
-                  color="red" 
-                  onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { status: 'Not Picked' })}
-                />
-                <KpiCard 
-                  title="Contracts Share" 
-                  total={kpiData.contract.total} 
-                  startup={kpiData.contract.startup} 
-                  icon={<FileText size={18}/>} 
-                  color="orange" 
+                <KpiCard
+                  title="Contracts Share"
+                  total={kpiData.contract.total}
+                  startup={kpiData.contract.startup}
+                  icon={<FileText size={18}/>}
+                  color="orange"
                   onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { subStatus: 'Contract Share' })}
                 />
               

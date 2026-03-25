@@ -26,8 +26,7 @@ function DetailsContent() {
     return 'All Records';
   };
 
-  const [leads, setLeads] = useState([]);
-  const [allLeads, setAllLeads] = useState([]);
+  const [interactions, setInteractions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
@@ -46,7 +45,6 @@ function DetailsContent() {
     franchise_status: ''
   });
 
-  const [interactions, setInteractions] = useState([]);
   const [editingInteractionId, setEditingInteractionId] = useState(null);
   const [suggestions, setSuggestions] = useState({ persons: [], nos: [], emails: [] });
 
@@ -69,41 +67,49 @@ function DetailsContent() {
     return isNaN(parsed) ? null : parsed;
   };
 
-  // Fetch all leads with interactions for status filtering
-  const fetchLeads = async () => {
+  // Fetch all interactions (not just unique clients) for status filtering
+  const fetchInteractions = async () => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/corporate/leadgen/leads', {
+      
+      // Build query params
+      const params = new URLSearchParams();
+      if (fromDateFilter && toDateFilter) {
+        params.append('fromDate', fromDateFilter);
+        params.append('toDate', toDateFilter);
+      }
+      if (statusFilter && statusFilter !== 'All') {
+        params.append('status', statusFilter);
+      }
+      if (subStatusFilter && subStatusFilter !== 'All') {
+        params.append('subStatus', subStatusFilter);
+      }
+      if (franchiseStatusFilter && franchiseStatusFilter !== 'All') {
+        params.append('franchiseStatus', franchiseStatusFilter);
+      }
+      if (startupFilter && startupFilter !== 'All') {
+        params.append('startup', startupFilter);
+      }
+      
+      const queryString = params.toString();
+      const response = await fetch(`/api/corporate/leadgen/all-interactions${queryString ? '?' + queryString : ''}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
       });
       const data = await response.json();
       if (data.success) {
-        const normalized = data.data.map(item => ({
-          ...item,
-          contact_person: item.contact_person || item.contactPerson || '',
-          contact_no: item.contact_no || item.contactNo || item.phone || item.mobile || '',
-          phone: item.phone || item.contact_no || item.contactNo || item.mobile || '',
-          email: item.email || item.contact_email || item.contactEmail || ''
-        }));
-
-        const sortedLeads = [...normalized].sort((a, b) => {
-          const dateA = a.sourcingDate ? new Date(a.sourcingDate) : new Date(0);
-          const dateB = b.sourcingDate ? new Date(b.sourcingDate) : new Date(0);
-          return dateB - dateA;
-        });
-        setAllLeads(sortedLeads);
+        setInteractions(data.data);
       }
     } catch (error) {
-      console.error('Failed to fetch leads:', error);
+      console.error('Failed to fetch interactions:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch interactions for a lead
-  const fetchInteractions = async (clientId) => {
+  // Fetch single lead interactions for view modal
+  const fetchLeadInteractions = async (clientId) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const response = await fetch(`/api/corporate/leadgen/interaction?client_id=${clientId}`, {
@@ -144,10 +150,10 @@ function DetailsContent() {
   // Fetch suggestions when adding interaction
   useEffect(() => {
     const fetchSuggestions = async () => {
-      if (!selectedLead?.id || modalType !== 'add') return;
+      if (!selectedLead?.client_id || modalType !== 'add') return;
       try {
         const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch(`/api/corporate/leadgen/interaction?client_id=${selectedLead.id}`, {
+        const response = await fetch(`/api/corporate/leadgen/interaction?client_id=${selectedLead.client_id}`, {
           headers: {
             'Authorization': `Bearer ${session.access_token}`
           }
@@ -168,64 +174,18 @@ function DetailsContent() {
 
   // Initial fetch
   useEffect(() => {
-    fetchLeads();
+    fetchInteractions();
     fetchManagerName();
   }, []);
 
-  // Apply filters when allLeads or filter params change
+  // Apply filters when filter params change
   useEffect(() => {
-    if (allLeads.length > 0) {
-      applyFilters();
-    }
-  }, [allLeads, statusFilter, subStatusFilter, franchiseStatusFilter, fromDateFilter, toDateFilter, startupFilter]);
-
-  // Apply URL filters to leads
-  const applyFilters = () => {
-    const filtered = allLeads.filter(lead => {
-      // 1. Date Range Check - only apply if fromDate and toDate are provided
-      let isDateMatch = true;
-      if (fromDateFilter && toDateFilter) {
-        const leadDateStr = lead.latestFollowup || '';
-        const leadDate = leadDateStr ? new Date(leadDateStr + 'T00:00:00Z') : null;
-        const from = formatDateForCompare(fromDateFilter);
-        const to = formatDateForCompare(toDateFilter);
-
-        if (!leadDate) {
-          isDateMatch = false;
-        } else {
-          const isAfterFrom = from ? leadDate >= from : true;
-          const isBeforeTo = to ? leadDate <= to : true;
-          isDateMatch = isAfterFrom && isBeforeTo;
-        }
-      }
-      // If no date params, show all records (no date filter)
-
-      // 2. Status Filter
-      const matchStatus = statusFilter === 'All' || 
-        ((lead.status || '').trim().toLowerCase() === (statusFilter || '').trim().toLowerCase());
-
-      // 3. Sub-Status Filter
-      const matchSubStatus = subStatusFilter === 'All' || 
-        (subStatusFilter === 'Contract Share' ? lead.everContractShare : 
-          ((lead.subStatus || '').trim().toLowerCase()) === (subStatusFilter || '').trim().toLowerCase());
-
-      // 4. Franchise Status Filter
-      const matchFranchiseStatus = franchiseStatusFilter === 'All' || 
-        ((lead.franchiseStatus || '').trim().toLowerCase()) === (franchiseStatusFilter || '').trim().toLowerCase();
-
-      // 5. Startup Filter
-      const matchStartup = startupFilter === 'All' || 
-        ((lead.startup || '').trim().toLowerCase()) === (startupFilter || '').trim().toLowerCase();
-
-      return isDateMatch && matchStatus && matchSubStatus && matchFranchiseStatus && matchStartup;
-    });
-
-    setLeads(filtered);
-  };
+    fetchInteractions();
+  }, [statusFilter, subStatusFilter, franchiseStatusFilter, fromDateFilter, toDateFilter, startupFilter]);
 
   // Handle action
-  const handleAction = async (lead, type) => {
-    setSelectedLead(lead);
+  const handleAction = async (interaction, type) => {
+    setSelectedLead(interaction);
     setModalType(type);
     setIsFormOpen(true);
     setEditingInteractionId(null);
@@ -245,7 +205,7 @@ function DetailsContent() {
     }
 
     if (type === 'view') {
-      await fetchInteractions(lead.id);
+      await fetchLeadInteractions(interaction.client_id);
     }
   };
 
@@ -260,9 +220,9 @@ function DetailsContent() {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const method = editingInteractionId ? 'PUT' : 'POST';
-      const bodyData = editingInteractionId 
-        ? { interaction_id: editingInteractionId, client_id: selectedLead.id, ...interactionData }
-        : { client_id: selectedLead.id, ...interactionData };
+      const bodyData = editingInteractionId
+        ? { interaction_id: editingInteractionId, client_id: selectedLead.client_id, ...interactionData }
+        : { client_id: selectedLead.client_id, ...interactionData };
       
       const response = await fetch('/api/corporate/leadgen/interaction', {
         method: method,
@@ -287,9 +247,9 @@ function DetailsContent() {
           franchise_status: ''
         });
         setEditingInteractionId(null);
-        fetchLeads();
-        if (selectedLead?.id) {
-          fetchInteractions(selectedLead.id);
+        fetchInteractions();
+        if (selectedLead?.client_id) {
+          fetchLeadInteractions(selectedLead.client_id);
         }
       } else {
         alert('Failed to save interaction');
@@ -309,14 +269,14 @@ function DetailsContent() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify({ client_id: selectedLead.id })
+        body: JSON.stringify({ client_id: selectedLead.client_id })
       });
       const data = await response.json();
       if (data.success) {
-        const updatedLeads = leads.map(l =>
-          l.id === selectedLead.id ? { ...l, isSubmitted: true } : l
+        const updatedInteractions = interactions.map(i =>
+          i.client_id === selectedLead.client_id ? { ...i, isSubmitted: true } : i
         );
-        setLeads(updatedLeads);
+        setInteractions(updatedInteractions);
         setIsFormOpen(false);
       } else {
         alert('Failed to send to manager');
@@ -349,7 +309,7 @@ function DetailsContent() {
                 <span className="ml-2 text-green-600">All Time</span>
               )}
               <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200">
-                {leads.length} rows
+                {interactions.length} rows
               </span>
             </p>
           </div>
@@ -413,73 +373,73 @@ function DetailsContent() {
                   Loading leads...
                 </td>
               </tr>
-            ) : leads.length > 0 ? (
-              leads.map((lead, index) => {
-                const isLocked = lead.isSubmitted;
+            ) : interactions.length > 0 ? (
+              interactions.map((interaction, index) => {
+                const isLocked = interaction.isSubmitted;
                 return (
                   <tr
                     key={index}
                     className="border-b border-gray-100 transition group hover:bg-blue-50/40"
                   >
-                    <td className="px-2 py-2 border-r border-gray-100">{lead.sourcingDate}</td>
+                    <td className="px-2 py-2 border-r border-gray-100">{interaction.date}</td>
                     <td className="px-2 py-2 border-r border-gray-100 font-bold text-[#103c7f] text-left min-w-[200px] max-w-[280px]">
                       <div className="flex items-center justify-start gap-2 pl-2">
                         {(
-                          lead?.startup === true ||
-                          String(lead?.startup).toLowerCase() === 'yes' ||
-                          String(lead?.startup) === '1' ||
-                          String(lead?.startup).toLowerCase() === 'true'
+                          interaction?.startup === true ||
+                          String(interaction?.startup).toLowerCase() === 'yes' ||
+                          String(interaction?.startup) === '1' ||
+                          String(interaction?.startup).toLowerCase() === 'true'
                         ) && (
                           <span className="bg-green-100 text-green-700 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-green-200 shrink-0" title="Startup">
                             S
                           </span>
                         )}
-                        {String(lead?.startup).toLowerCase() === 'master union' && (
+                        {String(interaction?.startup).toLowerCase() === 'master union' && (
                           <span className="bg-purple-100 text-purple-700 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-purple-200 shrink-0" title="Master Union">
                             M
                           </span>
                         )}
-                        <span className="truncate">{lead.company}</span>
+                        <span className="truncate">{interaction.company}</span>
                       </div>
                     </td>
-                    <td className="px-2 py-2 border-r border-gray-100">{lead.category}</td>
-                    <td className="px-2 py-2 border-r border-gray-100">{lead.district_city ? `${lead.district_city}, ` : ''}{lead.state}</td>
-                    <td className="px-2 py-2 border-r border-gray-100 font-bold text-gray-600">{lead.contact_person || '-'}</td>
+                    <td className="px-2 py-2 border-r border-gray-100">{interaction.category}</td>
+                    <td className="px-2 py-2 border-r border-gray-100">{interaction.district_city ? `${interaction.district_city}, ` : ''}{interaction.state}</td>
+                    <td className="px-2 py-2 border-r border-gray-100 font-bold text-gray-600">{interaction.contact_person || '-'}</td>
                     <td className="px-2 py-2 border-r border-gray-100 text-left">
                       <div className="flex flex-col gap-0.5">
                         <span className="font-mono font-bold text-gray-700 text-[10px] flex items-center gap-1">
-                          {(lead.contact_no || lead.phone) ? (
-                            <a href={`tel:${lead.contact_no || lead.phone}`} className="no-underline">📞 {lead.contact_no || lead.phone}</a>
+                          {(interaction.contact_no || interaction.phone) ? (
+                            <a href={`tel:${interaction.contact_no || interaction.phone}`} className="no-underline">📞 {interaction.contact_no || interaction.phone}</a>
                           ) : '-'}
                         </span>
-                        <span className="text-[9px] text-blue-500 lowercase truncate max-w-[140px]" title={lead.email}>
-                          {lead.email ? (<a href={`mailto:${lead.email}`} className="underline">{lead.email}</a>) : '-'}
+                        <span className="text-[9px] text-blue-500 lowercase truncate max-w-[140px]" title={interaction.email}>
+                          {interaction.email ? (<a href={`mailto:${interaction.email}`} className="underline">{interaction.email}</a>) : '-'}
                         </span>
                       </div>
                     </td>
                     <td className="px-2 py-2 border-r border-gray-100">
                       <div className="flex flex-col gap-1">
                         <span className="font-bold text-[#103c7f] text-[10px] bg-blue-50 px-1.5 rounded w-fit">
-                          {formatDateForDisplay(lead.latestFollowup)}
+                          {formatDateForDisplay(interaction.date)}
                         </span>
-                        <span className="text-gray-600 italic truncate max-w-[200px]" title={lead.remarks}>
-                          "{lead.remarks}"
+                        <span className="text-gray-600 italic truncate max-w-[200px]" title={interaction.remarks}>
+                          "{interaction.remarks}"
                         </span>
                       </div>
                     </td>
-                    <td className="px-2 py-2 border-r border-gray-100 font-bold text-orange-600">{formatDateForDisplay(lead.nextFollowup)}</td>
+                    <td className="px-2 py-2 border-r border-gray-100 font-bold text-orange-600">{formatDateForDisplay(interaction.next_follow_up)}</td>
                     <td className="px-2 py-2 border-r border-gray-100 text-center">
                       <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border inline-block ${
                         isLocked ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                        lead.status === 'Interested' ? 'bg-green-50 text-green-700 border-green-200' :
-                        lead.status === 'New' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        interaction.status === 'Interested' ? 'bg-green-50 text-green-700 border-green-200' :
+                        interaction.status === 'New' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                         'bg-gray-50 text-gray-600 border-gray-200'
                       }`}>
-                        {lead.status}
+                        {interaction.status}
                       </span>
                     </td>
-                    <td className="px-2 py-2 border-r border-gray-100">{lead.subStatus}</td>
-                    <td className="px-2 py-2 border-r border-gray-100">{lead.franchiseStatus}</td>
+                    <td className="px-2 py-2 border-r border-gray-100">{interaction.sub_status}</td>
+                    <td className="px-2 py-2 border-r border-gray-100">{interaction.franchise_status}</td>
                     <td className="px-2 py-2 text-center sticky right-0 bg-white group-hover:bg-blue-50/30 border-l border-gray-200 z-10 whitespace-nowrap">
                       {isLocked ? (
                         <div className="flex items-center justify-center gap-1 text-gray-400 font-bold text-[10px] bg-gray-50 py-1 px-2 rounded border border-gray-100">
@@ -487,13 +447,13 @@ function DetailsContent() {
                         </div>
                       ) : (
                         <div className="flex items-center justify-center gap-1">
-                          <button onClick={() => handleAction(lead, 'view')} className="p-1 text-gray-500 hover:text-[#103c7f] hover:bg-blue-100 rounded">
+                          <button onClick={() => handleAction(interaction, 'view')} className="p-1 text-gray-500 hover:text-[#103c7f] hover:bg-blue-100 rounded">
                             <Eye size={16} />
                           </button>
-                          <button onClick={() => handleAction(lead, 'add')} className="p-1 bg-[#a1db40] text-[#103c7f] rounded hover:bg-[#8cc430] font-bold shadow-sm">
+                          <button onClick={() => handleAction(interaction, 'add')} className="p-1 bg-[#a1db40] text-[#103c7f] rounded hover:bg-[#8cc430] font-bold shadow-sm">
                             <Phone size={16} />
                           </button>
-                          <button onClick={() => handleAction(lead, 'send_to_manager')} className="p-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 font-bold shadow-sm">
+                          <button onClick={() => handleAction(interaction, 'send_to_manager')} className="p-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 font-bold shadow-sm">
                             <Send size={16} />
                           </button>
                         </div>
@@ -505,7 +465,7 @@ function DetailsContent() {
             ) : (
               <tr key="no-data">
                 <td colSpan="12" className="p-8 text-center text-gray-400 font-bold uppercase tracking-widest">
-                  No records match your filters
+                  No interactions match your filters
                 </td>
               </tr>
             )}
@@ -567,7 +527,7 @@ function DetailsContent() {
                           <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Sourced Date</label>
                           <div className="flex items-center gap-1.5 text-gray-700 font-bold text-xs">
                             <Calendar size={13} className="text-gray-500 shrink-0"/>
-                            <span className="font-mono">{selectedLead?.latestFollowup || 'N/A'}</span>
+                            <span className="font-mono">{selectedLead?.date || 'N/A'}</span>
                           </div>
                         </div>
                         <div className="flex flex-col min-w-fit">
@@ -714,7 +674,7 @@ function DetailsContent() {
                   <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 flex justify-between items-start">
                     <div className="w-3/4">
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">
-                        Last Interaction ({selectedLead?.latestFollowup})
+                        Last Interaction ({selectedLead?.date})
                       </p>
                       <p className="text-xs text-gray-700 italic border-l-2 border-blue-200 pl-2">
                         "{selectedLead?.remarks || "No previous remarks"}"
