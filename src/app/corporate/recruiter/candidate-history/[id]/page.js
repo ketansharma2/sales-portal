@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { 
     ArrowLeft, History, User, Plus, Send, Trash2, 
@@ -14,19 +14,23 @@ export default function CandidateHistoryPage() {
 
     // --- STATE ---
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isTLModalOpen, setIsTLModalOpen] = useState(false);
+    const [selectedFollowupId, setSelectedFollowupId] = useState(null);
+    const [tlDetails, setTlDetails] = useState(null);
     // --- EDIT STATE & HANDLERS ---
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editId, setEditId] = useState(null);
 
     const handleEditOpen = (row) => {
         setFormData({
+            req_id: row.req_id || '',
             profile: row.profile,
-            slot: row.slot || "",
+            slot: row.slot || '',
             applyDate: row.applyDate,
             callingDate: row.callingDate,
-            relExp: row.relExp,
-            currCtc: row.currCtc,
-            expCtc: row.expCtc,
+            relExp: row.relExp || '',
+            currCtc: row.currCtc || '',
+            expCtc: row.expCtc || '',
             status: row.status,
             feedback: row.feedback
         });
@@ -34,15 +38,56 @@ export default function CandidateHistoryPage() {
         setIsEditModalOpen(true);
     };
 
-    const handleUpdateFollowup = () => {
-        if(!formData.profile || !formData.status) {
-            alert("Please fill mandatory fields (Profile & Status)");
+    const [isUpdatingFollowup, setIsUpdatingFollowup] = useState(false);
+
+    const handleUpdateFollowup = async () => {
+        // Validate all mandatory fields
+        if (!formData.status || !formData.applyDate || !formData.callingDate || 
+            !formData.relExp || !formData.currCtc || !formData.expCtc || !formData.feedback) {
+            alert("Please fill all mandatory fields marked with *");
             return;
         }
 
-        setFollowups(followups.map(f => f.id === editId ? { ...f, ...formData } : f));
-        setIsEditModalOpen(false);
-        setEditId(null);
+        setIsUpdatingFollowup(true);
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            
+            const response = await fetch('/api/corporate/recruiter/candidate-history', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    conversation_id: editId,
+                    candidate_status: formData.status,
+                    remarks: formData.feedback,
+                    relevant_exp: formData.relExp || null,
+                    curr_ctc: formData.currCtc || null,
+                    exp_ctc: formData.expCtc || null,
+                    apply_date: formData.applyDate,
+                    calling_date: formData.callingDate,
+                    slot: formData.slot || null
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Update the followup in the list
+                setFollowups(followups.map(f => f.id === editId ? { ...f, ...formData } : f));
+                setIsEditModalOpen(false);
+                setEditId(null);
+            } else {
+                alert(result.message || "Failed to update followup");
+            }
+        } catch (error) {
+            console.error('Error updating followup:', error);
+            alert("An error occurred while updating. Please try again.");
+        } finally {
+            setIsUpdatingFollowup(false);
+        }
     };
     // Status Options exactly from your screenshot
     const statusOptions = [
@@ -67,6 +112,7 @@ export default function CandidateHistoryPage() {
     // Form State
     const getToday = () => new Date().toISOString().split('T')[0];
     const initialForm = {
+        req_id: "",
         profile: "",
         slot: "",
         applyDate: getToday(),
@@ -79,19 +125,117 @@ export default function CandidateHistoryPage() {
     };
     const [formData, setFormData] = useState(initialForm);
 
-    // --- MOCK DATA FOR FOLLOWUPS ---
-    const [followups, setFollowups] = useState([
-        {
-            id: 1, profile: "Frontend Developer 10:00 - 11:30", slot: "10:00 - 11:30", applyDate: "2026-03-01", 
-            callingDate: "2026-03-02", relExp: "2 Yrs", currCtc: "6 LPA", expCtc: "9 LPA", 
-            status: "Interview", feedback: "Candidate has good React knowledge. Available immediately.", isTracker: true
-        },
-        {
-            id: 2, profile: "Java Developer 12:00 - 01:30 ", slot: "12:00 - 01:30", applyDate: "2026-03-05", 
-            callingDate: "2026-03-06", relExp: "3 Yrs", currCtc: "8 LPA", expCtc: "12 LPA", 
-            status: "Asset", feedback: "Asking for too much hike. Kept in asset.", isTracker: false
-        }
-    ]);
+    // Workbench data for profile/slot dropdown
+    const [workbenchOptions, setWorkbenchOptions] = useState([]);
+    const [isLoadingWorkbench, setIsLoadingWorkbench] = useState(false);
+
+    // Fetch workbench data on mount
+    useEffect(() => {
+        const fetchWorkbenchData = async () => {
+            setIsLoadingWorkbench(true);
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                const response = await fetch('/api/corporate/recruiter/workbench-dropdown', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const result = await response.json();
+                if (result.success) {
+                    // Transform data for dropdown options - show job_title and slot if available
+                    const options = result.data.map(item => ({
+                        value: item.req_id,
+                        label: item.job_title && item.slot 
+                            ? `${item.job_title} • ${item.slot}` 
+                            : item.job_title || 'Unknown Profile'
+                    }));
+                    setWorkbenchOptions(options);
+                }
+            } catch (error) {
+                console.error('Error fetching workbench data:', error);
+            } finally {
+                setIsLoadingWorkbench(false);
+            }
+        };
+        fetchWorkbenchData();
+    }, []);
+
+    // --- FOLLOWUPS STATE ---
+    const [followups, setFollowups] = useState([]);
+    const [isLoadingFollowups, setIsLoadingFollowups] = useState(true);
+
+    // Fetch existing followups from database
+    useEffect(() => {
+        const fetchFollowups = async () => {
+            setIsLoadingFollowups(true);
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                const response = await fetch(`/api/corporate/recruiter/candidate-history?parsing_id=${candidateId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const result = await response.json();
+                if (result.success && result.data) {
+                    // Transform database records to UI format
+                    const transformed = result.data.map((item, idx) => ({
+                        id: item.conversation_id,
+                        req_id: item.req_id,
+                        profile: item.job_title || '-',
+                        slot: item.slot || '-',
+                        applyDate: item.apply_date || (item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : getToday()),
+                        callingDate: item.calling_date || (item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : getToday()),
+                        relExp: item.relevant_exp ? `${item.relevant_exp}` : '',
+                        currCtc: item.curr_ctc ? `${item.curr_ctc}` : '',
+                        expCtc: item.exp_ctc ? `${item.exp_ctc}` : '',
+                        status: item.candidate_status || '',
+                        feedback: item.remarks || '',
+                        isTracker: !!item.sent_to_tl,
+                        tl_name: item.tl_name || ''
+                    }));
+                    setFollowups(transformed);
+                }
+            } catch (error) {
+                console.error('Error fetching followups:', error);
+            } finally {
+                setIsLoadingFollowups(false);
+            }
+        };
+        fetchFollowups();
+    }, [candidateId]);
+
+    // Fetch TL details on page load
+    useEffect(() => {
+        const fetchTLDetails = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                // Get current user details first
+                const userResponse = await fetch('/api/auth/get-current-user', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const userData = await userResponse.json();
+                
+                if (userData.user_id) {
+                    // Get TL details
+                    const tlResponse = await fetch(`/api/corporate/recruiter/get-tl-details?user_id=${userData.user_id}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const tlResult = await tlResponse.json();
+                    
+                    if (tlResult.success && tlResult.data) {
+                        setTlDetails(tlResult.data);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching TL details:', error);
+            }
+        };
+        fetchTLDetails();
+    }, []);
 
     // --- HANDLERS ---
     const handleAddOpen = () => {
@@ -99,31 +243,176 @@ export default function CandidateHistoryPage() {
         setIsAddModalOpen(true);
     };
 
-    const handleSaveFollowup = () => {
-        if(!formData.profile || !formData.status) {
-            alert("Please fill mandatory fields (Profile & Status)");
+    const [isSavingFollowup, setIsSavingFollowup] = useState(false);
+
+    const handleSaveFollowup = async () => {
+        // Validate all mandatory fields
+        if (!formData.profile || !formData.status || !formData.applyDate || !formData.callingDate || 
+            !formData.relExp || !formData.currCtc || !formData.expCtc || !formData.feedback) {
+            alert("Please fill all mandatory fields marked with *");
             return;
         }
 
-        const newFollowup = {
-            ...formData,
-            id: Date.now(),
-            isTracker: false
-        };
-
-        setFollowups([newFollowup, ...followups]);
-        setIsAddModalOpen(false);
+        setIsSavingFollowup(true);
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            
+            const response = await fetch('/api/corporate/recruiter/candidate-history', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    parsing_id: candidateId,
+                    req_id: formData.req_id || null,
+                    candidate_status: formData.status,
+                    remarks: formData.feedback,
+                    relevant_exp: formData.relExp || null,
+                    curr_ctc: formData.currCtc || null,
+                    exp_ctc: formData.expCtc || null,
+                    apply_date: formData.applyDate,
+                    calling_date: formData.callingDate,
+                    slot: formData.slot || null
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Add new followup to the list
+                const newFollowup = {
+                    ...formData,
+                    id: result.data?.conversation_id || Date.now(),
+                    isTracker: false
+                };
+                setFollowups([newFollowup, ...followups]);
+                setIsAddModalOpen(false);
+            } else {
+                alert(result.message || "Failed to save followup");
+            }
+        } catch (error) {
+            console.error('Error saving followup:', error);
+            alert("An error occurred while saving. Please try again.");
+        } finally {
+            setIsSavingFollowup(false);
+        }
     };
 
-    const handleDelete = (id) => {
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDelete = async (id) => {
         if(window.confirm("Are you sure you want to delete this followup?")) {
-            setFollowups(followups.filter(f => f.id !== id));
+            setIsDeleting(true);
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                const response = await fetch(`/api/corporate/recruiter/candidate-history?conversation_id=${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    setFollowups(followups.filter(f => f.id !== id));
+                } else {
+                    alert(result.message || "Failed to delete followup");
+                }
+            } catch (error) {
+                console.error('Error deleting followup:', error);
+                alert("An error occurred while deleting. Please try again.");
+            } finally {
+                setIsDeleting(false);
+            }
         }
     };
 
     const handleSendToTL = (id) => {
-        if(window.confirm("Send this candidate to Team Lead? This will move the record to Tracker History.")) {
-            setFollowups(followups.map(f => f.id === id ? { ...f, isTracker: true } : f));
+        if (tlDetails) {
+            setSelectedFollowupId(id);
+            setIsTLModalOpen(true);
+        } else {
+            alert("No Team Lead assigned to you. Please contact your administrator.");
+        }
+    };
+
+    const [isSendingToTL, setIsSendingToTL] = useState(false);
+
+    const confirmSendToTL = async () => {
+        if (!selectedFollowupId || !tlDetails) return;
+        
+        setIsSendingToTL(true);
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            
+            const today = new Date().toISOString().split('T')[0];
+            
+            const response = await fetch('/api/corporate/recruiter/candidate-history', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    conversation_id: selectedFollowupId,
+                    sent_to_tl: tlDetails.user_id,
+                    sent_date: today
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Refetch the data to get updated tl_name
+                setIsLoadingFollowups(true);
+                try {
+                    const session = JSON.parse(localStorage.getItem('session') || '{}');
+                    const token = session.access_token;
+                    const response = await fetch(`/api/corporate/recruiter/candidate-history?parsing_id=${candidateId}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const resultData = await response.json();
+                    if (resultData.success && resultData.data) {
+                        const transformed = resultData.data.map((item, idx) => ({
+                            id: item.conversation_id,
+                            req_id: item.req_id,
+                            profile: item.job_title || '-',
+                            slot: item.slot || '-',
+                            applyDate: item.apply_date || (item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : getToday()),
+                            callingDate: item.calling_date || (item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : getToday()),
+                            relExp: item.relevant_exp ? `${item.relevant_exp}` : '',
+                            currCtc: item.curr_ctc ? `${item.curr_ctc}` : '',
+                            expCtc: item.exp_ctc ? `${item.exp_ctc}` : '',
+                            status: item.candidate_status || '',
+                            feedback: item.remarks || '',
+                            isTracker: !!item.sent_to_tl,
+                            tl_name: item.tl_name || ''
+                        }));
+                        setFollowups(transformed);
+                    }
+                } catch (error) {
+                    console.error('Error refetching followups:', error);
+                    // Fallback to local update
+                    setFollowups(followups.map(f => f.id === selectedFollowupId ? { ...f, isTracker: true, tl_name: tlDetails.name } : f));
+                } finally {
+                    setIsLoadingFollowups(false);
+                }
+                setIsTLModalOpen(false);
+                setSelectedFollowupId(null);
+            } else {
+                alert(result.message || "Failed to send to TL");
+            }
+        } catch (error) {
+            console.error('Error sending to TL:', error);
+            alert("An error occurred. Please try again.");
+        } finally {
+            setIsSendingToTL(false);
         }
     };
 
@@ -192,9 +481,12 @@ export default function CandidateHistoryPage() {
                                 <tr key={row.id} className={`transition-colors ${row.isTracker ? 'bg-emerald-50/20 hover:bg-emerald-50/40' : 'hover:bg-blue-50/30'}`}>
                                     <td className="py-3 px-4 text-center text-xs font-bold text-slate-400">{idx + 1}</td>
                                     
-                                    {/* Display Combined Profile String */}
+                                    {/* Display Profile & Slot */}
                                     <td className="py-3 px-4">
                                         <p className="text-xs font-black text-slate-800 whitespace-normal min-w-[150px]">{row.profile}</p>
+                                        {row.slot && row.slot !== '-' && (
+                                            <p className="text-[11px] font-bold text-blue-600 mt-0.5">{row.slot}</p>
+                                        )}
                                     </td>
 
                                     <td className="py-3 px-4">
@@ -215,17 +507,24 @@ export default function CandidateHistoryPage() {
                                     </td>
 
                                     <td className="py-3 px-4 text-center">
-                                        <select 
-                                            className="bg-slate-50 border border-slate-200 text-slate-700 text-[10px] font-bold rounded p-1.5 outline-none cursor-pointer"
-                                            value={row.status}
-                                            onChange={(e) => {
-                                                const updated = followups.map(f => f.id === row.id ? {...f, status: e.target.value} : f);
-                                                setFollowups(updated);
-                                            }}
-                                        >
-                                            <option value="">Select</option>
-                                            {statusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                        </select>
+                                        {(() => {
+                                            const statusColors = {
+                                                'Shortlisted': 'bg-amber-100 text-amber-700 border-amber-200',
+                                                'Conversion': 'bg-green-100 text-green-700 border-green-200',
+                                                'Asset': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                                                'Not Picked': 'bg-red-100 text-red-700 border-red-200',
+                                                'Not Interseted': 'bg-rose-100 text-rose-700 border-rose-200',
+                                                'Interview': 'bg-blue-100 text-blue-700 border-blue-200',
+                                                'Not In Service': 'bg-slate-100 text-slate-600 border-slate-200',
+                                                'Other': 'bg-purple-100 text-purple-700 border-purple-200'
+                                            };
+                                            const badgeClass = statusColors[row.status] || 'bg-slate-100 text-slate-600 border-slate-200';
+                                            return (
+                                                <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest border ${badgeClass}`}>
+                                                    {row.status}
+                                                </span>
+                                            );
+                                        })()}
                                     </td>
 
                                     {/* Action Buttons (Edit, Delete, Send) */}
@@ -248,7 +547,8 @@ export default function CandidateHistoryPage() {
                                             </button>
                                             <button 
                                                 onClick={() => handleDelete(row.id)}
-                                                className="w-7 h-7 rounded bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 flex items-center justify-center transition-colors"
+                                                disabled={isDeleting}
+                                                className="w-7 h-7 rounded bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                 title="Delete Followup"
                                             >
                                                 <Trash2 size={13} />
@@ -263,7 +563,7 @@ export default function CandidateHistoryPage() {
                                                 <span className="bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1 w-max mx-auto">
                                                     <CheckCircle2 size={10}/> Sent to TL
                                                 </span>
-                                                <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Gurmeet</p>
+                                                <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wider">{row.tl_name || 'Unknown'}</p>
                                             </div>
                                         ) : (
                                             <span className="bg-slate-100 text-slate-500 border border-slate-200 px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest">
@@ -305,27 +605,54 @@ export default function CandidateHistoryPage() {
                         {/* Form Body - Grid Layout */}
                         <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 custom-scrollbar bg-slate-50/30">
                             
-                            {/* Combined Profile & Slot Dropdown (Full Width on mobile, spans 2 cols if needed, but keeping 1 col here as per design) */}
-                            <div className="md:col-span-2">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Select Assigned Profile & Slot</label>
-                                <select 
-                                    className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer"
-                                    value={formData.profile} 
-                                    onChange={(e) => {
-                                        // Hum value me combined string save kar rahe hain, isko split karke table display me manage kar sakte hain if needed.
-                                        setFormData({...formData, profile: e.target.value, slot: ""}) 
-                                    }}
-                                >
-                                    <option value="">-- Choose Profile & Slot --</option>
-                                    <option value="Frontend Developer (TechCorp) • 10:00 - 11:30">Frontend Developer (TechCorp) • 10:00 - 11:30</option>
-                                    <option value="Frontend Developer (TechCorp) • 12:00 - 01:30">Frontend Developer (TechCorp) • 12:00 - 01:30</option>
-                                    <option value="B2B Sales Exec (Global Corp) • 02:00 - 03:30">B2B Sales Exec (Global Corp) • 02:00 - 03:30</option>
-                                    <option value="Java Developer (Startup Inc) • Other">Java Developer (Startup Inc) • Other</option>
-                                </select>
-                            </div>
+                             {/* Combined Profile & Slot Dropdown (Full Width on mobile, spans 2 cols if needed, but keeping 1 col here as per design) */}
+                             <div className="md:col-span-2">
+                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">
+                                     Select Assigned Profile & Slot <span className="text-red-500">*</span>
+                                 </label>
+                                 <select 
+                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer"
+                                     value={formData.req_id} 
+                                     onChange={(e) => {
+                                         const selectedOption = workbenchOptions.find(opt => opt.value === e.target.value);
+                                         if (selectedOption) {
+                                             // Split the label to get profile and slot
+                                             const labelParts = selectedOption.label.split(' • ');
+                                             setFormData({
+                                                 ...formData,
+                                                 req_id: e.target.value,
+                                                 profile: labelParts[0] || '',
+                                                 slot: labelParts[1] || ''
+                                             });
+                                         } else {
+                                             setFormData({
+                                                 ...formData,
+                                                 req_id: "",
+                                                 profile: "",
+                                                 slot: ""
+                                             });
+                                         }
+                                     }}
+                                 >
+                                     <option value="">-- Choose Profile & Slot --</option>
+                                     {isLoadingWorkbench ? (
+                                         <option value="" disabled>Loading...</option>
+                                     ) : (
+                                         workbenchOptions.length > 0 ? (
+                                             workbenchOptions.map(option => (
+                                                 <option key={option.value} value={option.value}>
+                                                     {option.label}
+                                                 </option>
+                                             ))
+                                         ) : (
+                                             <option value="" disabled>No profiles available for today</option>
+                                         )
+                                     )}
+                                 </select>
+                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Apply Date</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Apply Date <span className="text-red-500">*</span></label>
                                 <div className="relative">
                                     <Calendar size={14} className="absolute left-3 top-2.5 text-slate-400" />
                                     <input 
@@ -337,7 +664,7 @@ export default function CandidateHistoryPage() {
                             </div>
                             
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Calling Date</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Calling Date <span className="text-red-500">*</span></label>
                                 <div className="relative">
                                     <Phone size={14} className="absolute left-3 top-2.5 text-slate-400" />
                                     <input 
@@ -349,7 +676,7 @@ export default function CandidateHistoryPage() {
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Relevant Experience</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Relevant Experience <span className="text-red-500">*</span></label>
                                 <input 
                                     type="text" placeholder="e.g. 2 Yrs" 
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
@@ -358,7 +685,7 @@ export default function CandidateHistoryPage() {
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Candidate Status</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Candidate Status <span className="text-red-500">*</span></label>
                                 <select 
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer"
                                     value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}
@@ -369,7 +696,7 @@ export default function CandidateHistoryPage() {
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Current CTC</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Current CTC <span className="text-red-500">*</span></label>
                                 <input 
                                     type="text" placeholder="e.g. 6 LPA" 
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
@@ -378,7 +705,7 @@ export default function CandidateHistoryPage() {
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Expected CTC</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Expected CTC <span className="text-red-500">*</span></label>
                                 <input 
                                     type="text" placeholder="e.g. 9 LPA" 
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
@@ -387,7 +714,7 @@ export default function CandidateHistoryPage() {
                             </div>
 
                             <div className="md:col-span-2">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Feedback / Remarks</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Feedback / Remarks <span className="text-red-500">*</span></label>
                                 <textarea 
                                     rows="3" placeholder="Enter detailed interaction notes..." 
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500 resize-none shadow-sm"
@@ -401,8 +728,21 @@ export default function CandidateHistoryPage() {
                             <button onClick={() => setIsAddModalOpen(false)} className="bg-white border border-slate-300 text-slate-600 px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-colors shadow-sm">
                                 Cancel
                             </button>
-                            <button onClick={handleSaveFollowup} className="bg-[#103c7f] hover:bg-blue-900 text-white px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest shadow-md transition-colors flex items-center justify-center gap-2">
-                                <CheckCircle2 size={14}/> Save Followup
+                            <button 
+                                onClick={handleSaveFollowup} 
+                                disabled={isSavingFollowup}
+                                className="bg-[#103c7f] hover:bg-blue-900 text-white px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest shadow-md transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {isSavingFollowup ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        Saving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle2 size={14}/> Save Followup
+                                    </>
+                                )}
                             </button>
                         </div>
 
@@ -435,19 +775,46 @@ export default function CandidateHistoryPage() {
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Select Assigned Profile & Slot</label>
                                 <select 
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer"
-                                    value={formData.profile} 
-                                    onChange={(e) => setFormData({...formData, profile: e.target.value, slot: ""})}
+                                    value={formData.req_id} 
+                                    onChange={(e) => {
+                                        const selectedOption = workbenchOptions.find(opt => opt.value === e.target.value);
+                                        if (selectedOption) {
+                                            const labelParts = selectedOption.label.split(' • ');
+                                            setFormData({
+                                                ...formData,
+                                                req_id: e.target.value,
+                                                profile: labelParts[0] || '',
+                                                slot: labelParts[1] || ''
+                                            });
+                                        } else {
+                                            setFormData({
+                                                ...formData,
+                                                req_id: "",
+                                                profile: "",
+                                                slot: ""
+                                            });
+                                        }
+                                    }}
                                 >
                                     <option value="">-- Choose Profile & Slot --</option>
-                                    <option value="Frontend Developer (TechCorp) • 10:00 - 11:30">Frontend Developer (TechCorp) • 10:00 - 11:30</option>
-                                    <option value="Frontend Developer (TechCorp) • 12:00 - 01:30">Frontend Developer (TechCorp) • 12:00 - 01:30</option>
-                                    <option value="B2B Sales Exec (Global Corp) • 02:00 - 03:30">B2B Sales Exec (Global Corp) • 02:00 - 03:30</option>
-                                    <option value="Java Developer (Startup Inc) • Other">Java Developer (Startup Inc) • Other</option>
+                                    {isLoadingWorkbench ? (
+                                        <option value="" disabled>Loading...</option>
+                                    ) : (
+                                        workbenchOptions.length > 0 ? (
+                                            workbenchOptions.map(option => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))
+                                        ) : (
+                                            <option value="" disabled>No profiles available for today</option>
+                                        )
+                                    )}
                                 </select>
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Apply Date</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Apply Date <span className="text-red-500">*</span></label>
                                 <div className="relative">
                                     <Calendar size={14} className="absolute left-3 top-2.5 text-slate-400" />
                                     <input 
@@ -459,7 +826,7 @@ export default function CandidateHistoryPage() {
                             </div>
                             
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Calling Date</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Calling Date <span className="text-red-500">*</span></label>
                                 <div className="relative">
                                     <Phone size={14} className="absolute left-3 top-2.5 text-slate-400" />
                                     <input 
@@ -471,7 +838,7 @@ export default function CandidateHistoryPage() {
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Relevant Experience</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Relevant Experience <span className="text-red-500">*</span></label>
                                 <input 
                                     type="text" placeholder="e.g. 2 Yrs" 
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
@@ -480,7 +847,7 @@ export default function CandidateHistoryPage() {
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Candidate Status</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Candidate Status <span className="text-red-500">*</span></label>
                                 <select 
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer"
                                     value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}
@@ -491,7 +858,7 @@ export default function CandidateHistoryPage() {
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Current CTC</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Current CTC <span className="text-red-500">*</span></label>
                                 <input 
                                     type="text" placeholder="e.g. 6 LPA" 
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
@@ -500,7 +867,7 @@ export default function CandidateHistoryPage() {
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Expected CTC</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Expected CTC <span className="text-red-500">*</span></label>
                                 <input 
                                     type="text" placeholder="e.g. 9 LPA" 
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
@@ -509,7 +876,7 @@ export default function CandidateHistoryPage() {
                             </div>
 
                             <div className="md:col-span-2">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Feedback / Remarks</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Feedback / Remarks <span className="text-red-500">*</span></label>
                                 <textarea 
                                     rows="3" placeholder="Enter detailed interaction notes..." 
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500 resize-none shadow-sm"
@@ -523,9 +890,94 @@ export default function CandidateHistoryPage() {
                             <button onClick={() => setIsEditModalOpen(false)} className="bg-white border border-slate-300 text-slate-600 px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-colors shadow-sm">
                                 Cancel
                             </button>
-                            <button onClick={handleUpdateFollowup} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest shadow-md transition-colors flex items-center justify-center gap-2">
-                                <CheckCircle2 size={14}/> Update Details
+                            <button 
+                                onClick={handleUpdateFollowup} 
+                                disabled={isUpdatingFollowup}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest shadow-md transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {isUpdatingFollowup ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        Updating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle2 size={14}/> Update Details
+                                    </>
+                                )}
                             </button>
+                        </div>
+
+                    </div>
+                </div>
+            )}
+            {/* ========================================================= */}
+            {/* SEND TO TL MODAL */}
+            {/* ========================================================= */}
+            {isTLModalOpen && (
+                <div className="fixed inset-0 z-[100] flex justify-center items-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 p-4">
+                    <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 overflow-hidden border-4 border-white">
+                        
+                        {/* Header */}
+                        <div className="bg-[#103c7f] text-white p-5 flex justify-between items-center shrink-0">
+                            <div>
+                                <h2 className="text-base font-black uppercase tracking-widest flex items-center gap-2">
+                                    <Send size={18}/> Send to Team Lead
+                                </h2>
+                            </div>
+                            <button onClick={() => { setIsTLModalOpen(false); setSelectedFollowupId(null); }} className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"><X size={18} /></button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 bg-slate-50/30">
+                            {tlDetails ? (
+                                <div className="text-center">
+                                    <p className="text-sm font-bold text-slate-600 mb-4">You are about to send this candidate to:</p>
+                                    <div className="bg-white border-2 border-emerald-200 rounded-xl p-4 mb-4">
+                                        <div className="flex items-center justify-center gap-3">
+                                            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                                                <User size={24} className="text-emerald-600" />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-base font-black text-slate-800">{tlDetails.name}</p>
+                                                <p className="text-xs font-bold text-slate-500">{tlDetails.email}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs font-bold text-slate-400">This action will move the record to Tracker History</p>
+                                </div>
+                            ) : (
+                                <div className="text-center py-4">
+                                    <AlertCircle size={40} className="mx-auto text-amber-500 mb-3" />
+                                    <p className="text-sm font-bold text-slate-600">No Team Lead assigned to you</p>
+                                    <p className="text-xs font-bold text-slate-400 mt-1">Please contact your administrator</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer Actions */}
+                        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 shrink-0">
+                            <button onClick={() => { setIsTLModalOpen(false); setSelectedFollowupId(null); }} className="bg-white border border-slate-300 text-slate-600 px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-colors shadow-sm">
+                                Cancel
+                            </button>
+                            {tlDetails && (
+                                <button 
+                                    onClick={confirmSendToTL} 
+                                    disabled={isSendingToTL}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest shadow-md transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                >
+                                    {isSendingToTL ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Send size={14}/> Confirm Send
+                                        </>
+                                    )}
+                                </button>
+                            )}
                         </div>
 
                     </div>
