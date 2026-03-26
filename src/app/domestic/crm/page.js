@@ -16,14 +16,147 @@ export default function CRMDashboard() {
     to: new Date().toISOString().split('T')[0]    // Default Today
   });
 
+  // --- STATE FOR TOTAL ONBOARDED CLIENTS ---
+  const [totalOnboarded, setTotalOnboarded] = useState(0);
+  const [acknowledged, setAcknowledged] = useState(0);
+  const [callsMade, setCallsMade] = useState(0);
+  const [followUps, setFollowUps] = useState([]);
+  const [conversations, setConversations] = useState([]);
+  
   // --- STATE FOR TOOLTIP ---
   const [hoveredDiscussion, setHoveredDiscussion] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
+  // --- FETCH TOTAL ONBOARDED CLIENTS ---
+  useEffect(() => {
+    const fetchTotalOnboarded = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const response = await fetch('/api/domestic/crm/onboarded', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setTotalOnboarded(data.data?.totalOnboarded || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching total onboarded:', error);
+      }
+    };
+
+    const fetchAcknowledged = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const response = await fetch('/api/domestic/crm/acknowledged', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setAcknowledged(data.data?.acknowledged || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching acknowledged:', error);
+      }
+    };
+
+    fetchTotalOnboarded();
+    fetchAcknowledged();
+  }, []);
+
+  // --- FETCH CALLS MADE (DIRECTLY ON DATE CHANGE) ---
+  useEffect(() => {
+    const fetchCallsMade = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const response = await fetch(`/api/domestic/crm/calls-made?fromDate=${dateRange.from}&toDate=${dateRange.to}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setCallsMade(data.data?.callsMade || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching calls made:', error);
+      }
+    };
+
+    fetchCallsMade();
+  }, [dateRange.from, dateRange.to]);
+
+  // --- FETCH CONVERSATIONS (DIRECTLY ON DATE CHANGE) ---
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const response = await fetch(`/api/domestic/crm/conversations?fromDate=${dateRange.from}&toDate=${dateRange.to}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setConversations(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching conversations:', error);
+      }
+    };
+
+    fetchConversations();
+  }, [dateRange.from, dateRange.to]);
+
+  // --- FETCH TODAY'S FOLLOW-UPS ---
+  useEffect(() => {
+    const fetchTodayFollowUps = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const response = await fetch('/api/domestic/crm/today-followups', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setFollowUps(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching today followups:', error);
+      }
+    };
+
+    fetchTodayFollowUps();
+  }, []);
+
   // --- MOCK DATA: ROW 1 (LIFETIME TOTALS - Always Visible) ---
   const totalStats = [
-    { label: "Total Onboarded Clients", value: "-", icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-    { label: "Acknowledged", value: "-", icon: Mail, color: "text-green-600", bg: "bg-green-50" },
+    { label: "Total Onboarded Clients", value: totalOnboarded, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+    { label: "Acknowledged", value: acknowledged, icon: Mail, color: "text-green-600", bg: "bg-green-50" },
     { label: "Total Reqs", value: "-", icon: FileText, color: "text-purple-600", bg: "bg-purple-50" },
     { label: "Total Package", value: "-", icon: Award, color: "text-orange-600", bg: "bg-orange-50" },
     { label: "Trackers Shared", value: "-", icon: Share2, color: "text-indigo-600", bg: "bg-indigo-50" },
@@ -35,7 +168,7 @@ export default function CRMDashboard() {
   // --- MOCK DATA: ROW 2 (FILTERED ACTIVITY) ---
   // This data represents metrics ONLY for the Selected Date Range
   const filteredStats = [
-    { label: "Calls Made", value: "-", icon: Phone },
+    { label: "Calls Made", value: callsMade, icon: Phone },
     { label: "Reqs Worked", value: "-", icon: Briefcase },
     { label: "Trackers Shared", value: "-", icon: Share2 },
     { label: "Interviews", value: "-", icon: Users },
@@ -43,11 +176,35 @@ export default function CRMDashboard() {
     { label: "Joined", value: "-", icon: UserCheck },
   ];
 
-  // --- TABLE DATA (EMPTY) ---
-  const tableData = [];
+  // --- TABLE DATA (FROM API) ---
+  const tableData = conversations.map((conv) => ({
+    id: conv.conversation_id,
+    dateMode: `${new Date(conv.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} - ${conv.mode}`,
+    company: conv.company_name,
+    contact: conv.contact_name,
+    email: conv.email,
+    phone: conv.phone,
+    conversation: conv.discussion
+  }));
 
-  // --- MOCK DATA: RIGHT SIDEBAR (EMPTY) ---
-  const followUpList = [];
+  // --- MOCK DATA: RIGHT SIDEBAR ---
+  const followUpList = followUps.length > 0
+    ? followUps.map((item, i) => ({
+        id: i,
+        company: item.company_name,
+        contact: item.contact_name,
+        lastConvo: item.discussion,
+        time: "-",
+        type: "Call"
+      }))
+    : Array.from({ length: 15 }).map((_, i) => ({
+        id: i,
+        company: "-",
+        contact: "-",
+        lastConvo: "-",
+        time: "-",
+        type: i % 3 === 0 ? "Call" : "Email"
+      }));
 
   return (
     <div className="flex h-screen bg-[#f8fafc] font-['Calibri'] text-slate-800 overflow-hidden">
@@ -209,16 +366,43 @@ export default function CRMDashboard() {
             <p className="text-[10px] text-gray-400 font-bold mt-0.5">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
           </div>
           <span className="bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-1 rounded-full">
-            - Pending
+            {followUps.length} Pending
           </span>
         </div>
 
         {/* SCROLLABLE LIST */}
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-3 bg-gray-50/50">
-          <div className="flex flex-col items-center justify-center h-full text-gray-400">
-            <MessageSquare size={32} className="opacity-20 mb-2"/>
-            <p className="text-sm font-bold">No followups for today</p>
-          </div>
+          {followUps.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-400">
+              <MessageSquare size={32} className="opacity-20 mb-2"/>
+              <p className="text-sm font-bold">No followups for today</p>
+            </div>
+          ) : (
+            followUpList.map((item) => (
+              <div key={item.id} className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all group cursor-pointer">
+                
+                <div className="mb-2">
+                  <h4 className="text-xs font-black text-gray-800 group-hover:text-[#103c7f] transition-colors line-clamp-1 leading-tight">
+                    {item.company}
+                  </h4>
+                </div>
+
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-bold text-gray-600 truncate">{item.contact}</span>
+                </div>
+
+                <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                  <p className="text-[9px] text-gray-400 font-bold uppercase mb-1 flex items-center gap-1">
+                    <MessageSquare size={10} className="text-gray-300"/> Last Discussion
+                  </p>
+                  <p className="text-[10px] text-gray-600 font-medium italic line-clamp-3 leading-relaxed">
+                    "{item.lastConvo}"
+                  </p>
+                </div>
+
+              </div>
+            ))
+          )}
         </div>
 
       </div>
