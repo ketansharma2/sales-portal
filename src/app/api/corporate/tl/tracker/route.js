@@ -108,7 +108,10 @@ export async function GET(request) {
         candidate_experience: cvData?.experience !== undefined && cvData?.experience !== null ? cvData.experience : '-',
         cv_url: cvData?.cv_url || '',
         // Job details from corporate_crm_reqs
-        job_title: reqsMap.get(conversation.req_id) || ''
+        job_title: reqsMap.get(conversation.req_id) || '',
+        // TL evaluation fields
+        cv_status: conversation.cv_status || '',
+        tl_remarks: conversation.tl_remarks || ''
       }
     })
 
@@ -119,6 +122,58 @@ export async function GET(request) {
 
   } catch (error) {
     console.error('TL Tracker API error:', error)
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: error.message
+    }, { status: 500 })
+  }
+}
+
+export async function PUT(request) {
+  try {
+    // Authentication
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { conversation_id, cv_status, tl_remarks } = body
+
+    if (!conversation_id) {
+      return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 })
+    }
+
+    const updateData = {}
+    if (cv_status !== undefined) updateData.cv_status = cv_status
+    if (tl_remarks !== undefined) updateData.tl_remarks = tl_remarks
+
+    const { data, error } = await supabaseServer
+      .from('candidates_conversation')
+      .update(updateData)
+      .eq('conversation_id', conversation_id)
+      .select()
+
+    if (error) {
+      console.error('Update conversation error:', error)
+      return NextResponse.json({
+        error: 'Failed to update candidate conversation',
+        details: error.message
+      }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: data[0]
+    })
+
+  } catch (error) {
+    console.error('TL Tracker PUT API error:', error)
     return NextResponse.json({
       error: 'Internal server error',
       details: error.message

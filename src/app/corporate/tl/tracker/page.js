@@ -60,8 +60,8 @@ export default function TLTrackerPage() {
                         eCTC: item.exp_ctc ? `${item.exp_ctc} ` : '-',
                         feedback: item.remarks || '-',
                         cv_url: item.cv_url || '',
-                        tlReview: "",
-                        cvUpdateStatus: "", 
+                        tlReview: item.tl_remarks || '',
+                        cvUpdateStatus: item.cv_status || '',
                         tlCvName: "", 
                         isSentToCRM: false
                     }));
@@ -128,26 +128,53 @@ export default function TLTrackerPage() {
         }, 1500);
     };
 
-    const handleSaveTLUpdate = () => {
+    const handleSaveTLUpdate = async () => {
         if (!tlForm.cvUpdateStatus) {
             alert("Please select CV Update Status.");
             return;
         }
 
-        const updatedData = trackerData.map(item => {
-            if (item.id === selectedCandidate.id) {
-                return {
-                    ...item,
-                    tlReview: tlForm.tlReview,
-                    cvUpdateStatus: tlForm.cvUpdateStatus,
-                    tlCvName: tlForm.updatedCvName
-                };
-            }
-            return item;
-        });
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            
+            const response = await fetch('/api/corporate/tl/tracker', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    conversation_id: selectedCandidate.id,
+                    cv_status: tlForm.cvUpdateStatus,
+                    tl_remarks: tlForm.tlReview
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                const updatedData = trackerData.map(item => {
+                    if (item.id === selectedCandidate.id) {
+                        return {
+                            ...item,
+                            tlReview: tlForm.tlReview,
+                            cvUpdateStatus: tlForm.cvUpdateStatus,
+                            tlCvName: tlForm.updatedCvName
+                        };
+                    }
+                    return item;
+                });
 
-        setTrackerData(updatedData);
-        setModalType(null);
+                setTrackerData(updatedData);
+                setModalType(null);
+            } else {
+                alert(result.message || "Failed to save evaluation");
+            }
+        } catch (error) {
+            console.error('Error saving evaluation:', error);
+            alert("An error occurred. Please try again.");
+        }
     };
 
     const handleSendToCRM = (id) => {
