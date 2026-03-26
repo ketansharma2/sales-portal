@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState ,useEffect} from "react";
 import { 
     FileText, Eye, Search, Filter, MapPin, 
     Calendar, ShieldCheck, Edit, Send, CheckCircle2,
@@ -8,11 +8,15 @@ import {
 
 export default function TLTrackerPage() {
     // --- STATE ---
+    const [trackerData, setTrackerData] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [modalType, setModalType] = useState(null); // 'tl_update', null
     const [selectedCandidate, setSelectedCandidate] = useState(null);
     
     // Independent state for CV Viewer so it doesn't close the TL form
-    const [cvViewer, setCvViewer] = useState({ isOpen: false, source: null }); 
+    const [cvViewer, setCvViewer] = useState({ isOpen: false, source: null });
+    const [cvBlob, setCvBlob] = useState(null);
+    const [isLoadingCV, setIsLoadingCV] = useState(false); 
     
     // Loading state for Auto-Update CV
     const [isUpdatingCV, setIsUpdatingCV] = useState(false);
@@ -24,56 +28,83 @@ export default function TLTrackerPage() {
         updatedCvName: "" 
     });
 
-    // --- MOCK DATA FOR TL TRACKER ---
-    const [trackerData, setTrackerData] = useState([
-        {
-            id: 1,
-            recruiterName: "Khushi Chawla",
-            sentDate: "09-Mar-2026",
-            profile: "Frontend Developer",
-            slot: "10:00 - 11:30",
-            name: "Vikas Kumar",
-            email: "vikas.k@email.com",
-            mobile: "+91 9988776655",
-            location: "Delhi, India",
-            qualification: "BCA",
-            experience: "2 Years",
-            relevantExp: "2 Years",
-            cCTC: "6.5 LPA",
-            eCTC: "9.0 LPA",
-            feedback: "Good communication, matching stack.",
-            tlReview: "",
-            cvUpdateStatus: "", 
-            tlCvName: "", 
-            isSentToCRM: false
-        },
-        {
-            id: 2,
-            recruiterName: "Aman Gupta",
-            sentDate: "08-Mar-2026",
-            profile: "B2B Sales Executive",
-            slot: "Full Day (10-6)",
-            name: "Rahul Verma",
-            email: "rahul.v@email.com",
-            mobile: "+91 9123456789",
-            location: "Gurugram, HR",
-            qualification: "MBA",
-            experience: "5 Years",
-            relevantExp: "3.5 Years",
-            cCTC: "8.0 LPA",
-            eCTC: "12.0 LPA",
-            feedback: "Handled enterprise clients. Notice 30 days.",
-            tlReview: "Candidate is solid. CV reformatted.",
-            cvUpdateStatus: "JD Match",
-            tlCvName: "Rahul_Verma_Redacted.pdf",
-            isSentToCRM: true
-        }
-    ]);
+    // Fetch data from API
+    useEffect(() => {
+        const fetchTrackerData = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                const response = await fetch('/api/corporate/tl/tracker', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    // Transform API data to UI format
+                    const transformed = result.data.map((item, idx) => ({
+                        id: item.conversation_id,
+                        recruiterName: item.recruiter_name,
+                        sentDate: item.sent_date ? new Date(item.sent_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-',
+                        profile: item.job_title || '-',
+                        slot: item.slot || '-',
+                        name: item.candidate_name || '-',
+                        email: item.candidate_email || '-',
+                        mobile: item.candidate_phone || '-',
+                        location: item.candidate_location || '-',
+                        qualification: item.candidate_qualification || '-',
+                        experience: item.candidate_experience ? `${item.candidate_experience} ` : '-',
+                        relevantExp: item.relevant_exp ? `${item.relevant_exp} ` : '-',
+                        cCTC: item.curr_ctc ? `${item.curr_ctc} ` : '-',
+                        eCTC: item.exp_ctc ? `${item.exp_ctc} ` : '-',
+                        feedback: item.remarks || '-',
+                        cv_url: item.cv_url || '',
+                        tlReview: "",
+                        cvUpdateStatus: "", 
+                        tlCvName: "", 
+                        isSentToCRM: false
+                    }));
+                    setTrackerData(transformed);
+                }
+            } catch (error) {
+                console.error('Error fetching tracker data:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        
+        fetchTrackerData();
+    }, []);
 
     // --- HANDLERS ---
-    const openCVModal = (candidate, source) => {
+    const openCVModal = async (candidate, source) => {
         setSelectedCandidate(candidate);
         setCvViewer({ isOpen: true, source: source });
+        
+        // If it's RC (recruiter) source and there's a cv_url, fetch the blob
+        if (source === 'rc' && candidate.cv_url) {
+            setIsLoadingCV(true);
+            try {
+                // Fetch the CV file as blob - directly without auth header like parsing page does
+                const response = await fetch(candidate.cv_url);
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    setCvBlob(blob);
+                } else {
+                    console.error('Failed to fetch CV:', response.status);
+                    setCvBlob(null);
+                }
+            } catch (error) {
+                console.error('Error fetching CV:', error);
+                setCvBlob(null);
+            } finally {
+                setIsLoadingCV(false);
+            }
+        } else {
+            setCvBlob(null);
+        }
     };
 
     const openTLUpdateModal = (candidate) => {
@@ -215,8 +246,9 @@ export default function TLTrackerPage() {
                                     <td className="py-2 px-3 sticky left-0 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] text-center">
                                         <button 
                                             onClick={() => openCVModal(row, 'rc')}
-                                            className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 flex items-center justify-center mx-auto transition-colors"
-                                            title="View Recruiter's CV"
+                                            disabled={!row.cv_url}
+                                            className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 flex items-center justify-center mx-auto transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                            title={row.cv_url ? "View Recruiter's CV" : "No CV available"}
                                         >
                                             <FileText size={12} />
                                         </button>
@@ -469,13 +501,26 @@ export default function TLTrackerPage() {
                             
                         </div>
                         <div className="flex-1 bg-slate-200 flex items-center justify-center p-8">
-                            <div className="text-center text-slate-500">
-                                <FileText size={48} className="mx-auto mb-4 opacity-50" />
-                                <p className="text-lg font-black uppercase tracking-widest mb-1">PDF Viewer Placeholder</p>
-                                <p className="text-xs font-bold">
-                                    Displaying {cvViewer.source === 'rc' ? "Original File" : `Processed File: ${tlForm.updatedCvName || selectedCandidate.tlCvName}`}
-                                </p>
-                            </div>
+                            {isLoadingCV ? (
+                                <div className="text-center text-slate-500">
+                                    <Loader2 className="animate-spin mx-auto mb-4" size={48} />
+                                    <p className="text-lg font-black uppercase tracking-widest mb-1">Loading CV...</p>
+                                </div>
+                            ) : cvBlob ? (
+                                <iframe 
+                                    src={URL.createObjectURL(cvBlob)}
+                                    className="w-full h-full rounded-lg border border-slate-300"
+                                    title="CV Viewer"
+                                />
+                            ) : (
+                                <div className="text-center text-slate-500">
+                                    <FileText size={48} className="mx-auto mb-4 opacity-50" />
+                                    <p className="text-lg font-black uppercase tracking-widest mb-1">PDF Viewer Placeholder</p>
+                                    <p className="text-xs font-bold">
+                                        Displaying {cvViewer.source === 'rc' ? "Original File" : `Processed File: ${tlForm.updatedCvName || selectedCandidate.tlCvName}`}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
