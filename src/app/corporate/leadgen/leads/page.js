@@ -452,6 +452,34 @@ export default function LeadsTablePage() {
     };
 
     const handleAction = async (lead, type) => {
+      // Handle delete action directly without opening modal
+      if (type === 'delete') {
+        try {
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const response = await fetch('/api/corporate/leadgen/leads', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ client_id: lead.id })
+          });
+          const result = await response.json();
+          if (result.success) {
+            // Remove deleted lead from state
+            setLeads(leads.filter(l => l.id !== lead.id));
+            setAllLeads(allLeads.filter(l => l.id !== lead.id));
+            alert('Lead deleted successfully');
+          } else {
+            alert(result.error || 'Failed to delete lead');
+          }
+        } catch (error) {
+          console.error('Error deleting lead:', error);
+          alert('Failed to delete lead');
+        }
+        return; // Exit without opening modal
+      }
+
      setSelectedLead(lead);
      setModalType(type);
      setIsFormOpen(true);
@@ -1520,10 +1548,33 @@ export default function LeadsTablePage() {
                         <Edit size={14} />
                       </button>
                       <button 
-                        onClick={() => {
+                        onClick={async () => {
                           if(window.confirm("Are you sure you want to delete this interaction?")) {
-                             // Call your delete API here
-                             console.log("Deleting interaction:", interaction.id);
+                            try {
+                              const session = JSON.parse(localStorage.getItem('session') || '{}');
+                              const token = session.access_token;
+                              
+                              const response = await fetch('/api/corporate/leadgen/interaction', {
+                                method: 'DELETE',
+                                headers: {
+                                  'Authorization': `Bearer ${token}`,
+                                  'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ interaction_id: interaction.id })
+                              });
+                              
+                              const result = await response.json();
+                              
+                              if (result.success) {
+                                // Remove deleted interaction from state
+                                setInteractions(interactions.filter(i => i.id !== interaction.id));
+                              } else {
+                                alert(result.message || "Failed to delete interaction");
+                              }
+                            } catch (error) {
+                              console.error('Error deleting interaction:', error);
+                              alert("An error occurred. Please try again.");
+                            }
                           }
                         }} 
                         className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors shadow-sm"

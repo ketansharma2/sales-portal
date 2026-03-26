@@ -142,6 +142,63 @@ export async function PUT(request) {
   }
 }
 
+export async function DELETE(request) {
+  try {
+    // Authentication
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    const body = await request.json();
+    const { client_id } = body;
+
+    if (!client_id) {
+      return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
+    }
+
+    // Check if the lead belongs to the user
+    const { data: existingLead, error: fetchError } = await supabaseServer
+      .from('corporate_leadgen_leads')
+      .select('leadgen_id')
+      .eq('client_id', client_id)
+      .single();
+
+    if (fetchError || !existingLead) {
+      return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+    }
+
+    if (existingLead.leadgen_id !== user.id) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    // Delete the lead (this will also delete related interactions due to cascade if configured)
+    const { error: deleteError } = await supabaseServer
+      .from('corporate_leadgen_leads')
+      .delete()
+      .eq('client_id', client_id);
+
+    if (deleteError) {
+      console.error('Delete error:', deleteError);
+      return NextResponse.json({ error: 'Failed to delete lead' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Lead deleted successfully' });
+
+  } catch (error) {
+    console.error('Leads DELETE API error:', error);
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: error.message
+    }, { status: 500 });
+  }
+}
+
 export async function GET(request) {
   try {
     // Authentication
@@ -155,8 +212,6 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
     
-
-
     // Skip RPC function and use fallback query to match dashboard logic
     // Fetch leads with their interactions ordered by created_at descending
     const { data: rawData, error: rawError } = await supabaseServer
@@ -196,8 +251,6 @@ export async function GET(request) {
         details: rawError.message
       }, { status: 500 })
     }
-
-
 
     // Format the data - sort interactions by created_at descending (most recent first)
     // This matches the dashboard contract-count logic
