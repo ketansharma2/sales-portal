@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { 
   Users, Wallet, LayoutGrid, ShieldCheck, 
   Settings, FileText, Target, Search, BarChart, Phone,Calendar,MapPin,Truck,UserPlus,IndianRupee,UserCheck,Edit,Plus,
-  Package,PhoneCall,ClipboardList,KanbanSquare,TableProperties, SunMedium, UploadCloud,Activity
+  Package,PhoneCall,ClipboardList,KanbanSquare,TableProperties, SunMedium, UploadCloud,Activity,Building2,History
 } from "lucide-react";
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
@@ -112,6 +112,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     menuItems = [
     { name: "CRM Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "Onboardings", href: `${roleBaseHref}/onboard`, icon: <UserPlus size={20} /> }, // For New Handovers
+      { name: "Client Tracker", href: `${roleBaseHref}/tracker`, icon: <Building2 size={20} /> },
+      { name: "Email History", href: `${roleBaseHref}/emailhistory`, icon: <History size={20} /> },
       { name: "Requirement Allocation", href: `${roleBaseHref}/assign`, icon: <ClipboardList size={20} /> },
       { name: "JD Management", href: `${roleBaseHref}/jd`, icon: <FileText size={20} /> }, // Naya JD Page Tab
       { name: "Billing & Revenue", href: `${roleBaseHref}/revenue`, icon: <IndianRupee size={20} /> }, // Direct Access to Finance
