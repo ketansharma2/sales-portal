@@ -26,7 +26,7 @@ export async function GET(request) {
     const fromDate = searchParams.get('fromDate');
     const toDate = searchParams.get('toDate');
 
-    // Build query to get interactions with status = "Not Picked" (case-insensitive)
+    // Build query - status does NOT contain "not picked" (case-insensitive)
     let query = supabaseServer
       .from('corporate_leads_interaction')
       .select(`
@@ -51,7 +51,7 @@ export async function GET(request) {
         )
       `)
       .eq('leadgen_id', user.id)
-      .ilike('status', '%not picked%');
+      .not('status', 'ilike', '%not picked%');
 
     // Apply date filtering based on dateRange type
     if (dateRange === 'specific' && fromDate && toDate) {
@@ -64,7 +64,7 @@ export async function GET(request) {
         .from('corporate_leads_interaction')
         .select('date')
         .eq('leadgen_id', user.id)
-        .ilike('status', '%not picked%')
+        .not('status', 'ilike', '%not picked%')
         .order('date', { ascending: false })
         .limit(1)
         .single();
@@ -82,7 +82,7 @@ export async function GET(request) {
     const { data: interactionsData, error } = await query;
 
     if (error) {
-      console.error('Not Picked interactions fetch error:', error);
+      console.error('Picked interactions fetch error:', error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
@@ -112,18 +112,18 @@ export async function GET(request) {
     });
 
     // Get total count
-    const totalNotPicked = formattedInteractions.length;
+    const totalPicked = formattedInteractions.length;
 
     return NextResponse.json({
       success: true,
       data: {
-        notPicked: { total: totalNotPicked }
+        picked: { total: totalPicked }
       },
       records: formattedInteractions
     });
 
   } catch (error) {
-    console.error('Not Picked calls API error:', error);
+    console.error('Picked calls API error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

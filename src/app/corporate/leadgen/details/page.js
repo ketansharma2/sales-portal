@@ -18,9 +18,32 @@ function DetailsContent() {
   const toDateFilter = searchParams.get('toDate') || '';
   const startupFilter = searchParams.get('startup') || 'All';
   const isSubmittedFilter = searchParams.get('isSubmitted') || '';
+  const cardType = searchParams.get('cardType') || '';
+  const isAllData = searchParams.get('isAllData') === 'true';
 
   // Get filter title for display
   const getFilterTitle = () => {
+    // If cardType is 'calls', show 'All Calls'
+    if (cardType === 'calls') return 'All Calls';
+    if (cardType === 'new_calls') return 'New Calls';
+    if (cardType === 'followup_calls') return 'Followup Calls';
+    if (cardType === 'picked') return 'Picked Calls';
+    if (cardType === 'not_picked') return 'Not Picked Calls';
+    if (cardType === 'sent_to_manager') return 'Sent to Manager';
+    if (cardType === 'interested') return 'Interested';
+    if (cardType === 'onboard') return 'Onboard';
+    
+    // If isSubmittedFilter is set, show 'Sent to Manager'
+    if (isSubmittedFilter === 'true') return 'Sent to Manager';
+    
+    // If no filters are applied ( Total Leads card case), show "Leads"
+    const hasFilters = (statusFilter && statusFilter !== 'All') || 
+                       (subStatusFilter && subStatusFilter !== 'All') || 
+                       (franchiseStatusFilter && franchiseStatusFilter !== 'All') ||
+                       (startupFilter && startupFilter !== 'All') ||
+                       (isSubmittedFilter === 'true');
+    
+    if (!hasFilters) return 'All Leads';
     if (isSubmittedFilter === 'true') return 'Sent to Manager';
     if (statusFilter && statusFilter !== 'All') return `Status: ${statusFilter}`;
     if (subStatusFilter && subStatusFilter !== 'All') return `Sub-Status: ${subStatusFilter}`;
@@ -29,6 +52,7 @@ function DetailsContent() {
   };
 
   const [interactions, setInteractions] = useState([]);
+  const [viewModalInteractions, setViewModalInteractions] = useState([]); // Store view modal data separately
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
@@ -74,7 +98,469 @@ function DetailsContent() {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       
-      // Build query params
+      // Check if cardType is 'calls' - fetch from calls-type-count API
+       if (cardType === 'calls' || cardType === 'new_calls' || cardType === 'followup_calls') {
+         const params = new URLSearchParams();
+         
+         // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
+         if (isAllData) {
+           params.append('dateRange', 'all');
+         } else if (fromDateFilter && toDateFilter) {
+           params.append('dateRange', 'specific');
+           params.append('fromDate', fromDateFilter);
+           params.append('toDate', toDateFilter);
+         } else {
+           params.append('dateRange', 'default');
+         }
+         
+         // Add type filter for new_calls or followup_calls
+         if (cardType === 'new_calls') {
+           params.append('type', 'new');
+         } else if (cardType === 'followup_calls') {
+           params.append('type', 'followup');
+         }
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/calls-type-count?${queryString}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success || data.records) {
+          const calls = data.records || [];
+          
+          const formattedCalls = calls.map(call => ({
+            id: call.id,
+            client_id: call.client_id,
+            date: call.date,
+            created_at: call.date,
+            status: call.status || '',
+            sub_status: call.sub_status || '',
+            remarks: call.remarks || '',
+            next_follow_up: call.next_follow_up || '',
+            contact_person: call.contact_person || '',
+            contact_no: call.contact_no || '',
+            email: call.email || '',
+            franchise_status: call.franchise_status || '',
+            sourcing_date: call.sourcing_date || '',
+            company: call.company || '',
+            category: call.category || '',
+            state: call.state || '',
+            district_city: call.district_city || '',
+            startup: call.startup || '',
+            isSubmitted: false
+          }));
+          // Sort by date descending (newest first)
+          formattedCalls.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInteractions(formattedCalls);
+        }
+        setLoading(false);
+        return;
+      }
+      
+      // Check if cardType is 'not_picked' - use new not-picked-count API
+      if (cardType === 'not_picked') {
+        const params = new URLSearchParams();
+        
+        // Default to 'all' if no date filters are provided, to match card count
+        if (fromDateFilter && toDateFilter) {
+          params.append('dateRange', 'specific');
+          params.append('fromDate', fromDateFilter);
+          params.append('toDate', toDateFilter);
+        } else {
+          params.append('dateRange', 'all');
+        }
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/not-picked-count?${queryString}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success || data.records) {
+          const calls = data.records || [];
+          
+          const formattedCalls = calls.map(call => ({
+            id: call.id,
+            client_id: call.client_id,
+            date: call.date,
+            created_at: call.date,
+            sourcing_date: call.sourcing_date || '',
+            status: call.status || '',
+            sub_status: call.sub_status || '',
+            remarks: call.remarks || '',
+            next_follow_up: call.next_follow_up || '',
+            contact_person: call.contact_person || '',
+            contact_no: call.contact_no || '',
+            email: call.email || '',
+            franchise_status: call.franchise_status || '',
+            company: call.company || '',
+            category: call.category || '',
+            state: call.state || '',
+            district_city: call.district_city || '',
+            startup: call.startup || '',
+            isSubmitted: false
+          }));
+          // Sort by date descending (newest first)
+          formattedCalls.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInteractions(formattedCalls);
+        }
+        setLoading(false);
+        return;
+      }
+      
+      // Check if cardType is 'picked' - use new picked-count API
+       if (cardType === 'picked') {
+         const params = new URLSearchParams();
+         
+         // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
+         if (isAllData) {
+           params.append('dateRange', 'all');
+         } else if (fromDateFilter && toDateFilter) {
+           params.append('dateRange', 'specific');
+           params.append('fromDate', fromDateFilter);
+           params.append('toDate', toDateFilter);
+         } else {
+           params.append('dateRange', 'default');
+         }
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/picked-count?${queryString}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success || data.records) {
+          const calls = data.records || [];
+          
+          const formattedCalls = calls.map(call => ({
+            id: call.id,
+            client_id: call.client_id,
+            date: call.date,
+            created_at: call.date,
+            sourcing_date: call.sourcing_date || '',
+            status: call.status || '',
+            sub_status: call.sub_status || '',
+            remarks: call.remarks || '',
+            next_follow_up: call.next_follow_up || '',
+            contact_person: call.contact_person || '',
+            contact_no: call.contact_no || '',
+            email: call.email || '',
+            franchise_status: call.franchise_status || '',
+            company: call.company || '',
+            category: call.category || '',
+            state: call.state || '',
+            district_city: call.district_city || '',
+            startup: call.startup || '',
+            isSubmitted: false
+          }));
+          // Sort by date descending (newest first)
+          formattedCalls.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInteractions(formattedCalls);
+        }
+        setLoading(false);
+        return;
+      }
+      
+      // Check if cardType is 'sent_to_manager' - use new sent-to-manager-count API
+      if (cardType === 'sent_to_manager') {
+        const params = new URLSearchParams();
+        
+        // Default to 'all' if no date filters are provided, to match card count
+        if (fromDateFilter && toDateFilter) {
+          params.append('dateRange', 'specific');
+          params.append('fromDate', fromDateFilter);
+          params.append('toDate', toDateFilter);
+        } else {
+          params.append('dateRange', 'all');
+        }
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/sent-to-manager-count?${queryString}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success || data.records) {
+          const leads = data.records || [];
+          
+          const formattedLeads = leads.map(lead => ({
+            id: lead.id,
+            client_id: lead.client_id,
+            date: lead.date,
+            sourcing_date: lead.sourcing_date,
+            lock_date: lead.lock_date,
+            status: lead.status || 'Sent to Manager',
+            sub_status: lead.sub_status || '',
+            remarks: lead.remarks || '',
+            next_follow_up: lead.next_follow_up || '',
+            contact_person: lead.contact_person || '',
+            contact_no: lead.contact_no || '',
+            email: lead.email || '',
+            franchise_status: lead.franchise_status || '',
+            company: lead.company || '',
+            category: lead.category || '',
+            state: lead.state || '',
+            district_city: lead.district_city || '',
+            startup: lead.startup || '',
+            isSubmitted: true
+          }));
+          // Sort by date descending (newest first)
+          formattedLeads.sort((a, b) => new Date(b.lock_date || b.date) - new Date(a.lock_date || a.date));
+          setInteractions(formattedLeads);
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Check if cardType is 'interested' - use new interested-count API
+      if (cardType === 'interested') {
+        const params = new URLSearchParams();
+        
+        // Default to 'all' if no date filters are provided, to match card count
+        if (fromDateFilter && toDateFilter) {
+          params.append('dateRange', 'specific');
+          params.append('fromDate', fromDateFilter);
+          params.append('toDate', toDateFilter);
+        } else {
+          params.append('dateRange', 'all');
+        }
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/interested-count?${queryString}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success || data.records) {
+          const calls = data.records || [];
+          
+          const formattedCalls = calls.map(call => ({
+            id: call.id,
+            client_id: call.client_id,
+            date: call.date,
+            created_at: call.date,
+            sourcing_date: call.sourcing_date || '',
+            status: call.status || '',
+            sub_status: call.sub_status || '',
+            remarks: call.remarks || '',
+            next_follow_up: call.next_follow_up || '',
+            contact_person: call.contact_person || '',
+            contact_no: call.contact_no || '',
+            email: call.email || '',
+            franchise_status: call.franchise_status || '',
+            company: call.company || '',
+            category: call.category || '',
+            state: call.state || '',
+            district_city: call.district_city || '',
+            startup: call.startup || '',
+            isSubmitted: false
+          }));
+          // Sort by date descending (newest first)
+          formattedCalls.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInteractions(formattedCalls);
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Check if cardType is 'onboard' - use new onboard-count API
+       if (cardType === 'onboard') {
+         const params = new URLSearchParams();
+         
+         // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
+         if (isAllData) {
+           params.append('dateRange', 'all');
+         } else if (fromDateFilter && toDateFilter) {
+           params.append('dateRange', 'specific');
+           params.append('fromDate', fromDateFilter);
+           params.append('toDate', toDateFilter);
+         } else {
+           params.append('dateRange', 'default');
+         }
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/onboard-count?${queryString}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success || data.records) {
+          const calls = data.records || [];
+          
+          const formattedCalls = calls.map(call => ({
+            id: call.id,
+            client_id: call.client_id,
+            date: call.date,
+            created_at: call.date,
+            sourcing_date: call.sourcing_date || '',
+            status: call.status || '',
+            sub_status: call.sub_status || '',
+            remarks: call.remarks || '',
+            next_follow_up: call.next_follow_up || '',
+            contact_person: call.contact_person || '',
+            contact_no: call.contact_no || '',
+            email: call.email || '',
+            franchise_status: call.franchise_status || '',
+            company: call.company || '',
+            category: call.category || '',
+            state: call.state || '',
+            district_city: call.district_city || '',
+            startup: call.startup || '',
+            isSubmitted: false
+          }));
+          // Sort by date descending (newest first)
+          formattedCalls.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInteractions(formattedCalls);
+        }
+        setLoading(false);
+        return;
+      }
+      
+      // Check if we should fetch LEADS (Total Leads card or Normal Clients Leads card) or INTERACTIONS (other cards)
+      const hasCardFilters = (statusFilter && statusFilter !== 'All') || 
+                             (subStatusFilter && subStatusFilter !== 'All') || 
+                             (franchiseStatusFilter && franchiseStatusFilter !== 'All') ||
+                             (isSubmittedFilter === 'true');
+      
+      // Check if we have cardType=normal_calls (Normal Clients Calls card case) - use interactions API with startup filter
+      const isNormalClientsCalls = cardType && cardType === 'normal_calls';
+      
+      // Check if we have only startup=No filter (Normal Clients Leads card case) - use leads API
+      const isNormalClientsLeads = (startupFilter && startupFilter === 'No') && !hasCardFilters && !isNormalClientsCalls;
+      
+      // If cardType is normal_calls, use all-interactions API (Normal Clients Calls case)
+      if (!hasCardFilters || isNormalClientsLeads) {
+        const params = new URLSearchParams();
+        if (fromDateFilter && toDateFilter) {
+          params.append('fromDate', fromDateFilter);
+          params.append('toDate', toDateFilter);
+        }
+        // Pass startup filter for Normal Clients Leads card
+        if (startupFilter && startupFilter !== 'All') {
+          params.append('startup', startupFilter);
+        }
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/leads${queryString ? '?' + queryString : ''}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success || data.data) {
+          // Format leads data to match interactions format for display
+          const leads = data.data || [];
+          const formattedLeads = leads.map(lead => ({
+            id: lead.id,
+            client_id: lead.id,
+            date: lead.sourcingDate,
+            created_at: lead.sourcingDate,
+            sourcing_date: lead.sourcingDate,
+            status: lead.status || 'New',
+            sub_status: lead.subStatus || '',
+            remarks: lead.remarks || '',
+            next_follow_up: lead.nextFollowup || '',
+            contact_person: lead.contact_person || '',
+            contact_no: lead.phone || '',
+            email: lead.email || '',
+            franchise_status: lead.franchiseStatus || '',
+            company: lead.company || '',
+            category: lead.category || '',
+            state: lead.state || '',
+            district_city: lead.district_city || '',
+            startup: lead.startup || '',
+            isSubmitted: lead.isSubmitted || false
+          }));
+          // Sort by date descending (newest first)
+          formattedLeads.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInteractions(formattedLeads);
+        }
+        setLoading(false);
+        return;
+      }
+      
+      // For Normal Clients Calls card, show all interactions with startup filter (without Not Picked exclusion and without date filter)
+      if (isNormalClientsCalls) {
+        const params = new URLSearchParams();
+        // Don't pass date filters - match card count which has no date filter
+        params.append('startup', 'No');
+        params.append('cardType', 'normal_calls');
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/all-interactions${queryString ? '?' + queryString : ''}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          const sortedData = [...data.data].sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInteractions(sortedData);
+        }
+        setLoading(false);
+        return;
+      }
+      
+      // Check if isSubmittedFilter is set - use new sent-to-manager-count API
+      if (isSubmittedFilter === 'true') {
+        const params = new URLSearchParams();
+        
+        // Default to 'all' if no date filters are provided, to match card count
+        if (fromDateFilter && toDateFilter) {
+          params.append('dateRange', 'specific');
+          params.append('fromDate', fromDateFilter);
+          params.append('toDate', toDateFilter);
+        } else {
+          params.append('dateRange', 'all');
+        }
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/sent-to-manager-count?${queryString}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success || data.records) {
+          const leads = data.records || [];
+          
+          const formattedLeads = leads.map(lead => ({
+            id: lead.id,
+            client_id: lead.client_id,
+            date: lead.date,
+            sourcing_date: lead.sourcing_date,
+            lock_date: lead.lock_date,
+            status: 'Sent to Manager',
+            sub_status: '',
+            remarks: '',
+            next_follow_up: '',
+            contact_person: '',
+            contact_no: '',
+            email: '',
+            franchise_status: '',
+            company: lead.company || '',
+            category: lead.category || '',
+            state: lead.state || '',
+            district_city: lead.district_city || '',
+            startup: lead.startup || '',
+            isSubmitted: true
+          }));
+          // Sort by date descending (newest first)
+          formattedLeads.sort((a, b) => new Date(b.lock_date || b.date) - new Date(a.lock_date || a.date));
+          setInteractions(formattedLeads);
+        }
+        setLoading(false);
+        return;
+      }
+      
+      // Otherwise fetch interactions (for other cards with filters)
       const params = new URLSearchParams();
       if (fromDateFilter && toDateFilter) {
         params.append('fromDate', fromDateFilter);
@@ -104,7 +590,9 @@ function DetailsContent() {
       });
       const data = await response.json();
       if (data.success) {
-        setInteractions(data.data);
+        // Sort by date descending (newest first)
+        const sortedData = [...data.data].sort((a, b) => new Date(b.date) - new Date(a.date));
+        setInteractions(sortedData);
       }
     } catch (error) {
       console.error('Failed to fetch interactions:', error);
@@ -124,7 +612,7 @@ function DetailsContent() {
       });
       const data = await response.json();
       if (data.success) {
-        setInteractions(data.data);
+        setViewModalInteractions(data.data || []); // Store in separate state, not main interactions
       }
     } catch (error) {
       console.error('Failed to fetch interactions:', error);
@@ -391,7 +879,7 @@ function DetailsContent() {
                     key={index}
                     className="border-b border-gray-100 transition group hover:bg-blue-50/40"
                   >
-                    <td className="px-2 py-2 border-r border-gray-100">{interaction.date}</td>
+                    <td className="px-2 py-2 border-r border-gray-100">{interaction.sourcing_date}</td>
                     <td className="px-2 py-2 border-r border-gray-100 font-bold text-[#103c7f] text-left min-w-[200px] max-w-[280px]">
                       <div className="flex items-center justify-start gap-2 pl-2">
                         {(
@@ -414,7 +902,7 @@ function DetailsContent() {
                     </td>
                     <td className="px-2 py-2 border-r border-gray-100">{interaction.category}</td>
                     <td className="px-2 py-2 border-r border-gray-100">{interaction.district_city ? `${interaction.district_city}, ` : ''}{interaction.state}</td>
-                    <td className="px-2 py-2 border-r border-gray-100 font-bold text-gray-600">{interaction.contact_person || '-'}</td>
+                    <td className="px-2 py-2 border-r border-gray-100 font-bold text-gray-600">{interaction.contact_person || '0'}</td>
                     <td className="px-2 py-2 border-r border-gray-100 text-left">
                       <div className="flex flex-col gap-0.5">
                         <span className="font-mono font-bold text-gray-700 text-[10px] flex items-center gap-1">
@@ -587,7 +1075,7 @@ function DetailsContent() {
                           </tr>
                         </thead>
                         <tbody className="text-xs divide-y divide-gray-50">
-                          {interactions.length > 0 ? interactions.map((interaction, index) => (
+                          {viewModalInteractions.length > 0 ? viewModalInteractions.map((interaction, index) => (
                             <tr key={index} className={`hover:bg-blue-50/30 transition duration-150 group ${index > 0 ? 'opacity-75 grayscale hover:grayscale-0' : ''}`}>
                               <td className="p-4">
                                 {interaction.date ? (

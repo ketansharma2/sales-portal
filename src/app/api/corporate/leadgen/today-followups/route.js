@@ -23,7 +23,8 @@ export async function GET(request) {
       .select(`
         *,
         corporate_leadgen_leads!inner (
-          company
+          company,
+          startup
         )
       `)
       .eq('next_follow_up', today)
@@ -42,6 +43,7 @@ export async function GET(request) {
       id: followup.id,
       client_id: followup.client_id,
       company: followup.corporate_leadgen_leads.company,
+      startup: followup.corporate_leadgen_leads.startup || '',
       remarks: followup.remarks,
       status: followup.status,
       sub_status: followup.sub_status,

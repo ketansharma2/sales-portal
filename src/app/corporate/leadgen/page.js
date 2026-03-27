@@ -24,6 +24,7 @@ const buildFilterUrl = (router, fromDate, toDate, isAllData, filters) => {
       if (key === 'franchiseStatus') params.append('franchiseStatus', value);
       if (key === 'startup') params.append('startup', value);
       if (key === 'isSubmitted') params.append('isSubmitted', value);
+      if (key === 'cardType') params.append('cardType', value);
     }
   });
   
@@ -43,36 +44,327 @@ export default function LeadGenHome() {
   const [activeDropdown, setActiveDropdown] = useState(null); 
   const [selectedLabel, setSelectedLabel] = useState("Today");
   const [kpiData, setKpiData] = useState({
-    searched: { total: 145, startup: 45 },
-    contacts: { total: 230, startup: 85 },
-    calls: { total: 110, startup: 40, new: { total: 70, startup: 25 }, followup: { total: 40, startup: 15 } },
-    picked: { total: 65, startup: 22 },
-    contract: { total: 18, startup: 8 },
-    sentToManager: { total: 12, startup: 5 },
-    onboarded: { total: 8, startup: 3 },
-    interested: { total: 35, startup: 14 },
+    searched: { total: '-', startup: '-' },
+    normal: { leads: '-', calls: '-' },
+    contacts: { total: '-', startup: '-' },
+    calls: { total: '-', startup: '-', new: { total: '-', startup: '-' }, followup: { total: '-', startup: '-' } },
+    picked: { total: '-', startup: '-' },
+    notPicked: { total: '-', startup: '-' },
+    contract: { total: '-', startup: '-' },
+    sentToManager: { total: '-', startup: '-' },
+    onboarded: { total: '-', startup: '-' },
+    interested: { total: '-', startup: '-' },
     
-    masterUnion: { company: 20, profiles: 55, calling: 8 },
+    masterUnion: { company: '-', profiles: '-', calling: '-' },
 
     franchise: {
-        discussed: { total: 15, startup: 6 },
-        formAsk: { total: 12, startup: 5 },
-        formShared: { total: 9, startup: 4 },
-        accepted: { total: 4, startup: 2 }
+        discussed: { total: '-', startup: '-' },
+        formAsk: { total: '-', startup: '-' },
+        formShared: { total: '-', startup: '-' },
+        accepted: { total: '-', startup: '-' }
     }
   });
 
-  const [followUps, setFollowUps] = useState([
-      { id: 1, company: "TechNova Solutions", contact_person: "Rahul Sharma", remarks: "Asked to call back after 2 PM to discuss proposal." },
-      { id: 2, company: "Global Innovators", contact_person: "Priya Singh", remarks: "Shared company deck. Waiting for their review." },
-      { id: 3, company: "NextGen Startups", contact_person: "Amit Verma", remarks: "Highly interested in franchise model." }
-  ]);
+  const [followUps, setFollowUps] = useState([]);
 
-  const notPickedTotal = kpiData.calls.total - kpiData.picked.total;
-  const normalSearched = kpiData.searched.total - kpiData.searched.startup;
-  const normalCalls = kpiData.calls.total - kpiData.calls.startup;
+  const fetchTodayFollowUps = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/corporate/leadgen/today-followups', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setFollowUps(data.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch today follow-ups:', error);
+    }
+  };
+
+  const fetchLeadsCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      if (!isAllData && fromDate && toDate) {
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      }
+      const response = await fetch(`/api/corporate/leadgen/leads-count?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setKpiData(prev => ({
+          ...prev,
+          searched: data.data.searched || { total: '-', startup: '-' }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch leads count:', error);
+    }
+  };
+
+  const fetchNormalLeadsCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      if (!isAllData && fromDate && toDate) {
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      }
+      const response = await fetch(`/api/corporate/leadgen/normal-leads-count?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setKpiData(prev => ({
+          ...prev,
+          normal: { leads: data.data.leads?.total || '-', calls: prev.normal?.calls || '-' }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch normal leads count:', error);
+    }
+  };
+
+  const fetchNormalCallsCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      if (!isAllData && fromDate && toDate) {
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      }
+      const response = await fetch(`/api/corporate/leadgen/normal-calls-count?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setKpiData(prev => ({
+          ...prev,
+          normal: { leads: prev.normal?.leads || '-', calls: data.data.calls?.total || '-' }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch normal calls count:', error);
+    }
+  };
+
+  const fetchCallsCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      
+      // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
+      if (isAllData) {
+        params.append('dateRange', 'all');
+      } else if (fromDate && toDate) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/leadgen/calls-type-count?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setKpiData(prev => ({
+          ...prev,
+          calls: { 
+            ...prev.calls, 
+            total: data.data.calls?.total || '0', 
+            new: { total: data.data.newCalls?.total || '0', startup: '0' },
+            followup: { total: data.data.followupCalls?.total || '0', startup: '0' },
+            startup: '0'
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch calls count:', error);
+    }
+  };
+
+  const notPickedTotal = '-';
+  const fetchNotPickedCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      
+      if (isAllData) {
+        params.append('dateRange', 'all');
+      } else if (fromDate && toDate) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/leadgen/not-picked-count?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setKpiData(prev => ({
+          ...prev,
+          notPicked: { total: data.data.notPicked?.total || '0', startup: '0' }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch not picked count:', error);
+    }
+  };
+
+  const fetchPickedCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      
+      if (isAllData) {
+        params.append('dateRange', 'all');
+      } else if (fromDate && toDate) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/leadgen/picked-count?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setKpiData(prev => ({
+          ...prev,
+          picked: { total: data.data.picked?.total || '0', startup: '0' }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch picked count:', error);
+    }
+  };
+
+  const fetchSentToManagerCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      
+      if (isAllData) {
+        params.append('dateRange', 'all');
+      } else if (fromDate && toDate) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/leadgen/sent-to-manager-count?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setKpiData(prev => ({
+          ...prev,
+          sentToManager: { total: data.data.sentToManager?.total || '0', startup: '0' }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch sent to manager count:', error);
+    }
+  };
+
+  const fetchInterestedCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      
+      if (isAllData) {
+        params.append('dateRange', 'all');
+      } else if (fromDate && toDate) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/leadgen/interested-count?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setKpiData(prev => ({
+          ...prev,
+          interested: { total: data.data.interested?.total || '0', startup: '0' }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch interested count:', error);
+    }
+  };
+
+  const fetchOnboardCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      
+      if (isAllData) {
+        params.append('dateRange', 'all');
+      } else if (fromDate && toDate) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/leadgen/onboard-count?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setKpiData(prev => ({
+          ...prev,
+          onboarded: { total: data.data.onboard?.total || '0', startup: '0' }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch onboard count:', error);
+    }
+  };
+
+  // Remove unused variables
+  // const normalSearched = '-';
+  // const normalCalls = '-';
 
   const wrapperRef = useRef(null);
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -84,12 +376,87 @@ export default function LeadGenHome() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [wrapperRef]);
 
-  useEffect(() => {
+  const fetchLatestInteractionDate = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/corporate/leadgen/latest-interaction-date', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.latestDate) {
+        setLatestInteractionDate(data.latestDate);
+        setFromDate(data.latestDate);
+        setToDate(data.latestDate);
+      } else {
+        const today = new Date().toISOString().split('T')[0];
+        setLatestInteractionDate(today);
+        setFromDate(today);
+        setToDate(today);
+      }
+    } catch (error) {
+      console.error('Failed to fetch latest interaction date:', error);
       const today = new Date().toISOString().split('T')[0];
       setLatestInteractionDate(today);
       setFromDate(today);
       setToDate(today);
+    }
+  };
+
+  useEffect(() => {
+      fetchLatestInteractionDate();
+      fetchTodayFollowUps();
   }, []);
+
+  // Fetch counts after latest date is set
+  useEffect(() => {
+    if (latestInteractionDate) {
+      fetchLeadsCount();
+      fetchNormalLeadsCount();
+      fetchNormalCallsCount();
+      fetchCallsCount();
+      fetchNotPickedCount();
+      fetchPickedCount();
+      fetchSentToManagerCount();
+      fetchInterestedCount();
+      fetchOnboardCount();
+    }
+  }, [latestInteractionDate]);
+
+  // Fetch data when isAllData changes
+  useEffect(() => {
+    if (!latestInteractionDate) return;
+    fetchLeadsCount();
+    fetchNormalLeadsCount();
+    fetchNormalCallsCount();
+    fetchCallsCount();
+    fetchNotPickedCount();
+    fetchPickedCount();
+    fetchSentToManagerCount();
+    fetchInterestedCount();
+    fetchOnboardCount();
+  }, [isAllData]);
+
+  // Refetch data when date range changes (after initial date is fetched)
+  useEffect(() => {
+    // Skip the first run (initial load), only fetch on subsequent date changes
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (fromDate && toDate) {
+      fetchLeadsCount();
+      fetchNormalLeadsCount();
+      fetchNormalCallsCount();
+      fetchCallsCount();
+      fetchNotPickedCount();
+      fetchPickedCount();
+      fetchSentToManagerCount();
+      fetchInterestedCount();
+      fetchOnboardCount();
+    }
+  }, [fromDate, toDate]);
 
   const getYears = () => {
     const current = new Date().getFullYear();
@@ -222,15 +589,15 @@ export default function LeadGenHome() {
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
               <KpiCard title="Total Leads" total={kpiData.searched.total} icon={<SearchIcon/>} color="blue" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})} />
               <KpiCard title="Total Contacts" total={kpiData.contacts.total} icon={<UserCheck size={18}/>} color="blue" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})} />
-              <KpiCard title="Total Calls" total={kpiData.calls.total} icon={<Phone size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})} />
-              <KpiCard title="New Calls" total={kpiData.calls.new.total} icon={<PhoneOutgoing size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})} />
-              <KpiCard title="Followup Calls" total={kpiData.calls.followup.total} icon={<PhoneIncoming size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})} />
-              <KpiCard title="Picked" total={kpiData.picked.total} icon={<CheckCircle size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})} />
-              <KpiCard title="Not Picked" total={notPickedTotal} icon={<PhoneMissed size={18}/>} color="red" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})} />
+              <KpiCard title="Total Calls" total={kpiData.calls.total} icon={<Phone size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'calls' })} />
+              <KpiCard title="New Calls" total={kpiData.calls.new.total} icon={<PhoneOutgoing size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'new_calls' })} />
+              <KpiCard title="Followup Calls" total={kpiData.calls.followup.total} icon={<PhoneIncoming size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'followup_calls' })} />
+              <KpiCard title="Picked" total={kpiData.picked.total} icon={<CheckCircle size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'picked' })} />
+              <KpiCard title="Not Picked" total={kpiData.notPicked.total} icon={<PhoneMissed size={18}/>} color="red" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'not_picked' })} />
               <KpiCard title="Contract Share" total={kpiData.contract.total} icon={<FileText size={18}/>} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { subStatus: 'Contract Share' })} />
-              <KpiCard title="Interested" total={kpiData.interested.total} icon={<TrendingUp size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { status: 'Interested' })} />
-              <KpiCard title="Sent to Manager" total={kpiData.sentToManager.total} icon={<Send size={18}/>} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { isSubmitted: 'true' })} />
-              <KpiCard title="Total Onboard" total={kpiData.onboarded.total} icon={<Briefcase size={18}/>} color="teal" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { status: 'Onboard' })} />
+              <KpiCard title="Interested" total={kpiData.interested.total} icon={<TrendingUp size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'interested' })} />
+              <KpiCard title="Sent to Manager" total={kpiData.sentToManager.total} icon={<Send size={18}/>} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'sent_to_manager' })} />
+              <KpiCard title="Total Onboard" total={kpiData.onboarded.total} icon={<Briefcase size={18}/>} color="teal" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'onboard' })} />
             </div>
           </div>
 
@@ -238,8 +605,8 @@ export default function LeadGenHome() {
           <div>
             <h4 className="text-xs font-black text-teal-600 uppercase tracking-[0.2em] mb-3 flex items-center gap-2"><UserCheck size={14} /> 2. Normal Clients</h4>
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-              <KpiCard title="Leads" total={normalSearched} icon={<SearchIcon/>} color="teal" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})} />
-              <KpiCard title="Calls" total={normalCalls} icon={<Phone size={18}/>} color="teal" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})} />
+              <KpiCard title="Leads" total={kpiData.normal.leads} icon={<SearchIcon/>} color="teal" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'No' })} />
+              <KpiCard title="Calls" total={kpiData.normal.calls} icon={<Phone size={18}/>} color="teal" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'No', cardType: 'normal_calls' })} />
             </div>
           </div>
 
@@ -277,7 +644,7 @@ export default function LeadGenHome() {
 
       <div className="w-80 bg-white border-l border-gray-200 h-full flex flex-col shadow-xl z-10 shrink-0">
         <div className="bg-white px-6 py-4 border-b border-gray-200 shadow-sm sticky top-0 z-10 flex items-center justify-between">
-          <h2 className="text-sm font-black text-[#103c7f] flex items-center gap-2 tracking-tight uppercase italic"><Clock size={18} className="text-orange-500" /> Follow-up Schedule</h2>
+          <h2 className="text-sm font-black text-[#103c7f] flex items-center gap-2 tracking-tight uppercase italic"><Clock size={18} className="text-orange-500" /> Follow-up Schedule <span className="text-[10px] font-bold bg-orange-100 text-orange-700 border border-orange-200 px-2 py-0.5 rounded ml-2">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })}</span></h2>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
             {followUps.map((item) => (

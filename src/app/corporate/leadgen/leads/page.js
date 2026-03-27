@@ -1438,7 +1438,7 @@ export default function LeadsTablePage() {
             <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Employees</label>
             <div className="flex items-center gap-1.5 text-gray-700 font-bold text-xs">
               <Users size={13} className="text-green-600 shrink-0"/>
-              <span>{selectedLead.empCount || '-'}</span>
+              <span>{selectedLead.empCount || '0'}</span>
             </div>
           </div>
           {/* 6. Reference (RE-ADDED) */}

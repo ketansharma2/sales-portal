@@ -25,11 +25,13 @@ export async function GET(request) {
     const fromDate = searchParams.get('fromDate');
     const toDate = searchParams.get('toDate');
 
-    // Build query for leads
+    // Build query for normal (non-startup) leads
+    // Count rows where startup = 'no' (case-insensitive) or NULL
     let query = supabaseServer
       .from('corporate_leadgen_leads')
       .select('*')
-      .eq('leadgen_id', user.id);
+      .eq('leadgen_id', user.id)
+      .or('startup.ilike.no,startup.is.null');
 
     // If date range is provided, filter by sourcing_date
     if (fromDate && toDate) {
@@ -38,33 +40,25 @@ export async function GET(request) {
         .lte('sourcing_date', toDate);
     }
 
-    const { data: filteredLeadsData, error: leadsError } = await query;
+    const { data: normalLeadsData, error: leadsError } = await query;
 
     if (leadsError) {
-      console.error('Leads query error:', leadsError);
+      console.error('Normal leads query error:', leadsError);
       return NextResponse.json({ success: false, error: leadsError.message }, { status: 500 });
     }
 
-    // Count total leads
-    const totalLeads = filteredLeadsData?.length || 0;
-    
-    // Count startup leads (handle both boolean true and string "YES"/"yes")
-    const startupLeads = filteredLeadsData?.filter(lead => 
-      lead.startup === true || 
-      String(lead.startup).toLowerCase() === 'yes' ||
-      String(lead.startup) === '1' ||
-      String(lead.startup).toLowerCase() === 'true'
-    ).length || 0;
+    // Count normal (non-startup) leads
+    const totalNormalLeads = normalLeadsData?.length || 0;
 
     return NextResponse.json({
       success: true,
       data: {
-        searched: { total: totalLeads, startup: startupLeads }
+        leads: { total: totalNormalLeads }
       }
     });
 
   } catch (error) {
-    console.error('Leads count API error:', error);
+    console.error('Normal leads count API error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

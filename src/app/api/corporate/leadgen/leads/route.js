@@ -214,7 +214,14 @@ export async function GET(request) {
     
     // Skip RPC function and use fallback query to match dashboard logic
     // Fetch leads with their interactions ordered by created_at descending
-    const { data: rawData, error: rawError } = await supabaseServer
+    
+    // Get date range and filters from query params
+    const { searchParams } = new URL(request.url);
+    const fromDate = searchParams.get('fromDate');
+    const toDate = searchParams.get('toDate');
+    const startupFilter = searchParams.get('startup');
+
+    let query = supabaseServer
       .from('corporate_leadgen_leads')
       .select(`
         client_id,
@@ -242,7 +249,24 @@ export async function GET(request) {
           franchise_status
         )
       `)
-      .eq('leadgen_id', user.id)
+      .eq('leadgen_id', user.id);
+
+    // If startup filter is provided, filter by startup
+    if (startupFilter && startupFilter !== 'All') {
+      if (startupFilter === 'No') {
+        // Normal clients: startup is 'no' (case-insensitive) or NULL
+        query = query.or('startup.ilike.no,startup.is.null');
+      }
+    }
+
+    // If date range is provided, filter by sourcing_date
+    if (fromDate && toDate) {
+      query = query
+        .gte('sourcing_date', fromDate)
+        .lte('sourcing_date', toDate);
+    }
+
+    const { data: rawData, error: rawError } = await query;
 
     if (rawError) {
       console.error('Leads fetch error:', rawError)

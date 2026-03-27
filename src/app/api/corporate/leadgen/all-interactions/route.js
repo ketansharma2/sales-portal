@@ -39,6 +39,7 @@ export async function GET(request) {
     const franchiseStatusFilter = searchParams.get('franchiseStatus');
     const startupFilter = searchParams.get('startup');
     const isSubmittedFilter = searchParams.get('isSubmitted');
+    const cardType = searchParams.get('cardType');
 
     /* ---------------- FETCH DATA ---------------- */
     let query = supabaseServer
@@ -90,10 +91,13 @@ export async function GET(request) {
     }
 
     /* ---------------- FILTER: NOT "Not Picked" ---------------- */
-    // Filter out interactions where status is "Not Picked"
-    let filteredInteractions = (interactionsData || []).filter(
-      i => i.status?.toLowerCase() !== 'not picked'
-    );
+    // Only filter out "Not Picked" when NOT filtering for normal clients (startup=No or cardType=normal_calls)
+    let filteredInteractions = (interactionsData || []);
+    if (startupFilter !== 'No' && cardType !== 'normal_calls') {
+      filteredInteractions = filteredInteractions.filter(
+        i => i.status?.toLowerCase() !== 'not picked'
+      );
+    }
 
     /* ---------------- STARTUP FILTER ---------------- */
     if (startupFilter && startupFilter !== 'All') {
@@ -104,6 +108,11 @@ export async function GET(request) {
                  String(startup).toLowerCase() === 'yes' ||
                  String(startup).toLowerCase() === 'true' ||
                  String(startup) === '1';
+        } else if (startupFilter === 'No') {
+          // Filter for normal (non-startup): startup is 'no' (case-insensitive only, NOT NULL)
+          const startupValue = i.corporate_leadgen_leads?.startup;
+          const startupStr = String(startupValue || '').toLowerCase().trim();
+          return startupStr === 'no';
         } else if (startupFilter === 'Master Union') {
           return String(startup).toLowerCase() === 'master union';
         }

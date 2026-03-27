@@ -22,11 +22,12 @@ export async function GET(request) {
 
     // Get query params
     const { searchParams } = new URL(request.url);
-    const dateRange = searchParams.get('dateRange') || 'default';
+    const dateRange = searchParams.get('dateRange') || 'default'; // default, all, specific
     const fromDate = searchParams.get('fromDate');
     const toDate = searchParams.get('toDate');
+    const type = searchParams.get('type') || 'all'; // all, new, followup
 
-    // Build query to get interactions with status = "Not Picked" (case-insensitive)
+    // Build the base query to get interactions with lead sourcing_date
     let query = supabaseServer
       .from('corporate_leads_interaction')
       .select(`
@@ -50,8 +51,7 @@ export async function GET(request) {
           startup
         )
       `)
-      .eq('leadgen_id', user.id)
-      .ilike('status', '%not picked%');
+      .eq('leadgen_id', user.id);
 
     // Apply date filtering based on dateRange type
     if (dateRange === 'specific' && fromDate && toDate) {
@@ -64,7 +64,6 @@ export async function GET(request) {
         .from('corporate_leads_interaction')
         .select('date')
         .eq('leadgen_id', user.id)
-        .ilike('status', '%not picked%')
         .order('date', { ascending: false })
         .limit(1)
         .single();
@@ -82,14 +81,24 @@ export async function GET(request) {
     const { data: interactionsData, error } = await query;
 
     if (error) {
-      console.error('Not Picked interactions fetch error:', error);
+      console.error('Interactions fetch error:', error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    // Format the data
+    // Format and categorize the data
     const formattedInteractions = (interactionsData || []).map(interaction => {
       const leadData = interaction.corporate_leadgen_leads;
+      const sourcingDate = leadData?.sourcing_date;
+      const interactionDate = interaction.date;
       
+      // Compare dates (handle both Date objects and strings)
+      let isNewCall = false;
+      if (sourcingDate && interactionDate) {
+        const sourceDateStr = typeof sourcingDate === 'string' ? sourcingDate.split('T')[0] : sourcingDate;
+        const interactDateStr = typeof interactionDate === 'string' ? interactionDate.split('T')[0] : interactionDate;
+        isNewCall = sourceDateStr === interactDateStr;
+      }
+
       return {
         id: interaction.id,
         client_id: interaction.client_id,
@@ -102,28 +111,41 @@ export async function GET(request) {
         contact_no: interaction.contact_no,
         email: interaction.email,
         franchise_status: interaction.franchise_status,
-        sourcing_date: leadData?.sourcing_date || '',
+        sourcing_date: sourcingDate,
         company: leadData?.company || '',
         category: leadData?.category || '',
         district_city: leadData?.district_city || '',
         state: leadData?.state || '',
-        startup: leadData?.startup || ''
+        startup: leadData?.startup || '',
+        isNewCall: isNewCall
       };
     });
 
-    // Get total count
-    const totalNotPicked = formattedInteractions.length;
+    // Filter by type if specified
+    let filteredData = formattedInteractions;
+    if (type === 'new') {
+      filteredData = formattedInteractions.filter(interaction => interaction.isNewCall);
+    } else if (type === 'followup') {
+      filteredData = formattedInteractions.filter(interaction => !interaction.isNewCall);
+    }
+
+    // Get counts
+    const totalCalls = formattedInteractions.length;
+    const newCalls = formattedInteractions.filter(interaction => interaction.isNewCall).length;
+    const followupCalls = formattedInteractions.filter(interaction => !interaction.isNewCall).length;
 
     return NextResponse.json({
       success: true,
       data: {
-        notPicked: { total: totalNotPicked }
+        calls: { total: totalCalls },
+        newCalls: { total: newCalls },
+        followupCalls: { total: followupCalls }
       },
-      records: formattedInteractions
+      records: filteredData
     });
 
   } catch (error) {
-    console.error('Not Picked calls API error:', error);
+    console.error('Calls type count API error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

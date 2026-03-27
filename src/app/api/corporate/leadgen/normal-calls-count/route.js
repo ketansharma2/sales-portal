@@ -20,18 +20,24 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
     }
 
-  // Get date range from query params
+    // Get date range from query params
     const { searchParams } = new URL(request.url);
     const fromDate = searchParams.get('fromDate');
     const toDate = searchParams.get('toDate');
 
-    // Fetch interactions with leads data
+    // Build query for normal (non-startup) client interactions
+    // Join with corporate_leadgen_leads to check startup column
     let query = supabaseServer
       .from('corporate_leads_interaction')
-      .select('*, corporate_leadgen_leads!inner(startup)')
+      .select(`
+        id,
+        corporate_leadgen_leads(
+          startup
+        )
+      `)
       .eq('leadgen_id', user.id);
 
-    // Add date filtering if provided
+    // Apply date filtering if provided
     if (fromDate && toDate) {
       query = query
         .gte('date', fromDate)
@@ -41,37 +47,28 @@ export async function GET(request) {
     const { data: interactionsData, error: interactionsError } = await query;
 
     if (interactionsError) {
-      console.error('Interactions fetch error:', interactionsError);
+      console.error('Normal calls query error:', interactionsError);
       return NextResponse.json({ success: false, error: interactionsError.message }, { status: 500 });
     }
 
-    // Count unique contact persons
-    const uniqueContactPersons = new Set(interactionsData?.map(i => i.contact_person).filter(cp => cp));
-    const totalContacts = uniqueContactPersons.size;
+    // Filter to keep only interactions where startup is 'no' (case-insensitive only, NOT NULL)
+    const normalCalls = (interactionsData || []).filter(interaction => {
+      const startup = interaction.corporate_leadgen_leads?.startup;
+      const startupStr = String(startup || '').toLowerCase().trim();
+      return startupStr === 'no';
+    });
 
-    // Count startup contacts (unique contact persons from startup companies - handle both boolean and string)
-    const startupContactPersons = new Set(
-      interactionsData
-        ?.filter(i => {
-          const startup = i.corporate_leadgen_leads?.startup;
-          return startup === true || 
-                 String(startup).toLowerCase() === 'yes' ||
-                 String(startup) === '1' ||
-                 String(startup).toLowerCase() === 'true';
-        })
-        ?.map(i => i.contact_person)
-    );
-    const startupContacts = startupContactPersons.size;
+    const totalNormalCalls = normalCalls.length;
 
     return NextResponse.json({
       success: true,
       data: {
-        contacts: { total: totalContacts, startup: startupContacts }
+        calls: { total: totalNormalCalls }
       }
     });
 
   } catch (error) {
-    console.error('Contacts count API error:', error);
+    console.error('Normal calls count API error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

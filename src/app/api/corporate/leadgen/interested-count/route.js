@@ -2,110 +2,128 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseServer = createClient(supabaseUrl, supabaseKey);
 
 export async function GET(request) {
   try {
-    // Get user from token
+    // Authentication
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return NextResponse.json({ success: false, error: 'No authorization header' }, { status: 401 });
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token);
 
     if (authError || !user) {
       return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
     }
 
-    // Get date range from query params
+    // Get query params
     const { searchParams } = new URL(request.url);
+    const dateRange = searchParams.get('dateRange') || 'default';
     const fromDate = searchParams.get('fromDate');
     const toDate = searchParams.get('toDate');
 
-    // Get all leads with their interactions
-    const { data: rawData, error: queryError } = await supabase
-      .from('corporate_leadgen_leads')
+    // Build query - status = 'Interested'
+    let query = supabaseServer
+      .from('corporate_leads_interaction')
       .select(`
+        id,
         client_id,
-        startup,
-        corporate_leads_interaction!left (
-          id,
-          date,
-          status,
-          created_at
+        date,
+        status,
+        sub_status,
+        remarks,
+        next_follow_up,
+        contact_person,
+        contact_no,
+        email,
+        franchise_status,
+        corporate_leadgen_leads(
+          sourcing_date,
+          company,
+          category,
+          district_city,
+          state,
+          startup
         )
       `)
       .eq('leadgen_id', user.id)
-      .order('created_at', { ascending: false });
+      .ilike('status', 'Interested');
 
-    if (queryError) {
-      console.error('Query error:', queryError);
-      return NextResponse.json({ success: false, error: queryError.message }, { status: 500 });
-    }
-
-    // Filter leads based on date range if provided
-    let leadsToConsider = rawData || [];
-    if (fromDate && toDate) {
-      // Get client_ids that have interactions in the date range
-      const { data: interactionsInRange } = await supabase
-        .from('corporate_leads_interaction')
-        .select('client_id')
-        .eq('leadgen_id', user.id)
+    // Apply date filtering based on dateRange type
+    if (dateRange === 'specific' && fromDate && toDate) {
+      query = query
         .gte('date', fromDate)
         .lte('date', toDate);
-      
-      const clientIdsInRange = new Set(interactionsInRange?.map(i => i.client_id) || []);
-      leadsToConsider = (rawData || []).filter(lead => clientIdsInRange.has(lead.client_id));
+    } else if (dateRange === 'default') {
+      // Get the latest interaction date for this user with 'Interested' status
+      const { data: latestData } = await supabaseServer
+        .from('corporate_leads_interaction')
+        .select('date')
+        .eq('leadgen_id', user.id)
+        .ilike('status', 'Interested')
+        .order('date', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (latestData && latestData.date) {
+        const latestDate = latestData.date;
+        query = query.eq('date', latestDate);
+      }
+    }
+    // If dateRange === 'all', no date filter is applied
+
+    // Order by date descending
+    query = query.order('date', { ascending: false });
+
+    const { data: interactionsData, error } = await query;
+
+    if (error) {
+      console.error('Interested interactions fetch error:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    // Find latest interaction for each client (matching details page logic)
-    const latestInteractionsMap = new Map();
-    leadsToConsider.forEach(lead => {
-      // Sort interactions by created_at descending (most recent first) - same as details page
-      const sortedInteractions = lead.corporate_leads_interaction?.sort((a, b) => {
-        if (!a.created_at && !b.created_at) return 0;
-        if (!a.created_at) return 1;
-        if (!b.created_at) return -1;
-        return new Date(b.created_at) - new Date(a.created_at);
-      }) || [];
-      const interaction = sortedInteractions[0] || null;
+    // Format the data
+    const formattedInteractions = (interactionsData || []).map(interaction => {
+      const leadData = interaction.corporate_leadgen_leads;
       
-      if (interaction) {
-        latestInteractionsMap.set(lead.client_id, {
-          ...interaction,
-          startup: lead.startup
-        });
-      }
+      return {
+        id: interaction.id,
+        client_id: interaction.client_id,
+        date: interaction.date,
+        status: interaction.status,
+        sub_status: interaction.sub_status,
+        remarks: interaction.remarks,
+        next_follow_up: interaction.next_follow_up,
+        contact_person: interaction.contact_person,
+        contact_no: interaction.contact_no,
+        email: interaction.email,
+        franchise_status: interaction.franchise_status,
+        sourcing_date: leadData?.sourcing_date || '',
+        company: leadData?.company || '',
+        category: leadData?.category || '',
+        district_city: leadData?.district_city || '',
+        state: leadData?.state || '',
+        startup: leadData?.startup || ''
+      };
     });
 
-    // Count clients where latest interaction status = 'Interested'
-    const latestInteractions = Array.from(latestInteractionsMap.values());
-    const interestedLatest = latestInteractions.filter(i =>
-      String(i.status).trim().toLowerCase() === 'interested'
-    );
-    const totalInterested = interestedLatest.length;
-
-    // Count startup companies
-    const startupInterested = interestedLatest.filter(i => {
-      const startup = i.startup;
-      return startup === true || 
-             String(startup).toLowerCase() === 'yes' ||
-             String(startup) === '1' ||
-             String(startup).toLowerCase() === 'true';
-    }).length;
+    // Get total count
+    const totalInterested = formattedInteractions.length;
 
     return NextResponse.json({
       success: true,
       data: {
-        interested: { total: totalInterested, startup: startupInterested }
-      }
+        interested: { total: totalInterested }
+      },
+      records: formattedInteractions
     });
 
   } catch (error) {
-    console.error('Interested count API error:', error);
+    console.error('Interested API error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

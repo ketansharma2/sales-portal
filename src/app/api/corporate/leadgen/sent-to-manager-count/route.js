@@ -7,7 +7,7 @@ const supabaseServer = createClient(supabaseUrl, supabaseKey);
 
 export async function GET(request) {
   try {
-    // Get user from token
+    // Authentication
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return NextResponse.json({ success: false, error: 'No authorization header' }, { status: 401 });
@@ -20,50 +20,121 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
     }
 
-    // Get date range from query params
+    // Get query params
     const { searchParams } = new URL(request.url);
+    const dateRange = searchParams.get('dateRange') || 'default';
     const fromDate = searchParams.get('fromDate');
     const toDate = searchParams.get('toDate');
 
-    // Build query for leads where sent_to_sm is true
+    // Build query - fetch leads where sent_to_sm = true
     let query = supabaseServer
       .from('corporate_leadgen_leads')
-      .select('startup, sent_to_sm, lock_date')
+      .select(`
+        client_id,
+        sourcing_date,
+        company,
+        category,
+        district_city,
+        state,
+        startup,
+        sent_to_sm,
+        lock_date,
+        leadgen_id,
+        corporate_leads_interaction(
+          id,
+          date,
+          status,
+          sub_status,
+          remarks,
+          next_follow_up,
+          contact_person,
+          contact_no,
+          email,
+          franchise_status
+        )
+      `)
       .eq('leadgen_id', user.id)
-      .eq('sent_to_sm', true);
+      .eq('sent_to_sm', true)
+      .order('date', { foreignTable: 'corporate_leads_interaction', ascending: false });
 
-    // If date range is provided, filter by lock_date
-    if (fromDate && toDate) {
+    // Apply date filtering based on dateRange type
+    // For sent to manager, we filter by lock_date
+    if (dateRange === 'specific' && fromDate && toDate) {
       query = query
         .gte('lock_date', fromDate)
         .lte('lock_date', toDate);
+    } else if (dateRange === 'default') {
+      // Get the latest lock_date for this user
+      const { data: latestData } = await supabaseServer
+        .from('corporate_leadgen_leads')
+        .select('lock_date')
+        .eq('leadgen_id', user.id)
+        .eq('sent_to_sm', true)
+        .not('lock_date', 'is', null)
+        .order('lock_date', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (latestData && latestData.lock_date) {
+        const latestDate = latestData.lock_date;
+        query = query.eq('lock_date', latestDate);
+      }
+    }
+    // If dateRange === 'all', no date filter is applied
+
+    // Order by lock_date descending
+    query = query.order('lock_date', { ascending: false });
+
+    const { data: leadsData, error } = await query;
+
+    if (error) {
+      console.error('Sent to Manager leads fetch error:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    const { data: leadsData, error: leadsError } = await query;
+    // Format the data - get latest interaction for each lead
+    const formattedLeads = (leadsData || []).map(lead => {
+      // Get the latest interaction (first one since sorted by date desc)
+      const interactions = lead.corporate_leads_interaction || [];
+      const latestInteraction = interactions.length > 0 ? interactions[0] : null;
+      
+      return {
+        id: lead.client_id,
+        client_id: lead.client_id,
+        date: lead.sourcing_date,
+        sourcing_date: lead.sourcing_date,
+        lock_date: lead.lock_date,
+        company: lead.company || '',
+        category: lead.category || '',
+        district_city: lead.district_city || '',
+        state: lead.state || '',
+        startup: lead.startup || '',
+        isSubmitted: true,
+        // Interaction fields
+        status: latestInteraction?.status || '',
+        sub_status: latestInteraction?.sub_status || '',
+        remarks: latestInteraction?.remarks || '',
+        next_follow_up: latestInteraction?.next_follow_up || '',
+        contact_person: latestInteraction?.contact_person || '',
+        contact_no: latestInteraction?.contact_no || '',
+        email: latestInteraction?.email || '',
+        franchise_status: latestInteraction?.franchise_status || ''
+      };
+    });
 
-    if (leadsError) {
-      console.error('Leads fetch error:', leadsError);
-      return NextResponse.json({ success: false, error: leadsError.message }, { status: 500 });
-    }
-
-    // Count total and startups
-    const totalSentToManager = leadsData?.length || 0;
-    const startupSentToManager = leadsData?.filter(lead =>
-      lead.startup === true ||
-      String(lead.startup).toLowerCase() === 'yes' ||
-      String(lead.startup) === '1' ||
-      String(lead.startup).toLowerCase() === 'true'
-    ).length || 0;
+    // Get total count
+    const totalSentToManager = formattedLeads.length;
 
     return NextResponse.json({
       success: true,
       data: {
-        sentToManager: { total: totalSentToManager, startup: startupSentToManager }
-      }
+        sentToManager: { total: totalSentToManager }
+      },
+      records: formattedLeads
     });
 
   } catch (error) {
-    console.error('Sent to manager count API error:', error);
+    console.error('Sent to Manager API error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
