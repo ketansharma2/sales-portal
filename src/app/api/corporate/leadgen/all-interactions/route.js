@@ -34,6 +34,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const fromDate = searchParams.get('fromDate');
     const toDate = searchParams.get('toDate');
+    const dateRange = searchParams.get('dateRange') || 'default'; // default, all, specific
     const statusFilter = searchParams.get('status');
     const subStatusFilter = searchParams.get('subStatus');
     const franchiseStatusFilter = searchParams.get('franchiseStatus');
@@ -53,17 +54,33 @@ export async function GET(request) {
           state,
           district_city,
           startup,
-          sent_to_sm
+          sent_to_sm,
+          sourcing_date
         )
       `)
       .eq('leadgen_id', user.id);
 
-    // Add date filtering if provided
-    if (fromDate && toDate) {
+    // Add date filtering based on dateRange type
+    if (dateRange === 'specific' && fromDate && toDate) {
       query = query
         .gte('date', fromDate)
         .lte('date', toDate);
+    } else if (dateRange === 'default') {
+      // Get the latest interaction date for this user
+      const { data: latestData } = await supabaseServer
+        .from('corporate_leads_interaction')
+        .select('date')
+        .eq('leadgen_id', user.id)
+        .order('date', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (latestData && latestData.date) {
+        const latestDate = latestData.date;
+        query = query.eq('date', latestDate);
+      }
     }
+    // If dateRange === 'all', no date filter is applied
 
     // Add status filter if provided
     if (statusFilter && statusFilter !== 'All') {
@@ -138,6 +155,7 @@ export async function GET(request) {
       client_id: interaction.client_id,
       date: interaction.date,
       created_at: interaction.created_at,
+      sourcing_date: interaction.corporate_leadgen_leads?.sourcing_date || '',
       status: interaction.status,
       sub_status: interaction.sub_status,
       remarks: interaction.remarks,

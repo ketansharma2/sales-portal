@@ -435,7 +435,267 @@ function DetailsContent() {
       // Check if we have only startup=No filter (Normal Clients Leads card case) - use leads API
       const isNormalClientsLeads = (startupFilter && startupFilter === 'No') && !hasCardFilters && !isNormalClientsCalls;
       
-      // If cardType is normal_calls, use all-interactions API (Normal Clients Calls case)
+      // Check if we have only startup=Yes filter (Startup Clients Calls card case) - use startup-calls API
+      const isStartupClientsCalls = (startupFilter && startupFilter === 'Yes') && !hasCardFilters && !cardType;
+      
+      // Check if we have cardType=contacts (Total Contacts card case) - use all-interactions API
+      const isTotalContacts = cardType && cardType === 'contacts';
+      
+      // If isTotalContacts, use contacts-count API (Total Contacts case)
+      if (isTotalContacts) {
+        const params = new URLSearchParams();
+        
+        // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
+        if (isAllData) {
+          params.append('dateRange', 'all');
+        } else if (fromDateFilter && toDateFilter) {
+          params.append('dateRange', 'specific');
+          params.append('fromDate', fromDateFilter);
+          params.append('toDate', toDateFilter);
+        } else {
+          params.append('dateRange', 'default');
+        }
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/contacts-count?${queryString}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success || data.records) {
+          const interactions = data.records || [];
+          
+          // Format interactions for display
+          const formattedInteractions = interactions.map(interaction => ({
+            id: interaction.id,
+            client_id: interaction.client_id,
+            date: interaction.date,
+            created_at: interaction.created_at,
+            sourcing_date: interaction.sourcing_date || '',
+            status: interaction.status || '',
+            sub_status: interaction.sub_status || '',
+            remarks: interaction.remarks || '',
+            next_follow_up: interaction.next_follow_up || '',
+            contact_person: interaction.contact_person || '',
+            contact_no: interaction.contact_no || '',
+            email: interaction.email || '',
+            franchise_status: interaction.franchise_status || '',
+            company: interaction.company || '',
+            category: interaction.category || '',
+            state: interaction.state || '',
+            district_city: interaction.district_city || '',
+            startup: interaction.startup || '',
+            isSubmitted: interaction.isSubmitted || false
+          }));
+          // Sort by date descending (newest first)
+          formattedInteractions.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInteractions(formattedInteractions);
+        }
+        setLoading(false);
+        return;
+      }
+      
+      // If isStartupClientsCalls, use startup-calls API (Startup Clients Calls case)
+      if (isStartupClientsCalls) {
+        const params = new URLSearchParams();
+        
+        // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
+        if (isAllData) {
+          params.append('dateRange', 'all');
+        } else if (fromDateFilter && toDateFilter) {
+          params.append('dateRange', 'specific');
+          params.append('fromDate', fromDateFilter);
+          params.append('toDate', toDateFilter);
+        } else {
+          params.append('dateRange', 'default');
+        }
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/startup-calls?${queryString}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success || data.records) {
+          const calls = data.records || [];
+          
+          const formattedCalls = calls.map(call => ({
+            id: call.id,
+            client_id: call.client_id,
+            date: call.date,
+            created_at: call.created_at,
+            sourcing_date: call.sourcing_date || '',
+            status: call.status || '',
+            sub_status: call.sub_status || '',
+            remarks: call.remarks || '',
+            next_follow_up: call.next_follow_up || '',
+            contact_person: call.contact_person || '',
+            contact_no: call.contact_no || '',
+            email: call.email || '',
+            franchise_status: call.franchise_status || '',
+            company: call.company || '',
+            category: call.category || '',
+            state: call.state || '',
+            district_city: call.district_city || '',
+            startup: call.startup || '',
+            isSubmitted: false
+          }));
+          // Sort by date descending (newest first)
+          formattedCalls.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInteractions(formattedCalls);
+        }
+        setLoading(false);
+        return;
+      }
+      
+      // Check if we have only startup=No filter (Normal Clients Leads card case) - use leads API
+      // Already defined above on line 436
+      
+      // Check if we have only startup=Master Union filter (Master Union Leads card case) - use master-union-leads API
+      const isMasterUnionLeads = (startupFilter && startupFilter === 'Master Union') && !hasCardFilters && cardType !== 'master_union_calls';
+      
+      // Check if we have Master Union Calls case - use master-union-calls API
+      const isMasterUnionCalls = (startupFilter && startupFilter === 'Master Union') && (cardType === 'master_union_calls');
+      
+      if (isMasterUnionCalls) {
+        const params = new URLSearchParams();
+        
+        // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
+        if (isAllData) {
+          params.append('dateRange', 'all');
+        } else if (fromDateFilter && toDateFilter) {
+          params.append('dateRange', 'specific');
+          params.append('fromDate', fromDateFilter);
+          params.append('toDate', toDateFilter);
+        } else {
+          params.append('dateRange', 'default');
+        }
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/master-union-calls?${queryString}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success || data.records) {
+          const calls = data.records || [];
+          
+          const formattedCalls = calls.map(call => ({
+            id: call.id,
+            client_id: call.client_id,
+            date: call.date,
+            created_at: call.created_at,
+            sourcing_date: call.sourcing_date || '',
+            status: call.status || '',
+            sub_status: call.sub_status || '',
+            remarks: call.remarks || '',
+            next_follow_up: call.next_follow_up || '',
+            contact_person: call.contact_person || '',
+            contact_no: call.contact_no || '',
+            email: call.email || '',
+            franchise_status: call.franchise_status || '',
+            company: call.company || '',
+            category: call.category || '',
+            state: call.state || '',
+            district_city: call.district_city || '',
+            startup: call.startup || '',
+            isSubmitted: false
+          }));
+          // Sort by date descending (newest first)
+          formattedCalls.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInteractions(formattedCalls);
+        }
+        setLoading(false);
+        return;
+      }
+      
+      if (isMasterUnionLeads) {
+        const params = new URLSearchParams();
+        
+        // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
+        if (isAllData) {
+          params.append('dateRange', 'all');
+        } else if (fromDateFilter && toDateFilter) {
+          params.append('dateRange', 'specific');
+          params.append('fromDate', fromDateFilter);
+          params.append('toDate', toDateFilter);
+        } else {
+          params.append('dateRange', 'default');
+        }
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/master-union-leads?${queryString}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success || data.data) {
+          const leads = data.data || [];
+          
+          const formattedLeads = leads.map(lead => ({
+            id: lead.id,
+            client_id: lead.client_id,
+            date: lead.sourcing_date,
+            created_at: lead.sourcing_date,
+            sourcing_date: lead.sourcing_date,
+            status: lead.status || 'New',
+            sub_status: lead.subStatus || '',
+            remarks: lead.remarks || '',
+            next_follow_up: lead.nextFollowup || '',
+            contact_person: lead.contact_person || '',
+            contact_no: lead.phone || '',
+            email: lead.email || '',
+            franchise_status: lead.franchiseStatus || '',
+            company: lead.company || '',
+            category: lead.category || '',
+            state: lead.state || '',
+            district_city: lead.district_city || '',
+            startup: lead.startup || '',
+            isSubmitted: lead.isSubmitted || false
+          }));
+          // Sort by date descending (newest first)
+          formattedLeads.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInteractions(formattedLeads);
+        }
+        setLoading(false);
+        return;
+      }
+      
+      if (isNormalClientsCalls) {
+        const params = new URLSearchParams();
+        // Pass date filters based on isAllData
+        if (isAllData) {
+          params.append('dateRange', 'all');
+        } else if (fromDateFilter && toDateFilter) {
+          params.append('dateRange', 'specific');
+          params.append('fromDate', fromDateFilter);
+          params.append('toDate', toDateFilter);
+        } else {
+          params.append('dateRange', 'default');
+        }
+        params.append('startup', 'No');
+        params.append('cardType', 'normal_calls');
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/all-interactions${queryString ? '?' + queryString : ''}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          const sortedData = [...data.data].sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInteractions(sortedData);
+        }
+        setLoading(false);
+        return;
+      }
+      
+      // If no filters (Total Leads case) or Normal Clients Leads case - use leads API
       if (!hasCardFilters || isNormalClientsLeads) {
         const params = new URLSearchParams();
         if (fromDateFilter && toDateFilter) {
@@ -481,28 +741,6 @@ function DetailsContent() {
           // Sort by date descending (newest first)
           formattedLeads.sort((a, b) => new Date(b.date) - new Date(a.date));
           setInteractions(formattedLeads);
-        }
-        setLoading(false);
-        return;
-      }
-      
-      // For Normal Clients Calls card, show all interactions with startup filter (without Not Picked exclusion and without date filter)
-      if (isNormalClientsCalls) {
-        const params = new URLSearchParams();
-        // Don't pass date filters - match card count which has no date filter
-        params.append('startup', 'No');
-        params.append('cardType', 'normal_calls');
-        
-        const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/all-interactions${queryString ? '?' + queryString : ''}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
-        const data = await response.json();
-        if (data.success) {
-          const sortedData = [...data.data].sort((a, b) => new Date(b.date) - new Date(a.date));
-          setInteractions(sortedData);
         }
         setLoading(false);
         return;

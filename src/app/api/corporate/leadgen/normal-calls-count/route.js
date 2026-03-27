@@ -24,6 +24,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const fromDate = searchParams.get('fromDate');
     const toDate = searchParams.get('toDate');
+    const dateRange = searchParams.get('dateRange') || 'default'; // default, all, specific
 
     // Build query for normal (non-startup) client interactions
     // Join with corporate_leadgen_leads to check startup column
@@ -37,12 +38,27 @@ export async function GET(request) {
       `)
       .eq('leadgen_id', user.id);
 
-    // Apply date filtering if provided
-    if (fromDate && toDate) {
+    // Apply date filtering based on dateRange type
+    if (dateRange === 'specific' && fromDate && toDate) {
       query = query
         .gte('date', fromDate)
         .lte('date', toDate);
+    } else if (dateRange === 'default') {
+      // Get the latest interaction date for this user
+      const { data: latestData } = await supabaseServer
+        .from('corporate_leads_interaction')
+        .select('date')
+        .eq('leadgen_id', user.id)
+        .order('date', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (latestData && latestData.date) {
+        const latestDate = latestData.date;
+        query = query.eq('date', latestDate);
+      }
     }
+    // If dateRange === 'all', no date filter is applied
 
     const { data: interactionsData, error: interactionsError } = await query;
 

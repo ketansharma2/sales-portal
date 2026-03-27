@@ -109,6 +109,38 @@ export default function LeadGenHome() {
     }
   };
 
+  const fetchContactsCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      
+      if (isAllData) {
+        params.append('dateRange', 'all');
+      } else if (fromDate && toDate) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/leadgen/contacts-count?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setKpiData(prev => ({
+          ...prev,
+          contacts: data.data.contacts || { total: '0', startup: '0' }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch contacts count:', error);
+    }
+  };
+
   const fetchNormalLeadsCount = async () => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
@@ -138,10 +170,18 @@ export default function LeadGenHome() {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
-      if (!isAllData && fromDate && toDate) {
+      
+      // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
+      if (isAllData) {
+        params.append('dateRange', 'all');
+      } else if (fromDate && toDate) {
+        params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
         params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
       }
+      
       const response = await fetch(`/api/corporate/leadgen/normal-calls-count?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
@@ -175,21 +215,36 @@ export default function LeadGenHome() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/leadgen/calls-type-count?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
-      const data = await response.json();
-      if (data.success && data.data) {
+      // Fetch regular calls, startup calls, and master union calls in parallel
+      const [callsResponse, startupCallsResponse, masterUnionCallsResponse] = await Promise.all([
+        fetch(`/api/corporate/leadgen/calls-type-count?${params.toString()}`, {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        }),
+        fetch(`/api/corporate/leadgen/startup-calls?${params.toString()}`, {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        }),
+        fetch(`/api/corporate/leadgen/master-union-calls?${params.toString()}`, {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        })
+      ]);
+      
+      const callsData = await callsResponse.json();
+      const startupCallsData = await startupCallsResponse.json();
+      const masterUnionCallsData = await masterUnionCallsResponse.json();
+      
+      if (callsData.success && callsData.data) {
         setKpiData(prev => ({
           ...prev,
           calls: { 
             ...prev.calls, 
-            total: data.data.calls?.total || '0', 
-            new: { total: data.data.newCalls?.total || '0', startup: '0' },
-            followup: { total: data.data.followupCalls?.total || '0', startup: '0' },
-            startup: '0'
+            total: callsData.data.calls?.total || '0', 
+            new: { total: callsData.data.newCalls?.total || '0', startup: startupCallsData.data?.newCalls?.total || '0' },
+            followup: { total: callsData.data.followupCalls?.total || '0', startup: startupCallsData.data?.followupCalls?.total || '0' },
+            startup: startupCallsData.data?.calls?.total || '0'
+          },
+          masterUnion: {
+            ...prev.masterUnion,
+            calling: masterUnionCallsData.data?.calls?.total || '0'
           }
         }));
       }
@@ -404,6 +459,42 @@ export default function LeadGenHome() {
     }
   };
 
+  const fetchMasterUnionCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      
+      // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
+      if (isAllData) {
+        params.append('dateRange', 'all');
+      } else if (fromDate && toDate) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/leadgen/master-union-count?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setKpiData(prev => ({
+          ...prev,
+          masterUnion: { 
+            ...prev.masterUnion, 
+            company: data.data.masterUnion?.total || '0'
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch master union count:', error);
+    }
+  };
+
   useEffect(() => {
       fetchLatestInteractionDate();
       fetchTodayFollowUps();
@@ -413,6 +504,7 @@ export default function LeadGenHome() {
   useEffect(() => {
     if (latestInteractionDate) {
       fetchLeadsCount();
+      fetchContactsCount();
       fetchNormalLeadsCount();
       fetchNormalCallsCount();
       fetchCallsCount();
@@ -421,6 +513,7 @@ export default function LeadGenHome() {
       fetchSentToManagerCount();
       fetchInterestedCount();
       fetchOnboardCount();
+      fetchMasterUnionCount();
     }
   }, [latestInteractionDate]);
 
@@ -428,6 +521,7 @@ export default function LeadGenHome() {
   useEffect(() => {
     if (!latestInteractionDate) return;
     fetchLeadsCount();
+    fetchContactsCount();
     fetchNormalLeadsCount();
     fetchNormalCallsCount();
     fetchCallsCount();
@@ -447,6 +541,7 @@ export default function LeadGenHome() {
     }
     if (fromDate && toDate) {
       fetchLeadsCount();
+      fetchContactsCount();
       fetchNormalLeadsCount();
       fetchNormalCallsCount();
       fetchCallsCount();
@@ -455,6 +550,7 @@ export default function LeadGenHome() {
       fetchSentToManagerCount();
       fetchInterestedCount();
       fetchOnboardCount();
+      fetchMasterUnionCount();
     }
   }, [fromDate, toDate]);
 
@@ -588,7 +684,7 @@ export default function LeadGenHome() {
             <h4 className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-3 flex items-center gap-2"><Database size={14} /> 1. Overall Metrics</h4>
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
               <KpiCard title="Total Leads" total={kpiData.searched.total} icon={<SearchIcon/>} color="blue" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})} />
-              <KpiCard title="Total Contacts" total={kpiData.contacts.total} icon={<UserCheck size={18}/>} color="blue" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})} />
+              <KpiCard title="Total Contacts" total={kpiData.contacts.total} icon={<UserCheck size={18}/>} color="blue" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'contacts' })} />
               <KpiCard title="Total Calls" total={kpiData.calls.total} icon={<Phone size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'calls' })} />
               <KpiCard title="New Calls" total={kpiData.calls.new.total} icon={<PhoneOutgoing size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'new_calls' })} />
               <KpiCard title="Followup Calls" total={kpiData.calls.followup.total} icon={<PhoneIncoming size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'followup_calls' })} />
@@ -625,7 +721,7 @@ export default function LeadGenHome() {
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
               <KpiCard title="Leads" total={kpiData.masterUnion.company} icon={<Briefcase size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union' })} />
               <KpiCard title="Profiles" total={kpiData.masterUnion.profiles} icon={<UserCheck size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union' })} />
-              <KpiCard title="Calls" total={kpiData.masterUnion.calling} icon={<Phone size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union' })} />
+              <KpiCard title="Calls" total={kpiData.masterUnion.calling} icon={<Phone size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union', cardType: 'master_union_calls' })} />
             </div>
           </div>
 
