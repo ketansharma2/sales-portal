@@ -1,15 +1,17 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
     Building2, Mail, History, Calendar, CheckCircle2, 
-    X, Send, FileText, Briefcase, MapPin, GraduationCap, Edit3
+    X, Send, FileText, Briefcase, MapPin, GraduationCap, Edit3, Loader2
 } from "lucide-react";
 
 export default function CRMClientTrackerPage() {
     const router = useRouter();
     
     // --- STATE ---
+    const [isLoading, setIsLoading] = useState(true);
+    const [crmData, setCrmData] = useState([]);
     const [modalType, setModalType] = useState(null); // 'draft_mail', 'view_cv', null
     const [selectedCandidate, setSelectedCandidate] = useState(null);
     
@@ -20,61 +22,86 @@ export default function CRMClientTrackerPage() {
     const [shareForm, setShareForm] = useState({ company: "" });
     const [editableDraftData, setEditableDraftData] = useState([]); // Holds data for the editable table
 
-    // --- MOCK DATA FOR CRM ---
-    const [crmData, setCrmData] = useState([
-        {
-            id: 1,
-            trackerShareDate: "27-Mar-2026",
-            tlName: "Vikram Singh",
-            name: "Rahul Verma",
-            profile: "B2B Sales Executive",
-            location: "Gurugram, HR",
-            qualification: "MBA Marketing",
-            experience: "5 Years",
-            relevantExp: "4 Years",
-            cCTC: "8.0 LPA",
-            eCTC: "12.0 LPA",
-            tlCvName: "Rahul_Verma_Redacted.pdf",
-            tlEvaluation: "JD Match - Solid B2B enterprise experience.",
-            crmFeedback: "",
-        },
-        {
-            id: 2,
-            trackerShareDate: "25-Mar-2026",
-            tlName: "Neha Gupta",
-            name: "Anjali Sharma",
-            profile: "React Developer",
-            location: "Noida, UP",
-            qualification: "B.Tech CS",
-            experience: "3.5 Years",
-            relevantExp: "3 Years",
-            cCTC: "6.0 LPA",
-            eCTC: "9.0 LPA",
-            tlCvName: "Anjali_Sharma_Redacted.pdf",
-            tlEvaluation: "Average Match - Good React, needs Next.js training.",
-            crmFeedback: "",
-        },
-        {
-            id: 3,
-            trackerShareDate: "27-Mar-2026",
-            tlName: "Amit Desai",
-            name: "Sunil Yadav",
-            profile: "Backend Developer",
-            location: "Pune, MH",
-            qualification: "MCA",
-            experience: "4 Years",
-            relevantExp: "3.5 Years",
-            cCTC: "7.0 LPA",
-            eCTC: "10.0 LPA",
-            tlCvName: "Sunil_Yadav_Redacted.pdf",
-            tlEvaluation: "JD Match - Strong Node.js knowledge.",
-            crmFeedback: "",
-        }
-    ]);
-
     const clientCompanies = ["TechNova Solutions", "Global Innovators", "NextGen Startups", "Apex Corp"];
 
+    // CV Viewer State
+    const [cvViewer, setCvViewer] = useState({ isOpen: false, source: null });
+    const [cvBlob, setCvBlob] = useState(null);
+    const [isLoadingCV, setIsLoadingCV] = useState(false);
+
+    // Fetch CRM Tracker Data from API
+    useEffect(() => {
+        const fetchCrmTrackerData = async () => {
+            setIsLoading(true);
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                const response = await fetch('/api/corporate/crm/tracker', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    // Transform API data to UI format
+                    const transformed = result.data.map((item, idx) => ({
+                        id: item.conversation_id,
+                        trackerShareDate: item.crm_sent_date || '-',
+                        tlName: item.tl_name || '-',
+                        name: item.candidate_name || '-',
+                        profile: item.job_title || '-',
+                        location: item.candidate_location || '-',
+                        qualification: item.candidate_qualification || '-',
+                        experience: item.candidate_experience !== undefined && item.candidate_experience !== null ? item.candidate_experience : '-',
+                        relevantExp: item.relevant_exp !== undefined && item.relevant_exp !== null ? item.relevant_exp : '-',
+                        cCTC: item.curr_ctc || '-',
+                        eCTC: item.exp_ctc || '-',
+                        tlCvName: item.redacted_cv_url || '',
+                        tlEvaluation: item.cv_status ? `${item.cv_status}${item.tl_remarks ? ' - ' + item.tl_remarks : ''}` : '-',
+                        crmFeedback: "",
+                    }));
+                    setCrmData(transformed);
+                }
+            } catch (error) {
+                console.error('Error fetching CRM tracker data:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        
+        fetchCrmTrackerData();
+    }, []);
+
     // --- HANDLERS ---
+    // Open CV Modal - Fetch from AWS as blob
+    const openCVModal = async (candidate) => {
+        setSelectedCandidate(candidate);
+        setCvViewer({ isOpen: true, source: 'tl' });
+        
+        if (candidate.tlCvName) {
+            setIsLoadingCV(true);
+            try {
+                const response = await fetch(candidate.tlCvName);
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    setCvBlob(blob);
+                } else {
+                    console.error('Failed to fetch CV:', response.status);
+                    setCvBlob(null);
+                }
+            } catch (error) {
+                console.error('Error fetching CV:', error);
+                setCvBlob(null);
+            } finally {
+                setIsLoadingCV(false);
+            }
+        } else {
+            setCvBlob(null);
+        }
+    };
+
     const toggleRowSelection = (id) => {
         setSelectedRowIds(prev => 
             prev.includes(id) ? prev.filter(rowId => rowId !== id) : [...prev, id]
@@ -253,7 +280,7 @@ export default function CRMClientTrackerPage() {
                                         {/* View CV File */}
                                         <td className="py-2 px-3 text-center">
                                             <button 
-                                                onClick={() => { setSelectedCandidate(row); setModalType('view_cv'); }}
+                                                onClick={() => openCVModal(row)}
                                                 className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 hover:bg-indigo-100 hover:text-indigo-700 flex items-center justify-center mx-auto transition-colors shadow-xs"
                                                 title="View Processed CV"
                                             >
@@ -361,7 +388,10 @@ export default function CRMClientTrackerPage() {
                                                     />
                                                 </td>
                                                 <td className="p-2 text-center">
-                                                    <button className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center justify-center gap-1 mx-auto">
+                                                    <button 
+                                                        onClick={() => openCVModal(row)}
+                                                        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center justify-center gap-1 mx-auto"
+                                                    >
                                                         <FileText size={12} />
                                                         <span className="truncate max-w-[100px]">{row.tlCvName}</span>
                                                     </button>
@@ -412,21 +442,34 @@ export default function CRMClientTrackerPage() {
             )}
 
             {/* --- VIEW CV MODAL --- */}
-            {modalType === 'view_cv' && selectedCandidate && (
+            {cvViewer.isOpen && selectedCandidate && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
                     <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[90vh] border-4 border-slate-700">
                         <div className="bg-indigo-800 text-white p-4 flex justify-between items-center shrink-0">
                             <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
                                 <FileText size={18}/> Redacted CV : {selectedCandidate.name}
                             </h2>
-                            <button onClick={() => setModalType(null)} className="text-white/70 hover:text-white transition-colors bg-black/20 p-1.5 rounded-full"><X size={20} /></button>
+                            <button onClick={() => setCvViewer({isOpen: false, source: null})} className="text-white/70 hover:text-white transition-colors bg-black/20 p-1.5 rounded-full"><X size={20} /></button>
                         </div>
                         <div className="flex-1 bg-slate-200 flex items-center justify-center p-8">
-                            <div className="text-center text-slate-500">
-                                <FileText size={48} className="mx-auto mb-4 opacity-50" />
-                                <p className="text-lg font-black uppercase tracking-widest mb-1">PDF Viewer Placeholder</p>
-                                <p className="text-xs font-bold">Displaying File: {selectedCandidate.tlCvName}</p>
-                            </div>
+                            {isLoadingCV ? (
+                                <div className="text-center text-slate-500">
+                                    <Loader2 className="animate-spin mx-auto mb-4" size={48} />
+                                    <p className="text-lg font-black uppercase tracking-widest mb-1">Loading CV...</p>
+                                </div>
+                            ) : cvBlob ? (
+                                <iframe 
+                                    src={URL.createObjectURL(cvBlob)}
+                                    className="w-full h-full rounded-lg border border-slate-300"
+                                    title="CV Viewer"
+                                />
+                            ) : (
+                                <div className="text-center text-slate-500">
+                                    <FileText size={48} className="mx-auto mb-4 opacity-50" />
+                                    <p className="text-lg font-black uppercase tracking-widest mb-1">No CV Available</p>
+                                    <p className="text-xs font-bold">File: {selectedCandidate.tlCvName || 'N/A'}</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

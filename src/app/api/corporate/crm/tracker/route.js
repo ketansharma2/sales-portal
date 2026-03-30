@@ -1,5 +1,5 @@
-import { supabaseServer } from '@/lib/supabase-server'
-import { NextResponse } from 'next/server'
+import { supabaseServer } from '@/lib/supabase-server';
+import { NextResponse } from 'next/server';
 
 export async function GET(request) {
   try {
@@ -14,97 +14,111 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const branchId = searchParams.get('branch_id')
+    // Get current user's ID (CRM user)
+    const currentUserId = user.user_id || user.id
 
-    if (!branchId) {
-      return NextResponse.json({ error: 'Branch ID is required' }, { status: 400 })
-    }
+    // Fetch candidates_conversation where sent_to_crm = current user
+    const { data: conversations, error: fetchError } = await supabaseServer
+      .from('candidates_conversation')
+      .select('*')
+      .eq('sent_to_crm', currentUserId)
+      .order('crm_sent_date', { ascending: false })
 
-    // Fetch trackers for the branch by joining with requirements
-    const { data: trackers, error } = await supabaseServer
-      .from('corporate_crm_tracker')
-      .select(`
-        *,
-        corporate_crm_reqs!inner(job_title, branch_id)
-      `)
-      .eq('corporate_crm_reqs.branch_id', branchId)
-      .order('tracker_date', { ascending: false })
-
-    if (error) {
-      console.error('Fetch trackers error:', error)
+    if (fetchError) {
+      console.error('Fetch CRM tracker conversations error:', fetchError)
       return NextResponse.json({
-        error: 'Failed to fetch trackers',
-        details: error.message
+        error: 'Failed to fetch tracker data',
+        details: fetchError.message
       }, { status: 500 })
     }
 
-    return NextResponse.json({
-      success: true,
-      data: trackers
-    })
-
-  } catch (error) {
-    console.error('Get trackers API error:', error)
-    return NextResponse.json({
-      error: 'Internal server error',
-      details: error.message
-    }, { status: 500 })
-  }
-}
-
-export async function POST(request) {
-  try {
-    // Authentication
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
-    }
-
-    const body = await request.json()
-    const { req_id, tracker_date, shared, interviewed, selected, joining, not_selected, feedback } = body
-
-    // Validate required fields
-    if (!req_id) {
-      return NextResponse.json({ error: 'Requirement ID is required' }, { status: 400 })
-    }
-
-    // Insert into corporate_crm_tracker table
-    const { data: newTracker, error: insertError } = await supabaseServer
-      .from('corporate_crm_tracker')
-      .insert({
-        req_id,
-        tracker_date: tracker_date || new Date().toISOString().split('T')[0],
-        shared: parseInt(shared) || 0,
-        interviewed: parseInt(interviewed) || 0,
-        selected: parseInt(selected) || 0,
-        joining: parseInt(joining) || 0,
-        not_selected: parseInt(not_selected) || 0,
-        feedback
+    if (!conversations || conversations.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: []
       })
-      .select()
-      .single()
-
-    if (insertError) {
-      console.error('Insert tracker error:', insertError)
-      return NextResponse.json({
-        error: 'Failed to create tracker',
-        details: insertError.message
-      }, { status: 500 })
     }
+
+    // Extract unique IDs for joins
+    const tlUserIds = [...new Set(conversations.map(c => c.sent_to_tl).filter(Boolean))]
+    const reqIds = [...new Set(conversations.map(c => c.req_id).filter(Boolean))]
+    const parsingIds = [...new Set(conversations.map(c => c.parsing_id).filter(Boolean))]
+
+    // Fetch TL names from users table
+    let tlUsersMap = new Map()
+    if (tlUserIds.length > 0) {
+      const { data: tlUsersData } = await supabaseServer
+        .from('users')
+        .select('user_id, name')
+        .in('user_id', tlUserIds)
+      
+      if (tlUsersData) {
+        tlUsersMap = new Map(tlUsersData.map(u => [u.user_id, u.name]))
+      }
+    }
+
+    // Fetch job titles from corporate_crm_reqs
+    let reqsMap = new Map()
+    if (reqIds.length > 0) {
+      const { data: reqsData } = await supabaseServer
+        .from('corporate_crm_reqs')
+        .select('req_id, job_title')
+        .in('req_id', reqIds)
+      
+      if (reqsData) {
+        reqsMap = new Map(reqsData.map(r => [r.req_id, r.job_title]))
+      }
+    }
+
+    // Fetch candidate details from cv_parsing table
+    let cvParsingMap = new Map()
+    if (parsingIds.length > 0) {
+      const { data: cvParsingData } = await supabaseServer
+        .from('cv_parsing')
+        .select('id, name, location, qualification, experience, redacted_cv_url')
+        .in('id', parsingIds)
+      
+      if (cvParsingData) {
+        cvParsingData.forEach(c => {
+          cvParsingMap.set(c.id, c)
+        })
+      }
+    }
+
+    // Transform the data with joined information
+    const transformedData = conversations.map(conversation => {
+      const cvData = cvParsingMap.get(conversation.parsing_id)
+      return {
+        conversation_id: conversation.conversation_id,
+        // TL Info
+        tl_name: tlUsersMap.get(conversation.sent_to_tl) || 'Unknown',
+        crm_sent_date: conversation.crm_sent_date ? new Date(conversation.crm_sent_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-',
+        // Req Info
+        job_title: reqsMap.get(conversation.req_id) || '-',
+        // TL Evaluation
+        cv_status: conversation.cv_status || '',
+        tl_remarks: conversation.tl_remarks || '',
+        // CTC
+        curr_ctc: conversation.curr_ctc || '-',
+        exp_ctc: conversation.exp_ctc || '-',
+        // Relevant Experience
+        relevant_exp: conversation.relevant_exp || '-',
+        // Candidate Info from cv_parsing
+        candidate_name: cvData?.name || '-',
+        candidate_location: cvData?.location || '-',
+        candidate_qualification: cvData?.qualification || '-',
+        candidate_experience: cvData?.experience !== undefined && cvData?.experience !== null ? cvData.experience : '-',
+        redacted_cv_url: cvData?.redacted_cv_url || ''
+      }
+    })
 
     return NextResponse.json({
       success: true,
-      data: newTracker
+      data: transformedData
     })
 
   } catch (error) {
-    console.error('Create tracker API error:', error)
+    console.error('CRM Tracker API error:', error)
     return NextResponse.json({
       error: 'Internal server error',
       details: error.message
