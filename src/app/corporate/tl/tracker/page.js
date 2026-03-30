@@ -28,6 +28,12 @@ export default function TLTrackerPage() {
         updatedCvName: "" 
     });
 
+    // CRM User Selection State
+    const [crmModalOpen, setCrmModalOpen] = useState(false);
+    const [crmUsers, setCrmUsers] = useState([]);
+    const [selectedCrmUser, setSelectedCrmUser] = useState(null);
+    const [isLoadingCrmUsers, setIsLoadingCrmUsers] = useState(false);
+
     // Fetch data from API
     useEffect(() => {
         const fetchTrackerData = async () => {
@@ -60,9 +66,11 @@ export default function TLTrackerPage() {
                         eCTC: item.exp_ctc ? `${item.exp_ctc} ` : '-',
                         feedback: item.remarks || '-',
                         cv_url: item.cv_url || '',
+                        cv_parsing_id: item.cv_parsing_id || '',
+                        redacted_cv_url: item.redacted_cv_url || '',
                         tlReview: item.tl_remarks || '',
                         cvUpdateStatus: item.cv_status || '',
-                        tlCvName: "", 
+                        tlCvName: item.redacted_cv_url || '',
                         isSentToCRM: false
                     }));
                     setTrackerData(transformed);
@@ -77,17 +85,47 @@ export default function TLTrackerPage() {
         fetchTrackerData();
     }, []);
 
+    // Fetch CRM Users on page load
+    useEffect(() => {
+        const loadCrmUsers = async () => {
+            setIsLoadingCrmUsers(true);
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                const response = await fetch('/api/corporate/tl/crm-users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                if (result.success && result.data) {
+                    setCrmUsers(result.data);
+                }
+            } catch (error) {
+                console.error('Error fetching CRM users:', error);
+            } finally {
+                setIsLoadingCrmUsers(false);
+            }
+        };
+        
+        loadCrmUsers();
+    }, []);
+
     // --- HANDLERS ---
     const openCVModal = async (candidate, source) => {
         setSelectedCandidate(candidate);
         setCvViewer({ isOpen: true, source: source });
         
-        // If it's RC (recruiter) source and there's a cv_url, fetch the blob
-        if (source === 'rc' && candidate.cv_url) {
+        // Determine which URL to use based on source
+        // 'rc' = Recruiter's Original CV (cv_url)
+        // 'tl' = TL's Redacted CV (redacted_cv_url)
+        const urlToFetch = source === 'tl' ? candidate.redacted_cv_url : candidate.cv_url;
+        
+        if (urlToFetch) {
             setIsLoadingCV(true);
             try {
                 // Fetch the CV file as blob - directly without auth header like parsing page does
-                const response = await fetch(candidate.cv_url);
+                const response = await fetch(urlToFetch);
                 
                 if (response.ok) {
                     const blob = await response.blob();
@@ -117,15 +155,84 @@ export default function TLTrackerPage() {
         setModalType('tl_update');
     };
 
-    // Auto Update CV Handler (Simulates removing Email/Phone)
-    const handleAutoUpdateCV = () => {
+    // Auto Update CV Handler - Calls Python Redactor API
+    const handleAutoUpdateCV = async () => {
+        if (!selectedCandidate?.cv_url) {
+            alert("No CV URL found for this candidate.");
+            return;
+        }
+
         setIsUpdatingCV(true);
-        // Simulate a 2 second API call
-        setTimeout(() => {
-            const redactedName = `${selectedCandidate.name.replace(/\s+/g, '_')}_Redacted.pdf`;
-            setTlForm({ ...tlForm, updatedCvName: redactedName });
+
+        try {
+            // Call Python API to redact the CV
+            console.log("Calling Python API with CV URL:", selectedCandidate.cv_url);
+            
+            const response = await fetch('http://localhost:8000/redact', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    s3_url: selectedCandidate.cv_url
+                })
+            });
+
+            console.log("Python API response status:", response.status);
+            
+            const result = await response.json();
+            console.log("Python API response:", result);
+
+            if (result.success && result.redacted_url) {
+                // Update form with the redacted CV URL
+                setTlForm({ 
+                    ...tlForm, 
+                    updatedCvName: result.redacted_url 
+                });
+                
+                // Now save to database - update cv_parsing table with redacted_cv_url
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                // Get the cv_parsing id from selected candidate
+                const cvParsingId = selectedCandidate.cv_parsing_id;
+                
+                if (cvParsingId) {
+                    const updateResponse = await fetch('/api/corporate/recruiter/update-redacted-cv', {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            cv_parsing_id: cvParsingId,
+                            redacted_cv_url: result.redacted_url
+                        })
+                    });
+                    
+                    const updateResult = await updateResponse.json();
+                    console.log("Database update response:", updateResult);
+                    
+                    if (updateResult.success) {
+                        alert("CV redacted and saved successfully!\n\nRedacted CV URL: " + result.redacted_url);
+                    } else {
+                        alert("CV redacted but failed to save to database.\n\nError: " + (updateResult.error || "Unknown error"));
+                        console.error("Failed to save redacted CV URL:", updateResult.error);
+                    }
+                } else {
+                    alert("No cv_parsing_id found for this candidate.\n\nCannot save to database.");
+                    console.error("No cv_parsing_id found for this candidate");
+                }
+            } else {
+                alert("Failed to redact CV.\n\nReason: " + (result.message || "No PII found or API error"));
+                console.error("Redaction failed:", result);
+            }
+        } catch (error) {
+            console.error("Error redacting CV:", error);
+            alert("Failed to redact CV.\n\nError: " + error.message + "\n\nPlease check if the Python API is running on localhost:8000");
+        } finally {
             setIsUpdatingCV(false);
-        }, 1500);
+        }
     };
 
     const handleSaveTLUpdate = async () => {
@@ -177,18 +284,10 @@ export default function TLTrackerPage() {
         }
     };
 
-    const handleSendToCRM = (id) => {
-        const candidate = trackerData.find(c => c.id === id);
-        if (!candidate.cvUpdateStatus || !candidate.tlCvName) {
-            alert("Ensure Candidate is evaluated and an updated CV is generated before sending to CRM.");
-            return;
-        }
-
-        if (window.confirm("Are you sure you want to forward this candidate to CRM?")) {
-            setTrackerData(trackerData.map(item => 
-                item.id === id ? { ...item, isSentToCRM: true } : item
-            ));
-        }
+    const handleSendToCRM = (candidate) => {
+        setSelectedCandidate(candidate);
+        setSelectedCrmUser(null);
+        setCrmModalOpen(true);
     };
 
     const getStatusColor = (status) => {
@@ -197,6 +296,55 @@ export default function TLTrackerPage() {
             case "Average Match": return "bg-amber-100 text-amber-700 border-amber-200";
             case "Rejected": return "bg-rose-100 text-rose-700 border-rose-200";
             default: return "bg-slate-100 text-slate-500 border-slate-200";
+        }
+    };
+
+    const handleConfirmSendToCRM = async () => {
+        if (!selectedCrmUser) {
+            alert("Please select a CRM user.");
+            return;
+        }
+
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            
+            const response = await fetch('/api/corporate/tl/tracker', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    conversation_id: selectedCandidate.id,
+                    sent_to_crm: selectedCrmUser.user_id
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Update local state
+                const updatedData = trackerData.map(item => 
+                    item.id === selectedCandidate.id 
+                        ? { 
+                            ...item, 
+                            isSentToCRM: true,
+                            sentToCrmUserId: selectedCrmUser.user_id,
+                            sentToCrmUserName: selectedCrmUser.name,
+                            crmSentDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                        } 
+                        : item
+                );
+                setTrackerData(updatedData);
+                setCrmModalOpen(false);
+                alert(`Successfully sent to ${selectedCrmUser.name}`);
+            } else {
+                alert(result.error || "Failed to send to CRM");
+            }
+        } catch (error) {
+            console.error('Error sending to CRM:', error);
+            alert("An error occurred. Please try again.");
         }
     };
 
@@ -331,7 +479,7 @@ export default function TLTrackerPage() {
                                                         {row.cvUpdateStatus}
                                                     </span>
                                                     {/* TL CV View Button */}
-                                                    {row.tlCvName && (
+                                                    {row.redacted_cv_url && (
                                                         <button 
                                                             onClick={() => openCVModal(row, 'tl')}
                                                             className="flex items-center gap-1 text-[8px] font-black bg-white border border-amber-200 text-amber-700 px-1.5 py-0.5 rounded hover:bg-amber-100 transition-colors"
@@ -374,7 +522,7 @@ export default function TLTrackerPage() {
                                                 {/* Send to CRM */}
                                                 {row.cvUpdateStatus && (
                                                     <button 
-                                                        onClick={() => handleSendToCRM(row.id)}
+                                                        onClick={() => handleSendToCRM(row)}
                                                         className="w-full py-1.5 px-2 rounded bg-emerald-600 text-white border border-emerald-700 hover:bg-emerald-700 flex items-center justify-center gap-1 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
                                                     >
                                                         <Send size={10}/> To CRM
@@ -549,6 +697,92 @@ export default function TLTrackerPage() {
                                 </div>
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* --- SEND TO CRM MODAL --- */}
+            {crmModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border-4 border-white">
+                        
+                        {/* Header */}
+                        <div className="bg-emerald-600 text-white px-6 py-4 flex justify-between items-center shrink-0">
+                            <div>
+                                <h2 className="text-base font-black uppercase tracking-widest flex items-center gap-2">
+                                    <Send size={18}/> Send to CRM
+                                </h2>
+                                <p className="text-[10px] font-bold text-emerald-100 uppercase tracking-widest mt-1">
+                                    {selectedCandidate?.name} • {selectedCandidate?.profile}
+                                </p>
+                            </div>
+                            <button onClick={() => setCrmModalOpen(false)} className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors">
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-6 bg-slate-50/50">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">
+                                Select CRM User <span className="text-rose-500">*</span>
+                            </label>
+                            
+                            {isLoadingCrmUsers ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <Loader2 size={24} className="animate-spin text-slate-400" />
+                                    <span className="ml-2 text-sm font-bold text-slate-500">Loading CRM users...</span>
+                                </div>
+                            ) : crmUsers.length === 0 ? (
+                                <div className="text-center py-8 text-slate-400">
+                                    <User size={32} className="mx-auto mb-2 opacity-50" />
+                                    <p className="text-sm font-bold">No CRM users found</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                                    {crmUsers.map((user) => (
+                                        <button
+                                            key={user.user_id}
+                                            onClick={() => setSelectedCrmUser(user)}
+                                            className={`w-full p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
+                                                selectedCrmUser?.user_id === user.user_id
+                                                    ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                                                    : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/50'
+                                            }`}
+                                        >
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                                                selectedCrmUser?.user_id === user.user_id
+                                                    ? 'bg-emerald-500 text-white'
+                                                    : 'bg-slate-100 text-slate-500'
+                                            }`}>
+                                                <User size={18} />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-sm font-black text-slate-800">{user.name}</p>
+                                                <p className="text-[10px] font-bold text-slate-400">{user.email}</p>
+                                            </div>
+                                            {selectedCrmUser?.user_id === user.user_id && (
+                                                <CheckCircle2 size={18} className="ml-auto text-emerald-500 shrink-0" />
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer Actions */}
+                        <div className="p-4 border-t border-slate-100 bg-white flex justify-end gap-3 shrink-0">
+                            <button onClick={() => setCrmModalOpen(false)} className="bg-slate-50 border border-slate-200 text-slate-600 px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-colors shadow-sm">
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleConfirmSendToCRM}
+                                disabled={!selectedCrmUser}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest shadow-md transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <CheckCircle2 size={14}/> Confirm Send
+                            </button>
+                        </div>
+
                     </div>
                 </div>
             )}

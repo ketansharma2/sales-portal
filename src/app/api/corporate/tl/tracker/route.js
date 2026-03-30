@@ -62,7 +62,7 @@ export async function GET(request) {
     if (parsingIds.length > 0) {
       const { data: cvParsingData, error: cvError } = await supabaseServer
         .from('cv_parsing')
-        .select('id, name, email, mobile, location, qualification, experience, cv_url')
+        .select('id, name, email, mobile, location, qualification, experience, cv_url, redacted_cv_url')
         .in('id', parsingIds)
       
       console.log('CV Parsing query error:', cvError)
@@ -107,6 +107,8 @@ export async function GET(request) {
         candidate_qualification: cvData?.qualification || '',
         candidate_experience: cvData?.experience !== undefined && cvData?.experience !== null ? cvData.experience : '-',
         cv_url: cvData?.cv_url || '',
+        cv_parsing_id: cvData?.id || '',
+        redacted_cv_url: cvData?.redacted_cv_url || '',  // Added for redacted CV display
         // Job details from corporate_crm_reqs
         job_title: reqsMap.get(conversation.req_id) || '',
         // TL evaluation fields
@@ -143,7 +145,7 @@ export async function PUT(request) {
     }
 
     const body = await request.json()
-    const { conversation_id, cv_status, tl_remarks } = body
+    const { conversation_id, cv_status, tl_remarks, sent_to_crm } = body
 
     if (!conversation_id) {
       return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 })
@@ -152,6 +154,10 @@ export async function PUT(request) {
     const updateData = {}
     if (cv_status !== undefined) updateData.cv_status = cv_status
     if (tl_remarks !== undefined) updateData.tl_remarks = tl_remarks
+    if (sent_to_crm !== undefined) {
+      updateData.sent_to_crm = sent_to_crm
+      updateData.crm_sent_date = new Date().toISOString()
+    }
 
     const { data, error } = await supabaseServer
       .from('candidates_conversation')
