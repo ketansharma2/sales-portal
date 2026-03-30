@@ -32,9 +32,9 @@ export async function GET(request) {
     // For each client, fetch branch_ids and their emails
     const clientsWithEmails = await Promise.all(
       (clients || []).map(async (client) => {
-        // Get branch_ids from domestic_crm_branch using client_id
+        // Get branch_ids from corporate_crm_branch using client_id
         const { data: branches, error: branchesError } = await supabaseServer
-          .from('domestic_crm_branch')
+          .from('corporate_crm_branch')
           .select('branch_id')
           .eq('client_id', client.client_id)
 
@@ -54,9 +54,12 @@ export async function GET(request) {
             .in('branch_id', branchIds)
 
           if (!contactsError && contacts) {
-            branchEmails = contacts
+            // Filter empty emails and get unique emails only
+            const allEmails = contacts
               .map(c => c.email)
               .filter(email => email && email.trim() !== '')
+            // Remove duplicates
+            branchEmails = [...new Set(allEmails)]
           }
         }
 
