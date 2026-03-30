@@ -1,4 +1,4 @@
-"use client";
+    "use client";
 import { useState, useEffect } from "react";
 import {
     ClipboardList, Calendar, Users, Briefcase, IndianRupee,
@@ -24,7 +24,7 @@ export default function RecruiterWorkbenchPage() {
     // Add Remark Modal State
     const [isRemarkModalOpen, setIsRemarkModalOpen] = useState(false);
     const [selectedRemarkTask, setSelectedRemarkTask] = useState(null);
-    const [remarkForm, setRemarkForm] = useState({ date: "", remark: "" });
+    const [remarkForm, setRemarkForm] = useState({ remark: "", advanceSti: "" });
 
     // Slots List
     const slotsList = [
@@ -50,6 +50,7 @@ export default function RecruiterWorkbenchPage() {
                     const transformedAssignments = data.data.map(item => ({
                         id: item.id,
                         date: item.date,
+                        status: item.status || 'Pending',
                         profile: item.job_title,
                         package_salary: item.package || '',
                         requirement: item.requirement?.toString() || '',
@@ -97,7 +98,7 @@ export default function RecruiterWorkbenchPage() {
 
     const handleOpenRemarkModal = (item) => {
         setSelectedRemarkTask(item);
-        setRemarkForm({ date: new Date().toISOString().split('T')[0], remark: "" });
+        setRemarkForm({ remark: "", advanceSti: "" });
         setIsRemarkModalOpen(true);
     };
 
@@ -106,20 +107,58 @@ export default function RecruiterWorkbenchPage() {
         setSelectedRemarkTask(null);
     };
 
-    const handleSaveRemark = () => {
-        if(!remarkForm.date || !remarkForm.remark) {
-            alert("Please fill both Date and Remark.");
+    const handleSaveRemark = async () => {
+        if(!remarkForm.remark) {
+            alert("Please fill Remark.");
             return;
         }
-        setAssignments(prev => prev.map(a => {
-            if (a.id === selectedRemarkTask.id) {
-                const existingRemarks = a.recruiterRemarks || [];
-                return { ...a, recruiterRemarks: [...existingRemarks, { date: remarkForm.date, text: remarkForm.remark }] };
+        
+        // Call API to update rc_remarks and advance_sti
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            
+            const response = await fetch('/api/corporate/recruiter/remarks', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    id: selectedRemarkTask.id,
+                    rc_remarks: remarkForm.remark,
+                    advance_sti: remarkForm.advanceSti
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                alert(result.error || 'Failed to save remark');
+                return;
             }
-            return a;
-        }));
-        handleCloseRemarkModal();
-        alert("Remark added successfully!");
+            
+            // Update local state
+            setAssignments(prev => prev.map(a => {
+                if (a.id === selectedRemarkTask.id) {
+                    return { 
+                        ...a, 
+                        rc_remarks: remarkForm.remark,
+                        advance_sti: remarkForm.advanceSti,
+                        status: 'Logged',
+                        recruiterRemarks: [...(a.recruiterRemarks || []), { text: remarkForm.remark, advanceSti: remarkForm.advanceSti }] 
+                    };
+                }
+                return a;
+            }));
+            
+            handleCloseRemarkModal();
+            alert("Remark saved successfully!");
+            
+        } catch (error) {
+            console.error('Error saving remark:', error);
+            alert('Failed to save remark');
+        }
     };
 
     const handleSubmitReport = (item) => {
@@ -242,13 +281,13 @@ export default function RecruiterWorkbenchPage() {
 
                                             {/* Status */}
                                             <td className="p-2 border-r border-gray-200 text-center">
-                                                {item.progress && (item.progress.totalCv > 0 || item.progress.advance_sti > 0 || item.progress.today_conversion > 0 || item.progress.today_asset > 0) ? (
+                                                {item.status === 'Logged' ? (
                                                     <span className="px-2 py-1 rounded text-[9px] font-black uppercase border bg-green-50 text-green-700 border-green-200">
                                                         Logged
                                                     </span>
                                                 ) : (
                                                     <span className="px-2 py-1 rounded text-[9px] font-black uppercase border bg-orange-50 text-orange-700 border-orange-200">
-                                                        Pending
+                                                        {item.status || 'Pending'}
                                                     </span>
                                                 )}
                                             </td>
@@ -316,13 +355,13 @@ export default function RecruiterWorkbenchPage() {
                                 <p className="text-xs font-bold text-gray-600">Profile: <span className="text-[#103c7f]">{selectedRemarkTask.profile}</span></p>
                                 <p className="text-xs font-bold text-gray-600">TL: <span className="text-[#103c7f]">{selectedRemarkTask.tl_name || "Not Assigned"}</span></p>
                             </div>
-                            <div className="mb-4">
-                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Date</label>
-                                <input type="date" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none shadow-sm bg-white" value={remarkForm.date} onChange={(e) => setRemarkForm({...remarkForm, date: e.target.value})}/>
-                            </div>
                             <div className="mb-2">
                                 <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Remark / Feedback</label>
                                 <textarea rows="4" placeholder="Enter your remarks here..." className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:border-[#103c7f] outline-none resize-none shadow-sm bg-white" value={remarkForm.remark} onChange={(e) => setRemarkForm({...remarkForm, remark: e.target.value})}></textarea>
+                            </div>
+                            <div className="mb-2">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Advance STI</label>
+                                <input type="text" placeholder="Enter advance STI..." className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none shadow-sm bg-white" value={remarkForm.advanceSti} onChange={(e) => setRemarkForm({...remarkForm, advanceSti: e.target.value})}/>
                             </div>
                         </div>
                         <div className="p-4 border-t border-gray-100 bg-white flex justify-end gap-3">
@@ -404,8 +443,8 @@ export default function RecruiterWorkbenchPage() {
                                                     {selectedWork.recruiterRemarks.map((rem, i) => (
                                                         <div key={i} className="relative pl-4 border-l-2 border-blue-400">
                                                             <div className="absolute w-2 h-2 bg-blue-500 rounded-full -left-[5px] top-1.5 border border-white"></div>
-                                                            <p className="text-[9px] font-bold text-gray-500 mb-0.5">{rem.date}</p>
                                                             <p className="text-xs font-medium text-gray-800">{rem.text}</p>
+                                                            {rem.advanceSti && <p className="text-[10px] font-bold text-green-600 mt-1">Advance STI: {rem.advanceSti}</p>}
                                                         </div>
                                                     ))}
                                                 </div>

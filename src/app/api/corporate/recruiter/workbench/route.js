@@ -14,14 +14,10 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Get today's date in YYYY-MM-DD format
-    const today = new Date().toISOString().split('T')[0]
-
-    // Fetch workbench data filtered by date=today and sent_to_rc=logged_in user_id
+    // Fetch workbench data filtered by sent_to_rc=logged_in user_id (no date filter)
     const { data: workbenchData, error } = await supabaseServer
       .from('corporate_workbench')
       .select('*')
-      .eq('date', today)
       .eq('sent_to_rc', user.id)
 
     if (error) {
@@ -84,6 +80,7 @@ export async function GET(request) {
       return {
         id: item.workbench_id,
         date: item.date,
+        status: item.status || 'Pending',
         client_id: item.client_id,
         client_name: client?.company_name || 'Unknown Client',
         req_id: item.req_id,
@@ -98,6 +95,7 @@ export async function GET(request) {
         sent_to_rc: item.sent_to_rc,
         user_id: item.user_id,
         created_at: item.created_at,
+        slot: item.slot || '',
         // JD details from requirements
         location: req?.location || '',
         employment_type: req?.employment_type || '',

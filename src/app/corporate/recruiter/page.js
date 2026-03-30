@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { 
     Calendar, Building2, Briefcase, IndianRupee, Target, Clock, 
     FileText, Send, TrendingUp, Database, UserCheck, MessageSquare, 
@@ -14,52 +14,185 @@ export default function RecruiterWorkbenchReport() {
 
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
+    const [totalCvs, setTotalCvs] = useState(0);
+    const [totalSti, setTotalSti] = useState(0);
+    const [trackerSent, setTrackerSent] = useState(0);
+    const [totalAssets, setTotalAssets] = useState(0);
+    const [conversions, setConversions] = useState(0);
+    
+    // Workbench assignments data
+    const [reportData, setReportData] = useState([]);
+    
+    // Fetch latest CV date and set date range on mount
+    useEffect(() => {
+        const fetchLatestDate = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) return;
+                
+                const response = await fetch('/api/corporate/recruiter/latest-cv-date', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.maxDate) {
+                    setFromDate(result.maxDate);
+                    setToDate(result.maxDate);
+                } else {
+                    const today = new Date().toISOString().split('T')[0];
+                    setFromDate(today);
+                    setToDate(today);
+                }
+            } catch (error) {
+                console.error('Failed to fetch latest date:', error);
+                const today = new Date().toISOString().split('T')[0];
+                setFromDate(today);
+                setToDate(today);
+            }
+        };
+        
+        fetchLatestDate();
+    }, []);
+    
+    // Fetch total CVs when date range changes
+    useEffect(() => {
+        const fetchTotalCvs = async () => {
+            if (!fromDate || !toDate) return;
+            
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) return;
+                
+                const response = await fetch(`/api/corporate/recruiter/total-cvs?fromDate=${fromDate}&toDate=${toDate}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    setTotalCvs(result.totalCvs);
+                }
+            } catch (error) {
+                console.error('Failed to fetch total CVs:', error);
+            }
+        };
+        
+        fetchTotalCvs();
+    }, [fromDate, toDate]);
+    
+    // Fetch total STI when date range changes
+    useEffect(() => {
+        const fetchTotalSti = async () => {
+            if (!fromDate || !toDate) return;
+            
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) return;
+                
+                const response = await fetch(`/api/corporate/recruiter/total-sti?fromDate=${fromDate}&toDate=${toDate}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    setTotalSti(result.totalSti);
+                }
+            } catch (error) {
+                console.error('Failed to fetch total STI:', error);
+            }
+        };
+        
+        fetchTotalSti();
+    }, [fromDate, toDate]);
+    
+    // Fetch candidate stats (tracker sent, assets, conversions) when date range changes
+    useEffect(() => {
+        const fetchCandidateStats = async () => {
+            if (!fromDate || !toDate) return;
+            
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) return;
+                
+                const response = await fetch(`/api/corporate/recruiter/candidate-stats?fromDate=${fromDate}&toDate=${toDate}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    setTrackerSent(result.trackerSent);
+                    setTotalAssets(result.totalAssets);
+                    setConversions(result.conversions);
+                }
+            } catch (error) {
+                console.error('Failed to fetch candidate stats:', error);
+            }
+        };
+        
+        fetchCandidateStats();
+    }, [fromDate, toDate]);
 
     // Modal State for CV Breakdown
     const [cvModalData, setCvModalData] = useState(null);
 
-    // --- MOCK DATA: Recruiter's logged work ---
-    const [reportData, setReportData] = useState([
-        { 
-            id: 1, date: "2026-03-02", client: "Frankfin", profile: "Telecouncellor", package: "30k", requirement: "350", slot: "09:30 AM - 01:00 PM",
-            cv_naukri: 45, cv_indeed: 20, cv_other: 5, advance_sti: 15, conversion: 2, asset: 5, tracker_sent: 2, notes: "Good response today. Focused mostly on Naukri database." 
-        },
-        { 
-            id: 2, date: "2026-03-02", client: "Urban Money", profile: "Telesales Executive", package: "21k", requirement: "30", slot: "Full Day (10-6)",
-            cv_naukri: 10, cv_indeed: 30, cv_other: 2, advance_sti: 8, conversion: 1, asset: 3, tracker_sent: 1, notes: "Indeed is giving better regional candidates for this profile." 
-        },
-        { 
-            id: 3, date: "2026-03-02", client: "Steel Craft Export", profile: "Senior Merchandiser", package: "70k", requirement: "2", slot: "02:00 PM - 06:00 PM",
-            cv_naukri: 5, cv_indeed: 2, cv_other: 1, advance_sti: 1, conversion: 0, asset: 1, tracker_sent: 0, notes: "Very niche profile. Hard to find relevant experience." 
-        },
-        { 
-            id: 4, date: "2026-03-03", client: "MKS", profile: "AutoCAD", package: "40k", requirement: "2", slot: "09:30 AM - 01:00 PM",
-            cv_naukri: 15, cv_indeed: 5, cv_other: 0, advance_sti: 4, conversion: 1, asset: 2, tracker_sent: 1, notes: "Profiles sent to TL. Waiting for client feedback." 
-        }
-    ]);
+    // Fetch workbench data when date range changes
+    useEffect(() => {
+        const fetchWorkbenchData = async () => {
+            if (!fromDate || !toDate) return;
+            
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) return;
+                
+                const response = await fetch(`/api/corporate/recruiter/workbench-data?fromDate=${fromDate}&toDate=${toDate}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    setReportData(result.data || []);
+                }
+            } catch (error) {
+                console.error('Failed to fetch workbench data:', error);
+            }
+        };
+        
+        fetchWorkbenchData();
+    }, [fromDate, toDate]);
 
     // --- CALCULATIONS ---
-    // Filter data by selected date and search term
+    // Filter data by date range and search term
     const filteredReports = useMemo(() => {
         return reportData.filter(item => {
-            const matchesDate = item.date === selectedDate;
-            const matchesSearch = item.client.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                  item.profile.toLowerCase().includes(searchTerm.toLowerCase());
-            return matchesDate && matchesSearch;
+            const matchesSearch = item.job_title?.toLowerCase().includes(searchTerm.toLowerCase());
+            return matchesSearch;
         });
-    }, [reportData, selectedDate, searchTerm]);
+    }, [reportData, searchTerm]);
 
     // Calculate Top KPI Totals for the selected date
     const kpiTotals = useMemo(() => {
-        return filteredReports.reduce((acc, curr) => {
-            acc.total_cvs += (curr.cv_naukri + curr.cv_indeed + curr.cv_other);
-            acc.total_sti += curr.advance_sti;
-            acc.total_conversion += curr.conversion;
-            acc.total_asset += curr.asset;
-            acc.total_trackers += curr.tracker_sent; // Added tracker total calculation
-            return acc;
-        }, { total_cvs: 0, total_sti: 0, total_conversion: 0, total_asset: 0, total_trackers: 0 });
-    }, [filteredReports]);
+        return {
+            total_cvs: totalCvs,
+            total_sti: totalSti,
+            total_conversion: conversions,
+            total_asset: totalAssets,
+            total_trackers: trackerSent
+        };
+    }, [totalCvs, totalSti, conversions, totalAssets, trackerSent]);
 
     return (
         <div className="min-h-screen bg-gray-50 font-['Calibri'] p-2 md:p-3">
@@ -224,13 +357,13 @@ export default function RecruiterWorkbenchReport() {
                                     const totalRowCv = row.cv_naukri + row.cv_indeed + row.cv_other;
                                     
                                     return (
-                                        <tr key={row.id} className="hover:bg-blue-50/50 transition">
+                                        <tr key={row.workbench_id || index} className="hover:bg-blue-50/50 transition">
                                             
                                             {/* Date */}
                                             <td className="p-3 border-r border-gray-200 font-bold text-gray-600 bg-gray-50">{row.date}</td>
                                             
                                             {/* Profile */}
-                                            <td className="p-3 border-r border-gray-200 font-black text-[#103c7f]">{row.profile}</td>
+                                            <td className="p-3 border-r border-gray-200 font-black text-[#103c7f]">{row.job_title}</td>
                                             
                                             {/* Pkg / Req */}
                                             <td className="p-3 border-r border-gray-200 text-center">
@@ -249,7 +382,7 @@ export default function RecruiterWorkbenchReport() {
                                             </td>
 
                                             {/* Assigned By (TL) */}
-                                            <td className="p-3 border-r border-gray-200 font-bold text-gray-700">{row.assigned_by || row.tlName}</td>
+                                            <td className="p-3 border-r border-gray-200 font-bold text-gray-700">{row.tl_name}</td>
                                             
                                             {/* Slot */}
                                             <td className="p-3 border-r border-gray-200 text-[11px] font-bold text-gray-600">{row.slot}</td>
@@ -273,8 +406,8 @@ export default function RecruiterWorkbenchReport() {
                                             </td>
 
                                             {/* Notes */}
-                                            <td className="p-3 text-[11px] text-gray-600 italic max-w-[250px] truncate" title={row.notes}>
-                                                {row.notes ? `"${row.notes}"` : <span className="text-gray-400 not-italic">No notes</span>}
+                                            <td className="p-3 text-[11px] text-gray-600 italic max-w-[250px] truncate" title={row.rc_remarks}>
+                                                {row.rc_remarks ? `"${row.rc_remarks}"` : <span className="text-gray-400 not-italic">No remarks</span>}
                                             </td>
 
                                         </tr>
