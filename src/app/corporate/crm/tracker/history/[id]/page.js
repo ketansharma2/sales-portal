@@ -18,6 +18,7 @@ export default function TrackerHistoryPage() {
     // Modal State
     const [modalType, setModalType] = useState(null); // 'add_journey', 'view_journey'
     const [selectedHistoryRow, setSelectedHistoryRow] = useState(null);
+    const [savingJourney, setSavingJourney] = useState(false);
     
     // Form State
     const [journeyForm, setJourneyForm] = useState({
@@ -28,55 +29,89 @@ export default function TrackerHistoryPage() {
 
     // --- MOCK DATA ---
     useEffect(() => {
-        // Simulate API call
-        setTimeout(() => {
-            const mockData = {
-                1: {
-                    id: 1,
-                    trackerShareDate: "27-Mar-2026",
-                    tlName: "Vikram Singh",
-                    name: "Rahul Verma",
-                    profile: "B2B Sales Executive",
-                    location: "Gurugram, HR",
-                    qualification: "MBA Marketing",
-                    experience: "5 Years",
-                    relevantExp: "4 Years",
-                    cCTC: "8.0 LPA",
-                    eCTC: "12.0 LPA",
-                    tlCvName: "Rahul_Verma_Redacted.pdf",
-                    tlEvaluation: "JD Match - Solid B2B enterprise experience.",
+        const fetchEmailHistory = async () => {
+            setLoading(true);
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                const response = await fetch(`/api/corporate/crm/emails/history/${params.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    // Build candidate object with email history
+                    const candidateData = {
+                        id: parseInt(params.id),
+                        name: result.candidateInfo?.name || '-',
+                        profile: result.candidateInfo?.profile || '-',
+                        location: result.candidateInfo?.location || '-',
+                        qualification: result.candidateInfo?.qualification || '-',
+                        experience: result.candidateInfo?.experience || '-',
+                        cv_url: result.candidateInfo?.cv_url || '',
+                        emailHistory: result.data
+                    };
+                    setCandidate(candidateData);
                     
-                    // Email Share History (Main Table)
-                    emailHistory: [
-                        { 
-                            id: 101, 
-                            companyName: "TechNova Solutions", 
-                            crmFeedback: "Profile shared with HR via email along with 3 others.", 
-                            date: "2026-03-27",
-                            // Internal Interview Journey for this specific company
-                            journey: [
-                                { id: 1011, status: "Shortlisted", date: "2026-03-28", remark: "Client liked the portfolio. L1 scheduled for tomorrow." },
-                                { id: 1012, status: "Interviewed", date: "2026-03-29", remark: "Cleared L1. L2 is pending." }
-                            ]
-                        },
-                        { 
-                            id: 102, 
-                            companyName: "Global Innovators", 
-                            crmFeedback: "Sent directly to Hiring Manager.", 
-                            date: "2026-03-28",
-                            journey: [] // No journey updates yet
-                        }
-                    ]
+                    // Fetch interview journeys for each email history row
+                    fetchInterviewJourneys(result.data);
+                } else {
+                    // No records found
+                    setCandidate(null);
                 }
-            };
-            
-            // Fallback to candidate 1 if id not found for demo purposes
-            setCandidate(mockData[params.id] || mockData[1]);
-            setLoading(false);
-        }, 500);
+            } catch (error) {
+                console.error('Error fetching email history:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        
+        if (params.id) {
+            fetchEmailHistory();
+        }
     }, [params.id]);
 
-    // --- HANDLERS ---
+    // --- FETCH INTERVIEW JOURNEYS ---
+    const fetchInterviewJourneys = async (emailHistoryData) => {
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            
+            // Update each row with its journey data from the API
+            const updatedHistory = await Promise.all(
+                emailHistoryData.map(async (row) => {
+                    const response = await fetch(`/api/corporate/crm/interview-journey?email_draft_id=${row.id}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const result = await response.json();
+                    
+                    // Map API field names to UI expected field names
+                    const mappedJourney = result.success && result.data 
+                        ? result.data.map(item => ({
+                            id: item.id,
+                            status: item.interview_status,
+                            date: item.date,
+                            remark: item.client_remark
+                          }))
+                        : [];
+                    
+                    return {
+                        ...row,
+                        journey: mappedJourney
+                    };
+                })
+            );
+            
+            setCandidate(prev => ({
+                ...prev,
+                emailHistory: updatedHistory
+            }));
+        } catch (error) {
+            console.error('Error fetching interview journeys:', error);
+        }
+    };
     const openAddJourneyModal = (historyRow) => {
         setSelectedHistoryRow(historyRow);
         setJourneyForm({ 
@@ -92,27 +127,68 @@ export default function TrackerHistoryPage() {
         setModalType('view_journey');
     };
 
-    const handleSaveJourney = () => {
+    const handleSaveJourney = async () => {
         if (!journeyForm.status) return alert("Please select a tracker status.");
 
-        const newJourneyEntry = {
-            id: Date.now(),
-            status: journeyForm.status,
-            date: journeyForm.actionDate,
-            remark: journeyForm.remark || "Status updated."
-        };
-
-        // Update the specific history row's journey array inside the candidate state
-        setCandidate(prev => ({
-            ...prev,
-            emailHistory: prev.emailHistory.map(h => 
-                h.id === selectedHistoryRow.id 
-                ? { ...h, journey: [...(h.journey || []), newJourneyEntry] }
-                : h
-            )
-        }));
+        setSavingJourney(true);
         
-        setModalType(null);
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            
+            const response = await fetch('/api/corporate/crm/interview-journey', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    email_draft_id: selectedHistoryRow.id,
+                    interview_status: journeyForm.status,
+                    client_remark: journeyForm.remark || "Status updated.",
+                    date: journeyForm.actionDate
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Fetch latest journey data from API after save
+                const fetchResponse = await fetch(`/api/corporate/crm/interview-journey?email_draft_id=${selectedHistoryRow.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const fetchResult = await fetchResponse.json();
+                
+                // Map API field names to UI expected field names
+                const mappedJourney = fetchResult.success && fetchResult.data 
+                    ? fetchResult.data.map(item => ({
+                        id: item.id,
+                        status: item.interview_status,
+                        date: item.date,
+                        remark: item.client_remark
+                      }))
+                    : [];
+                
+                // Update the specific history row's journey array
+                setCandidate(prev => ({
+                    ...prev,
+                    emailHistory: prev.emailHistory.map(h => 
+                        h.id === selectedHistoryRow.id 
+                        ? { ...h, journey: mappedJourney }
+                        : h
+                    )
+                }));
+                
+                setModalType(null);
+            } else {
+                alert("Failed to save journey: " + result.message);
+            }
+        } catch (error) {
+            console.error('Error saving journey:', error);
+            alert("Failed to save journey");
+        } finally {
+            setSavingJourney(false);
+        }
     };
 
     if (loading) {
@@ -191,7 +267,7 @@ export default function TrackerHistoryPage() {
                                         <td className="py-4 px-4"><p className="text-[11px] font-black text-slate-700">{candidate.profile}</p></td>
                                         <td className="py-4 px-4"><p className="text-[11px] font-bold text-slate-600">{candidate.location}</p></td>
                                         <td className="py-4 px-4"><p className="text-[11px] font-bold text-slate-600">{candidate.qualification}</p></td>
-                                        <td className="py-4 px-4"><p className="text-[11px] font-black text-slate-800">{candidate.experience}</p></td>
+                                        <td className="py-4 px-4"><p className="text-[11px] font-black text-slate-800">{row.experience || '-'}</p></td>
 
                                         {/* CRM Feedback (Email Note) */}
                                         <td className="py-4 px-4">
@@ -300,9 +376,22 @@ export default function TrackerHistoryPage() {
 
                         <div className="p-4 border-t border-slate-200 bg-white flex justify-end gap-3 shrink-0">
                             <button onClick={() => setModalType(null)} className="text-xs font-black text-slate-500 uppercase tracking-widest px-4 hover:text-slate-700 bg-slate-100 py-2.5 rounded-lg transition-colors">Cancel</button>
-                            <button onClick={handleSaveJourney} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest shadow-md flex items-center gap-2 transition-colors">
-                                <CheckCircle2 size={14}/> Save Status
-                            </button>
+                            <button 
+                                                    onClick={handleSaveJourney} 
+                                                    disabled={savingJourney}
+                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest shadow-md flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {savingJourney ? (
+                                                        <>
+                                                            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                            Saving...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <CheckCircle2 size={14}/> Save Status
+                                                        </>
+                                                    )}
+                                                </button>
                         </div>
                         
                     </div>

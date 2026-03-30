@@ -19,15 +19,15 @@ export default function CRMClientTrackerPage() {
     const [selectedRowIds, setSelectedRowIds] = useState([]);
 
     // Form states for modals
-    const [shareForm, setShareForm] = useState({ company: "" });
+    const [shareForm, setShareForm] = useState({ company: "", clientId: "" });
     const [editableDraftData, setEditableDraftData] = useState([]); // Holds data for the editable table
-
-    const clientCompanies = ["TechNova Solutions", "Global Innovators", "NextGen Startups", "Apex Corp"];
+    const [clientCompanies, setClientCompanies] = useState([]); // Dynamic client list
 
     // CV Viewer State
     const [cvViewer, setCvViewer] = useState({ isOpen: false, source: null });
     const [cvBlob, setCvBlob] = useState(null);
     const [isLoadingCV, setIsLoadingCV] = useState(false);
+    const [isSendingDraft, setIsSendingDraft] = useState(false);
 
     // Fetch CRM Tracker Data from API
     useEffect(() => {
@@ -71,6 +71,29 @@ export default function CRMClientTrackerPage() {
         };
         
         fetchCrmTrackerData();
+    }, []);
+
+    // Fetch client companies on page load
+    useEffect(() => {
+        const fetchClients = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                const response = await fetch('/api/corporate/crm/clients', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                if (result.success && result.data) {
+                    setClientCompanies(result.data);
+                }
+            } catch (error) {
+                console.error('Error fetching clients:', error);
+            }
+        };
+        
+        fetchClients();
     }, []);
 
     // --- HANDLERS ---
@@ -120,8 +143,15 @@ export default function CRMClientTrackerPage() {
     const openDraftMailModal = () => {
         const selectedData = crmData.filter(c => selectedRowIds.includes(c.id));
         // Deep copy so we don't edit original table until saved
-        setEditableDraftData(JSON.parse(JSON.stringify(selectedData)));
-        setShareForm({ company: "" });
+        const copiedData = JSON.parse(JSON.stringify(selectedData));
+        // Ensure experience is properly handled (convert 0 to "0")
+        copiedData.forEach(item => {
+            if (item.experience === 0 || item.experience === '0') {
+                item.experience = '0';
+            }
+        });
+        setEditableDraftData(copiedData);
+        setShareForm({ company: "", clientId: "" });
         setModalType('draft_mail');
     };
 
@@ -132,14 +162,80 @@ export default function CRMClientTrackerPage() {
         ));
     };
 
-    const handleSendDraftMail = () => {
+    const handleSendDraftMail = async () => {
+        if (isSendingDraft) return;
         if (!shareForm.company) return alert("Please select a target company.");
+        if (!shareForm.clientId) return alert("Invalid client selection.");
         
-        alert(`Draft Mail triggered for ${shareForm.company} with ${editableDraftData.length} candidates. (Backend logic pending)`);
+        setIsSendingDraft(true);
         
-        // Clear selection after draft
-        setSelectedRowIds([]); 
-        setModalType(null);
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        
+        try {
+            // Save each candidate to corporate_crm_emails
+            for (const row of editableDraftData) {
+                await fetch('/api/corporate/crm/emails', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        conversation_id: row.id,
+                        company_name: shareForm.company,
+                        client_id: shareForm.clientId,
+                        name: row.name,
+                        profile: row.profile,
+                        location: row.location,
+                        qualification: row.qualification,
+                        experience: row.experience,
+                        feedback: row.crmFeedback,
+                        cv_url: row.tlCvName || ''
+                    })
+                });
+            }
+            
+            // Generate email body
+            const subject = `Application for ${shareForm.company} - Maven Consulting`;
+            
+            const emailBody = `
+Dear Hiring Team,
+
+Greetings from Maven Consulting!
+
+We are pleased to submit the following candidates for your consideration for ${shareForm.company}.
+
+Please find the candidate details below:
+
+Candidate Name | Location | Profile | Qualification | Experience | CTC (C/E) | CV Link | Notes
+${'─'.repeat(20)}
+${editableDraftData.map(row => `${row.name || '-'} | ${row.location || '-'} | ${row.profile || '-'} | ${row.qualification || '-'} | ${row.experience || '-'} Yrs | ${row.cCTC || '-'}/${row.eCTC || '-'} LPA | ${row.tlCvName || 'N/A'} | ${row.crmFeedback || '-'}`).join('\n')}
+
+We look forward to your positive response.
+
+Best Regards,
+Maven Consulting Team
+
+---
+This is an automated email from Maven Consulting CRM System.
+            `.trim();
+            
+            // Open Gmail with pre-filled data
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&body=${encodeURIComponent(emailBody)}&su=${encodeURIComponent(subject)}`;
+            window.open(gmailUrl, '_blank');
+            
+            // Clear selection after draft
+            setSelectedRowIds([]); 
+            setModalType(null);
+            
+            alert(`Saved ${editableDraftData.length} candidates and opened Gmail.`);
+        } catch (error) {
+            console.error('Error saving emails:', error);
+            alert("Error saving email records.");
+        } finally {
+            setIsSendingDraft(false);
+        }
     };
 
     const openTrackerHistory = (candidate) => {
@@ -338,10 +434,13 @@ export default function CRMClientTrackerPage() {
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Select Client Company</label>
                             <select 
                                 className="w-full max-w-sm bg-slate-50 border border-slate-300 text-slate-800 text-sm font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-                                value={shareForm.company} onChange={(e) => setShareForm({...shareForm, company: e.target.value})}
+                                value={shareForm.company} onChange={(e) => {
+                                    const selectedClient = clientCompanies.find(c => c.company_name === e.target.value);
+                                    setShareForm({...shareForm, company: e.target.value, clientId: selectedClient?.client_id || ''});
+                                }}
                             >
                                 <option value="">-- Choose Client Company --</option>
-                                {clientCompanies.map(c => <option key={c} value={c}>{c}</option>)}
+                                {clientCompanies.map(c => <option key={c.client_id} value={c.company_name}>{c.company_name}</option>)}
                             </select>
                         </div>
 
@@ -376,7 +475,7 @@ export default function CRMClientTrackerPage() {
                                                     <input type="text" value={row.qualification} onChange={(e) => handleEditableDraftChange(row.id, 'qualification', e.target.value)} className="w-full text-xs font-bold border border-transparent hover:border-slate-300 focus:border-indigo-500 rounded px-2 py-1 outline-none"/>
                                                 </td>
                                                 <td className="p-2">
-                                                    <input type="text" value={row.experience} onChange={(e) => handleEditableDraftChange(row.id, 'experience', e.target.value)} className="w-full text-xs font-bold border border-transparent hover:border-slate-300 focus:border-indigo-500 rounded px-2 py-1 outline-none"/>
+                                                    <input type="text" value={String(row.experience || '')} onChange={(e) => handleEditableDraftChange(row.id, 'experience', e.target.value)} className="w-full text-xs font-bold border border-transparent hover:border-slate-300 focus:border-indigo-500 rounded px-2 py-1 outline-none"/>
                                                 </td>
                                                 <td className="p-2">
                                                     <textarea 
@@ -406,8 +505,20 @@ export default function CRMClientTrackerPage() {
                         {/* Bottom Actions: Draft Mail Button */}
                         <div className="p-4 border-t border-slate-200 bg-white shrink-0 flex items-center justify-end gap-3">
                             <button onClick={() => setModalType(null)} className="text-xs font-black text-slate-500 uppercase tracking-widest px-4 hover:text-slate-700">Cancel</button>
-                            <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest shadow-md flex items-center gap-2">
-                                <Send size={14}/> Draft Mail
+                            <button 
+                                onClick={handleSendDraftMail}
+                                disabled={isSendingDraft}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {isSendingDraft ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin"/> Saving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Send size={14}/> Draft Mail
+                                    </>
+                                )}
                             </button>
                         </div>
                     </div>
