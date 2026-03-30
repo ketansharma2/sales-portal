@@ -14,11 +14,22 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Get current user's ID
+    // Get current user's ID and role
     const currentUserId = user.user_id || user.id
-
+    
+    // First check current user's role from users table
+    const { data: currentUserData, error: userError } = await supabaseServer
+      .from('users')
+      .select('user_id, name, email, role')
+      .eq('user_id', currentUserId)
+      .single()
+    
+    const currentUserRole = currentUserData?.role || []
+    const isCurrentUserRC = currentUserRole.includes('RC')
+    
     // Fetch RC users filtered by sector, tl_id, and role
-    const { data: rcUsers, error: fetchError } = await supabaseServer
+    let rcUsers = []
+    const { data: rcUsersData, error: fetchError } = await supabaseServer
       .from('users')
       .select('user_id, name, email, role')
       .eq('sector', 'Corporate')
@@ -31,6 +42,21 @@ export async function GET(request) {
         error: 'Failed to fetch RC users',
         details: fetchError.message
       }, { status: 500 })
+    }
+    
+    rcUsers = rcUsersData || []
+    
+    // If current user is RC (not TL), add them to the list so they can see their own data
+    if (isCurrentUserRC) {
+      const currentUserAlreadyInList = rcUsers.some(u => u.user_id === currentUserId)
+      if (!currentUserAlreadyInList) {
+        rcUsers.unshift({
+          user_id: currentUserId,
+          name: currentUserData?.name || user.email || 'You',
+          email: user.email,
+          role: currentUserRole
+        })
+      }
     }
 
     return NextResponse.json({
