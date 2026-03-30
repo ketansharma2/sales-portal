@@ -19,7 +19,7 @@ export default function CRMClientTrackerPage() {
     const [selectedRowIds, setSelectedRowIds] = useState([]);
 
     // Form states for modals
-    const [shareForm, setShareForm] = useState({ company: "", clientId: "" });
+    const [shareForm, setShareForm] = useState({ company: "", clientId: "", toEmail: "" });
     const [editableDraftData, setEditableDraftData] = useState([]); // Holds data for the editable table
     const [clientCompanies, setClientCompanies] = useState([]); // Dynamic client list
 
@@ -151,7 +151,7 @@ export default function CRMClientTrackerPage() {
             }
         });
         setEditableDraftData(copiedData);
-        setShareForm({ company: "", clientId: "" });
+        setShareForm({ company: "", clientId: "", toEmail: "" });
         setModalType('draft_mail');
     };
 
@@ -197,44 +197,296 @@ export default function CRMClientTrackerPage() {
             }
             
             // Generate email body
-            const subject = `Application for ${shareForm.company} - Maven Consulting`;
+            const companyName = shareForm.company;
+            const subject = `Shortlisted Candidates - ${companyName}`;
             
+            // Get current user name for signature
+            const userData = JSON.parse(localStorage.getItem('user') || '{}');
+            const bdName = userData.name || userData.email || 'Maven Jobs Team';
+            
+            // Build candidate table rows HTML
+            let candidateTableRows = "";
+            editableDraftData.forEach((row, i) => {
+                candidateTableRows += `
+                    <tr style="background:${i % 2 === 1 ? '#FAF9FE' : '#fff'};">
+                        <td style="padding:11px 8px; font-family:Poppins, Arial, sans-serif; font-size:14px; color:#333;">${row.name || ""}</td>
+                        <td style="padding:11px 8px; font-family:Poppins, Arial, sans-serif; font-size:14px; color:#333;">${row.profile || ""}</td>
+                        <td style="padding:11px 8px; font-family:Poppins, Arial, sans-serif; font-size:14px; color:#333;">${row.location || ""}</td>
+                        <td style="padding:11px 8px; font-family:Poppins, Arial, sans-serif; font-size:14px; color:#333;">${row.qualification || ""}</td>
+                        <td style="padding:11px 8px; font-family:Poppins, Arial, sans-serif; font-size:14px; color:#333;">${row.experience || "0"} Years</td>
+                        <td style="padding:11px 8px; font-family:Poppins, Arial, sans-serif; font-size:14px; color:#333;">${row.crmFeedback || ""}</td>
+                        <td style="padding:11px 8px; text-align:center;">
+                            ${row.tlCvName ? `<a href="${row.tlCvName}" target="_blank" style="display:inline-block; background-color:#e5d6f5; color:#1e4787 !important; padding:6px 18px; border-radius:18px; text-decoration:none; font-weight:500; font-size:14px; border:none; letter-spacing:1px; font-family:Poppins, Arial, sans-serif;">CV</a>` : '-'}
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            // HTML Email Template
             const emailBody = `
-Dear Hiring Team,
-
-Greetings from Maven Consulting!
-
-We are pleased to submit the following candidates for your consideration for ${shareForm.company}.
-
-Please find the candidate details below:
-
-Candidate Name | Location | Profile | Qualification | Experience | CTC (C/E) | CV Link | Notes
-${'─'.repeat(20)}
-${editableDraftData.map(row => `${row.name || '-'} | ${row.location || '-'} | ${row.profile || '-'} | ${row.qualification || '-'} | ${row.experience || '-'} Yrs | ${row.cCTC || '-'}/${row.eCTC || '-'} LPA | ${row.tlCvName || 'N/A'} | ${row.crmFeedback || '-'}`).join('\n')}
-
-We look forward to your positive response.
-
-Best Regards,
-Maven Consulting Team
-
----
-This is an automated email from Maven Consulting CRM System.
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0; padding:0; font-family: 'Poppins', Arial, sans-serif;">
+    <!-- Email Container -->
+    <div style="background:linear-gradient(135deg,#F4FCFA 0%,#E5D6F5 33%,#B8FFE1 75%,#F9F7FE 100%); padding:38px 0;">
+        <div style="max-width:820px; margin:0 auto; background-color: white; border-radius:20px; box-shadow:0 10px 40px 0 rgba(80,60,180,0.19),0 2px 16px 0 rgba(71,214,146,0.16); padding:32px;">
+            <!-- Logo -->
+            <div style="text-align:center; margin-bottom:18px;">
+                <img src="https://mli2w8imrnr8.i.optimole.com/w:320/h:80/q:mauto/f:best/https://mavenjobs.in/wp-content/uploads/2024/01/maven-12-1.png" alt="Maven Jobs Logo" width="192" height="48" style="display:block; margin:0 auto; max-width:192px; width:100%; height:auto;">
+            </div>
+            <!-- Greeting -->
+            <div style="margin-bottom:20px;">
+                <p style="margin:0 0 10px 0; font-size:14px; font-family:'Poppins','Inter','Helvetica Neue',Calibri,Roboto,'Segoe UI','Noto Sans',Geneva,Arial,sans-serif;">
+                    Hi ${companyName},
+                </p>
+                <p style="margin:0 0 18px 0; font-size:15px; font-family:'Poppins','Inter','Helvetica Neue',Calibri,Roboto,'Segoe UI','Noto Sans',Geneva,Arial,sans-serif;">
+                    Please find the shortlisted candidates below:
+                </p>
+            </div>
+            <!-- Candidate Table -->
+            <div>
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate; border-spacing:0; border:1px solid #E5E6E7; border-radius:18px; box-shadow:0 6px 26px rgba(71,100,250,0.22),0 2.5px 10px rgba(110,106,250,0.11); overflow:hidden; font-family:'Poppins','Inter','Helvetica Neue',Calibri,Roboto,'Segoe UI','Noto Sans',Geneva,Arial,sans-serif; font-size:15px;">
+                    <thead>
+                        <tr style="background-color:#e5d6f5;">
+                            <th style="padding:12px 14px; text-align:left; font-weight:600; border-top-left-radius:16px; width:140px;">Name</th>
+                            <th style="padding:12px 14px; text-align:left; font-weight:600; width:170px;">Profile</th>
+                            <th style="padding:12px 14px; text-align:left; font-weight:600; width:110px;">Location</th>
+                            <th style="padding:12px 14px; text-align:left; font-weight:600; width:110px;">Qualification</th>
+                            <th style="padding:12px 14px; text-align:left; font-weight:600; width:75px;">Experience</th>
+                            <th style="padding:12px 14px; text-align:left; font-weight:600; width:180px;">Feedback</th>
+                            <th style="padding:12px 14px; text-align:left; font-weight:600; border-top-right-radius:16px; width:70px;">Resume</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${candidateTableRows}
+                    </tbody>
+                </table>
+            </div>
+            <!-- Signature Block -->
+            <div style="margin-top:32px; margin-bottom:8px;">
+                <span style="font-family:Cambria,Georgia,'Times New Roman',serif; font-size:16px; color:#006400; font-weight:bold;">${bdName}</span>
+                <span style="font-family:Cambria,Georgia,'Times New Roman',serif; font-size:15px; color:#1e4787; display:block; font-weight:bold;">
+                    <br>Maven Jobs<br>
+                    Recruitment Agency<br>
+                    2nd Floor, Sec 25, Panipat
+                </span>
+            </div>
+            <!-- Separator after signature -->
+            <hr style="border:0; border-top:1px solid #ddd; margin:16px 0 18px 0;">
+            <!-- Social Icons -->
+            <div style="background-color: white ; padding:0 0 6px 0; text-align:center;">
+                <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
+                    <tr>
+                        <td style="padding:0 8px;">
+                            <a href="https://www.facebook.com/mavenjobspanipat/" target="_blank" title="Facebook">
+                                <img src="https://evnlkpo.stripocdn.email/content/assets/img/social-icons/circle-black-bordered/facebook-circle-black-bordered.png" alt="Facebook" width="32" height="32" style="display:block; border-radius:50%; border:0;" />
+                            </a>
+                        </td>
+                        <td style="padding:0 8px;">
+                            <a href="https://twitter.com/Maven_Jobs" target="_blank" title="X">
+                                <img src="https://evnlkpo.stripocdn.email/content/assets/img/social-icons/circle-black-bordered/x-circle-black-bordered.png" alt="X" width="32" height="32" style="display:block; border-radius:50%; border:0;" />
+                            </a>
+                        </td>
+                        <td style="padding:0 8px;">
+                            <a href="https://www.instagram.com/mavenjobs/" target="_blank" title="Instagram">
+                                <img src="https://evnlkpo.stripocdn.email/content/assets/img/social-icons/circle-black-bordered/instagram-circle-black-bordered.png" alt="Instagram" width="32" height="32" style="display:block; border-radius:50%; border:0;" />
+                            </a>
+                        </td>
+                        <td style="padding:0 8px;">
+                            <a href="https://in.linkedin.com/company/maven-jobs?trk=public_post_feed-actor-name" target="_blank" title="LinkedIn">
+                                <img src="https://evnlkpo.stripocdn.email/content/assets/img/social-icons/circle-black-bordered/linkedin-circle-black-bordered.png" alt="LinkedIn" width="32" height="32" style="display:block; border-radius:50%; border:0;" />
+                            </a>
+                        </td>
+                        <td style="padding:0 8px;">
+                            <a href="https://in.pinterest.com/Mavenjobs/" target="_blank" title="Pinterest">
+                                <img src="https://evnlkpo.stripocdn.email/content/assets/img/social-icons/circle-black-bordered/pinterest-circle-black-bordered.png" alt="Pinterest" width="32" height="32" style="display:block; border-radius:50%; border:0;" />
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
             `.trim();
             
-            // Open Gmail with pre-filled data
-            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&body=${encodeURIComponent(emailBody)}&su=${encodeURIComponent(subject)}`;
+            // Store email body in a global variable for copy function
+            window._currentEmailHtml = emailBody;
+            window._currentEmailSubject = subject;
+            
+            // Open Gmail with subject and recipient
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&su=${encodeURIComponent(subject)}&to=${encodeURIComponent(shareForm.toEmail)}`;
             window.open(gmailUrl, '_blank');
             
             // Clear selection after draft
             setSelectedRowIds([]); 
             setModalType(null);
             
-            alert(`Saved ${editableDraftData.length} candidates and opened Gmail.`);
+            alert(`Saved ${editableDraftData.length} candidates. Use 'Copy HTML' button to get styled content.`);
         } catch (error) {
             console.error('Error saving emails:', error);
             alert("Error saving email records.");
         } finally {
             setIsSendingDraft(false);
+        }
+    };
+    
+    // Copy HTML email to clipboard
+    const handleCopyHtmlToClipboard = async () => {
+        if (!shareForm.company) {
+            alert("Please select a client company first.");
+            return;
+        }
+        
+        const companyName = shareForm.company;
+        const subject = `Shortlisted Candidates - ${companyName}`;
+        
+        // Get current user name for signature
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        const bdName = userData.name || userData.email || 'Maven Jobs Team';
+        
+        // Build candidate table rows HTML
+        let candidateTableRows = "";
+        editableDraftData.forEach((row, i) => {
+            candidateTableRows += `
+                <tr style="background:${i % 2 === 1 ? '#FAF9FE' : '#fff'};">
+                    <td style="padding:11px 8px; font-family:Poppins, Arial, sans-serif; font-size:14px; color:#333;">${row.name || ""}</td>
+                    <td style="padding:11px 8px; font-family:Poppins, Arial, sans-serif; font-size:14px; color:#333;">${row.profile || ""}</td>
+                    <td style="padding:11px 8px; font-family:Poppins, Arial, sans-serif; font-size:14px; color:#333;">${row.location || ""}</td>
+                    <td style="padding:11px 8px; font-family:Poppins, Arial, sans-serif; font-size:14px; color:#333;">${row.qualification || ""}</td>
+                    <td style="padding:11px 8px; font-family:Poppins, Arial, sans-serif; font-size:14px; color:#333;">${row.experience || "0"} Years</td>
+                    <td style="padding:11px 8px; font-family:Poppins, Arial, sans-serif; font-size:14px; color:#333;">${row.crmFeedback || ""}</td>
+                    <td style="padding:11px 8px; text-align:center;">
+                        ${row.tlCvName ? `<a href="${row.tlCvName}" target="_blank" style="display:inline-block; background-color:#e5d6f5; color:#1e4787 !important; padding:6px 18px; border-radius:18px; text-decoration:none; font-weight:500; font-size:14px; border:none; letter-spacing:1px; font-family:Poppins, Arial, sans-serif;">CV</a>` : '-'}
+                    </td>
+                </tr>
+            `;
+        });
+        
+        // HTML Email Template
+        const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0; padding:0; font-family: 'Poppins', Arial, sans-serif;">
+    <!-- Email Container -->
+    <div style="background:linear-gradient(135deg,#F4FCFA 0%,#E5D6F5 33%,#B8FFE1 75%,#F9F7FE 100%); padding:38px 0;">
+        <div style="max-width:820px; margin:0 auto; background:#fff; border-radius:20px; box-shadow:0 10px 40px 0 rgba(80,60,180,0.19),0 2px 16px 0 rgba(71,214,146,0.16); padding:32px;">
+            <!-- Logo -->
+            <div style="text-align:center; margin-bottom:18px;">
+                <img src="https://mli2w8imrnr8.i.optimole.com/w:320/h:80/q:mauto/f:best/https://mavenjobs.in/wp-content/uploads/2024/01/maven-12-1.png" alt="Maven Jobs Logo" width="192" height="48" style="display:block; margin:0 auto; max-width:192px; width:100%; height:auto;">
+            </div>
+            <!-- Greeting -->
+            <div style="margin-bottom:20px;">
+                <p style="margin:0 0 10px 0; font-size:14px; font-family:'Poppins','Inter','Helvetica Neue',Calibri,Roboto,'Segoe UI','Noto Sans',Geneva,Arial,sans-serif;">
+                    Hi ${companyName},
+                </p>
+                <p style="margin:0 0 18px 0; font-size:15px; font-family:'Poppins','Inter','Helvetica Neue',Calibri,Roboto,'Segoe UI','Noto Sans',Geneva,Arial,sans-serif;">
+                    Please find the shortlisted candidates below:
+                </p>
+            </div>
+            <!-- Candidate Table -->
+            <div>
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate; border-spacing:0; border:1px solid #E5E6E7; border-radius:18px; box-shadow:0 6px 26px rgba(71,100,250,0.22),0 2.5px 10px rgba(110,106,250,0.11); overflow:hidden; font-family:'Poppins','Inter','Helvetica Neue',Calibri,Roboto,'Segoe UI','Noto Sans',Geneva,Arial,sans-serif; font-size:15px;">
+                    <thead>
+                        <tr style="background-color:#e5d6f5;">
+                            <th style="padding:12px 14px; text-align:left; font-weight:600; border-top-left-radius:16px; width:140px;">Name</th>
+                            <th style="padding:12px 14px; text-align:left; font-weight:600; width:170px;">Profile</th>
+                            <th style="padding:12px 14px; text-align:left; font-weight:600; width:110px;">Location</th>
+                            <th style="padding:12px 14px; text-align:left; font-weight:600; width:110px;">Qualification</th>
+                            <th style="padding:12px 14px; text-align:left; font-weight:600; width:75px;">Experience</th>
+                            <th style="padding:12px 14px; text-align:left; font-weight:600; width:180px;">Feedback</th>
+                            <th style="padding:12px 14px; text-align:left; font-weight:600; border-top-right-radius:16px; width:70px;">Resume</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${candidateTableRows}
+                    </tbody>
+                </table>
+            </div>
+            <!-- Signature Block -->
+            <div style="margin-top:32px; margin-bottom:8px;">
+                <span style="font-family:Cambria,Georgia,'Times New Roman',serif; font-size:16px; color:#006400; font-weight:bold;">${bdName}</span>
+                <span style="font-family:Cambria,Georgia,'Times New Roman',serif; font-size:15px; color:#1e4787; display:block; font-weight:bold;">
+                    <br>Maven Jobs<br>
+                    Recruitment Agency<br>
+                    2nd Floor, Sec 25, Panipat
+                </span>
+            </div>
+            <!-- Separator after signature -->
+            <hr style="border:0; border-top:1px solid #ddd; margin:16px 0 18px 0;">
+            <!-- Social Icons -->
+            <div style="background:#fff; padding:0 0 6px 0; text-align:center;">
+                <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
+                    <tr>
+                        <td style="padding:0 8px;">
+                            <a href="https://www.facebook.com/mavenjobspanipat/" target="_blank" title="Facebook">
+                                <img src="https://evnlkpo.stripocdn.email/content/assets/img/social-icons/circle-black-bordered/facebook-circle-black-bordered.png" alt="Facebook" width="32" height="32" style="display:block; border-radius:50%; border:0;" />
+                            </a>
+                        </td>
+                        <td style="padding:0 8px;">
+                            <a href="https://twitter.com/Maven_Jobs" target="_blank" title="X">
+                                <img src="https://evnlkpo.stripocdn.email/content/assets/img/social-icons/circle-black-bordered/x-circle-black-bordered.png" alt="X" width="32" height="32" style="display:block; border-radius:50%; border:0;" />
+                            </a>
+                        </td>
+                        <td style="padding:0 8px;">
+                            <a href="https://www.instagram.com/mavenjobs/" target="_blank" title="Instagram">
+                                <img src="https://evnlkpo.stripocdn.email/content/assets/img/social-icons/circle-black-bordered/instagram-circle-black-bordered.png" alt="Instagram" width="32" height="32" style="display:block; border-radius:50%; border:0;" />
+                            </a>
+                        </td>
+                        <td style="padding:0 8px;">
+                            <a href="https://in.linkedin.com/company/maven-jobs?trk=public_post_feed-actor-name" target="_blank" title="LinkedIn">
+                                <img src="https://evnlkpo.stripocdn.email/content/assets/img/social-icons/circle-black-bordered/linkedin-circle-black-bordered.png" alt="LinkedIn" width="32" height="32" style="display:block; border-radius:50%; border:0;" />
+                            </a>
+                        </td>
+                        <td style="padding:0 8px;">
+                            <a href="https://in.pinterest.com/Mavenjobs/" target="_blank" title="Pinterest">
+                                <img src="https://evnlkpo.stripocdn.email/content/assets/img/social-icons/circle-black-bordered/pinterest-circle-black-bordered.png" alt="Pinterest" width="32" height="32" style="display:block; border-radius:50%; border:0;" />
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+        `;
+        
+        try {
+            // Copy HTML to clipboard
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const textBlob = new Blob([htmlContent], { type: 'text/plain' });
+            
+            const item = new ClipboardItem({
+                'text/html': blob,
+                'text/plain': textBlob
+            });
+            
+            await navigator.clipboard.write([item]);
+            
+            // Open Gmail compose with recipient
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&su=${encodeURIComponent(subject)}&to=${encodeURIComponent(shareForm.toEmail)}`;
+            window.open(gmailUrl, '_blank');
+            
+            alert(`HTML email copied to clipboard!\n\nSubject: ${subject}\n\nNow open Gmail and paste (Ctrl+V / Cmd+V) in the email body.`);
+        } catch (error) {
+            console.error('Error copying to clipboard:', error);
+            // Fallback: copy as plain text
+            try {
+                await navigator.clipboard.writeText(htmlContent);
+                alert('HTML copied as text. Please paste in Gmail HTML mode.');
+            } catch (fallbackError) {
+                alert('Unable to copy to clipboard. Please try again.');
+            }
         }
     };
 
@@ -436,12 +688,32 @@ This is an automated email from Maven Consulting CRM System.
                                 className="w-full max-w-sm bg-slate-50 border border-slate-300 text-slate-800 text-sm font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                                 value={shareForm.company} onChange={(e) => {
                                     const selectedClient = clientCompanies.find(c => c.company_name === e.target.value);
-                                    setShareForm({...shareForm, company: e.target.value, clientId: selectedClient?.client_id || ''});
+                                    // Combine client email and branch emails
+                                    const emails = [];
+                                    if (selectedClient?.email) emails.push(selectedClient.email);
+                                    if (selectedClient?.branchEmails) {
+                                        selectedClient.branchEmails.forEach(email => {
+                                            if (!emails.includes(email)) emails.push(email);
+                                        });
+                                    }
+                                    setShareForm({...shareForm, company: e.target.value, clientId: selectedClient?.client_id || '', toEmail: emails.join(', ')});
                                 }}
                             >
                                 <option value="">-- Choose Client Company --</option>
                                 {clientCompanies.map(c => <option key={c.client_id} value={c.company_name}>{c.company_name}</option>)}
                             </select>
+                        </div>
+
+                        {/* Recipient Email Field */}
+                        <div className="p-4 border-b border-slate-200 bg-slate-50 shrink-0">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">To (Recipients)</label>
+                            <input 
+                                type="text" 
+                                className="w-full bg-white border border-slate-300 text-slate-800 text-sm font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500"
+                                value={shareForm.toEmail}
+                                onChange={(e) => setShareForm({...shareForm, toEmail: e.target.value})}
+                                placeholder="recipient@example.com"
+                            />
                         </div>
 
                         {/* Editable Table Area */}
@@ -503,23 +775,32 @@ This is an automated email from Maven Consulting CRM System.
                         </div>
 
                         {/* Bottom Actions: Draft Mail Button */}
-                        <div className="p-4 border-t border-slate-200 bg-white shrink-0 flex items-center justify-end gap-3">
-                            <button onClick={() => setModalType(null)} className="text-xs font-black text-slate-500 uppercase tracking-widest px-4 hover:text-slate-700">Cancel</button>
+                        <div className="p-4 border-t border-slate-200 bg-white shrink-0 flex items-center justify-between">
                             <button 
-                                onClick={handleSendDraftMail}
-                                disabled={isSendingDraft}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50"
+                                onClick={handleCopyHtmlToClipboard}
+                                disabled={isSendingDraft || !shareForm.company}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50"
                             >
-                                {isSendingDraft ? (
-                                    <>
-                                        <Loader2 size={14} className="animate-spin"/> Saving...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Send size={14}/> Draft Mail
-                                    </>
-                                )}
+                                <Send size={14}/> Copy HTML
                             </button>
+                            <div className="flex items-center gap-3">
+                                <button onClick={() => setModalType(null)} className="text-xs font-black text-slate-500 uppercase tracking-widest px-4 hover:text-slate-700">Cancel</button>
+                                <button 
+                                    onClick={handleSendDraftMail}
+                                    disabled={isSendingDraft}
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50"
+                                >
+                                    {isSendingDraft ? (
+                                        <>
+                                            <Loader2 size={14} className="animate-spin"/> Saving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Send size={14}/> Draft Mail
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

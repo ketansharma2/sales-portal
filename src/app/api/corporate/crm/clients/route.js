@@ -17,10 +17,10 @@ export async function GET(request) {
     // Get current user's ID
     const currentUserId = user.user_id || user.id
 
-    // Fetch clients for current CRM user
+    // Fetch clients for current CRM user with email
     const { data: clients, error: clientsError } = await supabaseServer
       .from('corporate_crm_clients')
-      .select('client_id, company_name')
+      .select('client_id, company_name, email')
       .eq('user_id', currentUserId)
       .order('company_name', { ascending: true })
 
@@ -29,7 +29,42 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Failed to fetch clients' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, data: clients || [] });
+    // For each client, fetch branch_ids and their emails
+    const clientsWithEmails = await Promise.all(
+      (clients || []).map(async (client) => {
+        // Get branch_ids from domestic_crm_branch using client_id
+        const { data: branches, error: branchesError } = await supabaseServer
+          .from('domestic_crm_branch')
+          .select('branch_id')
+          .eq('client_id', client.client_id)
+
+        if (branchesError) {
+          console.error('Branches fetch error:', branchesError)
+          return { ...client, branchEmails: [] }
+        }
+
+        const branchIds = (branches || []).map(b => b.branch_id).filter(Boolean)
+
+        // Get emails from corporate_crm_contacts using branch_ids
+        let branchEmails = []
+        if (branchIds.length > 0) {
+          const { data: contacts, error: contactsError } = await supabaseServer
+            .from('corporate_crm_contacts')
+            .select('email')
+            .in('branch_id', branchIds)
+
+          if (!contactsError && contacts) {
+            branchEmails = contacts
+              .map(c => c.email)
+              .filter(email => email && email.trim() !== '')
+          }
+        }
+
+        return { ...client, branchEmails }
+      })
+    )
+
+    return NextResponse.json({ success: true, data: clientsWithEmails || [] });
   } catch (error) {
     console.error('Server error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
