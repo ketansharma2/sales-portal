@@ -702,40 +702,44 @@ function FseOnboardContent() {
                         </td>
 
                         <td className="px-4 py-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_10px_rgba(0,0,0,0.05)]">
-                          {lead.sent_to_crm ? (
-                            <span className="px-2 py-1 text-center bg-gray-100 text-gray-400 text-[10px] font-bold rounded border border-gray-200 uppercase tracking-wider">
-                              LOCKED  
-                            </span>
-                            
-                          ) : (
-                             <div className="flex items-center justify-center gap-2">
-                               <button
-                                 onClick={() =>
-                                   handleAction(
-                                     lead.client_id || lead.id,
-                                     "view",
-                                   )
-                                 }
-                                 className="p-1.5 text-gray-500 bg-white border border-gray-200 hover:text-blue-600 hover:border-blue-200 rounded transition-colors shadow-sm"
-                                 title="View Details"
-                               >
-                                 <Eye size={16} />
-                               </button>
-                               <button
-                                 onClick={() =>
-                                   handleAction(
-                                     lead.client_id || lead.id,
-                                     "delivery",
-                                   )
-                                 }
-                                 className="p-1.5 text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 rounded transition-colors shadow-sm"
-                                 title="Sent to Delivery"
-                               >
-                                 <Truck size={16} />
-                               </button>
-                             </div>
-                          )}
-                        </td>
+  <div className="flex items-center justify-center gap-2">
+    
+    {/* View Button - Always Visible */}
+    <button
+      onClick={() =>
+        handleAction(
+          lead.client_id || lead.id,
+          "view",
+        )
+      }
+      className="p-1.5 text-gray-500 bg-white border border-gray-200 hover:text-blue-600 hover:border-blue-200 rounded transition-colors shadow-sm"
+      title="View Details"
+    >
+      <Eye size={16} />
+    </button>
+
+    {/* Conditional Logic: Show LOCKED text OR Delivery Button */}
+    {lead.sent_to_crm ? (
+      <span className="px-2 py-1 text-center bg-gray-100 text-gray-400 text-[10px] font-bold rounded border border-gray-200 uppercase tracking-wider">
+        LOCKED  
+      </span>
+    ) : (
+      <button
+        onClick={() =>
+          handleAction(
+            lead.client_id || lead.id,
+            "delivery",
+          )
+        }
+        className="p-1.5 text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 rounded transition-colors shadow-sm"
+        title="Sent to Delivery"
+      >
+        <Truck size={16} />
+      </button>
+    )}
+    
+  </div>
+</td>
                       </>
                     )}
 

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import {
-    FileText, ArrowLeft, Briefcase, Users,
+    FileText, ArrowLeft, Briefcase, Users,Search,Calendar,Send,UserCheck,MessageSquare,Settings,Clock,Eye,Printer,
     Laptop, SunMedium , TrendingUp, Building2, Home, Rocket,IndianRupee, CheckCircle2, Globe2, Store, FileSpreadsheet, Database, PhoneCall, File, X
 } from "lucide-react";
 import Image from "next/image";
@@ -13,7 +13,11 @@ export default function MorningReportPage() {
     const [activeTab, setActiveTab] = useState("Sales & Delivery");
 
     // --- GET CURRENT MONTH ---
-    const currentMonth = new Date().toLocaleString('en-US', { month: 'long' });
+    const [currentMonth, setCurrentMonth] = useState('');
+    
+    useEffect(() => {
+        setCurrentMonth(new Date().toLocaleString('en-US', { month: 'long' }));
+    }, []);
 
     // --- STATE FOR INPUT VALUES (from localStorage) ---
     const [inputValues, setInputValues] = useState({
@@ -24,6 +28,38 @@ export default function MorningReportPage() {
         domesticRemarks: '',
         jobPostRemarks: ''
     });
+
+    // --- DELIVERY WORKBENCH REPORT STATES & MOCK DATA ---
+    const [cvModalData, setCvModalData] = useState(null);
+    const [jdModalData, setJdModalData] = useState(null);
+
+    const [reportData, setReportData] = useState([
+        { 
+            id: 1, date: "2026-03-02", tlName: "Vikram Singh", recruiter: "Pooja", client: "Frankfin", profile: "Telecouncellor", package: "30k", requirement: "350", jdText: "Looking for excellent communication skills in Hindi & English. Minimum 6 months of BPO experience required.", slot: "09:30 AM - 01:00 PM",
+            cv_naukri: 45, cv_indeed: 20, cv_other: 5, advance_sti: 15, conversion: 2, asset: 5, tracker_sent: 2, tracker_shared: 1, notes: "Good response today. Focused mostly on Naukri database.",
+            tlRemark: "Asked Pooja to focus only on immediate joiners."
+        },
+        { 
+            id: 2, date: "2026-03-02", tlName: "Neha Gupta", recruiter: "Sneha", client: "Urban Money", profile: "Telesales Executive", package: "21k", requirement: "30", jdText: "Outbound sales for financial products. Target-oriented role.", slot: "Full Day (10-6)",
+            cv_naukri: 10, cv_indeed: 30, cv_other: 2, advance_sti: 8, conversion: 1, asset: 3, tracker_sent: 1, tracker_shared: 1, notes: "Indeed is giving better regional candidates for this profile.",
+            tlRemark: "Good progress. Maintain the momentum."
+        },
+        { 
+            id: 3, date: "2026-03-02", tlName: "Amit Desai", recruiter: "Khushi Chawla", client: "Steel Craft Export", profile: "Senior Merchandiser", package: "70k", requirement: "2", jdText: "", slot: "02:00 PM - 06:00 PM",
+            cv_naukri: 5, cv_indeed: 2, cv_other: 1, advance_sti: 1, conversion: 0, asset: 1, tracker_sent: 0, tracker_shared: 0, notes: "Very niche profile. Hard to find relevant experience.",
+            tlRemark: "Try boolean search on Naukri tomorrow."
+        },
+        { 
+            id: 4, date: "2026-03-03", tlName: "Vikram Singh", recruiter: "Amit Kumar", client: "MKS", profile: "AutoCAD Draftsman", package: "40k", requirement: "2", jdText: "Must be proficient in AutoCAD 2D/3D. Knowledge of architectural drawings is a must.", slot: "09:30 AM - 01:00 PM",
+            cv_naukri: 15, cv_indeed: 5, cv_other: 0, advance_sti: 4, conversion: 1, asset: 2, tracker_sent: 1, tracker_shared: 0, notes: "Profiles sent to you. Waiting for client feedback.",
+            tlRemark: ""
+        },
+        { 
+            id: 5, date: "2026-03-02", tlName: "Neha Gupta", recruiter: "Pooja", client: "TechCorp Solutions", profile: "Java Developer", package: "12LPA", requirement: "5", jdText: "Spring Boot, Microservices, REST APIs. 3-5 years of hardcore development experience.", slot: "Full Day (10-6)",
+            cv_naukri: 25, cv_indeed: 15, cv_other: 0, advance_sti: 5, conversion: 0, asset: 2, tracker_sent: 1, tracker_shared: 1, notes: "Notice period issues with max candidates.",
+            tlRemark: ""
+        }
+    ]);
 
     // --- LOAD FROM LOCALSTORAGE ON MOUNT ---
     useEffect(() => {
@@ -54,18 +90,22 @@ export default function MorningReportPage() {
 
     // --- GET YESTERDAY'S DATE ---
     // If yesterday is Sunday (day 0), use Saturday instead
-    const getLastWorkingDay = () => {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        // If Sunday (0), go back to Saturday (6)
-        if (yesterday.getDay() === 0) {
-            yesterday.setDate(yesterday.getDate() - 1);
-        }
-        return yesterday;
-    };
+    const [yesterdayDate, setYesterdayDate] = useState('');
     
-    const lastWorkingDay = getLastWorkingDay();
-    const yesterdayDate = lastWorkingDay.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }); // e.g., "08 Mar"
+    useEffect(() => {
+        const getLastWorkingDay = () => {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            // If Sunday (0), go back to Saturday (6)
+            if (yesterday.getDay() === 0) {
+                yesterday.setDate(yesterday.getDate() - 1);
+            }
+            return yesterday;
+        };
+        
+        const lastWorkingDay = getLastWorkingDay();
+        setYesterdayDate(lastWorkingDay.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }));
+    }, []);
 
     // --- STATE FOR DOMESTIC SECTOR DATA ---
     const [domesticStats, setDomesticStats] = useState({
@@ -394,10 +434,11 @@ export default function MorningReportPage() {
                                         </div>
                                     </div>
 
-                                    {/* Row 2: 5 cards */}
+                                   {/* Row 2: 4 cards (Startup & Master Union) */}
                                     <div className="p-3 flex gap-2 bg-slate-50/30 overflow-x-auto">
+                                        
                                         {/* Startup Details Container */}
-                                        <div className="w-[45%] border-2 border-orange-200 rounded-lg overflow-hidden">
+                                        <div className="w-1/2 border-2 border-orange-200 rounded-lg overflow-hidden">
                                             <div className="bg-orange-50 px-3 py-1.5 border-b border-orange-200">
                                                 <p className="text-[10px] font-black text-orange-700 uppercase tracking-widest">Startup Details</p>
                                             </div>
@@ -423,40 +464,26 @@ export default function MorningReportPage() {
                                         </div>
 
                                         {/* Master Union Container */}
-                                        <div className="w-[55%] border-2 border-purple-200 rounded-lg overflow-hidden">
+                                        <div className="w-1/2 border-2 border-purple-200 rounded-lg overflow-hidden">
                                             <div className="bg-purple-50 px-3 py-1.5 border-b border-purple-200">
                                                 <p className="text-[10px] font-black text-purple-700 uppercase tracking-widest">Master Union Details</p>
                                             </div>
                                             <div className="p-2 flex gap-2 bg-white">
-                                                {/* Master Union Clients */}
-                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-purple-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=master-union-clients')}>
+                                                {/* Master Union Clients (Updated to Dual Split) */}
+                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-purple-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=master-union-clients-yesterday')}>
                                                     <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Master Union Clients</p></div>
-                                                    <div className="flex-1 p-1.5 text-center bg-purple-50/30 flex flex-col justify-center h-[60px]">
-                                                        <p className="text-[8px] font-black text-purple-400 uppercase">Total Only</p>
-                                                        <p className="text-base font-black text-purple-800 leading-none">{corporateStats.loading ? '-' : corporateStats.masterUnionClientsTotal}</p>
+                                                    <div className="flex divide-x divide-slate-100 h-[60px]">
+                                                        <div className="flex-1 p-1.5 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none">{corporateStats.loading ? '-' : corporateStats.masterUnionClientsTotal}</p></div>
+                                                        <div className="flex-1 p-1.5 text-center bg-purple-50/30 flex flex-col justify-center"><p className="text-[8px] font-black text-purple-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-purple-700 leading-none">{corporateStats.loading ? '-' : corporateStats.masterUnionClientsYesterday}</p></div>
                                                     </div>
                                                 </div>
 
-                                                {/* Master Union Profiles */}
-                                                <div className="border border-purple-200 rounded-lg bg-purple-50/50 overflow-hidden shadow-sm hover:border-purple-400 transition-all flex flex-col flex-1 min-w-[120px]">
-                                                    <div className="bg-purple-50 py-1.5 text-center border-b border-purple-100"><p className="text-[9px] font-bold text-purple-600 uppercase tracking-widest truncate px-1">Master Union Profiles</p></div>
-                                                    <div className="flex-1 p-2 text-center flex flex-col justify-center items-center h-[60px]">
-                                                        <input 
-                                                            type="text" 
-                                                            className="text-lg font-black text-purple-800 bg-transparent border-b border-dashed border-purple-300 outline-none text-center w-20 focus:border-purple-600 transition-colors"
-                                                            placeholder="0"
-                                                            value={inputValues.masterUnionProfiles}
-                                                            onChange={(e) => saveToLocalStorage('masterUnionProfiles', e.target.value)}
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                {/* Master Union Calling */}
-                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-purple-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=master-union-calling')}>
+                                                {/* Master Union Calling (Updated to Dual Split) */}
+                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-purple-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=master-union-calling-yesterday')}>
                                                     <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Master Union Calling</p></div>
-                                                    <div className="flex-1 p-1.5 text-center bg-purple-50/30 flex flex-col justify-center h-[60px]">
-                                                        <p className="text-[8px] font-black text-purple-400 uppercase">Total Only</p>
-                                                        <p className="text-base font-black text-purple-800 leading-none">{corporateStats.loading ? '-' : corporateStats.masterUnionCallingTotal}</p>
+                                                    <div className="flex divide-x divide-slate-100 h-[60px]">
+                                                        <div className="flex-1 p-1.5 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none">{corporateStats.loading ? '-' : corporateStats.masterUnionCallingTotal}</p></div>
+                                                        <div className="flex-1 p-1.5 text-center bg-purple-50/30 flex flex-col justify-center"><p className="text-[8px] font-black text-purple-400 uppercase">{corporateStats.lastWorkingDay || 'Yest'}</p><p className="text-base font-black text-purple-700 leading-none">{corporateStats.loading ? '-' : corporateStats.masterUnionCallingYesterday}</p></div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -621,10 +648,538 @@ export default function MorningReportPage() {
                             </div>
                         </div>
 
-                        {/* ========================================= */}
+                       
+
+                        {/* --------- DELIVERY DEPARTMENT BLOCK ------- */}
+
+                        <div>
+                            <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
+                                <Rocket size={18} className="text-purple-600"/> Delivery Workbench Reports
+                            </h2>
+                            
+                            <div className="flex flex-col gap-8">
+                                
+                                {/* --- CORPORATE DELIVERY REPORT --- */}
+                                <div className="bg-white border border-indigo-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
+                                    <div className="bg-indigo-50 p-4 border-b border-indigo-100 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <Building2 size={18} className="text-indigo-600"/>
+                                            <h3 className="text-sm font-black text-[#103c7f] uppercase tracking-widest">
+                                                Corporate Workbench
+                                            </h3>
+                                        </div>                                       
+                                    </div>
+                                   <div className="overflow-x-auto custom-scrollbar">
+                                        <table className="w-full text-left border-collapse min-w-[1250px] text-xs">
+                                            <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-10">
+                                                <tr>
+                                                    <th className="p-2.5 border-r border-blue-800 w-8 text-center">#</th>
+                                                    <th className="p-2.5 border-r border-blue-800 min-w-[110px]"><div className="flex items-center gap-1.5"><Calendar size={12}/> Date & Slot</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 min-w-[130px]"><div className="flex items-center gap-1.5 text-yellow-300"><Users size={12}/> CRM, TL & RC</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 min-w-[160px]"><div className="flex items-center gap-1.5"><Briefcase size={12}/> Client, Profile & JD</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 text-center min-w-[100px]"><div className="flex items-center justify-center gap-1.5"><IndianRupee size={12}/> Pkg / Req</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 text-center bg-blue-600"><div className="flex items-center justify-center gap-1.5"><FileText size={12}/> CVs</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> Adv STI</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><TrendingUp size={12}/> Conv.</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Database size={12}/> Asset</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 text-center bg-gray-700/50"><div className="flex items-center justify-center gap-1.5"><UserCheck size={12}/> T. Rcvd</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 text-center bg-indigo-700/50"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> T. Shared</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 min-w-[160px]"><div className="flex items-center gap-1.5"><MessageSquare size={12}/> RC Notes</div></th>
+                                                    <th className="p-2.5 min-w-[160px] bg-[#0d316a] text-yellow-300"><div className="flex items-center gap-1.5"><Settings size={12}/> TL Remarks</div></th>
+                                                </tr>
+                                            </thead>
+                                        <tbody className="font-medium divide-y divide-gray-200">
+                                                {reportData && reportData.length > 0 ? (
+                                                    reportData.map((row, index) => {
+                                                        const totalRowCv = (row.cv_naukri || 0) + (row.cv_indeed || 0) + (row.cv_other || 0);
+                                                        return (
+                                                            <tr key={row.id} className="hover:bg-indigo-50/50 transition">
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 text-center text-gray-400 font-bold bg-gray-50 align-middle">{index + 1}</td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 bg-gray-50 align-middle text-center">
+                                                                    <div className="flex flex-col items-center justify-center gap-1 h-full">
+                                                                        <span className="font-bold text-gray-800">{row.date}</span>
+                                                                        <span className="text-[9px] font-bold text-orange-500 flex items-center justify-center gap-1 leading-tight"><Clock size={9}/> {row.slot}</span>
+                                                                    </div>
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 align-middle text-center">
+                                                                    <div className="flex flex-col items-center justify-center gap-1.5 w-full h-full">
+                                                                        <span className="text-[9px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded shadow-sm w-max max-w-full truncate" title={row.crmName}>
+                                                                            CRM: {row.crmName || "N/A"}
+                                                                        </span>
+                                                                        <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded shadow-sm w-max max-w-full truncate" title={row.tlName}>
+                                                                            TL: {row.tlName}
+                                                                        </span>
+                                                                        <span className="text-[9px] font-black text-blue-800 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded uppercase tracking-wider w-max max-w-full truncate" title={row.recruiter}>
+                                                                            RC: {row.recruiter}
+                                                                        </span>
+                                                                    </div>
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 align-middle text-center">
+                                                                    <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
+                                                                        <span className="font-black text-[#103c7f] text-[11px] uppercase tracking-wide w-full break-words leading-tight" title={row.client}>{row.client}</span>
+                                                                        <span className="font-bold text-gray-600 leading-tight w-full break-words">{row.profile}</span>
+                                                                        {row.jdText ? (
+                                                                            <button onClick={() => setJdModalData(row)} className="mt-1 text-blue-600 hover:text-white hover:bg-blue-600 font-black text-[8px] uppercase tracking-widest bg-blue-50 px-2 py-1 rounded transition-colors border border-blue-200 w-max">
+                                                                                View JD
+                                                                            </button>
+                                                                        ) : (
+                                                                            <span className="mt-1 text-gray-400 text-[8px] italic uppercase tracking-widest w-max">No JD</span>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 text-center align-middle">
+                                                                    <div className="flex items-center justify-center gap-1.5"><span className="text-green-700 font-bold">{row.package}</span><span className="text-gray-300">|</span><span className="text-gray-800 font-black">{row.requirement}</span></div>
+                                                                </td>
+                                                                
+                                                                <td className="p-2 border-r border-gray-200 text-center bg-blue-50/50 hover:bg-blue-100 transition cursor-pointer align-middle" onClick={() => setCvModalData(row)}>
+                                                                    <div className="flex items-center justify-center gap-1"><span className="font-black text-blue-700 text-sm">{totalRowCv}</span><Eye size={12} className="text-blue-400" /></div>
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-purple-700 bg-purple-50/20 align-middle">{row.advance_sti}</td>
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-green-700 bg-green-50/20 align-middle">{row.conversion}</td>
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-orange-600 bg-orange-50/20 align-middle">{row.asset}</td>
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-gray-800 bg-gray-50 align-middle">{row.tracker_sent || 0}</td>
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-indigo-700 bg-indigo-50/40 align-middle">{row.tracker_shared || 0}</td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-300 align-middle text-center w-48 bg-yellow-50/30">
+                                                                    <div className="text-[10px] text-gray-600 italic whitespace-normal break-words" title={row.notes}>{row.notes ? `"${row.notes}"` : <span className="text-gray-400 not-italic">No notes</span>}</div>
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 align-middle text-center w-48 bg-blue-50/20">
+                                                                    <div className="text-[10px] font-bold text-[#103c7f] whitespace-normal break-words" title={row.tlRemark}>{row.tlRemark ? row.tlRemark : <span className="text-gray-400 font-normal italic">No remark added</span>}</div>
+                                                                </td>
+                                                            </tr>
+                                                        )
+                                                    })
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan="13" className="p-12 text-center bg-white align-middle">
+                                                            <Calendar size={40} className="text-indigo-200 mx-auto mb-3" />
+                                                            <h4 className="text-lg font-black text-indigo-400 uppercase tracking-widest">No Corporate Data</h4>
+                                                            <p className="text-sm font-bold text-gray-400 mt-1">No activities found for the corporate delivery team.</p>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                            {/* --- TOTAL FOOTER ROW --- */}
+                                            {reportData && reportData.length > 0 && (
+                                                <tfoot className="bg-slate-100 border-t-2 border-slate-300">
+                                                    <tr>
+                                                        <td colSpan="3" className="p-3 text-right font-black text-slate-700 uppercase tracking-widest">
+                                                            Total Summary
+                                                        </td>
+                                                        <td className="p-3 border-r border-slate-300 text-center align-middle">
+                                                            <div className="flex flex-col gap-1 items-center justify-center">
+                                                                <span className="text-[10px] font-bold text-slate-500 uppercase">Unique</span>
+                                                                <div className="flex gap-2 text-sm font-black text-[#103c7f]">
+                                                                    <span>{new Set(reportData.map(r => r.client)).size} Clients</span>
+                                                                    <span>|</span>
+                                                                    <span>{new Set(reportData.map(r => r.profile)).size} Profiles</span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-slate-200/50">
+                                                            <span className="text-sm font-black text-slate-500">-</span>
+                                                        </td>
+                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-blue-100/50">
+                                                            <span className="text-lg font-black text-blue-800">
+                                                                {reportData.reduce((acc, curr) => acc + (curr.cv_naukri || 0) + (curr.cv_indeed || 0) + (curr.cv_other || 0), 0)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-purple-100/50">
+                                                            <span className="text-lg font-black text-purple-800">{reportData.reduce((acc, curr) => acc + (curr.advance_sti || 0), 0)}</span>
+                                                        </td>
+                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-green-100/50">
+                                                            <span className="text-lg font-black text-green-800">{reportData.reduce((acc, curr) => acc + (curr.conversion || 0), 0)}</span>
+                                                        </td>
+                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-orange-100/50">
+                                                            <span className="text-lg font-black text-orange-800">{reportData.reduce((acc, curr) => acc + (curr.asset || 0), 0)}</span>
+                                                        </td>
+                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-gray-200">
+                                                            <span className="text-lg font-black text-gray-800">{reportData.reduce((acc, curr) => acc + (curr.tracker_sent || 0), 0)}</span>
+                                                        </td>
+                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-indigo-100/50">
+                                                            <span className="text-lg font-black text-indigo-800">{reportData.reduce((acc, curr) => acc + (curr.tracker_shared || 0), 0)}</span>
+                                                        </td>
+                                                        <td colSpan="2" className="bg-slate-100"></td>
+                                                    </tr>
+                                                </tfoot>
+                                            )}
+                                        </table>
+                                    </div>               
+                                   {/* --- CORPORATE CLIENT HANDLING KPI CARDS & TABLE --- */}
+                                    <div className="p-4 bg-indigo-50/20 border-t border-indigo-100">
+                                        <h4 className="text-[11px] font-black text-indigo-800 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                            <UserCheck size={14}/> Corporate Client Handling
+                                        </h4>
+                                        
+                                        {/* KPI CARDS */}
+                                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
+                                            {/* Client Calling (NEW) */}
+                                            <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col">
+                                                <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">CRM Client Calling</p></div>
+                                                <div className="flex divide-x divide-slate-100 h-[50px]">
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-500 uppercase">Yest</p><p className="text-sm font-black text-indigo-700 leading-none">0</p></div>
+                                                </div>
+                                            </div>
+                                            {/* Tracker to Client */}
+                                            <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col">
+                                                <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Tracker to Client</p></div>
+                                                <div className="flex divide-x divide-slate-100 h-[50px]">
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-500 uppercase">Yest</p><p className="text-sm font-black text-indigo-700 leading-none">0</p></div>
+                                                </div>
+                                            </div>
+                                            {/* Interview */}
+                                            <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col">
+                                                <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Interview</p></div>
+                                                <div className="flex divide-x divide-slate-100 h-[50px]">
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-500 uppercase">Yest</p><p className="text-sm font-black text-indigo-700 leading-none">0</p></div>
+                                                </div>
+                                            </div>
+                                            {/* Selection */}
+                                            <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col">
+                                                <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Selection</p></div>
+                                                <div className="flex divide-x divide-slate-100 h-[50px]">
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-500 uppercase">Yest</p><p className="text-sm font-black text-indigo-700 leading-none">0</p></div>
+                                                </div>
+                                            </div>
+                                            {/* Joining */}
+                                            <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col">
+                                                <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Joining</p></div>
+                                                <div className="flex divide-x divide-slate-100 h-[50px]">
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-500 uppercase">Yest</p><p className="text-sm font-black text-indigo-700 leading-none">0</p></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* CLIENT CONVERSATION LOG TABLE */}
+                                        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm flex flex-col">
+                                            <div className="bg-slate-50 p-2.5 border-b border-slate-200 flex justify-between items-center">
+                                                <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-widest flex items-center gap-1.5">
+                                                    <MessageSquare size={12}/> Client Conversation Log
+                                                </h3>
+                                            </div>
+                                            <div className="overflow-x-auto custom-scrollbar">
+                                                <table className="w-full text-left border-collapse text-xs min-w-[900px]">
+                                                    <thead className="bg-slate-100/50 text-slate-500 text-[9px] uppercase font-bold">
+                                                        <tr>
+                                                            <th className="p-2.5 border-b border-slate-200 w-[15%]">Date & Mode</th>
+                                                            <th className="p-2.5 border-b border-slate-200 w-[15%]">CRM</th>
+                                                            <th className="p-2.5 border-b border-slate-200 w-[20%]">Company Name</th>
+                                                            <th className="p-2.5 border-b border-slate-200 w-[20%]">Contact Info</th>
+                                                            <th className="p-2.5 border-b border-slate-200 w-[30%]">Conversation</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100">
+                                                        {/* Static Mock Row (Replace with your map function) */}
+                                                        <tr className="hover:bg-indigo-50/30 transition">
+                                                            <td className="p-2.5 align-top">
+                                                                <div className="flex flex-col gap-0.5 items-start">
+                                                                    <span className="font-bold text-gray-800">2026-03-02</span>
+                                                                    <span className="text-[9px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded w-max">On Call</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="p-2.5 align-top">
+                                                                <span className="text-[10px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded shadow-sm w-max truncate">
+                                                                    Rahul Verma
+                                                                </span>
+                                                            </td>
+                                                            <td className="p-2.5 align-top font-black text-[#103c7f]">TechCorp Solutions</td>
+                                                            <td className="p-2.5 align-top">
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    <span className="font-bold text-gray-700">Mr. Amit Sharma</span>
+                                                                    <span className="text-[9px] text-gray-500 uppercase tracking-wide">HR Manager</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="p-2.5 align-top text-[11px] text-gray-600 italic">
+                                                                "Discussed the new Java Developer requirement. They need 5 candidates by next week. Shared tracker."
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                               
+
+                                </div>
+
+
+
+                                {/* --- DOMESTIC DELIVERY REPORT --- */}
+                                <div className="bg-white border border-orange-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
+                                    <div className="bg-orange-50 p-4 border-b border-orange-100 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <Home size={18} className="text-orange-600"/>
+                                            <h3 className="text-sm font-black text-orange-900 uppercase tracking-widest">
+                                                Domestic Workbench
+                                            </h3>
+                                        </div>
+                                        
+                                        
+                                    </div>
+
+                                    <div className="overflow-x-auto custom-scrollbar">
+                                        <table className="w-full text-left border-collapse min-w-[1250px] text-xs">
+                                            <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-10">
+                                                <tr>    
+                                                    <th className="p-2.5 border-r border-blue-800 w-8 text-center">#</th>
+                                                    <th className="p-2.5 border-r border-blue-800 min-w-[110px]"><div className="flex items-center gap-1.5"><Calendar size={12}/> Date & Slot</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 min-w-[120px]"><div className="flex items-center gap-1.5 text-yellow-300"><Users size={12}/> CRM, TL & RC</div></th>                                                    <th className="p-2.5 border-r border-blue-800 min-w-[180px]"><div className="flex items-center gap-1.5"><Briefcase size={12}/> Client, Profile & JD</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 text-center min-w-[100px]"><div className="flex items-center justify-center gap-1.5"><IndianRupee size={12}/> Pkg / Req</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 text-center bg-blue-600"><div className="flex items-center justify-center gap-1.5"><FileText size={12}/> CVs</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> Adv STI</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><TrendingUp size={12}/> Conv.</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Database size={12}/> Asset</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 text-center bg-gray-700/50"><div className="flex items-center justify-center gap-1.5"><UserCheck size={12}/> T. Rcvd</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 text-center bg-indigo-700/50"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> T. Shared</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 min-w-[160px]"><div className="flex items-center gap-1.5"><MessageSquare size={12}/> RC Notes</div></th>
+                                                    <th className="p-2.5 min-w-[160px] bg-[#0d316a] text-yellow-300"><div className="flex items-center gap-1.5"><Settings size={12}/> TL Remarks</div></th>
+                                                </tr>
+                                            </thead>
+                                          <tbody className="font-medium divide-y divide-gray-200">
+                                                {reportData && reportData.length > 0 ? (
+                                                    reportData.map((row, index) => {
+                                                        const totalRowCv = (row.cv_naukri || 0) + (row.cv_indeed || 0) + (row.cv_other || 0);
+                                                        return (
+                                                            <tr key={row.id} className="hover:bg-indigo-50/50 transition">
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 text-center text-gray-400 font-bold bg-gray-50 align-middle">{index + 1}</td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 bg-gray-50 align-middle text-center">
+                                                                    <div className="flex flex-col items-center justify-center gap-1 h-full">
+                                                                        <span className="font-bold text-gray-800">{row.date}</span>
+                                                                        <span className="text-[9px] font-bold text-orange-500 flex items-center justify-center gap-1 leading-tight"><Clock size={9}/> {row.slot}</span>
+                                                                    </div>
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 align-middle text-center">
+                                                                    <div className="flex flex-col items-center justify-center gap-1.5 w-full h-full">
+                                                                        <span className="text-[9px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded shadow-sm w-max max-w-full truncate" title={row.crmName}>
+                                                                            CRM: {row.crmName || "N/A"}
+                                                                        </span>
+                                                                        <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded shadow-sm w-max max-w-full truncate" title={row.tlName}>
+                                                                            TL: {row.tlName}
+                                                                        </span>
+                                                                        <span className="text-[9px] font-black text-blue-800 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded uppercase tracking-wider w-max max-w-full truncate" title={row.recruiter}>
+                                                                            RC: {row.recruiter}
+                                                                        </span>
+                                                                    </div>
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 align-middle text-center">
+                                                                    <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
+                                                                        <span className="font-black text-[#103c7f] text-[11px] uppercase tracking-wide w-full break-words leading-tight" title={row.client}>{row.client}</span>
+                                                                        <span className="font-bold text-gray-600 leading-tight w-full break-words">{row.profile}</span>
+                                                                        {row.jdText ? (
+                                                                            <button onClick={() => setJdModalData(row)} className="mt-1 text-blue-600 hover:text-white hover:bg-blue-600 font-black text-[8px] uppercase tracking-widest bg-blue-50 px-2 py-1 rounded transition-colors border border-blue-200 w-max">
+                                                                                View JD
+                                                                            </button>
+                                                                        ) : (
+                                                                            <span className="mt-1 text-gray-400 text-[8px] italic uppercase tracking-widest w-max">No JD</span>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 text-center align-middle">
+                                                                    <div className="flex items-center justify-center gap-1.5"><span className="text-green-700 font-bold">{row.package}</span><span className="text-gray-300">|</span><span className="text-gray-800 font-black">{row.requirement}</span></div>
+                                                                </td>
+                                                                
+                                                                <td className="p-2 border-r border-gray-200 text-center bg-blue-50/50 hover:bg-blue-100 transition cursor-pointer align-middle" onClick={() => setCvModalData(row)}>
+                                                                    <div className="flex items-center justify-center gap-1"><span className="font-black text-blue-700 text-sm">{totalRowCv}</span><Eye size={12} className="text-blue-400" /></div>
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-purple-700 bg-purple-50/20 align-middle">{row.advance_sti}</td>
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-green-700 bg-green-50/20 align-middle">{row.conversion}</td>
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-orange-600 bg-orange-50/20 align-middle">{row.asset}</td>
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-gray-800 bg-gray-50 align-middle">{row.tracker_sent || 0}</td>
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-indigo-700 bg-indigo-50/40 align-middle">{row.tracker_shared || 0}</td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-300 align-middle text-center w-48 bg-yellow-50/30">
+                                                                    <div className="text-[10px] text-gray-600 italic whitespace-normal break-words" title={row.notes}>{row.notes ? `"${row.notes}"` : <span className="text-gray-400 not-italic">No notes</span>}</div>
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 align-middle text-center w-48 bg-blue-50/20">
+                                                                    <div className="text-[10px] font-bold text-[#103c7f] whitespace-normal break-words" title={row.tlRemark}>{row.tlRemark ? row.tlRemark : <span className="text-gray-400 font-normal italic">No remark added</span>}</div>
+                                                                </td>
+                                                            </tr>
+                                                        )
+                                                    })
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan="13" className="p-12 text-center bg-white align-middle">
+                                                            <Calendar size={40} className="text-indigo-200 mx-auto mb-3" />
+                                                            <h4 className="text-lg font-black text-indigo-400 uppercase tracking-widest">No Corporate Data</h4>
+                                                            <p className="text-sm font-bold text-gray-400 mt-1">No activities found for the corporate delivery team.</p>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                            {/* --- TOTAL FOOTER ROW --- */}
+                                            {reportData && reportData.length > 0 && (
+                                                <tfoot className="bg-slate-100 border-t-2 border-slate-300">
+                                                    <tr>
+                                                        <td colSpan="3" className="p-3 text-right font-black text-slate-700 uppercase tracking-widest">
+                                                            Total Summary
+                                                        </td>
+                                                        <td className="p-3 border-r border-slate-300 text-center align-middle">
+                                                            <div className="flex flex-col gap-1 items-center justify-center">
+                                                                <span className="text-[10px] font-bold text-slate-500 uppercase">Unique</span>
+                                                                <div className="flex gap-2 text-sm font-black text-[#103c7f]">
+                                                                    <span>{new Set(reportData.map(r => r.client)).size} Clients</span>
+                                                                    <span>|</span>
+                                                                    <span>{new Set(reportData.map(r => r.profile)).size} Profiles</span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-slate-200/50">
+                                                            <span className="text-sm font-black text-slate-500">-</span>
+                                                        </td>
+                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-blue-100/50">
+                                                            <span className="text-lg font-black text-blue-800">
+                                                                {reportData.reduce((acc, curr) => acc + (curr.cv_naukri || 0) + (curr.cv_indeed || 0) + (curr.cv_other || 0), 0)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-purple-100/50">
+                                                            <span className="text-lg font-black text-purple-800">{reportData.reduce((acc, curr) => acc + (curr.advance_sti || 0), 0)}</span>
+                                                        </td>
+                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-green-100/50">
+                                                            <span className="text-lg font-black text-green-800">{reportData.reduce((acc, curr) => acc + (curr.conversion || 0), 0)}</span>
+                                                        </td>
+                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-orange-100/50">
+                                                            <span className="text-lg font-black text-orange-800">{reportData.reduce((acc, curr) => acc + (curr.asset || 0), 0)}</span>
+                                                        </td>
+                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-gray-200">
+                                                            <span className="text-lg font-black text-gray-800">{reportData.reduce((acc, curr) => acc + (curr.tracker_sent || 0), 0)}</span>
+                                                        </td>
+                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-indigo-100/50">
+                                                            <span className="text-lg font-black text-indigo-800">{reportData.reduce((acc, curr) => acc + (curr.tracker_shared || 0), 0)}</span>
+                                                        </td>
+                                                        <td colSpan="2" className="bg-slate-100"></td>
+                                                    </tr>
+                                                </tfoot>
+                                            )}
+                                        </table>
+                                    </div>
+
+                                    {/* --- DOMESTIC CLIENT HANDLING KPI CARDS & TABLE --- */}
+                                    <div className="p-4 bg-orange-50/20 border-t border-orange-100">
+                                        <h4 className="text-[11px] font-black text-orange-800 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                            <UserCheck size={14}/> Domestic Client Handling
+                                        </h4>
+                                        
+                                        {/* KPI CARDS */}
+                                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
+                                            {/* Client Calling */}
+                                            <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col">
+                                                <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">CRM Client Calling</p></div>
+                                                <div className="flex divide-x divide-slate-100 h-[50px]">
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center bg-orange-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-orange-500 uppercase">Yest</p><p className="text-sm font-black text-orange-700 leading-none">0</p></div>
+                                                </div>
+                                            </div>
+                                            {/* Tracker to Client */}
+                                            <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col">
+                                                <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Tracker to Client</p></div>
+                                                <div className="flex divide-x divide-slate-100 h-[50px]">
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center bg-orange-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-orange-500 uppercase">Yest</p><p className="text-sm font-black text-orange-700 leading-none">0</p></div>
+                                                </div>
+                                            </div>
+                                            {/* Interview */}
+                                            <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col">
+                                                <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Interview</p></div>
+                                                <div className="flex divide-x divide-slate-100 h-[50px]">
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center bg-orange-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-orange-500 uppercase">Yest</p><p className="text-sm font-black text-orange-700 leading-none">0</p></div>
+                                                </div>
+                                            </div>
+                                            {/* Selection */}
+                                            <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col">
+                                                <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Selection</p></div>
+                                                <div className="flex divide-x divide-slate-100 h-[50px]">
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center bg-orange-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-orange-500 uppercase">Yest</p><p className="text-sm font-black text-orange-700 leading-none">0</p></div>
+                                                </div>
+                                            </div>
+                                            {/* Joining */}
+                                            <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col">
+                                                <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Joining</p></div>
+                                                <div className="flex divide-x divide-slate-100 h-[50px]">
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center bg-orange-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-orange-500 uppercase">Yest</p><p className="text-sm font-black text-orange-700 leading-none">0</p></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* CLIENT CONVERSATION LOG TABLE */}
+                                        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm flex flex-col">
+                                            <div className="bg-slate-50 p-2.5 border-b border-slate-200 flex justify-between items-center">
+                                                <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-widest flex items-center gap-1.5">
+                                                    <MessageSquare size={12}/> Client Conversation Log
+                                                </h3>
+                                            </div>
+                                            <div className="overflow-x-auto custom-scrollbar">
+                                                <table className="w-full text-left border-collapse text-xs min-w-[900px]">
+                                                    <thead className="bg-slate-100/50 text-slate-500 text-[9px] uppercase font-bold">
+                                                        <tr>
+                                                            <th className="p-2.5 border-b border-slate-200 w-[15%]">Date & Mode</th>
+                                                            <th className="p-2.5 border-b border-slate-200 w-[15%]">CRM</th>
+                                                            <th className="p-2.5 border-b border-slate-200 w-[20%]">Company Name</th>
+                                                            <th className="p-2.5 border-b border-slate-200 w-[20%]">Contact Info</th>
+                                                            <th className="p-2.5 border-b border-slate-200 w-[30%]">Conversation</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100">
+                                                        {/* Static Mock Row (Replace with your map function) */}
+                                                        <tr className="hover:bg-orange-50/30 transition">
+                                                            <td className="p-2.5 align-top">
+                                                                <div className="flex flex-col gap-0.5 items-start">
+                                                                    <span className="font-bold text-gray-800">2026-03-02</span>
+                                                                    <span className="text-[9px] font-black text-orange-600 bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded w-max">On Call</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="p-2.5 align-top">
+                                                                <span className="text-[10px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded shadow-sm w-max truncate">
+                                                                    Priya Singh
+                                                                </span>
+                                                            </td>
+                                                            <td className="p-2.5 align-top font-black text-[#103c7f]">Reliance Retail</td>
+                                                            <td className="p-2.5 align-top">
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    <span className="font-bold text-gray-700">Ms. Anjali Sharma</span>
+                                                                    <span className="text-[9px] text-gray-500 uppercase tracking-wide">Talent Acquisition</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="p-2.5 align-top text-[11px] text-gray-600 italic">
+                                                                "Follow-up regarding the Store Manager profiles. They shortlisted 3 candidates for the final round. Will schedule interviews for tomorrow."
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                        </div>
+
+                         {/* ========================================= */}
                         {/* ------ JOB POSTING REPORT SECTION -------- */}
                         {/* ========================================= */}
-                        <div className="mb-8">
+                        <div className="mb-8 mt-8">
                             <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
                                 <FileSpreadsheet size={18} className="text-green-600"/> Job Post Report
                             </h2>
@@ -811,44 +1366,6 @@ export default function MorningReportPage() {
                                 </div>
                             </div>
                         </div>
-
-                       {/* ========================================= */}
-                        {/* --------- DELIVERY DEPARTMENT BLOCK ------- */}
-                        {/* ========================================= */}
-                        <div>
-                            <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
-                                <Rocket size={18} className="text-purple-600"/> Delivery
-                            </h2>
-                            
-                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                                
-                                {/* --- CORPORATE DELIVERY (COMING SOON) --- */}
-                                <div className="bg-slate-50 rounded-xl border border-dashed border-slate-300 overflow-hidden flex flex-col justify-center items-center p-8 min-h-[180px] relative group cursor-not-allowed">
-                                    <div className="absolute inset-0 bg-slate-100/50 backdrop-blur-[1px]"></div>
-                                    <div className="z-10 flex flex-col items-center opacity-60 group-hover:opacity-100 transition-opacity">
-                                        <Building2 size={32} className="text-slate-400 mb-2"/>
-                                        <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest">Corporate Delivery</h4>
-                                        <div className="mt-3 bg-white text-slate-800 text-[10px] font-black px-4 py-1.5 rounded-full border border-slate-200 shadow-sm uppercase tracking-wider">
-                                            Coming Soon
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* --- DOMESTIC DELIVERY (COMING SOON) --- */}
-                                <div className="bg-slate-50 rounded-xl border border-dashed border-slate-300 overflow-hidden flex flex-col justify-center items-center p-8 min-h-[180px] relative group cursor-not-allowed">
-                                    <div className="absolute inset-0 bg-slate-100/50 backdrop-blur-[1px]"></div>
-                                    <div className="z-10 flex flex-col items-center opacity-60 group-hover:opacity-100 transition-opacity">
-                                        <Home size={32} className="text-slate-400 mb-2"/>
-                                        <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest">Domestic Delivery</h4>
-                                        <div className="mt-3 bg-white text-slate-800 text-[10px] font-black px-4 py-1.5 rounded-full border border-slate-200 shadow-sm uppercase tracking-wider">
-                                            Coming Soon
-                                        </div>
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>
-
                     </div>
                 )}
 
@@ -932,6 +1449,77 @@ export default function MorningReportPage() {
                          </div>
                      </div>
                  )}
+                 {/* ========================================================= */}
+            {/* --- MODAL 1: SMALL MODAL FOR CV BREAKDOWN --- */}
+            {/* ========================================================= */}
+            {cvModalData && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4" onClick={() => setCvModalData(null)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                        <div className="bg-[#103c7f] p-3 flex justify-between items-center text-white shrink-0">
+                            <h3 className="font-black text-sm uppercase tracking-wide flex items-center gap-2">
+                                <Search size={16}/> CV Breakdown
+                            </h3>
+                            <button onClick={() => setCvModalData(null)} className="hover:bg-white/20 p-1 rounded-full transition bg-white/10">
+                                <X size={16} />
+                            </button>
+                        </div>
+                        <div className="p-5 bg-gray-50 text-center">
+                            <h4 className="text-sm font-black text-[#103c7f] mb-1">{cvModalData.profile}</h4>
+                            <p className="text-[10px] font-bold text-gray-500 mb-4 bg-gray-200 inline-block px-2 py-0.5 rounded-full">
+                                TL: {cvModalData.tlName} <span className="mx-1">•</span> RC: {cvModalData.recruiter}
+                            </p>
+                            
+                            <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                                <div className="flex flex-col items-center">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Naukri</p>
+                                    <span className="text-xl font-black text-blue-600">{cvModalData.cv_naukri || 0}</span>
+                                </div>
+                                <div className="w-px h-10 bg-gray-200"></div>
+                                <div className="flex flex-col items-center">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Indeed</p>
+                                    <span className="text-xl font-black text-blue-600">{cvModalData.cv_indeed || 0}</span>
+                                </div>
+                                <div className="w-px h-10 bg-gray-200"></div>
+                                <div className="flex flex-col items-center">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Other</p>
+                                    <span className="text-xl font-black text-blue-600">{cvModalData.cv_other || 0}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ========================================================= */}
+            {/* --- MODAL 2: MODAL FOR VIEWING JD CONTENT --- */}
+            {/* ========================================================= */}
+            {jdModalData && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4" onClick={() => setJdModalData(null)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                        <div className="bg-[#103c7f] p-3 flex justify-between items-center text-white shrink-0">
+                            <h3 className="font-black text-sm uppercase tracking-wide flex items-center gap-2">
+                                <FileText size={16}/> Job Description
+                            </h3>
+                            <button onClick={() => setJdModalData(null)} className="hover:bg-white/20 p-1 rounded-full transition bg-white/10">
+                                <X size={16} />
+                            </button>
+                        </div>
+                        <div className="p-6 bg-gray-50">
+                            <h4 className="text-lg font-black text-[#103c7f] mb-3 border-b border-gray-200 pb-2">
+                                {jdModalData.profile}
+                            </h4>
+                            <p className="text-sm font-medium text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                {jdModalData.jdText}
+                            </p>
+                        </div>
+                        <div className="p-3 bg-white border-t border-gray-100 flex justify-end">
+                            <button onClick={() => setJdModalData(null)} className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold uppercase tracking-widest rounded-lg transition-colors">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
              </div>
          </div>
      );

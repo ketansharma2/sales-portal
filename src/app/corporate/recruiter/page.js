@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import { 
     Calendar, Building2, Briefcase, IndianRupee, Target, Clock, 
     FileText, Send, TrendingUp, Database, UserCheck, MessageSquare, 
-    LayoutDashboard, Search, Eye, X
+    LayoutDashboard, Search, Eye, X , User
 } from "lucide-react";
 
 export default function RecruiterWorkbenchReport() {
@@ -11,6 +11,9 @@ export default function RecruiterWorkbenchReport() {
     // --- STATE ---
     const [selectedDate, setSelectedDate] = useState("2026-03-02");
     const [searchTerm, setSearchTerm] = useState("");
+
+    const [fromDate, setFromDate] = useState("");
+    const [toDate, setToDate] = useState("");
 
     // Modal State for CV Breakdown
     const [cvModalData, setCvModalData] = useState(null);
@@ -59,37 +62,58 @@ export default function RecruiterWorkbenchReport() {
     }, [filteredReports]);
 
     return (
-        <div className="min-h-screen bg-gray-50 font-['Calibri'] p-4 md:p-6">
+        <div className="min-h-screen bg-gray-50 font-['Calibri'] p-2 md:p-3">
             
             {/* --- HEADER & DATE SELECTOR --- */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+           {/* --- HEADER & DATE RANGE SELECTOR --- */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 gap-4 bg-white p-3 rounded-2xl shadow-sm border border-gray-200">
                 <div>
                     <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
                         <LayoutDashboard size={24}/> My Workbench Report
                     </h1>
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">
-                        View your daily performance & logged activities
+                        View your performance & logged activities over time
                     </p>
                 </div>
                 
-                <div className="flex items-center gap-3 bg-blue-50 p-2 rounded-xl border border-blue-100">
-                    <label className="text-[11px] font-black text-blue-800 uppercase tracking-wide ml-2">Select Date:</label>
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-blue-600">
-                            <Calendar size={14} />
+                {/* Date Range Selector */}
+                <div className="flex flex-wrap items-center gap-2 md:gap-3 bg-blue-50 p-2 rounded-xl border border-blue-100">
+                    <label className="text-[11px] font-black text-blue-800 uppercase tracking-wide ml-1 md:ml-2">Date Range:</label>
+                    
+                    <div className="flex items-center gap-2">
+                        {/* FROM DATE */}
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-blue-600">
+                                <Calendar size={14} />
+                            </div>
+                            <input 
+                                type="date" 
+                                value={fromDate}
+                                onChange={(e) => setFromDate(e.target.value)}
+                                className="pl-8 pr-2 py-1.5 md:py-2 border-none rounded-lg text-xs md:text-sm font-bold text-[#103c7f] bg-white shadow-sm outline-none cursor-pointer focus:ring-2 focus:ring-blue-400"
+                            />
                         </div>
-                        <input 
-                            type="date" 
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            className="pl-9 pr-4 py-2 border-none rounded-lg text-sm font-bold text-[#103c7f] bg-white shadow-sm outline-none cursor-pointer focus:ring-2 focus:ring-blue-400"
-                        />
+
+                        <span className="text-blue-400 font-black text-[10px] uppercase">To</span>
+
+                        {/* TO DATE */}
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-blue-600">
+                                <Calendar size={14} />
+                            </div>
+                            <input 
+                                type="date" 
+                                value={toDate}
+                                onChange={(e) => setToDate(e.target.value)}
+                                className="pl-8 pr-2 py-1.5 md:py-2 border-none rounded-lg text-xs md:text-sm font-bold text-[#103c7f] bg-white shadow-sm outline-none cursor-pointer focus:ring-2 focus:ring-blue-400"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* --- TOP KPI SUMMARY CARDS (Now 5 Cards) --- */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
                 
                 {/* 1. Total CVs */}
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-blue-100 flex items-center gap-3 relative overflow-hidden group">
@@ -153,17 +177,17 @@ export default function RecruiterWorkbenchReport() {
 
             </div>
 
-            {/* --- ANALYTICS DATA TABLE --- */}
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
+           {/* --- ANALYTICS DATA TABLE --- */}
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col mt-4">
                 
                 {/* Table Toolbar */}
-                <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <div className="p-2 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                     <h3 className="text-sm font-black text-[#103c7f] uppercase tracking-widest flex items-center gap-2">
                         <FileText size={16}/> Assignment Breakdown
                     </h3>
                     <div className="relative">
                         <input 
-                            type="text" placeholder="Search Client/Profile..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                            type="text" placeholder="Search Profile/TL..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-8 pr-3 py-1.5 border border-gray-300 rounded-lg text-xs font-bold w-60 outline-none focus:border-[#103c7f]"
                         />
                         <Search size={12} className="absolute left-2.5 top-2.5 text-gray-400" />
@@ -171,16 +195,17 @@ export default function RecruiterWorkbenchReport() {
                 </div>
 
                 <div className="overflow-x-auto custom-scrollbar">
-                    <table className="w-full text-left border-collapse min-w-[1100px]">
+                    <table className="w-full text-left border-collapse min-w-[1200px]">
                         <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-10">
                             <tr>
-                                <th className="p-3 border-r border-blue-800 w-10 text-center">#</th>
-                                <th className="p-3 border-r border-blue-800 min-w-[140px]"><div className="flex items-center gap-1.5"><Building2 size={12}/> Client</div></th>
+                                <th className="p-3 border-r border-blue-800 min-w-[100px]"><div className="flex items-center gap-1.5"><Calendar size={12}/> Date</div></th>
                                 <th className="p-3 border-r border-blue-800 min-w-[140px]"><div className="flex items-center gap-1.5"><Briefcase size={12}/> Profile</div></th>
                                 <th className="p-3 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><IndianRupee size={12}/> Pkg / Req</div></th>
+                                <th className="p-3 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><FileText size={12}/> JD</div></th>
+                                <th className="p-3 border-r border-blue-800 min-w-[120px]"><div className="flex items-center gap-1.5"><User size={12}/> Assigned By (TL)</div></th>
                                 <th className="p-3 border-r border-blue-800"><div className="flex items-center gap-1.5"><Clock size={12}/> Slot</div></th>
                                 
-                                {/* Updated Single CV Column */}
+                                {/* CV Column */}
                                 <th className="p-3 border-r border-blue-800 text-center bg-blue-600"><div className="flex items-center justify-center gap-1.5"><FileText size={12}/> CV Sourced</div></th>
                                 
                                 {/* Performance Columns */}
@@ -201,16 +226,32 @@ export default function RecruiterWorkbenchReport() {
                                     return (
                                         <tr key={row.id} className="hover:bg-blue-50/50 transition">
                                             
-                                            <td className="p-3 border-r border-gray-200 text-center text-gray-400 font-bold bg-gray-50">{index + 1}</td>
+                                            {/* Date */}
+                                            <td className="p-3 border-r border-gray-200 font-bold text-gray-600 bg-gray-50">{row.date}</td>
                                             
-                                            <td className="p-3 border-r border-gray-200 font-black text-[#103c7f]">{row.client}</td>
+                                            {/* Profile */}
+                                            <td className="p-3 border-r border-gray-200 font-black text-[#103c7f]">{row.profile}</td>
                                             
-                                            <td className="p-3 border-r border-gray-200 font-bold text-gray-700">{row.profile}</td>
-                                            
+                                            {/* Pkg / Req */}
                                             <td className="p-3 border-r border-gray-200 text-center">
                                                 <span className="text-green-700 font-bold">{row.package}</span> <span className="text-gray-300 mx-1">|</span> <span className="text-gray-800 font-black">{row.requirement}</span>
                                             </td>
+
+                                            {/* JD Link / View */}
+                                            <td className="p-3 border-r border-gray-200 text-center">
+                                                {row.jd ? (
+                                                    <a href={row.jd} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 font-black text-[10px] uppercase tracking-widest bg-blue-50 px-2 py-1 rounded inline-block transition-colors">
+                                                        View JD
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-gray-400 text-[10px] italic">N/A</span>
+                                                )}
+                                            </td>
+
+                                            {/* Assigned By (TL) */}
+                                            <td className="p-3 border-r border-gray-200 font-bold text-gray-700">{row.assigned_by || row.tlName}</td>
                                             
+                                            {/* Slot */}
                                             <td className="p-3 border-r border-gray-200 text-[11px] font-bold text-gray-600">{row.slot}</td>
 
                                             {/* --- CLICKABLE CV COLUMN --- */}
@@ -241,10 +282,10 @@ export default function RecruiterWorkbenchReport() {
                                 })
                             ) : (
                                 <tr>
-                                    <td colSpan="11" className="p-12 text-center bg-white">
+                                    <td colSpan="12" className="p-12 text-center bg-white">
                                         <Calendar size={40} className="text-gray-300 mx-auto mb-3" />
                                         <h4 className="text-lg font-black text-gray-500 uppercase tracking-widest">No Work Logged</h4>
-                                        <p className="text-sm font-bold text-gray-400 mt-1">No activities were recorded for the selected date.</p>
+                                        <p className="text-sm font-bold text-gray-400 mt-1">No activities were recorded for the selected date range.</p>
                                     </td>
                                 </tr>
                             )}
@@ -272,7 +313,6 @@ export default function RecruiterWorkbenchReport() {
                         {/* Body */}
                         <div className="p-5 bg-gray-50 text-center">
                             <h4 className="text-sm font-black text-[#103c7f] mb-1">{cvModalData.profile}</h4>
-                            <p className="text-xs font-bold text-gray-500 mb-4">{cvModalData.client}</p>
                             
                             <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                                 <div className="flex flex-col items-center">
