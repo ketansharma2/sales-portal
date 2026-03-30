@@ -341,6 +341,7 @@ export default function TrackerHistoryPage() {
                                     >
                                         <option value="">-- Select Status --</option>
                                         <option value="Shortlisted">Shortlisted</option>
+                                        <option value="Selected">Selected</option>
                                         <option value="Interviewed">Interviewed</option>
                                         <option value="Rejected">Rejected</option>
                                         <option value="Joining">Joining</option>

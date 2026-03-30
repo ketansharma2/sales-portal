@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo ,useEffect} from "react";
 import { 
     Building2, History, Calendar, X, FileText, 
     MapPin, GraduationCap, Eye, Mail, CheckCircle2, 
@@ -9,132 +9,155 @@ import {
 export default function EmailHistoryPage() {
     // --- STATE ---
     const [selectedClient, setSelectedClient] = useState("All");
-    const [modalType, setModalType] = useState(null); // 'view_journey' or null
+    const [modalType, setModalType] = useState(null);
     const [selectedCandidate, setSelectedCandidate] = useState(null);
-
-    // --- MOCK DATA: EMAIL HISTORY & JOURNEY ---
-    // In a real app, this would come from your backend/database
-    const mockData = [
-        {
-            id: 1,
-            dateShared: "27-Mar-2026",
-            clientCompany: "TechNova Solutions",
-            name: "Rahul Verma",
-            profile: "B2B Sales Executive",
-            location: "Gurugram, HR",
-            qualification: "MBA Marketing",
-            experience: "5 Years",
-            tlCvName: "Rahul_Verma_Redacted.pdf",
-            currentStatus: "Shortlisted", 
-            crmFeedback: "Profile shared with HR via bulk email.", 
-            journey: [
-                { id: 101, status: "Tracker Shared", date: "2026-03-27", remark: "Profile shared with HR via bulk email." },
-                { id: 102, status: "Shortlisted", date: "2026-03-28", remark: "Client liked the portfolio. L1 pending." }
-            ]
-        },
-        {
-            id: 2,
-            dateShared: "25-Mar-2026",
-            clientCompany: "TechNova Solutions",
-            name: "Anjali Sharma",
-            profile: "React Developer",
-            location: "Noida, UP",
-            qualification: "B.Tech CS",
-            experience: "3.5 Years",
-            tlCvName: "Anjali_Sharma_Redacted.pdf",
-            currentStatus: "Interviewed",
-            crmFeedback: "Direct mail sent to Tech Lead.",
-            journey: [
-                { id: 201, status: "Tracker Shared", date: "2026-03-25", remark: "Direct mail sent to Tech Lead." },
-                { id: 202, status: "Interviewed", date: "2026-03-27", remark: "Cleared L1 technical round." }
-            ]
-        },
-        {
-            id: 3,
-            dateShared: "27-Mar-2026",
-            clientCompany: "Global Innovators",
-            name: "Sunil Yadav",
-            profile: "Backend Developer",
-            location: "Pune, MH",
-            qualification: "MCA",
-            experience: "4 Years",
-            tlCvName: "Sunil_Yadav_Redacted.pdf",
-            currentStatus: "Pipeline",
-            crmFeedback: "Included in the weekly tracker.",
-            journey: [
-                { id: 301, status: "Tracker Shared", date: "2026-03-27", remark: "Included in the weekly tracker." },
-                { id: 302, status: "Pipeline", date: "2026-03-29", remark: "Client asked to hold for next quarter." }
-            ]
-        },
-        {
-            id: 4,
-            dateShared: "20-Mar-2026",
-            clientCompany: "NextGen Startups",
-            name: "Priya Singh",
-            profile: "UI/UX Designer",
-            location: "Bangalore, MH",
-            qualification: "B.Des",
-            experience: "2 Years",
-            tlCvName: "Priya_Singh_Redacted.pdf",
-            currentStatus: "Joining",
-            crmFeedback: "Portfolio shared with founder.",
-            journey: [
-                { id: 401, status: "Tracker Shared", date: "2026-03-20", remark: "Portfolio shared with founder." },
-                { id: 402, status: "Shortlisted", date: "2026-03-21", remark: "Design task given." },
-                { id: 403, status: "Interviewed", date: "2026-03-23", remark: "Task reviewed. Final round done." },
-                { id: 404, status: "Joining", date: "2026-03-26", remark: "Offer rolled out and accepted." }
-            ]
-        },
-        {
-            id: 5,
-            dateShared: "15-Mar-2026",
-            clientCompany: "Global Innovators",
-            name: "Amit Kumar",
-            profile: "Data Analyst",
-            location: "Delhi",
-            qualification: "B.Sc Stats",
-            experience: "1 Year",
-            tlCvName: "Amit_Kumar_Redacted.pdf",
-            currentStatus: "Ghosted",
-            crmFeedback: "Shared with hiring manager.",
-            journey: [
-                { id: 501, status: "Tracker Shared", date: "2026-03-15", remark: "Shared with hiring manager." },
-                { id: 502, status: "Ghosted", date: "2026-03-27", remark: "No reply after 3 follow-ups." }
-            ]
-        },
-        {
-            id: 6,
-            dateShared: "10-Mar-2026",
-            clientCompany: "Apex Corp",
-            name: "Sonia Bajaj",
-            profile: "HR Executive",
-            location: "Mumbai",
-            qualification: "MBA HR",
-            experience: "2.5 Years",
-            tlCvName: "Sonia_Bajaj_Redacted.pdf",
-            currentStatus: "Rejected",
-            crmFeedback: "Shared profile for open HR position.",
-            journey: [
-                { id: 601, status: "Tracker Shared", date: "2026-03-10", remark: "Shared profile for open HR position." },
-                { id: 602, status: "Rejected", date: "2026-03-14", remark: "Budget constraints, rejected." }
-            ]
+    const [emailData, setEmailData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [clientsList, setClientsList] = useState([]);
+    
+    // PDF Preview State
+    const [cvViewer, setCvViewer] = useState({ isOpen: false });
+    const [cvBlob, setCvBlob] = useState(null);
+    const [isLoadingCV, setIsLoadingCV] = useState(false);
+    
+    // --- FETCH CLIENTS FOR DROPDOWN ---
+    useEffect(() => {
+        const fetchClients = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                const response = await fetch('/api/corporate/crm/clients', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    setClientsList(result.data);
+                }
+            } catch (error) {
+                console.error('Error fetching clients:', error);
+            }
+        };
+        
+        fetchClients();
+    }, []);
+    
+    // --- FETCH EMAIL HISTORY DATA ---
+    useEffect(() => {
+        const fetchEmailHistory = async () => {
+            setLoading(true);
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                const response = await fetch('/api/corporate/crm/email-history', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    const transformedData = result.data.map(row => ({
+                        id: row.id,
+                        dateShared: row.created_at ? new Date(row.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-',
+                        clientCompany: row.company_name || '-',
+                        name: row.name || '-',
+                        profile: row.profile || '-',
+                        location: row.location || '-',
+                        qualification: row.qualification || '-',
+                        experience: row.experience || '-',
+                        tlCvName: row.cv_url ? row.cv_url.split('/').pop() : '-',
+                        currentStatus: row.latest_interview_status || '-', 
+                        crmFeedback: row.feedback || '-',
+                        cv_url: row.cv_url || '',
+                        email_draft_id: row.id
+                    }));
+                    setEmailData(transformedData);
+                }
+            } catch (error) {
+                console.error('Error fetching email history:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        
+        fetchEmailHistory();
+    }, []);
+    
+    // --- FETCH JOURNEY FOR VIEW MODAL ---
+    const openViewJourneyModal = async (candidateRow) => {
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            
+            const response = await fetch(`/api/corporate/crm/interview-journey?email_draft_id=${candidateRow.email_draft_id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            const result = await response.json();
+            
+            const journeyData = result.success && result.data 
+                ? result.data.map(item => ({
+                    id: item.id,
+                    status: item.interview_status,
+                    date: item.date,
+                    remark: item.client_remark
+                  }))
+                : [];
+            
+            setSelectedCandidate({ ...candidateRow, journey: journeyData });
+            setModalType('view_journey');
+        } catch (error) {
+            console.error('Error fetching journey:', error);
         }
-    ];
+    };
+    
+    // --- FETCH PDF PREVIEW ---
+    const fetchPdfPreview = async (candidate) => {
+        setSelectedCandidate(candidate);
+        setCvViewer({ isOpen: true });
+        
+        if (candidate.cv_url) {
+            setIsLoadingCV(true);
+            try {
+                const response = await fetch(candidate.cv_url);
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    setCvBlob(blob);
+                } else {
+                    console.error('Failed to fetch CV:', response.status);
+                    setCvBlob(null);
+                }
+            } catch (error) {
+                console.error('Error fetching CV:', error);
+                setCvBlob(null);
+            } finally {
+                setIsLoadingCV(false);
+            }
+        } else {
+            setCvBlob(null);
+        }
+    };
 
     // --- EXTRACT UNIQUE COMPANIES FOR FILTER ---
-    const clientCompanies = [...new Set(mockData.map(item => item.clientCompany))];
+    // Use clientsList for dropdown, but still use emailData for filtering when "All" is not selected
+    const clientCompanies = [...new Set(emailData.map(item => item.clientCompany))];
 
     // --- FILTER DATA BASED ON DROPDOWN ---
     const filteredData = useMemo(() => {
-        if (selectedClient === "All") return mockData;
-        return mockData.filter(row => row.clientCompany === selectedClient);
-    }, [selectedClient, mockData]);
+        if (selectedClient === "All") return emailData;
+        return emailData.filter(row => row.clientCompany === selectedClient);
+    }, [selectedClient, emailData]);
 
     // --- CALCULATE DYNAMIC KPIs ---
     const kpiCounts = useMemo(() => {
         return {
             shared: filteredData.length, // Total rows in the filtered list
             shortlisted: filteredData.filter(d => d.currentStatus === 'Shortlisted').length,
+            selected: filteredData.filter(d => d.currentStatus === 'Selected').length,
             interviewed: filteredData.filter(d => d.currentStatus === 'Interviewed').length,       
             joining: filteredData.filter(d => d.currentStatus === 'Joining').length,
             pipeline: filteredData.filter(d => d.currentStatus === 'Pipeline').length,
@@ -144,19 +167,15 @@ export default function EmailHistoryPage() {
     }, [filteredData]);
 
     // --- HANDLERS ---
-    const openViewJourneyModal = (candidateRow) => {
-        setSelectedCandidate(candidateRow);
-        setModalType('view_journey');
-    };
-
     const getStatusBadge = (status) => {
         if (status === 'Shortlisted') return 'bg-blue-50 text-blue-600 border-blue-200';
+        if (status === 'Selected') return 'bg-green-50 text-green-600 border-green-200';
         if (status === 'Interviewed') return 'bg-amber-50 text-amber-600 border-amber-200';
         if (status === 'Joining') return 'bg-emerald-50 text-emerald-600 border-emerald-200';
         if (status === 'Pipeline') return 'bg-purple-50 text-purple-600 border-purple-200';
         if (status === 'Ghosted') return 'bg-rose-50 text-rose-600 border-rose-200';
-        if (status === 'Rejected') return 'bg-red-50 text-red-600 border-red-200'; // Red badge for rejected
-        return 'bg-slate-50 text-slate-600 border-slate-200'; // Default / Tracker Shared
+        if (status === 'Rejected') return 'bg-red-50 text-red-600 border-red-200';
+        return 'bg-slate-50 text-slate-600 border-slate-200';
     };
 
     return (
@@ -188,16 +207,17 @@ export default function EmailHistoryPage() {
                     >
                         <option value="All">All Clients (Overall View)</option>
                         <optgroup label="Specific Companies">
-                            {clientCompanies.map(c => <option key={c} value={c}>{c}</option>)}
+                            {clientsList.map(c => <option key={c.client_id} value={c.company_name}>{c.company_name}</option>)}
                         </optgroup>
                     </select>
                 </div>
             </div>
 
             {/* --- DYNAMIC KPI CARDS --- */}
-            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3 mb-6">
                 <KpiCard title="Tracker Shared" count={kpiCounts.shared} icon={<Mail size={16}/>} color="indigo" />
                 <KpiCard title="Shortlisted" count={kpiCounts.shortlisted} icon={<UserCheck size={16}/>} color="blue" />
+                <KpiCard title="Selected" count={kpiCounts.selected} icon={<CheckCircle2 size={16}/>} color="green" />
                 <KpiCard title="Interviewed" count={kpiCounts.interviewed} icon={<Users size={16}/>} color="amber" />
                 <KpiCard title="Joining" count={kpiCounts.joining} icon={<CheckCircle2 size={16}/>} color="emerald" />
                 <KpiCard title="Pipeline" count={kpiCounts.pipeline} icon={<Clock size={16}/>} color="purple" />
@@ -266,12 +286,23 @@ export default function EmailHistoryPage() {
 
                                         {/* CV Link */}
                                         <td className="py-3 px-4 text-center">
-                                            <div className="flex items-center justify-center gap-1.5 text-indigo-600 hover:text-indigo-800 cursor-pointer" title={row.tlCvName}>
-                                                <FileText size={14}/>
-                                                <span className="text-[10px] font-black truncate w-24 block text-left">
-                                                    {row.tlCvName}
-                                                </span>
-                                            </div>
+                                            {row.cv_url ? (
+                                                <button 
+                                                    onClick={() => fetchPdfPreview(row)}
+                                                    disabled={isLoadingCV}
+                                                    className="flex flex-col items-center justify-center gap-1 text-indigo-600 hover:text-indigo-800 transition-colors disabled:opacity-50"
+                                                    title="Preview CV"
+                                                >
+                                                    {isLoadingCV ? (
+                                                        <div className="w-4 h-4 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin"></div>
+                                                    ) : (
+                                                        <FileText size={16} className="text-red-500"/>
+                                                    )}
+                                                    <span className="text-[9px] font-black uppercase tracking-widest">Preview</span>
+                                                </button>
+                                            ) : (
+                                                <span className="text-slate-400 text-xs">-</span>
+                                            )}
                                         </td>
 
                                         {/* Current Status Badge */}
@@ -362,6 +393,39 @@ export default function EmailHistoryPage() {
                             </span>
                         </div>
 
+                    </div>
+                </div>
+            )}
+
+            {/* --- VIEW CV MODAL --- */}
+            {cvViewer.isOpen && selectedCandidate && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+                    <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[90vh] border-4 border-slate-700">
+                        <div className="bg-indigo-800 text-white p-4 flex justify-between items-center shrink-0">
+                            <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                <FileText size={18}/> CV : {selectedCandidate.name}
+                            </h2>
+                            <button onClick={() => setCvViewer({isOpen: false})} className="text-white/70 hover:text-white transition-colors bg-black/20 p-1.5 rounded-full"><X size={20} /></button>
+                        </div>
+                        <div className="flex-1 bg-slate-200 flex items-center justify-center p-8">
+                            {isLoadingCV ? (
+                                <div className="text-center text-slate-500">
+                                    <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
+                                    <p className="text-lg font-black uppercase tracking-widest mb-1">Loading CV...</p>
+                                </div>
+                            ) : cvBlob ? (
+                                <iframe 
+                                    src={URL.createObjectURL(cvBlob)}
+                                    className="w-full h-full rounded-lg border border-slate-300"
+                                    title="CV Viewer"
+                                />
+                            ) : (
+                                <div className="text-center text-slate-500">
+                                    <FileText size={48} className="mx-auto mb-4 opacity-50" />
+                                    <p className="text-lg font-black uppercase tracking-widest mb-1">No CV Available</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
