@@ -155,7 +155,7 @@ export default function TLTrackerPage() {
         setModalType('tl_update');
     };
 
-    // Auto Update CV Handler - Calls Python Redactor API
+    // Auto Update CV Handler - Calls the Redact CV API
     const handleAutoUpdateCV = async () => {
         if (!selectedCandidate?.cv_url) {
             alert("No CV URL found for this candidate.");
@@ -165,71 +165,51 @@ export default function TLTrackerPage() {
         setIsUpdatingCV(true);
 
         try {
-            // Call Python API to redact the CV
-            console.log("Calling Python API with CV URL:", selectedCandidate.cv_url);
+            // Get the cv_parsing id from selected candidate
+            const cvParsingId = selectedCandidate.cv_parsing_id;
             
-            const response = await fetch('http://localhost:8000/redact', {
+            if (!cvParsingId) {
+                alert("No cv_parsing_id found for this candidate.\n\nCannot process CV.");
+                return;
+            }
+
+            console.log("Calling Redact CV API with cv_parsing_id:", cvParsingId);
+            
+            // Call our Next.js API route which talks to the Python Redactor API
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+
+            const response = await fetch('/api/corporate/recruiter/redact-cv', {
                 method: 'POST',
                 headers: {
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    s3_url: selectedCandidate.cv_url
+                    cv_parsing_id: cvParsingId
                 })
             });
 
-            console.log("Python API response status:", response.status);
+            console.log("Redact CV API response status:", response.status);
             
             const result = await response.json();
-            console.log("Python API response:", result);
+            console.log("Redact CV API response:", result);
 
-            if (result.success && result.redacted_url) {
+            if (result.success && result.redacted_cv_url) {
                 // Update form with the redacted CV URL
                 setTlForm({ 
                     ...tlForm, 
-                    updatedCvName: result.redacted_url 
+                    updatedCvName: result.redacted_cv_url 
                 });
                 
-                // Now save to database - update cv_parsing table with redacted_cv_url
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                // Get the cv_parsing id from selected candidate
-                const cvParsingId = selectedCandidate.cv_parsing_id;
-                
-                if (cvParsingId) {
-                    const updateResponse = await fetch('/api/corporate/recruiter/update-redacted-cv', {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            cv_parsing_id: cvParsingId,
-                            redacted_cv_url: result.redacted_url
-                        })
-                    });
-                    
-                    const updateResult = await updateResponse.json();
-                    console.log("Database update response:", updateResult);
-                    
-                    if (updateResult.success) {
-                        alert("CV redacted and saved successfully!\n\nRedacted CV URL: " + result.redacted_url);
-                    } else {
-                        alert("CV redacted but failed to save to database.\n\nError: " + (updateResult.error || "Unknown error"));
-                        console.error("Failed to save redacted CV URL:", updateResult.error);
-                    }
-                } else {
-                    alert("No cv_parsing_id found for this candidate.\n\nCannot save to database.");
-                    console.error("No cv_parsing_id found for this candidate");
-                }
+                alert("CV redacted and saved successfully!\n\nRedacted CV URL: " + result.redacted_cv_url);
             } else {
-                alert("Failed to redact CV.\n\nReason: " + (result.message || "No PII found or API error"));
+                alert("Failed to redact CV.\n\nReason: " + (result.message || result.error || "Unknown error"));
                 console.error("Redaction failed:", result);
             }
         } catch (error) {
             console.error("Error redacting CV:", error);
-            alert("Failed to redact CV.\n\nError: " + error.message + "\n\nPlease check if the Python API is running on localhost:8000");
+            alert("Failed to redact CV.\n\nError: " + error.message);
         } finally {
             setIsUpdatingCV(false);
         }
