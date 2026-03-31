@@ -1025,9 +1025,14 @@ export default function LeadsTablePage() {
               <td className="px-1 py-2 text-center sticky right-0 bg-white group-hover:bg-[#f1f5f9] border-l border-gray-200 z-10 whitespace-nowrap">
                 <div className="flex items-center justify-center gap-1">
                   {isLocked ? (
-                    <div className="flex items-center justify-center gap-1 text-gray-400 font-bold text-[9px] bg-gray-50 py-0.5 px-1.5 rounded border border-gray-100">
-                      <Lock size={10} /> Sent
-                    </div>
+                    <>
+                      <div className="flex items-center justify-center gap-1 text-gray-400 font-bold text-[9px] bg-gray-50 py-0.5 px-1.5 rounded border border-gray-100">
+                        <Lock size={10} /> Sent
+                      </div>
+                      <button onClick={() => handleAction(lead, 'view')} className="p-1 text-gray-500 hover:text-[#103c7f] hover:bg-blue-100 rounded transition-colors" title="View">
+                        <Eye size={14} />
+                      </button>
+                    </>
                   ) : (
                     <>
                       <button onClick={() => handleAction(lead, 'view')} className="p-1 text-gray-500 hover:text-[#103c7f] hover:bg-blue-100 rounded transition-colors" title="View">
@@ -1044,17 +1049,19 @@ export default function LeadsTablePage() {
                       </button>
                     </>
                   )}
-                  <button 
-                    onClick={() => {
-                      if(window.confirm("Are you sure you want to delete this lead?")) {
-                        handleAction(lead, 'delete');
-                      }
-                    }} 
-                    className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors" 
-                    title="Delete"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  {!isLocked && (
+                    <button 
+                      onClick={() => {
+                        if(window.confirm("Are you sure you want to delete this lead?")) {
+                          handleAction(lead, 'delete');
+                        }
+                      }} 
+                      className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors" 
+                      title="Delete"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
               </td>
 
