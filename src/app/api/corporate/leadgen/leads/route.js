@@ -31,6 +31,8 @@ export async function POST(request) {
         emp_count,
         reference,
         sourcing_date,
+        district_city,
+        startup,
         leadgen_id: user.id
       })
       .select()
@@ -51,7 +53,9 @@ export async function POST(request) {
         location: data.location,
         emp_count: data.emp_count,
         reference: data.reference,
-        sourcing_date: data.sourcing_date
+        sourcing_date: data.sourcing_date,
+        district_city: data.district_city,
+        startup: data.startup
       }
     });
 

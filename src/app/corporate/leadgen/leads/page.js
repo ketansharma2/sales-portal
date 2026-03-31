@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Search, Phone, Filter, X, Save, Plus, Eye,Trash2,
   Calendar, MapPin, ListFilter,ArrowRight,Send,Lock,Edit,Award,Users,Briefcase, Loader2
@@ -1026,12 +1026,18 @@ export default function LeadsTablePage() {
                 <div className="flex items-center justify-center gap-1">
                   {isLocked ? (
                     <>
-                      <div className="flex items-center justify-center gap-1 text-gray-400 font-bold text-[9px] bg-gray-50 py-0.5 px-1.5 rounded border border-gray-100">
-                        <Lock size={10} /> Sent
-                      </div>
                       <button onClick={() => handleAction(lead, 'view')} className="p-1 text-gray-500 hover:text-[#103c7f] hover:bg-blue-100 rounded transition-colors" title="View">
                         <Eye size={14} />
                       </button>
+                      <button onClick={() => handleAction(lead, 'edit')} className="p-1 bg-orange-50 text-orange-600 rounded hover:bg-orange-100 transition-colors" title="Edit">
+                        <Edit size={14} />
+                      </button>
+                      <button onClick={() => handleAction(lead, 'add')} className="p-1 bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors" title="Interaction">
+                        <Phone size={14} />
+                      </button>
+                      <div className="flex items-center justify-center gap-1 text-gray-400 font-bold text-[9px] bg-gray-50 py-0.5 px-1.5 rounded border border-gray-100">
+                        <Lock size={10} /> Sent
+                      </div>
                     </>
                   ) : (
                     <>
@@ -1097,7 +1103,7 @@ export default function LeadsTablePage() {
                       <p className="text-xs opacity-70 font-mono mt-1">{selectedLead.company}</p>
                   )}
                 </div>
-                <button onClick={() => setIsFormOpen(false)} className="hover:bg-white/20 p-1 rounded-full transition">
+                <button onClick={() => { setIsFormOpen(false); setInteractions([]); setSelectedLead(null); }} className="hover:bg-white/20 p-1 rounded-full transition">
                   <X size={20} />
                 </button>
               </div>
@@ -1627,7 +1633,7 @@ export default function LeadsTablePage() {
 
        {/* 1. Standard Cancel (Show for everyone EXCEPT 'send_to_manager') */}
        {modalType !== 'send_to_manager' && (
-         <button onClick={() => { setIsFormOpen(false); setEditingInteractionId(null); setInteractionData({ date: new Date().toISOString().split('T')[0], status: '', sub_status: '', remarks: '', next_follow_up: '', contact_person: '', contact_no: '', email: '', franchise_status: '' }); }} className="px-4 py-2 text-gray-500 font-bold hover:text-gray-700 text-sm">
+         <button onClick={() => { setIsFormOpen(false); setInteractions([]); setSelectedLead(null); setEditingInteractionId(null); setInteractionData({ date: new Date().toISOString().split('T')[0], status: '', sub_status: '', remarks: '', next_follow_up: '', contact_person: '', contact_no: '', email: '', franchise_status: '' }); }} className="px-4 py-2 text-gray-500 font-bold hover:text-gray-700 text-sm">
            Cancel
          </button>
        )}
