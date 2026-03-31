@@ -48,12 +48,16 @@ export async function GET(request) {
     // Fetch requirements for job details
     let reqsData = []
     if (reqIds.length > 0) {
-      const { data: requirements } = await supabaseServer
+      const { data: requirements, error: reqError } = await supabaseServer
         .from('corporate_crm_reqs')
-        .select('req_id, job_title, package')
+        .select('req_id, job_title, package, location, experience, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers, contact_details, jd_link')
         .in('req_id', reqIds)
       
+      if (reqError) {
+        console.error('Fetch requirements error:', reqError)
+      }
       reqsData = requirements || []
+      console.log('reqIds:', reqIds, 'reqsData:', reqsData)
     }
 
     // Fetch TL users for names
@@ -70,16 +74,21 @@ export async function GET(request) {
     // Create lookup maps
     const reqsMap = new Map(reqsData.map(r => [r.req_id, r]))
     const usersMap = new Map(usersData.map(u => [u.user_id, u]))
+    
+    console.log('reqsMap:', reqsMap)
 
     // Transform data with joins
     const transformedData = await Promise.all(workbenchData.map(async (item) => {
       const req = reqsMap.get(item.req_id)
       const tl = usersMap.get(item.sent_to_tl)
+      
+      console.log('item.req_id:', item.req_id, 'req:', req)
 
       // Fetch conversation stats for this req_id and date
-      let conversationStats = { conversion: 0, asset: 0, tracker_sent: 0 }
+      let conversationStats = { conversion: 0, asset: 0, tracker_sent: 0, cv_sourced: 0, cv_naukri: 0, cv_indeed: 0, cv_other: 0 }
       
       if (item.req_id && item.date) {
+        // Get conversation stats
         const convQuery = supabaseServer
           .from('candidates_conversation')
           .select('candidate_status')
@@ -93,7 +102,42 @@ export async function GET(request) {
           conversationStats = {
             conversion: convData.filter(c => c.candidate_status === 'Conversion').length,
             asset: convData.filter(c => c.candidate_status === 'Asset').length,
-            tracker_sent: convData.length
+            tracker_sent: convData.length,
+            cv_sourced: 0,
+            cv_naukri: 0,
+            cv_indeed: 0,
+            cv_other: 0
+          }
+        }
+        
+        // Get CV sourced: count cv_parsing where portal_date = calling_date from conversation
+        const cvParsingQuery = supabaseServer
+          .from('cv_parsing')
+          .select('portal')
+          .eq('req_id', item.req_id)
+          .eq('user_id', currentUserId)
+          .eq('portal_date', item.date)
+        
+        const { data: cvParsingData } = await cvParsingQuery
+        
+        if (cvParsingData && cvParsingData.length > 0) {
+          // Count by portal type
+          const portalCounts = cvParsingData.reduce((acc, row) => {
+            const portal = row.portal?.toLowerCase() || ''
+            if (portal.includes('naukri')) {
+              acc.cv_naukri++
+            } else if (portal.includes('indeed')) {
+              acc.cv_indeed++
+            } else {
+              acc.cv_other++
+            }
+            acc.cv_sourced++
+            return acc
+          }, { cv_sourced: 0, cv_naukri: 0, cv_indeed: 0, cv_other: 0 })
+          
+          conversationStats = {
+            ...conversationStats,
+            ...portalCounts
           }
         }
       }
@@ -113,9 +157,24 @@ export async function GET(request) {
         conversion: conversationStats.conversion,
         asset: conversationStats.asset,
         tracker_sent: conversationStats.tracker_sent,
-        cv_naukri: 0,
-        cv_indeed: 0,
-        cv_other: 0
+        cv_sourced: conversationStats.cv_sourced,
+        cv_naukri: conversationStats.cv_naukri,
+        cv_indeed: conversationStats.cv_indeed,
+        cv_other: conversationStats.cv_other,
+        // JD Details from corporate_crm_reqs
+        location: req?.location || '',
+        experience: req?.experience || '',
+        employment_type: req?.employment_type || '',
+        working_days: req?.working_days || '',
+        timings: req?.timings || '',
+        tool_requirement: req?.tool_req || '',
+        job_summary: req?.job_summary || '',
+        rnr: req?.rnr || '',
+        req_skills: req?.req_skills || '',
+        preferred_qual: req?.preferred_qual || '',
+        company_offers: req?.company_offers || '',
+        contact_details: req?.contact_details || '',
+        jd_link: req?.jd_link || ''
       }
     }))
 

@@ -3,8 +3,9 @@ import { useState, useMemo, useEffect } from "react";
 import { 
     Calendar, Building2, Briefcase, IndianRupee, Target, Clock, 
     FileText, Send, TrendingUp, Database, UserCheck, MessageSquare, 
-    LayoutDashboard, Search, Eye, X , User
+    LayoutDashboard, Search, Eye, X , User, File, Download
 } from "lucide-react";
+import Image from 'next/image';
 
 export default function RecruiterWorkbenchReport() {
     
@@ -145,6 +146,9 @@ export default function RecruiterWorkbenchReport() {
 
     // Modal State for CV Breakdown
     const [cvModalData, setCvModalData] = useState(null);
+    
+    // Modal State for JD Preview
+    const [jdPreviewData, setJdPreviewData] = useState(null);
 
     // Fetch workbench data when date range changes
     useEffect(() => {
@@ -354,7 +358,8 @@ export default function RecruiterWorkbenchReport() {
                         <tbody className="text-xs text-gray-800 font-medium divide-y divide-gray-200">
                             {filteredReports.length > 0 ? (
                                 filteredReports.map((row, index) => {
-                                    const totalRowCv = row.cv_naukri + row.cv_indeed + row.cv_other;
+                                    // const totalRowCv = row.cv_naukri + row.cv_indeed + row.cv_other;
+                                    const cvSourced = row.cv_sourced || 0;
                                     
                                     return (
                                         <tr key={row.workbench_id || index} className="hover:bg-blue-50/50 transition">
@@ -372,10 +377,14 @@ export default function RecruiterWorkbenchReport() {
 
                                             {/* JD Link / View */}
                                             <td className="p-3 border-r border-gray-200 text-center">
-                                                {row.jd ? (
-                                                    <a href={row.jd} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 font-black text-[10px] uppercase tracking-widest bg-blue-50 px-2 py-1 rounded inline-block transition-colors">
-                                                        View JD
-                                                    </a>
+                                                {row.jd_link ? (
+                                                    <button 
+                                                        onClick={() => setJdPreviewData(row)}
+                                                        className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-2 rounded transition-colors"
+                                                        title="View JD PDF"
+                                                    >
+                                                        <File size={18} />
+                                                    </button>
                                                 ) : (
                                                     <span className="text-gray-400 text-[10px] italic">N/A</span>
                                                 )}
@@ -390,7 +399,7 @@ export default function RecruiterWorkbenchReport() {
                                             {/* --- CLICKABLE CV COLUMN --- */}
                                             <td className="p-2 border-r border-gray-200 text-center bg-blue-50/50 hover:bg-blue-100 transition cursor-pointer" onClick={() => setCvModalData(row)}>
                                                 <div className="flex items-center justify-center gap-1">
-                                                    <span className="font-black text-blue-700 text-sm">{totalRowCv}</span>
+                                                    <span className="font-black text-blue-700 text-sm">{cvSourced}</span>
                                                     <Eye size={12} className="text-blue-400" />
                                                 </div>
                                             </td>
@@ -445,27 +454,124 @@ export default function RecruiterWorkbenchReport() {
 
                         {/* Body */}
                         <div className="p-5 bg-gray-50 text-center">
-                            <h4 className="text-sm font-black text-[#103c7f] mb-1">{cvModalData.profile}</h4>
+                            <h4 className="text-sm font-black text-[#103c7f] mb-1">{cvModalData.profile || cvModalData.job_title}</h4>
                             
                             <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                                 <div className="flex flex-col items-center">
                                     <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Naukri</p>
-                                    <span className="text-xl font-black text-blue-600">{cvModalData.cv_naukri}</span>
+                                    <span className="text-xl font-black text-blue-600">{cvModalData.cv_naukri || 0}</span>
                                 </div>
                                 <div className="w-px h-10 bg-gray-200"></div>
                                 <div className="flex flex-col items-center">
                                     <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Indeed</p>
-                                    <span className="text-xl font-black text-blue-600">{cvModalData.cv_indeed}</span>
+                                    <span className="text-xl font-black text-blue-600">{cvModalData.cv_indeed || 0}</span>
                                 </div>
                                 <div className="w-px h-10 bg-gray-200"></div>
                                 <div className="flex flex-col items-center">
                                     <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Other</p>
-                                    <span className="text-xl font-black text-blue-600">{cvModalData.cv_other}</span>
+                                    <span className="text-xl font-black text-blue-600">{cvModalData.cv_other || 0}</span>
                                 </div>
                             </div>
                             
                             <div className="mt-4 text-xs font-bold text-gray-600 bg-blue-50 py-2 rounded-lg border border-blue-100">
-                                Total Sourced: <span className="text-[#103c7f] font-black ml-1 text-sm">{cvModalData.cv_naukri + cvModalData.cv_indeed + cvModalData.cv_other}</span>
+                                Total CVs Sourced: <span className="text-[#103c7f] font-black ml-1 text-sm">{(cvModalData.cv_naukri || 0) + (cvModalData.cv_indeed || 0) + (cvModalData.cv_other || 0)}</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            )}
+
+            {/* --- JD PREVIEW MODAL --- */}
+            {jdPreviewData && (
+                <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-xl flex justify-center items-center z-[9999] p-0 md:p-4">
+                    
+                    <div className="bg-transparent w-full max-w-[800px] h-full md:h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 relative shadow-2xl rounded-2xl">
+                        
+                        {/* Header */}
+                        <div className="bg-[#103c7f] text-white p-4 flex justify-between items-center shrink-0 border-b border-blue-900">
+                            <div className="flex items-center gap-3">
+                                <FileText size={20} />
+                                <h3 className="font-bold text-lg uppercase tracking-wide">Job Description Preview</h3>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={() => setJdPreviewData(null)} className="hover:bg-white/20 p-2 rounded-full transition">
+                                    <X size={20}/>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* --- PDF CONTENT --- */}
+                        <div className="flex-1 min-h-0 overflow-y-auto bg-gray-200 p-4 md:p-8 custom-scrollbar">
+                            <div className="bg-white w-full max-w-[210mm] min-h-[297mm] h-max mx-auto p-[10mm] md:p-[15mm] shadow-xl text-black font-['Calibri'] relative">
+                                
+                                {/* 1. Header Logo */}
+                                <div className="mb-10">
+                                    <Image src="/maven-logo.png" alt="Maven Jobs" width={220} height={70} className="object-contain" priority />
+                                </div>
+
+                                {/* 2. Bordered Container */}
+                                <div className="border border-black p-8 min-h-[850px] relative">
+                                    
+                                    {/* Key Value Pairs */}
+                                    <div className="space-y-4 mb-10 text-[15px] leading-relaxed">
+                                        {jdPreviewData.job_title && <p><span className="font-bold">JOB TITLE : </span> {jdPreviewData.job_title}</p>}
+                                        {jdPreviewData.location && <p><span className="font-bold">LOCATION : </span> {jdPreviewData.location}</p>}
+                                        {jdPreviewData.experience && <p><span className="font-bold">EXPERIENCE : </span> {jdPreviewData.experience}</p>}
+                                        {jdPreviewData.employment_type && <p><span className="font-bold">EMPLOYMENT TYPE : </span> {jdPreviewData.employment_type}</p>}
+                                        {jdPreviewData.working_days && <p><span className="font-bold">WORKING DAYS : </span> {jdPreviewData.working_days}</p>}
+                                        {jdPreviewData.timings && <p><span className="font-bold">TIMINGS : </span> {jdPreviewData.timings}</p>}
+                                        {jdPreviewData.package && <p><span className="font-bold">PACKAGE : </span> {jdPreviewData.package}</p>}
+                                        {jdPreviewData.tool_requirement && <p><span className="font-bold">TOOL REQUIREMENT : </span> {jdPreviewData.tool_requirement}</p>}
+                                    </div>
+
+                                    {/* Sections */}
+                                    <div className="space-y-8 text-[15px]">
+                                        {jdPreviewData.job_summary && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Job Summary :</h4><p className="leading-relaxed text-justify text-gray-800">{jdPreviewData.job_summary}</p></div>
+                                        )}
+                                        
+                                        {jdPreviewData.rnr && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Role & Responsibilities :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {jdPreviewData.rnr.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {jdPreviewData.req_skills && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Required Skills :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {jdPreviewData.req_skills.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {jdPreviewData.preferred_qual && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Preferred Qualifications :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {jdPreviewData.preferred_qual.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {jdPreviewData.company_offers && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">What Company Offer :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {jdPreviewData.company_offers.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {jdPreviewData.contact_details && (
+                                            <div className="mt-12 pt-6 border-t border-black/20">
+                                                <h4 className="font-bold mb-3 uppercase text-[16px]">Contact Us To Apply :</h4>
+                                                <div className="whitespace-pre-line leading-loose text-gray-900 font-medium">{jdPreviewData.contact_details}</div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                </div>
                             </div>
                         </div>
 
