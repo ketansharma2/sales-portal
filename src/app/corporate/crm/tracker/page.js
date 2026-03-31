@@ -165,18 +165,44 @@ export default function CRMClientTrackerPage() {
    const handleSendDraftMail = async () => {
         if (isSendingDraft) return;
         if (!shareForm.company) return alert("Please select a target company.");
-        if (!shareForm.clientId) return alert("Invalid client selection.");
+        
+        // Get client_id from clientCompanies array to ensure it's valid
+        console.log('clientCompanies:', clientCompanies);
+        console.log('shareForm.company:', shareForm.company);
+        
+        const selectedClient = clientCompanies.find(c => c.company_name === shareForm.company);
+        console.log('selectedClient:', selectedClient);
+        
+        const clientId = selectedClient?.client_id;
+        console.log('clientId:', clientId);
+        
+        if (!clientId) return alert("Invalid client selection. Please select a valid client from the dropdown.");
         if (!shareForm.toEmail) return alert("Please provide recipient email(s).");
+        if (editableDraftData.length === 0) return alert("No candidates to send.");
+        
+        console.log('Number of candidates:', editableDraftData.length);
         
         setIsSendingDraft(true);
         
         const session = JSON.parse(localStorage.getItem('session') || '{}');
         const token = session.access_token;
         
+        if (!token) {
+            setIsSendingDraft(false);
+            return alert("Session expired. Please login again.");
+        }
+        
+        console.log('Token exists:', !!token);
+        
         try {
             // 1. Save each candidate to database (corporate_crm_emails)
+            // This saves candidate data when clicking "Save Draft & Copy to Clipboard" button
+            console.log('Saving data - company:', shareForm.company, 'clientId:', clientId);
+            
             for (const row of editableDraftData) {
-                await fetch('/api/corporate/crm/emails', {
+                console.log('Saving candidate:', row.name, 'id:', row.id);
+                
+                const saveResponse = await fetch('/api/corporate/crm/emails', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -185,7 +211,7 @@ export default function CRMClientTrackerPage() {
                     body: JSON.stringify({
                         conversation_id: row.id,
                         company_name: shareForm.company,
-                        client_id: shareForm.clientId,
+                        client_id: clientId,
                         name: row.name,
                         profile: row.profile,
                         location: row.location,
@@ -195,7 +221,20 @@ export default function CRMClientTrackerPage() {
                         cv_url: row.tlCvName || ''
                     })
                 });
+                
+                console.log('Save response status:', saveResponse.status);
+                const saveResult = await saveResponse.json();
+                console.log('Save result:', saveResult);
+                
+                if (!saveResponse.ok) {
+                    console.error('Save error:', saveResult);
+                    alert(`Error saving candidate ${row.name}: ${saveResult.error}`);
+                    setIsSendingDraft(false);
+                    return;
+                }
             }
+            
+            console.log('All candidates saved successfully!');
             
             // 2. Generate HTML Email Content
             const companyName = shareForm.company;
@@ -206,137 +245,24 @@ export default function CRMClientTrackerPage() {
             
             let candidateTableRows = "";
             editableDraftData.forEach((row, i) => {
-                let rowBg = i % 2 === 1 ? '#fcf9ff' : '#ffffff';
+                let rowBg = i % 2 === 0 ? '#ffffff' : '#faf9fe';
+                
                 candidateTableRows += `
-                    <tr style="background:${rowBg};">
-                        <td style="padding:14px; font-family:'Poppins', Arial, sans-serif; font-size:14px; color:#444; border-bottom:1px solid #f0f0f0;">${row.name || ""}</td>
-                        <td style="padding:14px; font-family:'Poppins', Arial, sans-serif; font-size:14px; color:#444; border-bottom:1px solid #f0f0f0;">${row.profile || ""}</td>
-                        <td style="padding:14px; font-family:'Poppins', Arial, sans-serif; font-size:14px; color:#444; border-bottom:1px solid #f0f0f0;">${row.location || ""}</td>
-                        <td style="padding:14px; font-family:'Poppins', Arial, sans-serif; font-size:14px; color:#444; border-bottom:1px solid #f0f0f0;">${row.qualification || ""}</td>
-                        <td style="padding:14px; font-family:'Poppins', Arial, sans-serif; font-size:14px; color:#444; border-bottom:1px solid #f0f0f0;">${row.experience || "0"} Years</td>
-                        <td style="padding:14px; font-family:'Poppins', Arial, sans-serif; font-size:13px; color:#555; border-bottom:1px solid #f0f0f0; line-height:1.4;">${row.crmFeedback || ""}</td>
-                        <td style="padding:14px; text-align:center; border-bottom:1px solid #f0f0f0;">
-                            ${row.tlCvName ? `<a href="${row.tlCvName}" target="_blank" style="display:inline-block; background-color:#eadef2; color:#1e4787 !important; padding:8px 20px; border-radius:20px; text-decoration:none; font-weight:600; font-size:13px; font-family:'Poppins', Arial, sans-serif;">CV</a>` : '-'}
+                    <tr style="background-color: ${rowBg};">
+                        <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.name || ""}</td>
+                        <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.profile || ""}</td>
+                        <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.location || ""}</td>
+                        <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.qualification || ""}</td>
+                        <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.experience || "0"} Years</td>
+                        <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0; line-height: 1.5; max-width: 250px;">${row.crmFeedback || ""}</td>
+                        <td style="padding: 16px 15px; text-align: center; border-bottom: 1px solid #f0f0f0;">
+                            ${row.tlCvName ? `<a href="${row.tlCvName}" target="_blank" style="display: inline-block; background-color: #e6d8f5; color: #5b3b8c; padding: 8px 24px; border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 13px;">CV</a>` : '-'}
                         </td>
                     </tr>
                 `;
             });
             
             const emailBody = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin:0; padding:0; font-family: 'Poppins', Arial, sans-serif; background-color: #f4e8fb;">
-    <div style="background: linear-gradient(135deg, #f4e8fb 0%, #eef4fc 50%, #dbf8ed 100%); padding: 40px 20px;">
-        <div style="max-width: 820px; margin: 0 auto; background: #ffffff; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); padding: 40px;">
-            <div style="text-align:center; margin-bottom:24px;">
-                <img src="https://mli2w8imrnr8.i.optimole.com/w:320/h:80/q:mauto/f:best/https://mavenjobs.in/wp-content/uploads/2024/01/maven-12-1.png" alt="Maven Jobs Logo" width="192" height="48" style="display:block; margin:0 auto; max-width:192px; width:100%; height:auto;">
-            </div>
-            <div style="margin-bottom:24px;">
-                <p style="margin:0 0 12px 0; font-size:15px; color:#333; font-family:'Poppins','Inter','Helvetica Neue',Calibri,Roboto,'Segoe UI','Noto Sans',Geneva,Arial,sans-serif;">Hi ${companyName},</p>
-                <p style="margin:0 0 20px 0; font-size:15px; color:#333; font-family:'Poppins','Inter','Helvetica Neue',Calibri,Roboto,'Segoe UI','Noto Sans',Geneva,Arial,sans-serif;">Please find the shortlisted candidates below:</p>
-            </div>
-            <div style="border-radius: 16px; overflow: hidden; border: 1px solid #eef0f2;">
-                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; font-family:'Poppins','Inter','Helvetica Neue',Calibri,Roboto,'Segoe UI','Noto Sans',Geneva,Arial,sans-serif; font-size:14px; color:#444;">
-                    <thead>
-                        <tr style="background-color:#eadef2;">
-                            <th style="padding:14px; text-align:left; font-weight:600; color:#111; width:140px;">Name</th>
-                            <th style="padding:14px; text-align:left; font-weight:600; color:#111; width:170px;">Profile</th>
-                            <th style="padding:14px; text-align:left; font-weight:600; color:#111; width:110px;">Location</th>
-                            <th style="padding:14px; text-align:left; font-weight:600; color:#111; width:110px;">Qualification</th>
-                            <th style="padding:14px; text-align:left; font-weight:600; color:#111; width:75px;">Experience</th>
-                            <th style="padding:14px; text-align:left; font-weight:600; color:#111; width:180px;">Feedback</th>
-                            <th style="padding:14px; text-align:center; font-weight:600; color:#111; width:70px;">Resume</th>
-                        </tr>
-                    </thead>
-                    <tbody>${candidateTableRows}</tbody>
-                </table>
-            </div>
-            <div style="margin-top:40px; margin-bottom:10px;">
-                <span style="font-family:Cambria,Georgia,'Times New Roman',serif; font-size:17px; color:#006400; font-weight:bold;">${bdName}</span>
-                <span style="font-family:Cambria,Georgia,'Times New Roman',serif; font-size:15px; color:#1e4787; display:block; font-weight:bold; line-height:1.5;">
-                    <br>Maven Jobs<br>Recruitment Agency<br>2nd Floor, Sec 25, Panipat
-                </span>
-            </div>
-        </div>
-    </div>
-</body>
-</html>`;
-
-            // 3. CALL DRAFT API (New Code)
-            // Note: Replace '/api/create-gmail-draft' with your actual backend route URL if different
-            const apiResponse = await fetch('/api/create-gmail-draft', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    toEmail: shareForm.toEmail,
-                    subject: subject,
-                    htmlBody: emailBody
-                })
-            });
-
-            if (!apiResponse.ok) {
-                throw new Error('Failed to create draft on backend');
-            }
-
-            // Clear selection after successful draft creation
-            setSelectedRowIds([]); 
-            setModalType(null);
-            
-            alert(`Success! Saved ${editableDraftData.length} candidates and Draft created in your Gmail.`);
-            
-        } catch (error) {
-            console.error('Error saving/drafting emails:', error);
-            alert("Error creating email draft. Please check console.");
-        } finally {
-            setIsSendingDraft(false);
-        }
-    };
-    // Copy HTML email to clipboard
-   // Copy HTML email to clipboard
- // Copy HTML email to clipboard
-  // Copy HTML email to clipboard
-    const handleCopyHtmlToClipboard = async () => {
-        if (!shareForm.company) {
-            alert("Please select a client company first.");
-            return;
-        }
-        
-        const companyName = shareForm.company;
-        const subject = `Shortlisted Candidates - ${companyName}`;
-        
-        // Get current user name for signature (Fallback to Gurmeet Aneja if not found)
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        const bdName = userData.name || 'Gurmeet Aneja'; 
-        
-        // Build candidate table rows HTML
-        let candidateTableRows = "";
-        editableDraftData.forEach((row, i) => {
-            let rowBg = i % 2 === 0 ? '#ffffff' : '#faf9fe';
-            
-            candidateTableRows += `
-                <tr style="background-color: ${rowBg};">
-                    <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.name || ""}</td>
-                    <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.profile || ""}</td>
-                    <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.location || ""}</td>
-                    <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.qualification || ""}</td>
-                    <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.experience || "0"} Years</td>
-                    <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0; line-height: 1.5; max-width: 250px;">${row.crmFeedback || ""}</td>
-                    <td style="padding: 16px 15px; text-align: center; border-bottom: 1px solid #f0f0f0;">
-                        ${row.tlCvName ? `<a href="${row.tlCvName}" target="_blank" style="display: inline-block; background-color: #e6d8f5; color: #5b3b8c; padding: 8px 24px; border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 13px;">CV</a>` : '-'}
-                    </td>
-                </tr>
-            `;
-        });
-
-        // Exact Match HTML Template with appended Signature
-        let htmlTemplate = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -387,7 +313,279 @@ export default function CRMClientTrackerPage() {
 
                                     <hr style="border: 0; border-top: 1px solid #eaeaea; margin: 35px 0 25px 0;">
 
-                                    <div style="text-align: center;">
+                                    <div style="text-align: left; margin-bottom: 15px;">
+                                        <span style="font-size: 18px; color: #006400; font-weight: bold;">${bdName}</span>
+                                        <span style="font-size: 16px; color: #000000; display: block; font-weight: bold;">
+                                            Maven Jobs<br>Recruitment Agency<br>2nd Floor, Sec 25, Panipat
+                                        </span>
+                                    </div>
+
+                                    <div style="text-align: left;">
+                                        <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto;">
+                                            <tr>
+                                                <td style="padding: 0 6px;">
+                                                    <a href="https://www.facebook.com/mavenjobspanipat/" target="_blank">
+                                                        <img src="https://evnlkpo.stripocdn.email/content/assets/img/social-icons/circle-black-bordered/facebook-circle-black-bordered.png" alt="FB" width="28" height="28" style="display:block; border:0;" />
+                                                    </a>
+                                                </td>
+                                                <td style="padding: 0 6px;">
+                                                    <a href="https://twitter.com/Maven_Jobs" target="_blank">
+                                                        <img src="https://evnlkpo.stripocdn.email/content/assets/img/social-icons/circle-black-bordered/x-circle-black-bordered.png" alt="X" width="28" height="28" style="display:block; border:0;" />
+                                                    </a>
+                                                </td>
+                                                <td style="padding: 0 6px;">
+                                                    <a href="https://www.instagram.com/mavenjobs/" target="_blank">
+                                                        <img src="https://evnlkpo.stripocdn.email/content/assets/img/social-icons/circle-black-bordered/instagram-circle-black-bordered.png" alt="IG" width="28" height="28" style="display:block; border:0;" />
+                                                    </a>
+                                                </td>
+                                                <td style="padding: 0 6px;">
+                                                    <a href="https://in.linkedin.com/company/maven-jobs" target="_blank">
+                                                        <img src="https://evnlkpo.stripocdn.email/content/assets/img/social-icons/circle-black-bordered/linkedin-circle-black-bordered.png" alt="IN" width="28" height="28" style="display:block; border:0;" />
+                                                    </a>
+                                                </td>
+                                                <td style="padding: 0 6px;">
+                                                    <a href="https://in.pinterest.com/Mavenjobs/" target="_blank">
+                                                        <img src="https://evnlkpo.stripocdn.email/content/assets/img/social-icons/circle-black-bordered/pinterest-circle-black-bordered.png" alt="PIN" width="28" height="28" style="display:block; border:0;" />
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    
+                                </td>
+                            </tr>
+                        </table>
+                        
+                    </td>
+                </tr>
+            </table>
+
+            <div style="font-family: Arial, sans-serif; padding: 20px 30px; background-color: #ffffff;">
+                <div style="color: #333; margin-bottom: 15px;">--</div>
+                
+                <table cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff;">
+                    <tr>
+                        <td valign="middle" style="padding-right: 25px; text-align: center;">
+                            <img src="https://mavenjobs.in/wp-content/uploads/2024/01/maven-12-1.png" alt="Maven Jobs" width="130" style="display: block; border: none; margin: 0 auto;">
+                            <div style="font-size: 11px; color: #0f3f7a; font-weight: bold; margin-top: 6px; letter-spacing: 0.5px;">Join | Connect | Grow</div>
+                        </td>
+                        
+                        <td width="2" style="background-color: #d4d4d4;"></td>
+                        
+                        <td valign="middle" style="padding-left: 25px;">
+                            <div style="font-size: 20px; font-weight: bold; color: #0f3f7a; margin-bottom: 4px;">${bdName}</div>
+                            <div style="font-size: 15px; font-weight: bold; color: #666; margin-bottom: 2px;">Business Development Lead</div>
+                            <div style="font-size: 15px; font-weight: bold; color: #666; margin-bottom: 12px;">Maven Jobs</div>
+
+                            <table cellpadding="0" cellspacing="0" border="0" style="font-size: 14px; color: #333;">
+                                <tr>
+                                    <td style="padding-bottom: 8px; padding-right: 15px; white-space: nowrap;">
+                                        <span style="color: #888; font-size: 16px; vertical-align: middle;">📞</span> 
+                                        <span style="vertical-align: middle;">+91 8307075952</span>
+                                    </td>
+                                    <td style="padding-bottom: 8px; border-left: 2px solid #e0e0e0; padding-left: 15px; white-space: nowrap;">
+                                        <span style="color: #888; font-size: 16px; vertical-align: middle;">📍</span> 
+                                        <span style="vertical-align: middle;">( Gurgaon )</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-right: 15px; white-space: nowrap;">
+                                        <span style="color: #888; font-size: 16px; vertical-align: middle;">✉</span> 
+                                        <a href="mailto:bd@mavenjobs.in" style="color: #0f3f7a; text-decoration: none; vertical-align: middle;">bd@mavenjobs.in</a>
+                                    </td>
+                                    <td style="border-left: 2px solid #e0e0e0; padding-left: 15px; white-space: nowrap;">
+                                        <span style="color: #888; font-size: 16px; vertical-align: middle;">🌐</span> 
+                                        <a href="http://www.mavenjobs.in" style="color: #0f3f7a; text-decoration: none; vertical-align: middle;">www.mavenjobs.in</a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            
+        </body>
+        </html>`;
+
+            // 3. Copy HTML to clipboard and open Gmail
+            try {
+                const blob = new Blob([emailBody], { type: 'text/html' });
+                const textBlob = new Blob([emailBody], { type: 'text/plain' });
+                
+                const item = new ClipboardItem({
+                    'text/html': blob,
+                    'text/plain': textBlob
+                });
+                
+                await navigator.clipboard.write([item]);
+                
+                const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&su=${encodeURIComponent(subject)}&to=${encodeURIComponent(shareForm.toEmail)}`;
+                window.open(gmailUrl, '_blank');
+            } catch (clipError) {
+                console.error('Error copying to clipboard:', clipError);
+                try {
+                    await navigator.clipboard.writeText(emailBody);
+                } catch (fallbackError) {
+                    console.error('Fallback clipboard error:', fallbackError);
+                }
+            }
+
+            // Clear selection after successful operation
+            setSelectedRowIds([]); 
+            setModalType(null);
+            
+            alert(`Success! ${editableDraftData.length} candidates saved. HTML copied to clipboard - paste in Gmail!`);
+            
+        } catch (error) {
+            console.error('Error saving candidates:', error);
+            alert("Error saving candidates. Please check console.");
+        } finally {
+            setIsSendingDraft(false);
+        }
+    };
+    // Copy HTML email to clipboard
+   // Copy HTML email to clipboard
+ // Copy HTML email to clipboard
+  // Copy HTML email to clipboard
+    const handleCopyHtmlToClipboard = async () => {
+        if (!shareForm.company) {
+            alert("Please select a client company first.");
+            return;
+        }
+        
+        if (!shareForm.clientId) {
+            alert("Invalid client selection.");
+            return;
+        }
+        
+        if (!shareForm.toEmail) {
+            alert("Please provide recipient email(s).");
+            return;
+        }
+        
+        setIsSendingDraft(true);
+        
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        
+        if (!token) {
+            setIsSendingDraft(false);
+            alert("Session expired. Please login again.");
+            return;
+        }
+        
+        try {
+            // 1. Save each candidate to database (corporate_crm_emails)
+            for (const row of editableDraftData) {
+                await fetch('/api/corporate/crm/emails', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        conversation_id: row.id,
+                        company_name: shareForm.company,
+                        client_id: shareForm.clientId,
+                        name: row.name,
+                        profile: row.profile,
+                        location: row.location,
+                        qualification: row.qualification,
+                        experience: row.experience,
+                        feedback: row.crmFeedback,
+                        cv_url: row.tlCvName || ''
+                    })
+                });
+            }
+            
+            // 2. Generate HTML Email Content
+            const companyName = shareForm.company;
+            const subject = `Shortlisted Candidates - ${companyName}`;
+            
+            // Get current user name for signature (Fallback to Gurmeet Aneja if not found)
+            const userData = JSON.parse(localStorage.getItem('user') || '{}');
+            const bdName = userData.name ; 
+            
+            // Build candidate table rows HTML
+            let candidateTableRows = "";
+            editableDraftData.forEach((row, i) => {
+                let rowBg = i % 2 === 0 ? '#ffffff' : '#faf9fe';
+                
+                candidateTableRows += `
+                    <tr style="background-color: ${rowBg};">
+                        <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.name || ""}</td>
+                        <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.profile || ""}</td>
+                        <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.location || ""}</td>
+                        <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.qualification || ""}</td>
+                        <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.experience || "0"} Years</td>
+                        <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0; line-height: 1.5; max-width: 250px;">${row.crmFeedback || ""}</td>
+                        <td style="padding: 16px 15px; text-align: center; border-bottom: 1px solid #f0f0f0;">
+                            ${row.tlCvName ? `<a href="${row.tlCvName}" target="_blank" style="display: inline-block; background-color: #e6d8f5; color: #5b3b8c; padding: 8px 24px; border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 13px;">CV</a>` : '-'}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            // Exact Match HTML Template with appended Signature
+            let htmlTemplate = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #ffffff;">
+                
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f3eefa; background-image: linear-gradient(to right, #f3eefa 0%, #e0f6eb 100%);">
+                    <tr>
+                        <td align="center" style="padding: 40px 20px;">
+                            
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 850px; background-color: #ffffff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: left;">
+                                <tr>
+                                    <td style="padding: 40px;">
+                                        
+                                    <div style="text-align: center; margin-bottom: 30px;">
+                                        <img src="https://mavenjobs.in/wp-content/uploads/2024/01/maven-12-1.png" alt="Maven Jobs Logo" style="height: 45px; width: auto; border: none; display: inline-block;">
+                                    </div>
+
+                                    <div style="margin-bottom: 25px;">
+                                        <p style="margin: 0 0 15px 0; font-size: 15px; color: #222;">
+                                            Hi ${companyName},
+                                        </p>
+                                        <p style="margin: 0; font-size: 15px; color: #222;">
+                                            Please find the shortlisted candidates below:
+                                        </p>
+                                    </div>
+
+                                    <div style="border-radius: 12px; overflow: hidden; border: 1px solid #e8e8e8;">
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse; text-align: left; font-family: Arial, sans-serif;">
+                                            <thead>
+                                                <tr style="background-color: #e6d8f5;">
+                                                    <th style="padding: 16px 15px; font-weight: bold; color: #111; font-size: 14px;">Name</th>
+                                                    <th style="padding: 16px 15px; font-weight: bold; color: #111; font-size: 14px;">Profile</th>
+                                                    <th style="padding: 16px 15px; font-weight: bold; color: #111; font-size: 14px;">Location</th>
+                                                    <th style="padding: 16px 15px; font-weight: bold; color: #111; font-size: 14px;">Qualification</th>
+                                                    <th style="padding: 16px 15px; font-weight: bold; color: #111; font-size: 14px;">Experience</th>
+                                                    <th style="padding: 16px 15px; font-weight: bold; color: #111; font-size: 14px;">Feedback</th>
+                                                    <th style="padding: 16px 15px; font-weight: bold; color: #111; font-size: 14px; text-align: center;">Resume</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${candidateTableRows}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <hr style="border: 0; border-top: 1px solid #eaeaea; margin: 35px 0 25px 0;">
+
+                                    <div style="text-align: left; margin-bottom: 15px;">
+                                        <span style="font-size: 18px; color: #006400; font-weight: bold;">${bdName}</span>
+                                        <span style="font-size: 16px; color: #000000; display: block; font-weight: bold;">
+                                            Maven Jobs<br>Recruitment Agency<br>2nd Floor, Sec 25, Panipat
+                                        </span>
+                                    </div>
+
+                                    <div style="text-align: left;">
                                         <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto;">
                                             <tr>
                                                 <td style="padding: 0 6px;">
@@ -475,29 +673,38 @@ export default function CRMClientTrackerPage() {
         </html>
         `;
         
-        try {
-            const blob = new Blob([htmlTemplate], { type: 'text/html' });
-            const textBlob = new Blob([htmlTemplate], { type: 'text/plain' });
-            
-            const item = new ClipboardItem({
-                'text/html': blob,
-                'text/plain': textBlob
-            });
-            
-            await navigator.clipboard.write([item]);
-            
-            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&su=${encodeURIComponent(subject)}&to=${encodeURIComponent(shareForm.toEmail)}`;
-            window.open(gmailUrl, '_blank');
-            
-            alert(`HTML email copied to clipboard!\n\nSubject: ${subject}\n\nNow open Gmail and paste (Ctrl+V / Cmd+V) in the email body.`);
-        } catch (error) {
-            console.error('Error copying to clipboard:', error);
             try {
-                await navigator.clipboard.writeText(htmlTemplate);
-                alert('HTML copied as text. Please paste in Gmail HTML mode.');
-            } catch (fallbackError) {
-                alert('Unable to copy to clipboard. Please try again.');
+                const blob = new Blob([htmlTemplate], { type: 'text/html' });
+                const textBlob = new Blob([htmlTemplate], { type: 'text/plain' });
+                
+                const item = new ClipboardItem({
+                    'text/html': blob,
+                    'text/plain': textBlob
+                });
+                
+                await navigator.clipboard.write([item]);
+                
+                const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&su=${encodeURIComponent(subject)}&to=${encodeURIComponent(shareForm.toEmail)}`;
+                window.open(gmailUrl, '_blank');
+                
+                setSelectedRowIds([]); 
+                setModalType(null);
+                
+                alert(`Success! ${editableDraftData.length} candidates saved. HTML copied to clipboard - paste in Gmail!`);
+            } catch (error) {
+                console.error('Error copying to clipboard:', error);
+                try {
+                    await navigator.clipboard.writeText(htmlTemplate);
+                    alert('HTML copied as text. Please paste in Gmail HTML mode.');
+                } catch (fallbackError) {
+                    alert('Unable to copy to clipboard. Please try again.');
+                }
             }
+        } catch (error) {
+            console.error('Error saving candidates:', error);
+            alert("Error saving candidates. Please check console.");
+        } finally {
+            setIsSendingDraft(false);
         }
     };
     const openTrackerHistory = (candidate) => {
@@ -784,33 +991,15 @@ export default function CRMClientTrackerPage() {
                             </div>
                         </div>
 
-                        {/* Bottom Actions: Draft Mail Button */}
-                        <div className="p-4 border-t border-slate-200 bg-white shrink-0 flex items-center justify-between">
+                        {/* Bottom Actions: Save Draft Button */}
+                        <div className="p-4 border-t border-slate-200 bg-white shrink-0 flex items-center justify-center">
                             <button 
-                                onClick={handleCopyHtmlToClipboard}
-                                disabled={isSendingDraft || !shareForm.company}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50"
+                                onClick={handleSendDraftMail}
+                                disabled={!shareForm.company}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-lg text-xs font-black uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50"
                             >
-                                <Send size={14}/> Copy HTML
+                                <Send size={14}/> Save Draft & Copy to Clipboard
                             </button>
-                            <div className="flex items-center gap-3">
-                                <button onClick={() => setModalType(null)} className="text-xs font-black text-slate-500 uppercase tracking-widest px-4 hover:text-slate-700">Cancel</button>
-                                <button 
-                                    onClick={handleSendDraftMail}
-                                    disabled={isSendingDraft}
-                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50"
-                                >
-                                    {isSendingDraft ? (
-                                        <>
-                                            <Loader2 size={14} className="animate-spin"/> Saving...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Send size={14}/> Draft Mail
-                                        </>
-                                    )}
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>
