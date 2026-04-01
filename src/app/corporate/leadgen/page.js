@@ -446,6 +446,136 @@ export default function LeadGenHome() {
     }
   };
 
+  const fetchFranchiseDiscussedCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      
+      if (isAllData) {
+        params.append('dateRange', 'all');
+      } else if (fromDate && toDate) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/leadgen/franchise-discussed?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setKpiData(prev => ({
+          ...prev,
+          franchise: { ...prev.franchise, discussed: { total: data.data.franchise?.total || '0', startup: '0' } }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch franchise discussed count:', error);
+    }
+  };
+
+  const fetchFranchiseFormAskCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('status', 'application form share');
+      
+      if (isAllData) {
+        params.append('dateRange', 'all');
+      } else if (fromDate && toDate) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/leadgen/franchise-count?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setKpiData(prev => ({
+          ...prev,
+          franchise: { ...prev.franchise, formAsk: { total: data.data.franchise?.total || '0', startup: '0' } }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch franchise form ask count:', error);
+    }
+  };
+
+  const fetchFranchiseFormSharedCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('status', 'application form share');
+      
+      if (isAllData) {
+        params.append('dateRange', 'all');
+      } else if (fromDate && toDate) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/leadgen/franchise-count?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setKpiData(prev => ({
+          ...prev,
+          franchise: { ...prev.franchise, formShared: { total: data.data.franchise?.total || '0', startup: '0' } }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch franchise form shared count:', error);
+    }
+  };
+
+  const fetchFranchiseAcceptedCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      
+      if (isAllData) {
+        params.append('dateRange', 'all');
+      } else if (fromDate && toDate) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/leadgen/franchise-accepted?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setKpiData(prev => ({
+          ...prev,
+          franchise: { ...prev.franchise, accepted: { total: data.data.franchiseAccepted?.total || '0', startup: '0' } }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch franchise accepted count:', error);
+    }
+  };
+
   // Remove unused variables
   // const normalSearched = '-';
   // const normalCalls = '-';
@@ -563,6 +693,10 @@ export default function LeadGenHome() {
     fetchInterestedCount();
     fetchOnboardCount();
     fetchContractCount();
+    fetchFranchiseDiscussedCount();
+    fetchFranchiseFormAskCount();
+    fetchFranchiseFormSharedCount();
+    fetchFranchiseAcceptedCount();
   }, [isAllData]);
 
   // Refetch data when date range changes (after initial date is fetched)
@@ -584,6 +718,10 @@ export default function LeadGenHome() {
       fetchInterestedCount();
       fetchOnboardCount();
       fetchContractCount();
+      fetchFranchiseDiscussedCount();
+      fetchFranchiseFormAskCount();
+      fetchFranchiseFormSharedCount();
+      fetchFranchiseAcceptedCount();
       fetchMasterUnionCount();
     }
   }, [fromDate, toDate]);
@@ -763,10 +901,10 @@ export default function LeadGenHome() {
           <div>
             <h4 className="text-xs font-black text-green-600 uppercase tracking-[0.2em] mb-3 flex items-center gap-2"><Award size={14} /> 5. Franchise Pipeline</h4>
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-              <KpiCard title="Franchise Discussed" total={kpiData.franchise.discussed.total} icon={<Phone size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { franchiseStatus: 'Discussed' })} />
-              <KpiCard title="Form Ask" total={kpiData.franchise.formAsk.total} icon={<FileText size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { franchiseStatus: 'Form Ask' })} />
-              <KpiCard title="Form Shared" total={kpiData.franchise.formShared.total} icon={<Send size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { franchiseStatus: 'Application Form Share' })} />
-              <KpiCard title="Franchise Accepted" total={kpiData.franchise.accepted.total} icon={<CheckCircle size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { franchiseStatus: 'Form Filled' })} />
+              <KpiCard title="Franchise Discussed" total={kpiData.franchise.discussed.total} icon={<Phone size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_discussed' })} />
+              <KpiCard title="Form Ask" total={kpiData.franchise.formAsk.total} icon={<FileText size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_form_ask' })} />
+              <KpiCard title="Form Shared" total={kpiData.franchise.formShared.total} icon={<Send size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_form_shared' })} />
+              <KpiCard title="Franchise Accepted" total={kpiData.franchise.accepted.total} icon={<CheckCircle size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_accepted' })} />
             </div>
           </div>
         </div>

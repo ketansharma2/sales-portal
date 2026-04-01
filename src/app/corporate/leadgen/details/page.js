@@ -32,6 +32,10 @@ function DetailsContent() {
     if (cardType === 'sent_to_manager') return 'Sent to Manager';
     if (cardType === 'interested') return 'Interested';
     if (cardType === 'contract') return 'Contract Share';
+    if (cardType === 'franchise_discussed') return 'Franchise Discussed';
+    if (cardType === 'franchise_form_ask') return 'Form Ask';
+    if (cardType === 'franchise_form_shared') return 'Form Shared';
+    if (cardType === 'franchise_accepted') return 'Franchise Accepted';
     if (cardType === 'onboard') return 'Onboard';
     
     // If isSubmittedFilter is set, show 'Sent to Manager'
@@ -415,6 +419,210 @@ function DetailsContent() {
             isSubmitted: false
           }));
           // Sort by date descending (newest first)
+          formattedCalls.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInteractions(formattedCalls);
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Check if cardType is 'franchise_discussed' - use new franchise-discussed API
+      if (cardType === 'franchise_discussed') {
+        const params = new URLSearchParams();
+        
+        // Default to 'all' if no date filters are provided, to match card count
+        if (fromDateFilter && toDateFilter) {
+          params.append('dateRange', 'specific');
+          params.append('fromDate', fromDateFilter);
+          params.append('toDate', toDateFilter);
+        } else {
+          params.append('dateRange', 'all');
+        }
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/franchise-discussed?${queryString}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success || data.records) {
+          const calls = data.records || [];
+          
+          const formattedCalls = calls.map(call => ({
+            id: call.id,
+            client_id: call.client_id,
+            date: call.date,
+            created_at: call.date,
+            sourcing_date: call.sourcing_date || '',
+            status: call.status || '',
+            sub_status: call.sub_status || '',
+            franchise_status: call.franchise_status || '',
+            remarks: call.remarks || '',
+            next_follow_up: call.next_follow_up || '',
+            contact_person: call.contact_person || '',
+            contact_no: call.contact_no || '',
+            email: call.email || '',
+            company: call.company || '',
+            category: call.category || '',
+            state: call.state || '',
+            district_city: call.district_city || '',
+            startup: call.startup || '',
+            isSubmitted: false
+          }));
+          // Sort by date descending (newest first)
+          formattedCalls.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInteractions(formattedCalls);
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Check if cardType is 'franchise_form_ask' - use common franchise-count API
+      if (cardType === 'franchise_form_ask') {
+        const params = new URLSearchParams();
+        params.append('status', 'application form share');
+        
+        if (fromDateFilter && toDateFilter) {
+          params.append('dateRange', 'specific');
+          params.append('fromDate', fromDateFilter);
+          params.append('toDate', toDateFilter);
+        } else {
+          params.append('dateRange', 'all');
+        }
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/franchise-count?${queryString}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success || data.records) {
+          const calls = data.records || [];
+          
+          const formattedCalls = calls.map(call => ({
+            id: call.id,
+            client_id: call.client_id,
+            date: call.date,
+            created_at: call.date,
+            sourcing_date: call.sourcing_date || '',
+            status: call.status || '',
+            sub_status: call.sub_status || '',
+            franchise_status: call.franchise_status || '',
+            remarks: call.remarks || '',
+            next_follow_up: call.next_follow_up || '',
+            contact_person: call.contact_person || '',
+            contact_no: call.contact_no || '',
+            email: call.email || '',
+            company: call.company || '',
+            category: call.category || '',
+            state: call.state || '',
+            district_city: call.district_city || '',
+            startup: call.startup || '',
+            isSubmitted: false
+          }));
+          formattedCalls.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInteractions(formattedCalls);
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Check if cardType is 'franchise_form_shared' - use common franchise-count API
+      if (cardType === 'franchise_form_shared') {
+        const params = new URLSearchParams();
+        params.append('status', 'application form share');
+        
+        if (fromDateFilter && toDateFilter) {
+          params.append('dateRange', 'specific');
+          params.append('fromDate', fromDateFilter);
+          params.append('toDate', toDateFilter);
+        } else {
+          params.append('dateRange', 'all');
+        }
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/franchise-count?${queryString}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success || data.records) {
+          const calls = data.records || [];
+          
+          const formattedCalls = calls.map(call => ({
+            id: call.id,
+            client_id: call.client_id,
+            date: call.date,
+            created_at: call.date,
+            sourcing_date: call.sourcing_date || '',
+            status: call.status || '',
+            sub_status: call.sub_status || '',
+            franchise_status: call.franchise_status || '',
+            remarks: call.remarks || '',
+            next_follow_up: call.next_follow_up || '',
+            contact_person: call.contact_person || '',
+            contact_no: call.contact_no || '',
+            email: call.email || '',
+            company: call.company || '',
+            category: call.category || '',
+            state: call.state || '',
+            district_city: call.district_city || '',
+            startup: call.startup || '',
+            isSubmitted: false
+          }));
+          formattedCalls.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInteractions(formattedCalls);
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Check if cardType is 'franchise_accepted' - use new franchise-accepted API
+      if (cardType === 'franchise_accepted') {
+        const params = new URLSearchParams();
+        
+        if (fromDateFilter && toDateFilter) {
+          params.append('dateRange', 'specific');
+          params.append('fromDate', fromDateFilter);
+          params.append('toDate', toDateFilter);
+        } else {
+          params.append('dateRange', 'all');
+        }
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/franchise-accepted?${queryString}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success || data.records) {
+          const calls = data.records || [];
+          
+          const formattedCalls = calls.map(call => ({
+            id: call.id,
+            client_id: call.client_id,
+            date: call.date,
+            created_at: call.date,
+            sourcing_date: call.sourcing_date || '',
+            status: call.status || '',
+            sub_status: call.sub_status || '',
+            franchise_status: call.franchise_status || '',
+            remarks: call.remarks || '',
+            next_follow_up: call.next_follow_up || '',
+            contact_person: call.contact_person || '',
+            contact_no: call.contact_no || '',
+            email: call.email || '',
+            company: call.company || '',
+            category: call.category || '',
+            state: call.state || '',
+            district_city: call.district_city || '',
+            startup: call.startup || '',
+            isSubmitted: false
+          }));
           formattedCalls.sort((a, b) => new Date(b.date) - new Date(a.date));
           setInteractions(formattedCalls);
         }
