@@ -139,7 +139,7 @@ export default function AssignWorkPage() {
                             company_offers: item.company_offers || '',
                             contact_details: item.contact_details || ''
                         },
-                        recruiter: '', slot: '', progress: null, tlRemarks: []
+                        recruiter: '', slot: '', progress: null, tlRemarks: [], rc_remarks: item.rc_remarks || '', tl_remarks: item.tl_remarks || '', cv_remarks: item.cv_remarks || '', rc_name: item.rc_name || '', advance_sti: item.advance_sti || '', tracker_sent: item.tracker_sent || 0, today_asset: item.today_asset || 0, today_conversion: item.today_conversion || 0, cv_naukri: item.cv_naukri || 0, cv_indeed: item.cv_indeed || 0, cv_other: item.cv_other || 0, totalCv: item.totalCv || 0
                     }));
                     setAssignments(transformedAssignments);
                 }
@@ -325,7 +325,7 @@ export default function AssignWorkPage() {
                                     company_offers: item.company_offers || '',
                                     contact_details: item.contact_details || ''
                                 },
-                                recruiter: '', slot: '', progress: null, tlRemarks: []
+                                recruiter: '', slot: '', progress: null, tlRemarks: [], rc_remarks: item.rc_remarks || '', tl_remarks: item.tl_remarks || '', cv_remarks: item.cv_remarks || '', rc_name: item.rc_name || ''
                             }));
                             setAssignments(transformedAssignments);
                         }
@@ -415,7 +415,7 @@ export default function AssignWorkPage() {
                                     company_offers: item.company_offers || '',
                                     contact_details: item.contact_details || ''
                                 },
-                                recruiter: '', slot: '', progress: null, tlRemarks: []
+                                recruiter: '', slot: '', progress: null, tlRemarks: [], rc_remarks: item.rc_remarks || '', tl_remarks: item.tl_remarks || '', cv_remarks: item.cv_remarks || '', rc_name: item.rc_name || ''
                             }));
                             setAssignments(transformedAssignments);
                         }
@@ -500,7 +500,7 @@ export default function AssignWorkPage() {
                                 company_offers: item.company_offers || '',
                                 contact_details: item.contact_details || ''
                             },
-                            recruiter: '', slot: '', progress: null, tlRemarks: []
+                            recruiter: '', slot: '', progress: null, tlRemarks: [], rc_remarks: item.rc_remarks || '', tl_remarks: item.tl_remarks || '', cv_remarks: item.cv_remarks || '', rc_name: item.rc_name || ''
                         }));
                         setAssignments(transformedAssignments);
                     }
@@ -895,145 +895,98 @@ export default function AssignWorkPage() {
 
             {/* --- VIEW WORK MODAL (CRM SIDE) --- */}
             {isViewModalOpen && selectedWork && (
-                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4">
+<div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200">
-                        
-                        {/* Modal Header */}
                         <div className="bg-[#103c7f] p-4 flex justify-between items-center text-white shrink-0">
-                            <h3 className="font-black text-md uppercase tracking-wide flex items-center gap-2">
-                                <BarChart2 size={18}/> Assignment Progress Summary
-                            </h3>
-                            <button onClick={() => setIsViewModalOpen(false)} className="hover:bg-white/20 p-1.5 rounded-full transition bg-white/10">
-                                <X size={20} />
-                            </button>
+                            <h3 className="font-black text-md uppercase tracking-wide flex items-center gap-2"><BarChart2 size={18}/> Work Progress Summary</h3>
+                            <button onClick={() => setIsViewModalOpen(false)} className="hover:bg-white/20 p-1.5 rounded-full transition bg-white/10"><X size={20} /></button>
                         </div>
-
-                        {/* Modal Body */}
                         <div className="p-6 bg-gray-50 max-h-[75vh] overflow-y-auto custom-scrollbar">
                             
-                            {/* Profile Info Banner */}
                             <div className="bg-white p-4 rounded-xl border border-gray-200 mb-5 shadow-sm flex justify-between items-center">
                                 <div>
                                     <h4 className="text-lg font-black text-[#103c7f]">{selectedWork.profile}</h4>
                                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1 mt-0.5">
-                                        <Building2 size={12}/> {selectedWork.client_name || clientsList.find(c => c.client_id === selectedWork.client)?.company_name || selectedWork.client} | Req: {selectedWork.requirement}
+                                        <Target size={12}/> Req: {selectedWork.requirement}
                                     </p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-[10px] font-bold text-gray-500 uppercase">Team Lead</p>
-                                    <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-lg text-[10px] font-black border border-purple-200 block mt-1">
-                                        {selectedWork.tl_name || tlUsersList.find(tl => tl.user_id === selectedWork.tl_assigned)?.name || selectedWork.tl_assigned}
-                                    </span>
+                                    <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-lg text-[10px] font-black border border-purple-200 block mb-1">TL: {selectedWork.tl_name}</span>
+                                    {selectedWork?.rc_name && <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-lg text-[10px] font-black border border-blue-200 block mb-1">RC: {selectedWork.rc_name}</span>}
+                                    <span className="text-[10px] text-gray-400 font-bold block">{selectedWork.slot}</span>
                                 </div>
                             </div>
 
-                            {selectedWork.progress ? (
+                            {selectedWork && (selectedWork.tracker_sent > 0 || selectedWork.totalCv > 0 || selectedWork.advance_sti) ? (
                                 <>
-                                    {/* Sub-assignment Info */}
-                                    <div className="flex justify-between items-center mb-4 px-2">
-                                        <p className="text-xs font-bold text-gray-600 flex items-center gap-1.5">
-                                            <Users size={14} className="text-blue-600"/> Assigned Recruiter: <span className="text-gray-900">{selectedWork.recruiter}</span>
-                                        </p>
-                                        <p className="text-xs font-bold text-gray-600 flex items-center gap-1.5">
-                                            <Clock size={14} className="text-orange-500"/> Slot: <span className="text-gray-900">{selectedWork.slot}</span>
-                                        </p>
-                                    </div>
-
-                                    {/* Detailed Stats Grid */}
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
-                                        
-                                        {/* Total CVs Card */}
                                         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 col-span-2">
                                             <div className="flex justify-between items-start mb-2">
                                                 <span className="text-[10px] font-black text-blue-800 uppercase flex items-center gap-1.5"><FileText size={14}/> Total CVs Parsed</span>
-                                                <span className="text-2xl font-black text-blue-700 leading-none">{selectedWork.progress.totalCv}</span>
+                                                <span className="text-2xl font-black text-blue-700 leading-none">{selectedWork?.totalCv || 0}</span>
                                             </div>
                                             <div className="flex justify-between text-[10px] font-bold text-gray-500 bg-white p-2 rounded border border-blue-50">
-                                                <span>Naukri: <span className="text-gray-800">{selectedWork.progress.cv_naukri}</span></span>
-                                                <span>Indeed: <span className="text-gray-800">{selectedWork.progress.cv_indeed}</span></span>
-                                                <span>Other: <span className="text-gray-800">{selectedWork.progress.cv_other}</span></span>
+                                                <span>Naukri: <span className="text-gray-800">{selectedWork?.cv_naukri || 0}</span></span>
+                                                <span>Indeed: <span className="text-gray-800">{selectedWork?.cv_indeed || 0}</span></span>
+                                                <span>Other: <span className="text-gray-800">{selectedWork?.cv_other || 0}</span></span>
                                             </div>
                                         </div>
-
-                                        {/* Advance STI */}
                                         <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 flex flex-col justify-center items-center text-center">
                                             <Send size={16} className="text-purple-500 mb-1"/>
                                             <p className="text-[10px] font-black text-gray-500 uppercase mb-0.5">Advance STI</p>
-                                            <p className="text-xl font-black text-purple-700">{selectedWork.progress.advance_sti}</p>
+                                            <p className="text-xl font-black text-purple-700">{selectedWork?.advance_sti || 'N/A'}</p>
                                         </div>
-
-                                        {/* Tracker Sent */}
                                         <div className="bg-gray-100 border border-gray-200 rounded-xl p-4 flex flex-col justify-center items-center text-center">
                                             <UserCheck size={16} className="text-gray-500 mb-1"/>
                                             <p className="text-[10px] font-black text-gray-500 uppercase mb-0.5">Tracker Sent</p>
-                                            <p className="text-xl font-black text-gray-700">{selectedWork.progress.tracker_sent}</p>
+                                            <p className="text-xl font-black text-gray-700">{selectedWork?.tracker_sent || 0}</p>
                                         </div>
-
-                                        {/* Conversion */}
                                         <div className="bg-green-50 border border-green-100 rounded-xl p-4 col-span-2 flex justify-between items-center">
-                                            <div className="text-left">
-                                                <p className="text-[11px] font-black text-green-700 uppercase flex items-center gap-1.5 mb-0.5"><TrendingUp size={14}/> Today Conversion</p>
-                                            </div>
-                                            <p className="text-3xl font-black text-green-700">{selectedWork.progress.today_conversion}</p>
+                                            <div className="text-left"><p className="text-[11px] font-black text-green-700 uppercase flex items-center gap-1.5 mb-0.5"><TrendingUp size={14}/> Today Conversion</p></div>
+                                            <p className="text-3xl font-black text-green-700">{selectedWork?.today_conversion || 0}</p>
                                         </div>
-
-                                        {/* Asset */}
                                         <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 col-span-2 flex justify-between items-center">
-                                            <div className="text-left">
-                                                <p className="text-[11px] font-black text-orange-700 uppercase flex items-center gap-1.5 mb-0.5"><Database size={14}/> Today Asset</p>
-                                            </div>
-                                            <p className="text-3xl font-black text-orange-600">{selectedWork.progress.today_asset}</p>
+                                            <div className="text-left"><p className="text-[11px] font-black text-orange-700 uppercase flex items-center gap-1.5 mb-0.5"><Database size={14}/> Today Asset</p></div>
+                                            <p className="text-3xl font-black text-orange-600">{selectedWork?.today_asset || 0}</p>
                                         </div>
-
                                     </div>
 
-                                    {/* Recruiter & TL Notes Section */}
                                     <div className="space-y-4">
-                                        {/* Recruiter Notes */}
-                                        {selectedWork.progress.notes && (
+                                        {selectedWork?.progress?.notes && (
                                             <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                                                <h5 className="text-[10px] font-black text-gray-500 uppercase mb-2 flex items-center gap-1.5">
-                                                    <FileText size={12}/> Recruiter's Daily Note
-                                                </h5>
-                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-yellow-400 pl-3 py-1 bg-yellow-50/30">
-                                                    "{selectedWork.progress.notes}"
-                                                </p>
+                                                <h5 className="text-[10px] font-black text-gray-500 uppercase mb-2 flex items-center gap-1.5"><FileText size={12}/> Your Daily Note</h5>
+                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-yellow-400 pl-3 py-1 bg-yellow-50/30">"{selectedWork?.progress?.notes}"</p>
                                             </div>
                                         )}
-
-                                        {/* TL Remarks History */}
-                                        {selectedWork.tlRemarks && selectedWork.tlRemarks.length > 0 && (
+                                        {selectedWork?.tl_remarks && selectedWork.tl_remarks.trim() && (
+                                            <div className="bg-purple-50/50 border border-purple-100 rounded-xl p-4 shadow-sm">
+                                                <h5 className="text-[10px] font-black text-purple-700 uppercase mb-3 flex items-center gap-1.5 border-b border-purple-100 pb-2"><MessageSquarePlus size={12}/> TL Remarks</h5>
+                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-purple-400 pl-3 py-1 bg-purple-50/30">"{selectedWork?.tl_remarks?.trim() || ''}"</p>
+                                            </div>
+                                        )}
+                                        {selectedWork?.rc_remarks && selectedWork.rc_remarks.trim() && (
                                             <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 shadow-sm">
-                                                <h5 className="text-[10px] font-black text-[#103c7f] uppercase mb-3 flex items-center gap-1.5 border-b border-blue-100 pb-2">
-                                                    <MessageSquarePlus size={12}/> TL Remarks History
-                                                </h5>
-                                                <div className="space-y-3 pl-1">
-                                                    {selectedWork.tlRemarks.map((rem, i) => (
-                                                        <div key={i} className="relative pl-4 border-l-2 border-blue-400">
-                                                            <div className="absolute w-2 h-2 bg-blue-500 rounded-full -left-[5px] top-1.5 border border-white"></div>
-                                                            <p className="text-[9px] font-bold text-gray-500 mb-0.5">{rem.date}</p>
-                                                            <p className="text-xs font-medium text-gray-800">{rem.text}</p>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                                <h5 className="text-[10px] font-black text-blue-700 uppercase mb-3 flex items-center gap-1.5 border-b border-blue-100 pb-2"><UserCheck size={12}/> RC Remarks</h5>
+                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-blue-400 pl-3 py-1 bg-blue-50/30">"{selectedWork?.rc_remarks?.trim() || ''}"</p>
+                                            </div>
+                                        )}
+                                        {selectedWork?.cv_remarks && selectedWork.cv_remarks.trim() && (
+                                            <div className="bg-orange-50/50 border border-orange-100 rounded-xl p-4 shadow-sm">
+                                                <h5 className="text-[10px] font-black text-orange-700 uppercase mb-3 flex items-center gap-1.5 border-b border-orange-100 pb-2"><FileText size={12}/> CV Remarks</h5>
+                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-orange-400 pl-3 py-1 bg-orange-50/30">"{selectedWork?.cv_remarks?.trim() || ''}"</p>
                                             </div>
                                         )}
                                     </div>
                                 </>
                             ) : (
                                 <div className="p-10 text-center bg-white rounded-xl border border-dashed border-gray-300">
-                                    <p className="text-sm font-bold text-gray-500">No progress logged by the team yet.</p>
-                                    <p className="text-xs text-gray-400 mt-1">Check back later after the recruiter updates their workbench.</p>
+                                    <p className="text-sm font-bold text-gray-500">No progress logged yet.</p>
                                 </div>
                             )}
 
                         </div>
-
-                        {/* Modal Footer */}
                         <div className="p-4 border-t border-gray-100 bg-white text-right">
-                            <button onClick={() => setIsViewModalOpen(false)} className="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-200 transition shadow-sm">
-                                Close View
-                            </button>
+                            <button onClick={() => setIsViewModalOpen(false)} className="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-200 transition shadow-sm">Close View</button>
                         </div>
                     </div>
                 </div>
