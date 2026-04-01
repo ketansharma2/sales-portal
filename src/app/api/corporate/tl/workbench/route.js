@@ -85,6 +85,8 @@ export async function GET(request) {
         slot: item.slot || '',
         user_id: item.user_id,
         created_at: item.created_at,
+        // TL remarks
+        tl_remarks: item.tl_remarks || '',
         // JD details from requirements
         location: req?.location || '',
         employment_type: req?.employment_type || '',

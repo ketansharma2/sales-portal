@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import {
     ClipboardList, Calendar, Users, Briefcase, IndianRupee,
     Target, Search, Activity, X, BarChart2, FileText, Send,
-    UserCheck, TrendingUp, Database, MessageSquarePlus, Clock, Eye, Download
+    UserCheck, TrendingUp, Database, MessageSquarePlus, Clock, Eye, Download, Edit
 } from "lucide-react";
 
 export default function TLWorkbenchPage() {
@@ -26,7 +26,8 @@ export default function TLWorkbenchPage() {
     // Add Remark Modal State
     const [isRemarkModalOpen, setIsRemarkModalOpen] = useState(false);
     const [selectedRemarkTask, setSelectedRemarkTask] = useState(null);
-    const [remarkForm, setRemarkForm] = useState({ date: "", remark: "" });
+    const [remarkForm, setRemarkForm] = useState({ remark: "" });
+    const [savingRemark, setSavingRemark] = useState(false);
 
     // Slots List
     const slotsList = [
@@ -97,6 +98,7 @@ export default function TLWorkbenchPage() {
                         recruiter: item.recruiter_name || '',
                         slot: item.slot || '',
                         isFinalAssigned: !!item.sent_to_rc,
+                        tl_remarks: item.tl_remarks || null,
                         tlRemarks: [],
                         progress: { cv_naukri: 0, cv_indeed: 0, cv_other: 0, totalCv: 0, advance_sti: 0, today_conversion: 0, today_asset: 0, tracker_sent: 0, notes: '' }
                     }));
@@ -173,7 +175,7 @@ export default function TLWorkbenchPage() {
 
     const handleOpenRemarkModal = (item) => {
         setSelectedRemarkTask(item);
-        setRemarkForm({ date: new Date().toISOString().split('T')[0], remark: "" });
+        setRemarkForm({ remark: item.tl_remarks || "" });
         setIsRemarkModalOpen(true);
     };
 
@@ -182,20 +184,51 @@ export default function TLWorkbenchPage() {
         setSelectedRemarkTask(null);
     };
 
-    const handleSaveRemark = () => {
-        if(!remarkForm.date || !remarkForm.remark) {
-            alert("Please fill both Date and Remark.");
+    const handleSaveRemark = async () => {
+        if(!remarkForm.remark) {
+            alert("Please enter a remark.");
             return;
         }
-        setAssignments(prev => prev.map(a => {
-            if (a.id === selectedRemarkTask.id) {
-                const existingRemarks = a.tlRemarks || [];
-                return { ...a, tlRemarks: [...existingRemarks, { date: remarkForm.date, text: remarkForm.remark }] };
+
+        setSavingRemark(true);
+
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            
+            const response = await fetch('/api/corporate/tl/workbench/remark', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    workbench_id: selectedRemarkTask.id,
+                    tl_remark: remarkForm.remark
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Update local state with the new remark
+                setAssignments(prev => prev.map(a => {
+                    if (a.id === selectedRemarkTask.id) {
+                        const existingRemarks = a.tlRemarks || [];
+                        return { ...a, tlRemarks: [...existingRemarks, { date: new Date().toISOString().split('T')[0], text: remarkForm.remark }] };
+                    }
+                    return a;
+                }));
+                handleCloseRemarkModal();
+                alert("Remark added successfully!");
+            } else {
+                alert(`Failed to add remark: ${data.error}`);
             }
-            return a;
-        }));
-        handleCloseRemarkModal();
-        alert("Remark added successfully!");
+        } catch (error) {
+            console.error('Error saving remark:', error);
+            alert('Failed to add remark. Please try again.');
+        } finally {
+            setSavingRemark(false);
+        }
     };
 
     // Filter Logic
@@ -327,26 +360,32 @@ export default function TLWorkbenchPage() {
                                             {/* --- ACTION COLUMN --- */}
                                             <td className="p-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)]">
                                                 <div className="flex justify-center items-center gap-1.5">
-                                                    {/* Assign / Update Button */}
-                                                    <button 
-                                                        onClick={() => handleIndividualAssign(item)}
-                                                        className={`px-2.5 py-1.5 rounded font-bold text-[10px] flex items-center gap-1 uppercase tracking-wider transition ${
-                                                            item.isFinalAssigned 
-                                                            ? 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200' 
-                                                            : 'bg-[#103c7f] text-white hover:bg-blue-900 shadow-sm'
-                                                        }`}
-                                                        title={item.isFinalAssigned ? "Update Assignment" : "Assign to Recruiter"}
-                                                    >
-                                                        <Send size={12}/> {item.isFinalAssigned ? 'Update' : 'Assign'}
-                                                    </button>
+                                                    {/* Assign / Assigned Button */}
+                                                    {item.isFinalAssigned && item.slot ? (
+                                                        <span className="px-2.5 py-1.5 rounded font-bold text-[10px] flex items-center gap-1 uppercase tracking-wider bg-green-100 text-green-700 border border-green-200">
+                                                            <Send size={12}/> Assigned
+                                                        </span>
+                                                    ) : (
+                                                        <button 
+                                                            onClick={() => handleIndividualAssign(item)}
+                                                            className="px-2.5 py-1.5 rounded font-bold text-[10px] flex items-center gap-1 uppercase tracking-wider transition bg-[#103c7f] text-white hover:bg-blue-900 shadow-sm"
+                                                            title="Assign to Recruiter"
+                                                        >
+                                                            <Send size={12}/> Assign
+                                                        </button>
+                                                    )}
 
-                                                    {/* Add Remark Button */}
+                                                    {/* Add/Edit Remark Button */}
                                                     <button 
                                                         onClick={() => handleOpenRemarkModal(item)}
-                                                        className="p-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition"
-                                                        title="Add TL Remark"
+                                                        className={`p-1.5 border rounded hover:bg-blue-100 transition ${
+                                                            item.tl_remarks 
+                                                            ? 'bg-yellow-50 text-yellow-600 border-yellow-200' 
+                                                            : 'bg-blue-50 text-blue-600 border border-blue-200'
+                                                        }`}
+                                                        title={item.tl_remarks ? "Edit TL Remark" : "Add TL Remark"}
                                                     >
-                                                        <MessageSquarePlus size={14}/>
+                                                        {item.tl_remarks ? <Edit size={14}/> : <MessageSquarePlus size={14}/>}
                                                     </button>
 
                                                     {/* View Work Button (Only visible if assigned) */}
@@ -382,7 +421,7 @@ export default function TLWorkbenchPage() {
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="bg-[#103c7f] p-4 flex justify-between items-center text-white shrink-0">
                             <h3 className="font-black text-md uppercase tracking-wide flex items-center gap-2">
-                                <MessageSquarePlus size={18}/> Add TL Remark
+                                {selectedRemarkTask?.tl_remarks ? <Edit size={18}/> : <MessageSquarePlus size={18}/>} {selectedRemarkTask?.tl_remarks ? 'Edit TL Remark' : 'Add TL Remark'}
                             </h3>
                             <button onClick={handleCloseRemarkModal} className="hover:bg-white/20 p-1.5 rounded-full transition bg-white/10">
                                 <X size={20} />
@@ -393,10 +432,6 @@ export default function TLWorkbenchPage() {
                                 <p className="text-xs font-bold text-gray-600">Profile: <span className="text-[#103c7f]">{selectedRemarkTask.profile}</span></p>
                                 <p className="text-xs font-bold text-gray-600">Recruiter: <span className="text-[#103c7f]">{selectedRemarkTask.recruiter || "Not Assigned"}</span></p>
                             </div>
-                            <div className="mb-4">
-                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Date</label>
-                                <input type="date" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none shadow-sm bg-white" value={remarkForm.date} onChange={(e) => setRemarkForm({...remarkForm, date: e.target.value})}/>
-                            </div>
                             <div className="mb-2">
                                 <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Remark / Feedback</label>
                                 <textarea rows="4" placeholder="Enter your remarks here..." className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:border-[#103c7f] outline-none resize-none shadow-sm bg-white" value={remarkForm.remark} onChange={(e) => setRemarkForm({...remarkForm, remark: e.target.value})}></textarea>
@@ -404,7 +439,9 @@ export default function TLWorkbenchPage() {
                         </div>
                         <div className="p-4 border-t border-gray-100 bg-white flex justify-end gap-3">
                             <button onClick={handleCloseRemarkModal} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition shadow-sm">Cancel</button>
-                            <button onClick={handleSaveRemark} className="bg-[#103c7f] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-blue-900 transition">Save Remark</button>
+                            <button onClick={handleSaveRemark} disabled={savingRemark} className="bg-[#103c7f] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-blue-900 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                                {savingRemark ? 'Saving...' : 'Save Remark'}
+                            </button>
                         </div>
                     </div>
                 </div>

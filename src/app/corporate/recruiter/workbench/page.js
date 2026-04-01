@@ -3,7 +3,7 @@ import { useState, useEffect ,useRef} from "react";
 import {
     ClipboardList, Calendar, Users, Briefcase, IndianRupee,
     Target, Search, Activity, X, BarChart2, FileText, Send,
-    UserCheck, TrendingUp, Database, MessageSquarePlus, Clock, Eye, Download
+    UserCheck, TrendingUp, Database, MessageSquarePlus, Clock, Eye, Download, Edit
 } from "lucide-react";
 
 export default function RecruiterWorkbenchPage() {
@@ -352,14 +352,14 @@ export default function RecruiterWorkbenchPage() {
                                                         <Activity size={14}/>
                                                     </button>
 
-                                                    {/* Add Remark Button */}
+                                                    {/* Add/Edit Remark Button */}
                                                     {item.status === 'Logged' ? (
                                                         <button
                                                             onClick={() => handleOpenRemarkModal(item)}
-                                                            className="p-1.5 bg-amber-50 text-amber-600 border border-amber-200 rounded hover:bg-amber-100 transition"
+                                                            className="p-1.5 bg-yellow-50 text-yellow-600 border border-yellow-200 rounded hover:bg-yellow-100 transition"
                                                             title="Edit Remark"
                                                         >
-                                                            <MessageSquarePlus size={14}/>
+                                                            <Edit size={14}/>
                                                         </button>
                                                     ) : (
                                                         <button
@@ -393,7 +393,7 @@ export default function RecruiterWorkbenchPage() {
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="bg-[#103c7f] p-4 flex justify-between items-center text-white shrink-0">
                             <h3 className="font-black text-md uppercase tracking-wide flex items-center gap-2">
-                                <MessageSquarePlus size={18}/> Add Remark
+                                {selectedRemarkTask?.status === 'Logged' ? <Edit size={18}/> : <MessageSquarePlus size={18}/>} {selectedRemarkTask?.status === 'Logged' ? 'Edit Remark' : 'Add Remark'}
                             </h3>
                             <button onClick={handleCloseRemarkModal} className="hover:bg-white/20 p-1.5 rounded-full transition bg-white/10">
                                 <X size={20} />
