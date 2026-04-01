@@ -99,6 +99,15 @@ export default function TLWorkbenchPage() {
                         slot: item.slot || '',
                         isFinalAssigned: !!item.sent_to_rc,
                         tl_remarks: item.tl_remarks || null,
+                        rc_remarks: item.rc_remarks || null,
+                        advance_sti: item.advance_sti || '',
+                        tracker_sent: item.tracker_sent || 0,
+                        today_asset: item.today_asset || 0,
+                        today_conversion: item.today_conversion || 0,
+                        cv_naukri: item.cv_naukri || 0,
+                        cv_indeed: item.cv_indeed || 0,
+                        cv_other: item.cv_other || 0,
+                        totalCv: item.totalCv || 0,
                         tlRemarks: [],
                         progress: { cv_naukri: 0, cv_indeed: 0, cv_other: 0, totalCv: 0, advance_sti: 0, today_conversion: 0, today_asset: 0, tracker_sent: 0, notes: '' }
                     }));
@@ -465,7 +474,7 @@ export default function TLWorkbenchPage() {
                                     </p>
                                 </div>
                                 <div className="text-right">
-                                    <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-lg text-[10px] font-black border border-purple-200 block mb-1">By: {selectedWork.recruiter}</span>
+                                    <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-lg text-[10px] font-black border border-purple-200 block mb-1">By RC: {selectedWork.recruiter}</span>
                                     <span className="text-[10px] text-gray-400 font-bold block">{selectedWork.slot}</span>
                                 </div>
                             </div>
@@ -476,31 +485,31 @@ export default function TLWorkbenchPage() {
                                         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 col-span-2">
                                             <div className="flex justify-between items-start mb-2">
                                                 <span className="text-[10px] font-black text-blue-800 uppercase flex items-center gap-1.5"><FileText size={14}/> Total CVs Parsed</span>
-                                                <span className="text-2xl font-black text-blue-700 leading-none">{selectedWork.progress.totalCv}</span>
+                                                <span className="text-2xl font-black text-blue-700 leading-none">{selectedWork.totalCv}</span>
                                             </div>
                                             <div className="flex justify-between text-[10px] font-bold text-gray-500 bg-white p-2 rounded border border-blue-50">
-                                                <span>Naukri: <span className="text-gray-800">{selectedWork.progress.cv_naukri}</span></span>
-                                                <span>Indeed: <span className="text-gray-800">{selectedWork.progress.cv_indeed}</span></span>
-                                                <span>Other: <span className="text-gray-800">{selectedWork.progress.cv_other}</span></span>
+                                                <span>Naukri: <span className="text-gray-800">{selectedWork.cv_naukri}</span></span>
+                                                <span>Indeed: <span className="text-gray-800">{selectedWork.cv_indeed}</span></span>
+                                                <span>Other: <span className="text-gray-800">{selectedWork.cv_other}</span></span>
                                             </div>
                                         </div>
                                         <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 flex flex-col justify-center items-center text-center">
                                             <Send size={16} className="text-purple-500 mb-1"/>
                                             <p className="text-[10px] font-black text-gray-500 uppercase mb-0.5">Advance STI</p>
-                                            <p className="text-xl font-black text-purple-700">{selectedWork.progress.advance_sti}</p>
+                                            <p className="text-xl font-black text-purple-700">{selectedWork.advance_sti || 'N/A'}</p>
                                         </div>
                                         <div className="bg-gray-100 border border-gray-200 rounded-xl p-4 flex flex-col justify-center items-center text-center">
                                             <UserCheck size={16} className="text-gray-500 mb-1"/>
                                             <p className="text-[10px] font-black text-gray-500 uppercase mb-0.5">Tracker Sent</p>
-                                            <p className="text-xl font-black text-gray-700">{selectedWork.progress.tracker_sent}</p>
+                                            <p className="text-xl font-black text-gray-700">{selectedWork.tracker_sent}</p>
                                         </div>
                                         <div className="bg-green-50 border border-green-100 rounded-xl p-4 col-span-2 flex justify-between items-center">
                                             <div className="text-left"><p className="text-[11px] font-black text-green-700 uppercase flex items-center gap-1.5 mb-0.5"><TrendingUp size={14}/> Today Conversion</p></div>
-                                            <p className="text-3xl font-black text-green-700">{selectedWork.progress.today_conversion}</p>
+                                            <p className="text-3xl font-black text-green-700">{selectedWork.today_conversion}</p>
                                         </div>
                                         <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 col-span-2 flex justify-between items-center">
                                             <div className="text-left"><p className="text-[11px] font-black text-orange-700 uppercase flex items-center gap-1.5 mb-0.5"><Database size={14}/> Today Asset</p></div>
-                                            <p className="text-3xl font-black text-orange-600">{selectedWork.progress.today_asset}</p>
+                                            <p className="text-3xl font-black text-orange-600">{selectedWork.today_asset}</p>
                                         </div>
                                     </div>
 
@@ -523,6 +532,12 @@ export default function TLWorkbenchPage() {
                                                         </div>
                                                     ))}
                                                 </div>
+                                            </div>
+                                        )}
+                                        {selectedWork.rc_remarks && (
+                                            <div className="bg-purple-50/50 border border-purple-100 rounded-xl p-4 shadow-sm w-full mt-4">
+                                                <h5 className="text-[10px] font-black text-purple-700 uppercase mb-3 flex items-center gap-1.5 border-b border-purple-100 pb-2"><MessageSquarePlus size={12}/> RC Remarks</h5>
+                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-purple-400 pl-3 py-1 bg-purple-50/30">{selectedWork.rc_remarks}</p>
                                             </div>
                                         )}
                                     </div>
