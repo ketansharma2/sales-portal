@@ -96,6 +96,9 @@ export async function GET(request) {
         user_id: item.user_id,
         created_at: item.created_at,
         slot: item.slot || '',
+        // Remark fields
+        advance_sti: item.advance_sti || '',
+        rc_remarks: item.rc_remarks || '',
         // JD details from requirements
         location: req?.location || '',
         employment_type: req?.employment_type || '',

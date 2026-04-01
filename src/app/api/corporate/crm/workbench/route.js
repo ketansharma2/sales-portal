@@ -94,6 +94,10 @@ export async function GET(request) {
         sent_to_rc: item.sent_to_rc,
         user_id: item.user_id,
         created_at: item.created_at,
+        // Remark fields
+        advance_sti: item.advance_sti || '',
+        rc_remarks: item.rc_remarks || '',
+        status: item.status || 'Pending',
         // JD details from requirements
         location: req?.location || '',
         employment_type: req?.employment_type || '',

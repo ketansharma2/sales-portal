@@ -1,5 +1,5 @@
     "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect ,useRef} from "react";
 import {
     ClipboardList, Calendar, Users, Briefcase, IndianRupee,
     Target, Search, Activity, X, BarChart2, FileText, Send,
@@ -54,6 +54,9 @@ export default function RecruiterWorkbenchPage() {
                         profile: item.job_title,
                         package_salary: item.package || '',
                         requirement: item.requirement?.toString() || '',
+                        // Use API fields for remark data
+                        advance_sti: item.advance_sti || '',
+                        rc_remarks: item.rc_remarks || '',
                         jd: {
                             title: item.job_title,
                             summary: item.job_summary || '',
@@ -77,6 +80,14 @@ export default function RecruiterWorkbenchPage() {
                         recruiterRemarks: [],
                         progress: { cv_naukri: 0, cv_indeed: 0, cv_other: 0, totalCv: 0, advance_sti: 0, today_conversion: 0, today_asset: 0, tracker_sent: 0, notes: '' }
                     }));
+                    
+                    // Sort by date descending
+                    transformedAssignments.sort((a, b) => {
+                        const dateA = new Date(a.date);
+                        const dateB = new Date(b.date);
+                        return dateB - dateA;
+                    });
+                    
                     setAssignments(transformedAssignments);
                 }
             } catch (error) {
@@ -86,6 +97,25 @@ export default function RecruiterWorkbenchPage() {
             }
         };
         fetchWorkbenchAssignments();
+    }, []);
+
+    // Dynamically load html2canvas and jspdf from npm packages (avoiding SSR issues)
+    useEffect(() => {
+        const loadLibs = async () => {
+            if (window.jspdf && window.html2canvas) return;
+            
+            // Dynamic import to avoid SSR
+            const [{ jsPDF: jspdfModule }, html2canvasModule] = await Promise.all([
+                import('jspdf'),
+                import('html2canvas')
+            ]);
+            
+            // Assign to window for global access
+            window.jspdf = jspdfModule;
+            window.html2canvas = html2canvasModule.default || html2canvasModule;
+        };
+        
+        loadLibs().catch(console.error);
     }, []);
 
     // --- HANDLERS ---
@@ -98,7 +128,16 @@ export default function RecruiterWorkbenchPage() {
 
     const handleOpenRemarkModal = (item) => {
         setSelectedRemarkTask(item);
-        setRemarkForm({ remark: "", advanceSti: "" });
+        
+        // If status is 'Logged', pre-fill with existing data
+        if (item.status === 'Logged' && (item.rc_remarks || item.advance_sti)) {
+            setRemarkForm({ 
+                remark: item.rc_remarks || "", 
+                advanceSti: item.advance_sti || "" 
+            });
+        } else {
+            setRemarkForm({ remark: "", advanceSti: "" });
+        }
         setIsRemarkModalOpen(true);
     };
 
@@ -298,7 +337,7 @@ export default function RecruiterWorkbenchPage() {
                                                     {/* Submit Report Button */}
                                                     <button
                                                         onClick={() => handleSubmitReport(item)}
-                                                        className="px-2.5 py-1.5 rounded font-bold text-[10px] flex items-center gap-1 uppercase tracking-wider bg-green-100 text-green-700 border border-green-200 hover:bg-green-200 transition"
+                                                        className="hidden px-2.5 py-1.5 rounded font-bold text-[10px] flex items-center gap-1 uppercase tracking-wider bg-green-100 text-green-700 border border-green-200 hover:bg-green-200 transition"
                                                         title="Submit Report"
                                                     >
                                                         <Send size={12}/> Submit
@@ -314,13 +353,23 @@ export default function RecruiterWorkbenchPage() {
                                                     </button>
 
                                                     {/* Add Remark Button */}
-                                                    <button
-                                                        onClick={() => handleOpenRemarkModal(item)}
-                                                        className="p-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition"
-                                                        title="Add Remark"
-                                                    >
-                                                        <MessageSquarePlus size={14}/>
-                                                    </button>
+                                                    {item.status === 'Logged' ? (
+                                                        <button
+                                                            onClick={() => handleOpenRemarkModal(item)}
+                                                            className="p-1.5 bg-amber-50 text-amber-600 border border-amber-200 rounded hover:bg-amber-100 transition"
+                                                            title="Edit Remark"
+                                                        >
+                                                            <MessageSquarePlus size={14}/>
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleOpenRemarkModal(item)}
+                                                            className="p-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition"
+                                                            title="Add Remark"
+                                                        >
+                                                            <MessageSquarePlus size={14}/>
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
 
@@ -479,7 +528,124 @@ export default function RecruiterWorkbenchPage() {
                                 <h3 className="font-bold text-lg uppercase tracking-wide">Document Preview</h3>
                             </div>
                             <div className="flex gap-3">
-                                <button onClick={() => window.print()} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider">
+                                <button onClick={async () => {
+                                    const element = document.getElementById('pdf-content');
+                                    if (!element) {
+                                        alert('Content not found');
+                                        return;
+                                    }
+                                    
+                                    // Try html2canvas approach first
+                                    try {
+                                        // Dynamic import
+                                        const [{ jsPDF: jspdfModule }, html2canvasModule] = await Promise.all([
+                                            import('jspdf'),
+                                            import('html2canvas')
+                                        ]);
+                                        
+                                        const html2canvas = html2canvasModule.default || html2canvasModule;
+                                        const { jsPDF } = jspdfModule;
+                                        
+                                        // Capture the element as canvas
+                                        const canvas = await html2canvas(element, {
+                                            scale: 2,
+                                            useCORS: true,
+                                            allowTaint: true,
+                                            backgroundColor: '#ffffff'
+                                        });
+                                        
+                                        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                                        
+                                        // Create PDF
+                                        const pdf = new jsPDF('p', 'mm', 'a4');
+                                        const pageWidth = pdf.internal.pageSize.getWidth();
+                                        const imgWidth = pageWidth;
+                                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                                        
+                                        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+                                        pdf.save(`${currentJdView?.title || 'job-description'}.pdf`);
+                                        return;
+                                    } catch (err) {
+                                        console.warn('html2canvas failed, using fallback:', err.message);
+                                    }
+                                    
+                                    // Fallback: text-based PDF
+                                    try {
+                                        const [{ jsPDF }] = await Promise.all([import('jspdf')]);
+                                        const pdf = new jsPDF('p', 'mm', 'a4');
+                                        const pageWidth = pdf.internal.pageSize.getWidth();
+                                        const margin = 15;
+                                        let y = margin;
+                                        
+                                        // Add logo
+                                        try {
+                                            pdf.addImage('/maven-logo.png', 'PNG', margin, y, 60, 20);
+                                            y += 35; // Increased gap between logo and border
+                                        } catch (e) { y += 20; }
+                                        
+                                        // Border with more internal padding
+                                        const borderMargin = 20; // Increased border margin
+                                        pdf.setDrawColor(0);
+                                        pdf.setLineWidth(0.5);
+                                        pdf.rect(borderMargin, y - 5, pageWidth - 2 * borderMargin, 230);
+                                        
+                                        // Add top padding inside border
+                                        y += 10;
+                                        
+                                        const contentLeft = borderMargin + 10; // More padding inside border
+                                        const contentRight = pageWidth - borderMargin - 10;
+                                        
+                                        // Helper
+                                        const addField = (label, value) => {
+                                            if (!value) return;
+                                            pdf.setFontSize(11);
+                                            pdf.setFont('helvetica', 'bold');
+                                            pdf.text(label, contentLeft, y);
+                                            pdf.setFont('helvetica', 'normal');
+                                            const lines = pdf.splitTextToSize(value.toString(), pageWidth - 2 * margin - pdf.getTextWidth(label));
+                                            pdf.text(lines, contentLeft + pdf.getTextWidth(label), y);
+                                            y += lines.length * 5 + 3;
+                                        };
+                                        
+                                        addField('JOB TITLE: ', currentJdView?.title);
+                                        addField('LOCATION: ', currentJdView?.location);
+                                        addField('EXPERIENCE: ', currentJdView?.experience);
+                                        addField('EMPLOYMENT TYPE: ', currentJdView?.employment_type);
+                                        addField('WORKING DAYS: ', currentJdView?.working_days);
+                                        addField('TIMINGS: ', currentJdView?.timings);
+                                        addField('PACKAGE: ', currentJdView?.package_salary);
+                                        addField('TOOL REQUIREMENT: ', currentJdView?.tool_requirement);
+                                        
+                                        y += 5;
+                                        
+                                        if (currentJdView?.summary) {
+                                            pdf.setFontSize(12);
+                                            pdf.setFont('helvetica', 'bold');
+                                            pdf.text('Job Summary:', contentLeft, y);
+                                            y += 6;
+                                            pdf.setFontSize(10);
+                                            const lines = pdf.splitTextToSize(currentJdView.summary, pageWidth - 2 * margin - 10);
+                                            pdf.text(lines, contentLeft + 2, y);
+                                            y += lines.length * 4 + 8;
+                                        }
+                                        
+                                        if (currentJdView?.skills) {
+                                            pdf.setFontSize(12);
+                                            pdf.setFont('helvetica', 'bold');
+                                            pdf.text('Required Skills:', contentLeft, y);
+                                            y += 6;
+                                            pdf.setFontSize(10);
+                                            const lines = pdf.splitTextToSize(currentJdView.skills, pageWidth - 2 * margin - 10);
+                                            pdf.text(lines, contentLeft + 2, y);
+                                        }
+                                        
+                                        pdf.save(`${currentJdView?.title || 'job-description'}.pdf`);
+                                    } catch (fallbackErr) {
+                                        console.error('Fallback also failed:', fallbackErr);
+                                        alert('PDF generation failed. Using browser print instead.');
+                                        window.print();
+                                    }
+                                }} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider">
                                     <Download size={16}/> Save as PDF
                                 </button>
                                 <button onClick={() => setIsJdViewModalOpen(false)} className="hover:bg-white/20 p-2 rounded-full transition">
