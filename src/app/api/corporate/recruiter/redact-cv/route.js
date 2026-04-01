@@ -50,13 +50,17 @@ export async function POST(request) {
     
     console.log('Calling Redact API with URL:', cvData.cv_url)
     
+    // Encode the URL to handle special characters like spaces
+    const encodedUrl = encodeURI(cvData.cv_url)
+    console.log('Encoded URL:', encodedUrl)
+    
     const redactResponse = await fetch(`${REDACT_API_URL}/redact`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        s3_url: cvData.cv_url
+        s3_url: encodedUrl
       })
     })
 
