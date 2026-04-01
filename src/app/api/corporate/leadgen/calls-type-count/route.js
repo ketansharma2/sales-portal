@@ -27,13 +27,51 @@ export async function GET(request) {
     const toDate = searchParams.get('toDate');
     const type = searchParams.get('type') || 'all'; // all, new, followup
 
-    // Build the base query to get interactions with lead sourcing_date
+    // Step 1: Get ALL interactions for this user (complete history for all clients)
+    // This is needed to check if contact_person was talked to before (regardless of date filter)
+    const { data: allInteractions, error: allError } = await supabaseServer
+      .from('corporate_leads_interaction')
+      .select(`
+        id,
+        client_id,
+        date,
+        created_at,
+        contact_person,
+        corporate_leadgen_leads(
+          sourcing_date
+        )
+      `)
+      .eq('leadgen_id', user.id)
+      .order('created_at', { ascending: true });
+
+    if (allError) {
+      console.error('All interactions fetch error:', allError);
+      return NextResponse.json({ success: false, error: allError.message }, { status: 500 });
+    }
+
+    // Step 2: Build a map of first interaction for each client + contact_person combination
+    // Key: client_id + contact_person, Value: earliest created_at
+    const firstInteractionMap = new Map();
+    
+    (allInteractions || []).forEach(interaction => {
+      const clientId = interaction.client_id;
+      const contactPerson = interaction.contact_person || '';
+      const createdAt = interaction.created_at;
+      const key = `${clientId}_${contactPerson}`;
+      
+      if (!firstInteractionMap.has(key)) {
+        firstInteractionMap.set(key, createdAt);
+      }
+    });
+
+    // Step 3: Build the filtered query based on dateRange
     let query = supabaseServer
       .from('corporate_leads_interaction')
       .select(`
         id,
         client_id,
         date,
+        created_at,
         status,
         sub_status,
         remarks,
@@ -85,33 +123,33 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    // Format and categorize the data
+    // Step 4: Categorize each interaction as NEW or FOLLOWUP
     const formattedInteractions = (interactionsData || []).map(interaction => {
       const leadData = interaction.corporate_leadgen_leads;
-      const sourcingDate = leadData?.sourcing_date;
-      const interactionDate = interaction.date;
+      const contactPerson = interaction.contact_person || '';
+      const clientId = interaction.client_id;
+      const createdAt = interaction.created_at;
+      const key = `${clientId}_${contactPerson}`;
       
-      // Compare dates (handle both Date objects and strings)
-      let isNewCall = false;
-      if (sourcingDate && interactionDate) {
-        const sourceDateStr = typeof sourcingDate === 'string' ? sourcingDate.split('T')[0] : sourcingDate;
-        const interactDateStr = typeof interactionDate === 'string' ? interactionDate.split('T')[0] : interactionDate;
-        isNewCall = sourceDateStr === interactDateStr;
-      }
+      // Check if this is the first interaction with this contact_person
+      // Compare using created_at to handle same-day calls
+      const firstCreatedAt = firstInteractionMap.get(key);
+      const isNewCall = firstCreatedAt === createdAt;
 
       return {
         id: interaction.id,
-        client_id: interaction.client_id,
+        client_id: clientId,
         date: interaction.date,
+        created_at: createdAt,
         status: interaction.status,
         sub_status: interaction.sub_status,
         remarks: interaction.remarks,
         next_follow_up: interaction.next_follow_up,
-        contact_person: interaction.contact_person,
+        contact_person: contactPerson,
         contact_no: interaction.contact_no,
         email: interaction.email,
         franchise_status: interaction.franchise_status,
-        sourcing_date: sourcingDate,
+        sourcing_date: leadData?.sourcing_date,
         company: leadData?.company || '',
         category: leadData?.category || '',
         district_city: leadData?.district_city || '',
