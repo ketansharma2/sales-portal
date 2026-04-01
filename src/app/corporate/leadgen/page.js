@@ -414,6 +414,38 @@ export default function LeadGenHome() {
     }
   };
 
+  const fetchContractCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      
+      if (isAllData) {
+        params.append('dateRange', 'all');
+      } else if (fromDate && toDate) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/leadgen/contract-count?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setKpiData(prev => ({
+          ...prev,
+          contract: { total: data.data.contract?.total || '0', startup: '0' }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch contract count:', error);
+    }
+  };
+
   // Remove unused variables
   // const normalSearched = '-';
   // const normalCalls = '-';
@@ -530,6 +562,7 @@ export default function LeadGenHome() {
     fetchSentToManagerCount();
     fetchInterestedCount();
     fetchOnboardCount();
+    fetchContractCount();
   }, [isAllData]);
 
   // Refetch data when date range changes (after initial date is fetched)
@@ -550,6 +583,7 @@ export default function LeadGenHome() {
       fetchSentToManagerCount();
       fetchInterestedCount();
       fetchOnboardCount();
+      fetchContractCount();
       fetchMasterUnionCount();
     }
   }, [fromDate, toDate]);
@@ -690,7 +724,7 @@ export default function LeadGenHome() {
               <KpiCard title="Followup Calls" total={kpiData.calls.followup.total} icon={<PhoneIncoming size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'followup_calls' })} />
               <KpiCard title="Picked" total={kpiData.picked.total} icon={<CheckCircle size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'picked' })} />
               <KpiCard title="Not Picked" total={kpiData.notPicked.total} icon={<PhoneMissed size={18}/>} color="red" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'not_picked' })} />
-              <KpiCard title="Contract Share" total={kpiData.contract.total} icon={<FileText size={18}/>} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { subStatus: 'Contract Share' })} />
+              <KpiCard title="Contract Share" total={kpiData.contract.total} icon={<FileText size={18}/>} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'contract' })} />
               <KpiCard title="Interested" total={kpiData.interested.total} icon={<TrendingUp size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'interested' })} />
               <KpiCard title="Sent to Manager" total={kpiData.sentToManager.total} icon={<Send size={18}/>} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'sent_to_manager' })} />
               <KpiCard title="Total Onboard" total={kpiData.onboarded.total} icon={<Briefcase size={18}/>} color="teal" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'onboard' })} />

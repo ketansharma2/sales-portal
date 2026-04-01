@@ -31,6 +31,7 @@ function DetailsContent() {
     if (cardType === 'not_picked') return 'Not Picked Calls';
     if (cardType === 'sent_to_manager') return 'Sent to Manager';
     if (cardType === 'interested') return 'Interested';
+    if (cardType === 'contract') return 'Contract Share';
     if (cardType === 'onboard') return 'Onboard';
     
     // If isSubmittedFilter is set, show 'Sent to Manager'
@@ -332,6 +333,58 @@ function DetailsContent() {
         
         const queryString = params.toString();
         const response = await fetch(`/api/corporate/leadgen/interested-count?${queryString}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success || data.records) {
+          const calls = data.records || [];
+          
+          const formattedCalls = calls.map(call => ({
+            id: call.id,
+            client_id: call.client_id,
+            date: call.date,
+            created_at: call.date,
+            sourcing_date: call.sourcing_date || '',
+            status: call.status || '',
+            sub_status: call.sub_status || '',
+            remarks: call.remarks || '',
+            next_follow_up: call.next_follow_up || '',
+            contact_person: call.contact_person || '',
+            contact_no: call.contact_no || '',
+            email: call.email || '',
+            franchise_status: call.franchise_status || '',
+            company: call.company || '',
+            category: call.category || '',
+            state: call.state || '',
+            district_city: call.district_city || '',
+            startup: call.startup || '',
+            isSubmitted: false
+          }));
+          // Sort by date descending (newest first)
+          formattedCalls.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInteractions(formattedCalls);
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Check if cardType is 'contract' - use new contract-count API
+      if (cardType === 'contract') {
+        const params = new URLSearchParams();
+        
+        // Default to 'all' if no date filters are provided, to match card count
+        if (fromDateFilter && toDateFilter) {
+          params.append('dateRange', 'specific');
+          params.append('fromDate', fromDateFilter);
+          params.append('toDate', toDateFilter);
+        } else {
+          params.append('dateRange', 'all');
+        }
+        
+        const queryString = params.toString();
+        const response = await fetch(`/api/corporate/leadgen/contract-count?${queryString}`, {
           headers: {
             'Authorization': `Bearer ${session.access_token}`
           }

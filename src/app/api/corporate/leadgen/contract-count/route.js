@@ -44,9 +44,8 @@ export async function GET(request) {
     const fromDate = searchParams.get('fromDate');
     const toDate = searchParams.get('toDate');
 
-    // Fetch ALL interactions with status = 'Interested' for this user (complete history)
-    // This is needed to find first interested per client_id regardless of date filter
-    const { data: allInterestedInteractions, error: allError } = await supabaseServer
+    // Fetch ALL interactions with sub_status = 'Contract Share' (case-insensitive) for this user
+    const { data: allContractInteractions, error: allError } = await supabaseServer
       .from('corporate_leads_interaction')
       .select(`
         id,
@@ -71,51 +70,48 @@ export async function GET(request) {
         )
       `)
       .eq('leadgen_id', user.id)
-      .ilike('status', 'Interested')
+      .ilike('sub_status', 'Contract Share')
       .order('created_at', { ascending: true });
 
     if (allError) {
-      console.error('Interested interactions fetch error:', allError);
+      console.error('Contract Share interactions fetch error:', allError);
       return NextResponse.json({ success: false, error: allError.message }, { status: 500 });
     }
 
-    // Step 1: Find first interested interaction for each client_id
-    const firstInterestedMap = new Map();
+    // Step 1: Find first Contract Share interaction for each client_id
+    const firstContractMap = new Map();
     
-    (allInterestedInteractions || []).forEach(interaction => {
+    (allContractInteractions || []).forEach(interaction => {
       const clientId = interaction.client_id;
-      const createdAt = interaction.created_at;
       
       // Keep only the first interaction (earliest created_at) for each client_id
-      if (!firstInterestedMap.has(clientId)) {
-        firstInterestedMap.set(clientId, {
+      if (!firstContractMap.has(clientId)) {
+        firstContractMap.set(clientId, {
           ...interaction,
-          isFirstInterested: true
+          isFirstContract: true
         });
       }
     });
 
-    // Get the first interested interactions
-    const firstInterestedList = Array.from(firstInterestedMap.values());
+    // Get the first Contract Share interactions
+    const firstContractList = Array.from(firstContractMap.values());
 
-    // Step 2: Apply date filtering to the first interested list
-    // Use getInteractionDate to handle null date values
-    let filteredFirstInterested = firstInterestedList;
+    // Step 2: Apply date filtering to the first Contract list
+    let filteredFirstContract = firstContractList;
     
     if (dateRange === 'specific' && fromDate && toDate) {
-      filteredFirstInterested = firstInterestedList.filter(interaction => {
+      filteredFirstContract = firstContractList.filter(interaction => {
         const interactionDate = getInteractionDate(interaction);
         if (!interactionDate) return false;
         return interactionDate >= fromDate && interactionDate <= toDate;
       });
     } else if (dateRange === 'default') {
-      // Get the latest interaction date for this user with 'Interested' status
-      // Use getInteractionDate to handle null date values
+      // Get the latest interaction date for this user with 'Contract Share' status
       const { data: latestData } = await supabaseServer
         .from('corporate_leads_interaction')
         .select('date, created_at')
         .eq('leadgen_id', user.id)
-        .ilike('status', 'Interested')
+        .ilike('sub_status', 'Contract Share')
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
@@ -123,7 +119,7 @@ export async function GET(request) {
       if (latestData) {
         const latestDate = getInteractionDate(latestData);
         if (latestDate) {
-          filteredFirstInterested = firstInterestedList.filter(interaction => {
+          filteredFirstContract = firstContractList.filter(interaction => {
             const interactionDate = getInteractionDate(interaction);
             if (!interactionDate) return false;
             return interactionDate === latestDate;
@@ -131,10 +127,10 @@ export async function GET(request) {
         }
       }
     }
-    // If dateRange === 'all', return all first interested (no filter)
+    // If dateRange === 'all', return all first Contract Share (no filter)
 
     // Format the data - include ALL fields needed by details page
-    const formattedInteractions = filteredFirstInterested.map(interaction => {
+    const formattedInteractions = filteredFirstContract.map(interaction => {
       const leadData = interaction.corporate_leadgen_leads;
       
       return {
@@ -159,19 +155,19 @@ export async function GET(request) {
       };
     });
 
-    // Get total count (unique clients that became interested)
-    const totalInterested = formattedInteractions.length;
+    // Get total count (unique clients that got Contract Share)
+    const totalContract = formattedInteractions.length;
 
     return NextResponse.json({
       success: true,
       data: {
-        interested: { total: totalInterested }
+        contract: { total: totalContract }
       },
       records: formattedInteractions
     });
 
   } catch (error) {
-    console.error('Interested API error:', error);
+    console.error('Contract Share API error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
