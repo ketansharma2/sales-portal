@@ -292,6 +292,7 @@ const [newConversationData, setNewConversationData] = useState({
     discussion: '',
     nextFollowUp: ''
   });
+  const [savingConversation, setSavingConversation] = useState(false);
 
   const [newReqData, setNewReqData] = useState({
     jobTitle: '',
@@ -377,6 +378,7 @@ const [newConversationData, setNewConversationData] = useState({
 
   const handleSaveConversation = async () => {
     try {
+      setSavingConversation(true);
       const session = JSON.parse(localStorage.getItem('session') || '{}');
 
       // Get contact name from selected contact
@@ -417,6 +419,8 @@ const [newConversationData, setNewConversationData] = useState({
     } catch (error) {
       console.error('Error saving conversation:', error);
       alert('Error saving conversation');
+    } finally {
+      setSavingConversation(false);
     }
   };
   
@@ -1618,8 +1622,8 @@ const [newConversationData, setNewConversationData] = useState({
                 {/* Footer */}
                 <div className="p-5 bg-gray-50 border-t flex justify-end gap-3">
                     <button onClick={() => setIsConversationModalOpen(false)} className="px-5 py-2.5 text-gray-500 font-bold hover:text-gray-700 text-sm">Cancel</button>
-                    <button onClick={handleSaveConversation} className="bg-[#103c7f] hover:bg-blue-900 text-white px-8 py-2.5 rounded-lg font-bold text-sm shadow-md flex items-center gap-2">
-                        <MessageSquare size={16}/> Save Conversation
+                    <button onClick={handleSaveConversation} disabled={savingConversation} className="bg-[#103c7f] hover:bg-blue-900 text-white px-8 py-2.5 rounded-lg font-bold text-sm shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <MessageSquare size={16}/> {savingConversation ? 'Saving...' : 'Save Conversation'}
                     </button>
                 </div>
             </div>

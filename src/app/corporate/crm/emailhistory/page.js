@@ -9,6 +9,7 @@ import {
 export default function EmailHistoryPage() {
     // --- STATE ---
     const [selectedClient, setSelectedClient] = useState("All");
+    const [dateRange, setDateRange] = useState({ start: "", end: "" });
     const [modalType, setModalType] = useState(null);
     const [selectedCandidate, setSelectedCandidate] = useState(null);
     const [emailData, setEmailData] = useState([]);
@@ -62,6 +63,7 @@ export default function EmailHistoryPage() {
                     const transformedData = result.data.map(row => ({
                         id: row.id,
                         dateShared: row.created_at ? new Date(row.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-',
+                        shared_date: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null,
                         clientCompany: row.company_name || '-',
                         name: row.name || '-',
                         profile: row.profile || '-',
@@ -146,11 +148,28 @@ export default function EmailHistoryPage() {
     // Use clientsList for dropdown, but still use emailData for filtering when "All" is not selected
     const clientCompanies = [...new Set(emailData.map(item => item.clientCompany))];
 
-    // --- FILTER DATA BASED ON DROPDOWN ---
+    // --- FILTER DATA BASED ON DROPDOWN AND DATE RANGE ---
     const filteredData = useMemo(() => {
-        if (selectedClient === "All") return emailData;
-        return emailData.filter(row => row.clientCompany === selectedClient);
-    }, [selectedClient, emailData]);
+        let data = emailData;
+        
+        // Filter by client
+        if (selectedClient !== "All") {
+            data = data.filter(row => row.clientCompany === selectedClient);
+        }
+        
+        // Filter by date range
+        if (dateRange.start && dateRange.end) {
+            data = data.filter(row => {
+                if (!row.shared_date) return false;
+                const rowDate = new Date(row.shared_date);
+                const startDate = new Date(dateRange.start);
+                const endDate = new Date(dateRange.end);
+                return rowDate >= startDate && rowDate <= endDate;
+            });
+        }
+        
+        return data;
+    }, [selectedClient, dateRange, emailData]);
 
     // --- CALCULATE DYNAMIC KPIs ---
     const kpiCounts = useMemo(() => {
@@ -210,6 +229,24 @@ export default function EmailHistoryPage() {
                             {clientsList.map(c => <option key={c.client_id} value={c.company_name}>{c.company_name}</option>)}
                         </optgroup>
                     </select>
+                </div>
+                <div className="flex items-center gap-2 w-full max-w-sm">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest shrink-0">
+                        <Calendar size={14} className="inline mr-1 mb-0.5 text-indigo-500"/> Date Range:
+                    </label>
+                    <input 
+                        type="date" 
+                        className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
+                        value={dateRange.start}
+                        onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                    />
+                    <span className="text-xs font-bold text-slate-400">to</span>
+                    <input 
+                        type="date" 
+                        className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
+                        value={dateRange.end}
+                        onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                    />
                 </div>
             </div>
 
