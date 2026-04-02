@@ -147,6 +147,11 @@ export default function MorningReportPage() {
         // NEW: Total Client Calling (all rows)
         totalClientCallingNew: 0,
         totalClientCallingYesterdayNew: 0,
+        // NEW: New Calls vs Followup Calls
+        newCallsTotal: 0,
+        newCallsYesterday: 0,
+        followupCallsTotal: 0,
+        followupCallsYesterday: 0,
         loading: true
     });
 
@@ -244,6 +249,11 @@ export default function MorningReportPage() {
                         // NEW: Total Client Calling (all rows)
                         totalClientCallingNew: data.data.totalClientCallingNew || 0,
                         totalClientCallingYesterdayNew: data.data.totalClientCallingYesterdayNew || 0,
+                        // NEW: New Calls vs Followup Calls
+                        newCallsTotal: data.data.newCallsTotal || 0,
+                        newCallsYesterday: data.data.newCallsYesterday || 0,
+                        followupCallsTotal: data.data.followupCallsTotal || 0,
+                        followupCallsYesterday: data.data.followupCallsYesterday || 0,
                         loading: false
                     });
                 }
@@ -400,8 +410,8 @@ export default function MorningReportPage() {
                                                 <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=yesterday-calls')}>
                                                     <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Yesterday Calls</p></div>
                                                     <div className="flex divide-x divide-slate-100 h-[60px]">
-                                                        <div className="flex-1 p-1.5 text-center bg-blue-50/50 flex flex-col justify-center"><p className="text-[8px] font-bold text-blue-500 uppercase">New</p><p className="text-base font-black text-blue-700 leading-none">-</p></div>
-                                                        <div className="flex-1 p-1.5 text-center bg-amber-50/50 flex flex-col justify-center"><p className="text-[8px] font-bold text-amber-500 uppercase">Followup</p><p className="text-base font-black text-amber-700 leading-none">-</p></div>
+                                                        <div className="flex-1 p-1.5 text-center bg-blue-50/50 flex flex-col justify-center"><p className="text-[8px] font-bold text-blue-500 uppercase">New</p><p className="text-base font-black text-blue-700 leading-none">{corporateStats.loading ? '-' : corporateStats.newCallsYesterday}</p></div>
+                                                        <div className="flex-1 p-1.5 text-center bg-amber-50/50 flex flex-col justify-center"><p className="text-[8px] font-bold text-amber-500 uppercase">Followup</p><p className="text-base font-black text-amber-700 leading-none">{corporateStats.loading ? '-' : corporateStats.followupCallsYesterday}</p></div>
                                                     </div>
                                                 </div>
                                             </div>

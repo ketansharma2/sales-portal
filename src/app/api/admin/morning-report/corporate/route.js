@@ -70,6 +70,106 @@ export async function GET(request) {
     let totalClientCallingNew = 0
     let totalClientCallingYesterdayNew = 0
 
+    // NEW: New Calls vs Followup Calls logic (similar to corporate/leadgen)
+    let newCallsTotal = 0
+    let newCallsYesterday = 0
+    let followupCallsTotal = 0
+    let followupCallsYesterday = 0
+
+    // Get ALL interactions to build the first interaction map
+    const { data: allInteractions, error: allInteractionsError } = await supabaseServer
+      .from('corporate_leads_interaction')
+      .select('id, client_id, leadgen_id, contact_person, created_at')
+      .order('created_at', { ascending: true })
+
+    if (allInteractionsError) {
+      console.error('All interactions fetch error:', allInteractionsError)
+    }
+
+    // Build a map of first interaction for each client_id + contact_person + leadgen_id combination
+    const firstInteractionMap = new Map()
+    
+    ;(allInteractions || []).forEach(interaction => {
+      const leadgenId = interaction.leadgen_id
+      const clientId = interaction.client_id
+      const contactPerson = interaction.contact_person || ''
+      const createdAt = interaction.created_at
+      const key = `${leadgenId}_${clientId}_${contactPerson}`
+      
+      if (!firstInteractionMap.has(key)) {
+        firstInteractionMap.set(key, createdAt)
+      }
+    })
+
+    // Get yesterday's interactions for counting new vs followup
+    const { data: yesterdayInteractions, error: yesterdayInteractionsError } = await supabaseServer
+      .from('corporate_leads_interaction')
+      .select('id, client_id, leadgen_id, contact_person, created_at')
+      .eq('date', lastWorkingDayStr)
+      .order('created_at', { ascending: true })
+
+    if (yesterdayInteractionsError) {
+      console.error('Yesterday interactions fetch error:', yesterdayInteractionsError)
+    }
+
+    // Classify yesterday's interactions as new or followup
+    let yesterdayNewCallsSet = new Set()
+    let yesterdayFollowupCallsSet = new Set()
+    
+    ;(yesterdayInteractions || []).forEach(interaction => {
+      const leadgenId = interaction.leadgen_id
+      const clientId = interaction.client_id
+      const contactPerson = interaction.contact_person || ''
+      const createdAt = interaction.created_at
+      const key = `${leadgenId}_${clientId}_${contactPerson}`
+      
+      const firstCreatedAt = firstInteractionMap.get(key)
+      const isNewCall = firstCreatedAt === createdAt
+      
+      // Use unique key for each interaction
+      if (isNewCall) {
+        yesterdayNewCallsSet.add(`${interaction.id}`)
+      } else {
+        yesterdayFollowupCallsSet.add(`${interaction.id}`)
+      }
+    })
+
+    newCallsYesterday = yesterdayNewCallsSet.size
+    followupCallsYesterday = yesterdayFollowupCallsSet.size
+
+    // Get total new calls and followup calls (all time)
+    const { data: allInteractionsWithDate, error: allInteractionsWithDateError } = await supabaseServer
+      .from('corporate_leads_interaction')
+      .select('id, client_id, leadgen_id, contact_person, created_at')
+      .order('created_at', { ascending: true })
+
+    if (allInteractionsWithDateError) {
+      console.error('All interactions with date fetch error:', allInteractionsWithDateError)
+    }
+
+    let totalNewCallsSet = new Set()
+    let totalFollowupCallsSet = new Set()
+    
+    ;(allInteractionsWithDate || []).forEach(interaction => {
+      const leadgenId = interaction.leadgen_id
+      const clientId = interaction.client_id
+      const contactPerson = interaction.contact_person || ''
+      const createdAt = interaction.created_at
+      const key = `${leadgenId}_${clientId}_${contactPerson}`
+      
+      const firstCreatedAt = firstInteractionMap.get(key)
+      const isNewCall = firstCreatedAt === createdAt
+      
+      if (isNewCall) {
+        totalNewCallsSet.add(`${interaction.id}`)
+      } else {
+        totalFollowupCallsSet.add(`${interaction.id}`)
+      }
+    })
+
+    newCallsTotal = totalNewCallsSet.size
+    followupCallsTotal = totalFollowupCallsSet.size
+
     // Get Total Client Search NEW: Count ALL rows from corporate_leadgen_leads (no filter)
     const { count: totalClientSearchAll, error: totalClientSearchAllError } = await supabaseServer
       .from('corporate_leadgen_leads')
@@ -95,44 +195,29 @@ export async function GET(request) {
       totalClientSearchYesterdayNew = yesterdayClientSearchAll || 0
     }
 
-    // Get Total Client Calling NEW: Count ALL rows from corporate_leads_interaction (distinct client_id + date)
-    const { data: totalCallingAllData, error: totalCallingAllError } = await supabaseServer
+    // Get Total Client Calling NEW: Count ALL rows from corporate_leads_interaction (no filter)
+    const { count: totalClientCallingAllCount, error: totalClientCallingAllError } = await supabaseServer
       .from('corporate_leads_interaction')
-      .select('client_id, date')
+      .select('*', { count: 'exact', head: true })
 
-    if (totalCallingAllError) {
-      console.error('Total client calling all error:', totalCallingAllError)
+    if (totalClientCallingAllError) {
+      console.error('Total client calling all error:', totalClientCallingAllError)
     }
 
-    const totalCallingAllSet = new Set()
-    totalCallingAllData?.forEach(record => {
-      if (record.client_id) {
-        const dateKey = record.date || 'NULL'
-        totalCallingAllSet.add(`${record.client_id}_${dateKey}`)
-      }
-    })
+    totalClientCallingNew = totalClientCallingAllCount || 0
 
-    totalClientCallingNew = totalCallingAllSet.size
-
-    // Get Yesterday Client Calling: Count rows where date = lastWorkingDay
+    // Get Yesterday Client Calling: Count ALL rows where date = lastWorkingDay
     if (lastWorkingDayStr) {
-      const { data: yesterdayCallingAllData, error: yesterdayCallingAllError } = await supabaseServer
+      const { count: yesterdayClientCallingAllCount, error: yesterdayClientCallingAllError } = await supabaseServer
         .from('corporate_leads_interaction')
-        .select('client_id, date')
+        .select('*', { count: 'exact', head: true })
         .eq('date', lastWorkingDayStr)
 
-      if (yesterdayCallingAllError) {
-        console.error('Yesterday client calling all error:', yesterdayCallingAllError)
+      if (yesterdayClientCallingAllError) {
+        console.error('Yesterday client calling all error:', yesterdayClientCallingAllError)
       }
 
-      const yesterdayCallingAllSet = new Set()
-      yesterdayCallingAllData?.forEach(record => {
-        if (record.client_id && record.date) {
-          yesterdayCallingAllSet.add(`${record.client_id}_${record.date}`)
-        }
-      })
-
-      totalClientCallingYesterdayNew = yesterdayCallingAllSet.size
+      totalClientCallingYesterdayNew = yesterdayClientCallingAllCount || 0
     }
 
     // Get Total: Count from corporate_leadgen_leads where startup = 'NO' or NULL
@@ -189,7 +274,7 @@ export async function GET(request) {
       startupSearchYesterday = yesterdayStartupSearch || 0
     }
 
-    // Get Startup Calling Total: distinct client_id per unique date from corporate_leads_interaction
+    // Get Startup Calling Total: Count ALL rows from corporate_leads_interaction
     // where corporate_leadgen_leads startup = 'YES' (case insensitive)
     const { data: startupCallingData, error: startupCallingError } = await supabaseServer
       .from('corporate_leads_interaction')
@@ -199,20 +284,16 @@ export async function GET(request) {
       console.error('Startup calling data error:', startupCallingError)
     }
 
-    // Filter where startup = 'YES' (case insensitive) and count distinct client_id + date
-    const startupCallingSet = new Set()
+    // Count ALL rows where startup = 'YES' (no deduplication)
+    startupCallingTotal = 0
     startupCallingData?.forEach(record => {
       const startupValue = record.corporate_leadgen_leads?.startup
       if (startupValue && startupValue.toLowerCase() === 'yes' && record.client_id) {
-        // Use 'NULL' string for null dates to include them in count
-        const dateKey = record.date || 'NULL'
-        startupCallingSet.add(`${record.client_id}_${dateKey}`)
+        startupCallingTotal++
       }
     })
 
-    startupCallingTotal = startupCallingSet.size
-
-    // Get Startup Calling Yesterday: same logic but date = lastWorkingDay
+    // Get Startup Calling Yesterday: count ALL rows where date = lastWorkingDay
     const { data: startupCallingYesterdayData, error: startupCallingYesterdayError } = await supabaseServer
       .from('corporate_leads_interaction')
       .select('client_id, date, corporate_leadgen_leads!inner(startup)')
@@ -222,15 +303,13 @@ export async function GET(request) {
       console.error('Startup calling yesterday error:', startupCallingYesterdayError)
     }
 
-    const startupCallingYesterdaySet = new Set()
+    startupCallingYesterday = 0
     startupCallingYesterdayData?.forEach(record => {
       const startupValue = record.corporate_leadgen_leads?.startup
       if (startupValue && startupValue.toLowerCase() === 'yes' && record.client_id && record.date) {
-        startupCallingYesterdaySet.add(`${record.client_id}_${record.date}`)
+        startupCallingYesterday++
       }
     })
-
-    startupCallingYesterday = startupCallingYesterdaySet.size
 
     // Get Master Union Clients Total: Count rows from corporate_leadgen_leads where startup = 'Master Union' (case insensitive)
     const { count: masterUnionClientsCount, error: masterUnionClientsError } = await supabaseServer
@@ -244,7 +323,7 @@ export async function GET(request) {
 
     masterUnionClientsTotal = masterUnionClientsCount || 0
 
-    // Get Master Union Calling Total: distinct client_id per unique date from corporate_leads_interaction
+    // Get Master Union Calling Total: Count ALL rows from corporate_leads_interaction
     // where corporate_leadgen_leads startup = 'Master Union' (case insensitive)
     const { data: masterUnionCallingData, error: masterUnionCallingError } = await supabaseServer
       .from('corporate_leads_interaction')
@@ -254,104 +333,116 @@ export async function GET(request) {
       console.error('Master union calling data error:', masterUnionCallingError)
     }
 
-    // Filter where startup = 'Master Union' (case insensitive) and count distinct client_id + date
-    const masterUnionCallingSet = new Set()
+    // Count ALL rows where startup = 'Master Union' (no deduplication)
+    masterUnionCallingTotal = 0
     masterUnionCallingData?.forEach(record => {
       const startupValue = record.corporate_leadgen_leads?.startup
       if (startupValue && startupValue.toLowerCase() === 'master union' && record.client_id) {
-        // Use 'NULL' string for null dates to include them in count
-        const dateKey = record.date || 'NULL'
-        masterUnionCallingSet.add(`${record.client_id}_${dateKey}`)
+        masterUnionCallingTotal++
       }
     })
 
-    masterUnionCallingTotal = masterUnionCallingSet.size
-
-    // Get Franchise Discussed Total: distinct client_ids from corporate_leads_interaction 
-    // where franchise_status is NOT 'No Franchise Discuss'
+    // Get Franchise Discussed Total: Count first franchise discussed per client
+    // (matching corporate/leadgen logic - first franchise discussed ever)
     const { data: franchiseDiscussedData, error: franchiseDiscussedError } = await supabaseServer
       .from('corporate_leads_interaction')
-      .select('client_id, franchise_status')
+      .select('client_id, created_at, franchise_status')
       .not('franchise_status', 'ilike', 'No Franchise Discuss')
+      .order('created_at', { ascending: true })
 
     if (franchiseDiscussedError) {
       console.error('Franchise discussed error:', franchiseDiscussedError)
     }
 
-    // Get unique client_ids
-    const franchiseDiscussedSet = new Set()
+    // Find first franchise discussed for each client
+    const firstFranchiseMap = new Map()
     franchiseDiscussedData?.forEach(record => {
-      if (record.client_id) {
-        franchiseDiscussedSet.add(record.client_id)
+      const clientId = record.client_id
+      if (clientId && !firstFranchiseMap.has(clientId)) {
+        firstFranchiseMap.set(clientId, record.created_at)
       }
     })
 
-    franchiseDiscussedTotal = franchiseDiscussedSet.size
+    franchiseDiscussedTotal = firstFranchiseMap.size
 
-    // Get Franchise Discussed Yesterday: same logic but date = lastWorkingDay
+    // Get Franchise Discussed Yesterday: Count first franchise discussed on lastWorkingDay
     const { data: franchiseDiscussedYesterdayData, error: franchiseDiscussedYesterdayError } = await supabaseServer
       .from('corporate_leads_interaction')
-      .select('client_id, franchise_status, date')
+      .select('client_id, created_at, date, franchise_status')
       .not('franchise_status', 'ilike', 'No Franchise Discuss')
       .eq('date', lastWorkingDayStr)
+      .order('created_at', { ascending: true })
 
     if (franchiseDiscussedYesterdayError) {
       console.error('Franchise discussed yesterday error:', franchiseDiscussedYesterdayError)
     }
 
-    // Get unique client_ids for yesterday
-    const franchiseDiscussedYesterdaySet = new Set()
+    // For yesterday, check if this is the first franchise discussed EVER
+    const yesterdayFirstFranchiseSet = new Set()
     franchiseDiscussedYesterdayData?.forEach(record => {
-      if (record.client_id) {
-        franchiseDiscussedYesterdaySet.add(record.client_id)
+      const clientId = record.client_id
+      const createdAt = record.created_at
+      const firstCreatedAt = firstFranchiseMap.get(clientId)
+      
+      // Only count if this is the first franchise discussed for this client
+      if (clientId && firstCreatedAt === createdAt) {
+        yesterdayFirstFranchiseSet.add(clientId)
       }
     })
 
-    franchiseDiscussedYesterday = franchiseDiscussedYesterdaySet.size
+    franchiseDiscussedYesterday = yesterdayFirstFranchiseSet.size
 
-    // Get Form Shared Total: Count unique client_ids from corporate_leads_interaction 
-    // where franchise_status = 'Application form share' (case insensitive)
+    // Get Form Shared Total: Count first form shared per client
+    // (matching corporate/leadgen logic - first form shared ever)
     const { data: formSharedData, error: formSharedError } = await supabaseServer
       .from('corporate_leads_interaction')
-      .select('client_id, franchise_status')
+      .select('client_id, created_at, franchise_status')
       .ilike('franchise_status', 'Application form share')
+      .order('created_at', { ascending: true })
 
     if (formSharedError) {
       console.error('Form shared error:', formSharedError)
     }
 
-    // Get unique client_ids
-    const formSharedSet = new Set()
+    // Find first form shared for each client
+    const firstFormSharedMap = new Map()
     formSharedData?.forEach(record => {
-      if (record.client_id) {
-        formSharedSet.add(record.client_id)
+      const clientId = record.client_id
+      if (clientId && !firstFormSharedMap.has(clientId)) {
+        firstFormSharedMap.set(clientId, record.created_at)
       }
     })
 
-    formSharedTotal = formSharedSet.size
+    formSharedTotal = firstFormSharedMap.size
 
-    // Get Form Shared Yesterday: same logic but date = lastWorkingDay
+    // Get Form Shared Yesterday: Count first form shared on lastWorkingDay
     const { data: formSharedYesterdayData, error: formSharedYesterdayError } = await supabaseServer
       .from('corporate_leads_interaction')
-      .select('client_id, franchise_status, date')
+      .select('client_id, created_at, date, franchise_status')
       .ilike('franchise_status', 'Application form share')
       .eq('date', lastWorkingDayStr)
+      .order('created_at', { ascending: true })
 
     if (formSharedYesterdayError) {
       console.error('Form shared yesterday error:', formSharedYesterdayError)
     }
 
-    // Get unique client_ids for yesterday
-    const formSharedYesterdaySet = new Set()
+    // For yesterday, check if this is the first form shared EVER
+    const yesterdayFirstFormSharedSet = new Set()
     formSharedYesterdayData?.forEach(record => {
-      if (record.client_id) {
-        formSharedYesterdaySet.add(record.client_id)
+      const clientId = record.client_id
+      const createdAt = record.created_at
+      const firstCreatedAt = firstFormSharedMap.get(clientId)
+      
+      // Only count if this is the first form shared for this client
+      if (clientId && firstCreatedAt === createdAt) {
+        yesterdayFirstFormSharedSet.add(clientId)
       }
     })
 
-    formSharedYesterday = formSharedYesterdaySet.size
+    formSharedYesterday = yesterdayFirstFormSharedSet.size
 
-    // Get Client Calling Total: distinct client_id + date from corporate_leads_interaction
+    // Get Client Calling Total: Count ALL rows from corporate_leads_interaction
     // where startup is NULL or 'NO' (not 'YES' and not 'Master Union')
     const { data: callingData, error: callingError } = await supabaseServer
       .from('corporate_leads_interaction')
@@ -361,20 +452,17 @@ export async function GET(request) {
       console.error('Client calling data error:', callingError)
     }
 
-    // Filter where startup is NULL or 'NO' and count distinct client_id + date
-    const callingSet = new Set()
+    // Count ALL rows where startup is NULL or 'NO' (no deduplication)
+    let clientCallingTotal = 0
     callingData?.forEach(record => {
       const startupValue = record.corporate_leadgen_leads?.startup
       // Include only if startup is NULL or contains 'no' (case insensitive)
       if (record.client_id && (!startupValue || startupValue.toLowerCase().includes('no'))) {
-        const dateKey = record.date || 'NULL'
-        callingSet.add(`${record.client_id}_${dateKey}`)
+        clientCallingTotal++
       }
     })
 
-    const clientCallingTotal = callingSet.size
-
-    // Get Client Calling Yesterday: same logic but date = lastWorkingDay
+    // Get Client Calling Yesterday: count ALL rows where date = lastWorkingDay
     const { data: callingYesterdayData, error: callingYesterdayError } = await supabaseServer
       .from('corporate_leads_interaction')
       .select('client_id, date, corporate_leadgen_leads!inner(startup)')
@@ -384,15 +472,13 @@ export async function GET(request) {
       console.error('Client calling yesterday error:', callingYesterdayError)
     }
 
-    const callingYesterdaySet = new Set()
+    let clientCallingYesterday = 0
     callingYesterdayData?.forEach(record => {
       const startupValue = record.corporate_leadgen_leads?.startup
       if (record.client_id && record.date && (!startupValue || startupValue.toLowerCase().includes('no'))) {
-        callingYesterdaySet.add(`${record.client_id}_${record.date}`)
+        clientCallingYesterday++
       }
     })
-
-    const clientCallingYesterday = callingYesterdaySet.size
 
     // Get Contract Share Total: Count distinct client_ids who have at least one interaction with sub_status = 'Contract Share'
     const { data: contractShareData, error: contractShareError } = await supabaseServer
@@ -541,17 +627,11 @@ export async function GET(request) {
             if (callingData && callingData.length > 0) {
               const filteredData = callingData
               
-              const uniqueClients = new Map()
-              filteredData.forEach(rec => {
-                if (!uniqueClients.has(rec.client_id)) {
-                  uniqueClients.set(rec.client_id, rec)
-                }
-              })
-              
+              // Removed deduplication - show ALL interactions
               const ownerIds = [...new Set(filteredData.map(c => c.leadgen_id).filter(Boolean))]
               const userNamesMap = await getLeadgenNames(ownerIds)
               
-              details = Array.from(uniqueClients.values()).map(interaction => ({
+              details = filteredData.map(interaction => ({
                 client_id: interaction.client_id,
                 companyName: interaction.corporate_leadgen_leads?.company || '',
                 contactName: interaction.contact_person || '',
@@ -635,17 +715,11 @@ export async function GET(request) {
                 rec.corporate_leadgen_leads?.startup?.toLowerCase() === 'yes'
               )
               
-              const uniqueClients = new Map()
-              filteredData.forEach(rec => {
-                if (!uniqueClients.has(rec.client_id)) {
-                  uniqueClients.set(rec.client_id, rec)
-                }
-              })
-              
+              // NO deduplication - show all rows
               const ownerIds = [...new Set(filteredData.map(c => c.leadgen_id).filter(Boolean))]
               const userNamesMap = await getLeadgenNames(ownerIds)
               
-              details = Array.from(uniqueClients.values()).map(interaction => ({
+              details = filteredData.map(interaction => ({
                 client_id: interaction.client_id,
                 companyName: interaction.corporate_leadgen_leads?.company || '',
                 contactName: interaction.contact_person || '',
@@ -665,24 +739,31 @@ export async function GET(request) {
         case 'franchise-discussed-yesterday':
           filterTitle = 'Franchise Discussed (Yesterday)'
           if (lastWorkingDayStr) {
+            // Get all franchise discussed interactions for yesterday
             const { data: franchiseData } = await supabaseServer
               .from('corporate_leads_interaction')
               .select('*, corporate_leadgen_leads!inner(startup, company)')
               .not('franchise_status', 'ilike', 'No Franchise Discuss')
               .eq('date', lastWorkingDayStr)
+              .order('created_at', { ascending: true })
             
             if (franchiseData && franchiseData.length > 0) {
-              const uniqueClients = new Map()
+              // Filter to show only first franchise discussed per client (matching corporate/leadgen logic)
+              const firstFranchiseClients = new Set()
+              const filteredData = []
+              
               franchiseData.forEach(rec => {
-                if (!uniqueClients.has(rec.client_id)) {
-                  uniqueClients.set(rec.client_id, rec)
+                const clientId = rec.client_id
+                if (clientId && !firstFranchiseClients.has(clientId)) {
+                  firstFranchiseClients.add(clientId)
+                  filteredData.push(rec)
                 }
               })
               
-              const ownerIds = [...new Set(franchiseData.map(c => c.leadgen_id).filter(Boolean))]
+              const ownerIds = [...new Set(filteredData.map(c => c.leadgen_id).filter(Boolean))]
               const userNamesMap = await getLeadgenNames(ownerIds)
               
-              details = Array.from(uniqueClients.values()).map(interaction => ({
+              details = filteredData.map(interaction => ({
                 client_id: interaction.client_id,
                 companyName: interaction.corporate_leadgen_leads?.company || '',
                 contactName: interaction.contact_person || '',
@@ -702,24 +783,31 @@ export async function GET(request) {
         case 'form-ask-yesterday':
           filterTitle = 'Form Ask (Yesterday)'
           if (lastWorkingDayStr) {
+            // Get all form ask interactions for yesterday
             const { data: formAskData } = await supabaseServer
               .from('corporate_leads_interaction')
               .select('*, corporate_leadgen_leads!inner(startup, company)')
               .ilike('sub_status', 'Form Ask')
               .eq('date', lastWorkingDayStr)
+              .order('created_at', { ascending: true })
             
             if (formAskData && formAskData.length > 0) {
-              const uniqueClients = new Map()
+              // Filter to show only first form ask per client (matching corporate/leadgen logic)
+              const firstFormAskClients = new Set()
+              const filteredData = []
+              
               formAskData.forEach(rec => {
-                if (!uniqueClients.has(rec.client_id)) {
-                  uniqueClients.set(rec.client_id, rec)
+                const clientId = rec.client_id
+                if (clientId && !firstFormAskClients.has(clientId)) {
+                  firstFormAskClients.add(clientId)
+                  filteredData.push(rec)
                 }
               })
               
-              const ownerIds = [...new Set(formAskData.map(c => c.leadgen_id).filter(Boolean))]
+              const ownerIds = [...new Set(filteredData.map(c => c.leadgen_id).filter(Boolean))]
               const userNamesMap = await getLeadgenNames(ownerIds)
               
-              details = Array.from(uniqueClients.values()).map(interaction => ({
+              details = filteredData.map(interaction => ({
                 client_id: interaction.client_id,
                 companyName: interaction.corporate_leadgen_leads?.company || '',
                 contactName: interaction.contact_person || '',
@@ -739,24 +827,31 @@ export async function GET(request) {
         case 'form-shared-yesterday':
           filterTitle = 'Form Shared (Yesterday)'
           if (lastWorkingDayStr) {
+            // Get all form shared interactions for yesterday
             const { data: formSharedData } = await supabaseServer
               .from('corporate_leads_interaction')
               .select('*, corporate_leadgen_leads!inner(startup, company)')
               .ilike('franchise_status', 'Application form share')
               .eq('date', lastWorkingDayStr)
+              .order('created_at', { ascending: true })
             
             if (formSharedData && formSharedData.length > 0) {
-              const uniqueClients = new Map()
+              // Filter to show only first form shared per client (matching corporate/leadgen logic)
+              const firstFormSharedClients = new Set()
+              const filteredData = []
+              
               formSharedData.forEach(rec => {
-                if (!uniqueClients.has(rec.client_id)) {
-                  uniqueClients.set(rec.client_id, rec)
+                const clientId = rec.client_id
+                if (clientId && !firstFormSharedClients.has(clientId)) {
+                  firstFormSharedClients.add(clientId)
+                  filteredData.push(rec)
                 }
               })
               
-              const ownerIds = [...new Set(formSharedData.map(c => c.leadgen_id).filter(Boolean))]
+              const ownerIds = [...new Set(filteredData.map(c => c.leadgen_id).filter(Boolean))]
               const userNamesMap = await getLeadgenNames(ownerIds)
               
-              details = Array.from(uniqueClients.values()).map(interaction => ({
+              details = filteredData.map(interaction => ({
                 client_id: interaction.client_id,
                 companyName: interaction.corporate_leadgen_leads?.company || '',
                 contactName: interaction.contact_person || '',
@@ -783,29 +878,51 @@ export async function GET(request) {
               .eq('date', lastWorkingDayStr)
             
             if (contractShareData && contractShareData.length > 0) {
-              const uniqueClients = new Map()
-              contractShareData.forEach(rec => {
-                if (!uniqueClients.has(rec.client_id)) {
-                  uniqueClients.set(rec.client_id, rec)
+              // Fetch ALL Contract Share data first to find first time ever
+              const { data: allContractData } = await supabaseServer
+                .from('corporate_leads_interaction')
+                .select('*, corporate_leadgen_leads!inner(startup, company)')
+                .ilike('sub_status', 'Contract Share')
+                .order('created_at', { ascending: true })
+              
+              if (allContractData && allContractData.length > 0) {
+                // Find first Contract Share for each client using created_at
+                const firstContractMap = new Map()
+                allContractData.forEach(rec => {
+                  const clientId = rec.client_id
+                  if (!firstContractMap.has(clientId)) {
+                    firstContractMap.set(clientId, rec)
+                  }
+                })
+                
+                // Get first Contract Share list
+                const firstContractList = Array.from(firstContractMap.values())
+                
+                // Filter by lastWorkingDay
+                let filteredData = firstContractList
+                if (lastWorkingDayStr) {
+                  filteredData = firstContractList.filter(interaction => interaction.date === lastWorkingDayStr)
                 }
-              })
-              
-              const ownerIds = [...new Set(contractShareData.map(c => c.leadgen_id).filter(Boolean))]
-              const userNamesMap = await getLeadgenNames(ownerIds)
-              
-              details = Array.from(uniqueClients.values()).map(interaction => ({
-                client_id: interaction.client_id,
-                companyName: interaction.corporate_leadgen_leads?.company || '',
-                contactName: interaction.contact_person || '',
-                contactNumber: interaction.contact_no || '',
-                lastInteraction: interaction.remarks || '',
-                lastInteractionDate: interaction.date || '',
-                nextFollowup: interaction.next_follow_up || '',
-                status: interaction.status || '',
-                substatus: interaction.sub_status || '',
-                franchiseStatus: interaction.franchise_status || 'Not Applicable',
-                owner: userNamesMap.get(interaction.leadgen_id) || interaction.leadgen_id || 'Unknown'
-              }))
+                
+                if (filteredData && filteredData.length > 0) {
+                  const ownerIds = [...new Set(filteredData.map(c => c.leadgen_id).filter(Boolean))]
+                  const userNamesMap = await getLeadgenNames(ownerIds)
+                  
+                  details = filteredData.map(interaction => ({
+                    client_id: interaction.client_id,
+                    companyName: interaction.corporate_leadgen_leads?.company || '',
+                    contactName: interaction.contact_person || '',
+                    contactNumber: interaction.contact_no || '',
+                    lastInteraction: interaction.remarks || '',
+                    lastInteractionDate: interaction.date || '',
+                    nextFollowup: interaction.next_follow_up || '',
+                    status: interaction.status || '',
+                    substatus: interaction.sub_status || '',
+                    franchiseStatus: interaction.franchise_status || 'Not Applicable',
+                    owner: userNamesMap.get(interaction.leadgen_id) || interaction.leadgen_id || 'Unknown'
+                  }))
+                }
+              }
             }
           }
           break
@@ -873,22 +990,11 @@ export async function GET(request) {
               rec.corporate_leadgen_leads?.startup?.toLowerCase() === 'master union'
             )
             
-            // Get unique client_ids + date combinations
-            const uniqueClientsMap = new Map()
-            muInteractions.forEach(rec => {
-              if (rec.client_id) {
-                const dateKey = rec.date || 'NULL'
-                const key = `${rec.client_id}_${dateKey}`
-                if (!uniqueClientsMap.has(key)) {
-                  uniqueClientsMap.set(key, rec)
-                }
-              }
-            })
-            
+            // NO deduplication - show all rows
             const muCallingOwnerIds = [...new Set(muInteractions.map(c => c.leadgen_id).filter(Boolean))]
             const muCallingUserNamesMap = await getLeadgenNames(muCallingOwnerIds)
             
-            details = Array.from(uniqueClientsMap.values()).map(interaction => ({
+            details = muInteractions.map(interaction => ({
               client_id: interaction.client_id,
               companyName: interaction.corporate_leadgen_leads?.company || '',
               contactName: interaction.contact_person || '',
@@ -901,6 +1007,167 @@ export async function GET(request) {
               franchiseStatus: interaction.franchise_status || 'Not Applicable',
               owner: muCallingUserNamesMap.get(interaction.leadgen_id) || interaction.leadgen_id || 'Unknown'
             }))
+          }
+          break
+
+        case 'new-calls-yesterday':
+          filterTitle = 'New Calls (Yesterday)'
+          if (lastWorkingDayStr) {
+            // Get yesterday's interactions and classify as new
+            const { data: newCallsInteractions } = await supabaseServer
+              .from('corporate_leads_interaction')
+              .select('*, corporate_leadgen_leads!inner(startup, company, sourcing_date)')
+              .eq('date', lastWorkingDayStr)
+              .order('created_at', { ascending: true })
+
+            if (newCallsInteractions && newCallsInteractions.length > 0) {
+              // Classify each interaction as new or followup using the firstInteractionMap
+              const newCallsDetails = []
+              
+              newCallsInteractions.forEach(interaction => {
+                const leadgenId = interaction.leadgen_id
+                const clientId = interaction.client_id
+                const contactPerson = interaction.contact_person || ''
+                const createdAt = interaction.created_at
+                const key = `${leadgenId}_${clientId}_${contactPerson}`
+                
+                const firstCreatedAt = firstInteractionMap.get(key)
+                const isNewCall = firstCreatedAt === createdAt
+                
+                if (isNewCall) {
+                  newCallsDetails.push(interaction)
+                }
+              })
+
+              // Get unique owner IDs
+              const ownerIds = [...new Set(newCallsDetails.map(c => c.leadgen_id).filter(Boolean))]
+              const userNamesMap = await getLeadgenNames(ownerIds)
+
+              // Deduplicate by client_id - keep first interaction
+              const uniqueClientsMap = new Map()
+              newCallsDetails.forEach(rec => {
+                if (rec.client_id && !uniqueClientsMap.has(rec.client_id)) {
+                  uniqueClientsMap.set(rec.client_id, rec)
+                }
+              })
+
+              details = Array.from(uniqueClientsMap.values()).map(interaction => ({
+                client_id: interaction.client_id,
+                companyName: interaction.corporate_leadgen_leads?.company || '',
+                contactName: interaction.contact_person || '',
+                contactNumber: interaction.contact_no || '',
+                lastInteraction: interaction.remarks || '',
+                lastInteractionDate: interaction.date || '',
+                nextFollowup: interaction.next_follow_up || '',
+                status: interaction.status || '',
+                substatus: interaction.sub_status || '',
+                franchiseStatus: interaction.franchise_status || 'Not Applicable',
+                owner: userNamesMap.get(interaction.leadgen_id) || interaction.leadgen_id || 'Unknown'
+              }))
+            }
+          }
+          break
+
+        case 'followup-calls-yesterday':
+          filterTitle = 'Followup Calls (Yesterday)'
+          if (lastWorkingDayStr) {
+            // Get yesterday's interactions and classify as followup
+            const { data: followupCallsInteractions } = await supabaseServer
+              .from('corporate_leads_interaction')
+              .select('*, corporate_leadgen_leads!inner(startup, company, sourcing_date)')
+              .eq('date', lastWorkingDayStr)
+              .order('created_at', { ascending: true })
+
+            if (followupCallsInteractions && followupCallsInteractions.length > 0) {
+              // Classify each interaction as new or followup using the firstInteractionMap
+              const followupDetails = []
+              
+              followupCallsInteractions.forEach(interaction => {
+                const leadgenId = interaction.leadgen_id
+                const clientId = interaction.client_id
+                const contactPerson = interaction.contact_person || ''
+                const createdAt = interaction.created_at
+                const key = `${leadgenId}_${clientId}_${contactPerson}`
+                
+                const firstCreatedAt = firstInteractionMap.get(key)
+                const isNewCall = firstCreatedAt === createdAt
+                
+                if (!isNewCall) {
+                  followupDetails.push(interaction)
+                }
+              })
+
+              // Get unique owner IDs
+              const ownerIds = [...new Set(followupDetails.map(c => c.leadgen_id).filter(Boolean))]
+              const userNamesMap = await getLeadgenNames(ownerIds)
+
+              // Deduplicate by client_id - keep first followup interaction for each client
+              const uniqueClientsMap = new Map()
+              followupDetails.forEach(rec => {
+                if (rec.client_id && !uniqueClientsMap.has(rec.client_id)) {
+                  uniqueClientsMap.set(rec.client_id, rec)
+                }
+              })
+
+              details = Array.from(uniqueClientsMap.values()).map(interaction => ({
+                client_id: interaction.client_id,
+                companyName: interaction.corporate_leadgen_leads?.company || '',
+                contactName: interaction.contact_person || '',
+                contactNumber: interaction.contact_no || '',
+                lastInteraction: interaction.remarks || '',
+                lastInteractionDate: interaction.date || '',
+                nextFollowup: interaction.next_follow_up || '',
+                status: interaction.status || '',
+                substatus: interaction.sub_status || '',
+                franchiseStatus: interaction.franchise_status || 'Not Applicable',
+                owner: userNamesMap.get(interaction.leadgen_id) || interaction.leadgen_id || 'Unknown'
+              }))
+            }
+          }
+          break
+
+        case 'yesterday-calls':
+          filterTitle = 'Yesterday Calls'
+          if (lastWorkingDayStr) {
+            // Get all yesterday's interactions
+            const { data: yesterdayCallsData } = await supabaseServer
+              .from('corporate_leads_interaction')
+              .select('*, corporate_leadgen_leads!inner(startup, company, sourcing_date)')
+              .eq('date', lastWorkingDayStr)
+              .order('created_at', { ascending: true })
+
+            if (yesterdayCallsData && yesterdayCallsData.length > 0) {
+              // Get unique owner IDs
+              const ownerIds = [...new Set(yesterdayCallsData.map(c => c.leadgen_id).filter(Boolean))]
+              const userNamesMap = await getLeadgenNames(ownerIds)
+
+              // Classify each interaction as new or followup (NO deduplication - show all rows)
+              details = yesterdayCallsData.map(interaction => {
+                const leadgenId = interaction.leadgen_id
+                const clientId = interaction.client_id
+                const contactPerson = interaction.contact_person || ''
+                const createdAt = interaction.created_at
+                const key = `${leadgenId}_${clientId}_${contactPerson}`
+                
+                const firstCreatedAt = firstInteractionMap.get(key)
+                const isNewCall = firstCreatedAt === createdAt
+                
+                return {
+                  client_id: interaction.client_id,
+                  companyName: interaction.corporate_leadgen_leads?.company || '',
+                  contactName: interaction.contact_person || '',
+                  contactNumber: interaction.contact_no || '',
+                  lastInteraction: interaction.remarks || '',
+                  lastInteractionDate: interaction.date || '',
+                  nextFollowup: interaction.next_follow_up || '',
+                  status: interaction.status || '',
+                  substatus: interaction.sub_status || '',
+                  franchiseStatus: interaction.franchise_status || 'Not Applicable',
+                  owner: userNamesMap.get(interaction.leadgen_id) || interaction.leadgen_id || 'Unknown',
+                  isNewCall
+                }
+              })
+            }
           }
           break
 
@@ -943,7 +1210,12 @@ export async function GET(request) {
         totalClientSearchYesterdayNew,
         // NEW: Total Client Calling (all rows)
         totalClientCallingNew,
-        totalClientCallingYesterdayNew
+        totalClientCallingYesterdayNew,
+        // NEW: New Calls vs Followup Calls
+        newCallsTotal,
+        newCallsYesterday,
+        followupCallsTotal,
+        followupCallsYesterday
       }
     })
 

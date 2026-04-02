@@ -73,6 +73,18 @@ function CorporateDetailsContent() {
                         filterParam = 'master-union-calling';
                         setFilterTitle('Master Union Calling');
                         break;
+                    case 'new-calls-yesterday':
+                        filterParam = 'new-calls-yesterday';
+                        setFilterTitle('New Calls (Yesterday)');
+                        break;
+                    case 'followup-calls-yesterday':
+                        filterParam = 'followup-calls-yesterday';
+                        setFilterTitle('Followup Calls (Yesterday)');
+                        break;
+                    case 'yesterday-calls':
+                        filterParam = 'yesterday-calls';
+                        setFilterTitle('Yesterday Calls');
+                        break;
                     default:
                         filterParam = 'all';
                         setFilterTitle('All Records');
@@ -206,8 +218,11 @@ function CorporateDetailsContent() {
                         <h1 className="text-xl font-black text-[#0f172a] uppercase tracking-tight flex items-center gap-2">
                             <FileText size={20} className="text-indigo-600"/> Corporate Sales Details
                         </h1>
-                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
+                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 flex items-center gap-2">
                             {filterTitle}
+                            <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                {filteredData.length} rows
+                            </span>
                         </p>
                     </div>
                 </div>
@@ -296,7 +311,12 @@ function CorporateDetailsContent() {
                                 <tr key={row.client_id || row.id} className="hover:bg-slate-50/80 transition-colors group">
                                     {/* Company Name */}
                                     <td className="py-3 px-4">
-                                        <p className="text-xs font-black text-slate-800">{row.companyName}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-xs font-black text-slate-800">{row.companyName}</p>
+                                            {row.isNewCall && (
+                                                <span className="bg-blue-100 text-blue-700 text-[9px] font-bold px-1.5 py-0.5 rounded">NEW</span>
+                                            )}
+                                        </div>
                                     </td>
                                     
                                     {/* Contact Info (Name & Number) */}
