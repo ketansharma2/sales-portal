@@ -7,40 +7,43 @@ import {
     Loader2, History, File, CheckCircle2, X
 } from "lucide-react";
 
-// CV Preview Component - Fetches PDF as blob to bypass Content-Disposition header
+// CV Preview Component - Handles PDF, Images, and Word documents
 function CVPreview({ url, name }) {
     const [blobUrl, setBlobUrl] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [fileType, setFileType] = useState(null);
 
     useEffect(() => {
-        const fetchPdfAsBlob = async () => {
+        const fetchFileAsBlob = async () => {
             try {
                 setLoading(true);
                 setError(null);
                 
-                console.log('Fetching PDF as blob:', url);
+                console.log('Fetching file as blob:', url);
                 const response = await fetch(url);
                 
                 if (!response.ok) {
-                    throw new Error(`Failed to fetch PDF: ${response.status}`);
+                    throw new Error(`Failed to fetch file: ${response.status}`);
                 }
                 
                 const blob = await response.blob();
-                console.log('PDF blob size:', blob.size, 'type:', blob.type);
+                console.log('File blob size:', blob.size, 'type:', blob.type);
                 
-                const blobUrl = URL.createObjectURL(blob);
-                setBlobUrl(blobUrl);
+                setFileType(blob.type);
+                
+                const fileBlobUrl = URL.createObjectURL(blob);
+                setBlobUrl(fileBlobUrl);
                 setLoading(false);
             } catch (err) {
-                console.error('Error fetching PDF:', err);
+                console.error('Error fetching file:', err);
                 setError(err.message);
                 setLoading(false);
             }
         };
 
         if (url) {
-            fetchPdfAsBlob();
+            fetchFileAsBlob();
         }
 
         // Cleanup blob URL on unmount
@@ -55,16 +58,16 @@ function CVPreview({ url, name }) {
         return (
             <div className="flex items-center justify-center w-full h-full">
                 <Loader2 size={32} className="animate-spin text-blue-500" />
-                <span className="ml-3 text-sm font-bold text-slate-500">Loading PDF...</span>
+                <span className="ml-3 text-sm font-bold text-slate-500">Loading...</span>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="text-center text-slate-500">
+            <div className="text-center text-slate-500 p-4">
                 <File size={48} className="mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-black uppercase tracking-widest mb-1">Error Loading PDF</p>
+                <p className="text-lg font-black uppercase tracking-widest mb-1">Error Loading File</p>
                 <p className="text-xs font-bold">{error}</p>
                 <button
                     onClick={() => window.open(url, '_blank')}
@@ -76,6 +79,44 @@ function CVPreview({ url, name }) {
         );
     }
 
+    // Handle different file types
+    const isPDF = fileType === 'application/pdf';
+    const isImage = fileType && fileType.startsWith('image/');
+    const isWord = fileType === 'application/msword' || 
+                   fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+    if (isImage) {
+        // Show image
+        return (
+            <img 
+                src={blobUrl} 
+                alt={`CV - ${name}`}
+                className="w-full h-full object-contain rounded-lg"
+            />
+        );
+    }
+
+    if (isWord) {
+        // Show Word document message with download option
+        return (
+            <div className="flex flex-col items-center justify-center w-full h-full bg-slate-50 rounded-lg p-4">
+                <FileText size={64} className="text-blue-500 mb-4" />
+                <p className="text-sm font-bold text-slate-700 mb-2">Word Document</p>
+                <p className="text-xs text-slate-500 mb-4 text-center">
+                    Preview not available for Word documents.\nPlease download to view.
+                </p>
+                <a 
+                    href={url} 
+                    download={name + '_CV.docx'}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"
+                >
+                    Download CV
+                </a>
+            </div>
+        );
+    }
+
+    // Default: Show PDF in iframe
     return (
         <iframe
             src={blobUrl}

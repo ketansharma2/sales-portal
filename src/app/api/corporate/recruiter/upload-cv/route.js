@@ -39,9 +39,9 @@ export async function POST(request) {
     }
 
     // Validate file type
-    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/jpg', 'image/png']
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'Invalid file type. Only PDF and DOC files are allowed' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid file type. Only PDF, DOC, DOCX, JPG, JPEG, and PNG files are allowed' }, { status: 400 })
     }
 
     // Validate file size (max 10MB)
