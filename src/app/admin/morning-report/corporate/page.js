@@ -85,6 +85,10 @@ function CorporateDetailsContent() {
                         filterParam = 'yesterday-calls';
                         setFilterTitle('Yesterday Calls');
                         break;
+                    case 'crm-client-calling':
+                        filterParam = 'crm-client-calling';
+                        setFilterTitle('CRM Client Calling');
+                        break;
                     default:
                         filterParam = 'all';
                         setFilterTitle('All Records');

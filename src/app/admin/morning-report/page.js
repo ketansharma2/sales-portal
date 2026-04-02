@@ -155,6 +155,11 @@ export default function MorningReportPage() {
         newCallsYesterday: 0,
         followupCallsTotal: 0,
         followupCallsYesterday: 0,
+        // Corporate CRM
+        corporateCrmLastWorkingDay: '',
+        corporateCrmClientCallingTotal: 0,
+        corporateCrmClientCallingYesterday: 0,
+        corporateCrmConversationLog: [],
         loading: true
     });
 
@@ -288,7 +293,8 @@ export default function MorningReportPage() {
                     const lastDay = data.data.lastWorkingDay || '';
                     const lastDayFormatted = lastDay ? new Date(lastDay).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '';
                     
-                    setCorporateStats({
+                    setCorporateStats(prev => ({
+                        ...prev,
                         lastWorkingDay: lastDayFormatted,
                         clientSearchTotal: data.data.clientSearchTotal || 0,
                         clientSearchYesterday: data.data.clientSearchYesterday || 0,
@@ -306,19 +312,16 @@ export default function MorningReportPage() {
                         franchiseDiscussedYesterday: data.data.franchiseDiscussedYesterday || 0,
                         formSharedTotal: data.data.formSharedTotal || 0,
                         formSharedYesterday: data.data.formSharedYesterday || 0,
-                        // NEW: Total Client Search (all rows)
                         totalClientSearchNew: data.data.totalClientSearchNew || 0,
                         totalClientSearchYesterdayNew: data.data.totalClientSearchYesterdayNew || 0,
-                        // NEW: Total Client Calling (all rows)
                         totalClientCallingNew: data.data.totalClientCallingNew || 0,
                         totalClientCallingYesterdayNew: data.data.totalClientCallingYesterdayNew || 0,
-                        // NEW: New Calls vs Followup Calls
                         newCallsTotal: data.data.newCallsTotal || 0,
                         newCallsYesterday: data.data.newCallsYesterday || 0,
                         followupCallsTotal: data.data.followupCallsTotal || 0,
                         followupCallsYesterday: data.data.followupCallsYesterday || 0,
                         loading: false
-                    });
+                    }));
                 }
             } catch (error) {
                 console.error('Error fetching corporate stats:', error);
@@ -328,6 +331,51 @@ export default function MorningReportPage() {
 
         fetchCorporateStats();
     }, []);
+
+    // --- FETCH CORPORATE CRM DATA ---
+    useEffect(() => {
+        const fetchCorporateCrmData = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                
+                // Fetch CRM Calling data
+                const crmCallingResponse = await fetch('/api/admin/morning-report/corporate/crm-calling', {
+                    headers: { 'Authorization': `Bearer ${session.access_token}` }
+                });
+                const crmCallingData = await crmCallingResponse.json();
+                
+                // Fetch CRM Conversation Log
+                const crmConversationResponse = await fetch('/api/admin/morning-report/corporate/crm-conversation-log', {
+                    headers: { 'Authorization': `Bearer ${session.access_token}` }
+                });
+                const crmConversationData = await crmConversationResponse.json();
+                
+                if (crmCallingData.success) {
+                    setCorporateStats(prev => ({
+                        ...prev,
+                        corporateCrmClientCallingTotal: crmCallingData.data.total || 0,
+                        corporateCrmClientCallingYesterday: crmCallingData.data.yesterday || 0,
+                        corporateCrmLastWorkingDay: crmCallingData.data.latestDateFormatted || ''
+                    }));
+                }
+                
+                if (crmConversationData.success) {
+                    setCorporateStats(prev => ({
+                        ...prev,
+                        corporateCrmConversationLog: crmConversationData.data.conversations || []
+                    }));
+                }
+            } catch (error) {
+                console.error('Error fetching corporate CRM data:', error);
+            }
+        };
+
+        fetchCorporateCrmData();
+    }, []);
+
+    // --- FETCH JOB POSTING DATA ---
+
+    // --- FETCH JOB POSTING DATA ---
 
     // --- FETCH JOB POSTING DATA ---
     useEffect(() => {
@@ -889,16 +937,21 @@ export default function MorningReportPage() {
                                     <div className="p-4 bg-indigo-50/20 border-t border-indigo-100">
                                         <h4 className="text-[11px] font-black text-indigo-800 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                                             <UserCheck size={14}/> Corporate Client Handling
+                                            {corporateStats.corporateCrmLastWorkingDay && (
+                                                <span className="ml-2 text-[10px] font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded">
+                                                    Latest Date: {corporateStats.corporateCrmLastWorkingDay}
+                                                </span>
+                                            )}
                                         </h4>
                                         
                                         {/* KPI CARDS */}
                                         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
                                             {/* Client Calling (NEW) */}
-                                            <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col">
+                                            <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/corporate?filter=crm-client-calling')}>
                                                 <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">CRM Client Calling</p></div>
                                                 <div className="flex divide-x divide-slate-100 h-[50px]">
-                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
-                                                    <div className="flex-1 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-500 uppercase">Yest</p><p className="text-sm font-black text-indigo-700 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">{corporateStats.corporateCrmClientCallingTotal}</p></div>
+                                                    <div className="flex-1 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-500 uppercase">{corporateStats.corporateCrmLastWorkingDay || 'Yest'}</p><p className="text-sm font-black text-indigo-700 leading-none">{corporateStats.corporateCrmClientCallingYesterday}</p></div>
                                                 </div>
                                             </div>
                                             {/* Tracker to Client */}
@@ -942,9 +995,9 @@ export default function MorningReportPage() {
                                                     <MessageSquare size={12}/> Client Conversation Log
                                                 </h3>
                                             </div>
-                                            <div className="overflow-x-auto custom-scrollbar">
+                                            <div className="overflow-x-auto custom-scrollbar max-h-[150px] overflow-y-auto">
                                                 <table className="w-full text-left border-collapse text-xs min-w-[900px]">
-                                                    <thead className="bg-slate-100/50 text-slate-500 text-[9px] uppercase font-bold">
+                                                    <thead className="bg-indigo-100 text-indigo-700 text-[9px] uppercase font-bold sticky top-0 z-10">
                                                         <tr>
                                                             <th className="p-2.5 border-b border-slate-200 w-[15%]">Date & Mode</th>
                                                             <th className="p-2.5 border-b border-slate-200 w-[15%]">CRM</th>
@@ -954,30 +1007,41 @@ export default function MorningReportPage() {
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-slate-100">
-                                                        {/* Static Mock Row (Replace with your map function) */}
-                                                        <tr className="hover:bg-indigo-50/30 transition">
-                                                            <td className="p-2.5 align-top">
-                                                                <div className="flex flex-col gap-0.5 items-start">
-                                                                    <span className="font-bold text-gray-800">2026-03-02</span>
-                                                                    <span className="text-[9px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded w-max">On Call</span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="p-2.5 align-top">
-                                                                <span className="text-[10px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded shadow-sm w-max truncate">
-                                                                    Rahul Verma
-                                                                </span>
-                                                            </td>
-                                                            <td className="p-2.5 align-top font-black text-[#103c7f]">TechCorp Solutions</td>
-                                                            <td className="p-2.5 align-top">
-                                                                <div className="flex flex-col gap-0.5">
-                                                                    <span className="font-bold text-gray-700">Mr. Amit Sharma</span>
-                                                                    <span className="text-[9px] text-gray-500 uppercase tracking-wide">HR Manager</span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="p-2.5 align-top text-[11px] text-gray-600 italic">
-                                                                "Discussed the new Java Developer requirement. They need 5 candidates by next week. Shared tracker."
-                                                            </td>
-                                                        </tr>
+                                                        {corporateStats.corporateCrmConversationLog && corporateStats.corporateCrmConversationLog.length > 0 ? (
+                                                            corporateStats.corporateCrmConversationLog.map((row) => (
+                                                                <tr key={row.conversation_id} className="hover:bg-indigo-50/30 transition">
+                                                                    <td className="p-2.5 align-top">
+                                                                        <div className="flex flex-col gap-0.5 items-start">
+                                                                            <span className="font-bold text-gray-800">{row.date}</span>
+                                                                            <span className="text-[9px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded w-max">{row.mode || 'N/A'}</span>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="p-2.5 align-top">
+                                                                        <span className="text-[10px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded shadow-sm w-max truncate">
+                                                                            {row.user_name}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="p-2.5 align-top font-black text-[#103c7f]">{row.company_name || 'N/A'}</td>
+                                                                    <td className="p-2.5 align-top">
+                                                                        <div className="flex flex-col gap-0.5">
+                                                                            <span className="font-bold text-gray-700">{row.contact_name || 'N/A'}</span>
+                                                                            {row.designation && (
+                                                                                <span className="text-[9px] text-gray-500 uppercase tracking-wide">{row.designation}</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="p-2.5 align-top text-[11px] text-gray-600 italic">
+                                                                        "{row.discussion || 'No discussion recorded'}"
+                                                                    </td>
+                                                                </tr>
+                                                            ))
+                                                        ) : (
+                                                            <tr>
+                                                                <td colSpan="5" className="p-4 text-center text-gray-500 text-xs">
+                                                                    No conversation data available
+                                                                </td>
+                                                            </tr>
+                                                        )}
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -1208,9 +1272,9 @@ export default function MorningReportPage() {
                                                     <MessageSquare size={12}/> Client Conversation Log
                                                 </h3>
                                             </div>
-                                            <div className="overflow-x-auto custom-scrollbar">
+                                            <div className="overflow-x-auto custom-scrollbar max-h-[150px] overflow-y-auto">
                                                 <table className="w-full text-left border-collapse text-xs min-w-[900px]">
-                                                    <thead className="bg-slate-100/50 text-slate-500 text-[9px] uppercase font-bold">
+                                                    <thead className="bg-orange-100 text-orange-700 text-[9px] uppercase font-bold sticky top-0 z-10">
                                                         <tr>
                                                             <th className="p-2.5 border-b border-slate-200 w-[15%]">Date & Mode</th>
                                                             <th className="p-2.5 border-b border-slate-200 w-[15%]">CRM</th>
