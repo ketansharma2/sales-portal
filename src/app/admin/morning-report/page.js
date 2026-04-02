@@ -119,7 +119,10 @@ export default function MorningReportPage() {
         yesterdayReachedOut: 0,
         yesterdayInterested: 0,
         lastWorkingDay: '',
-        loading: true
+        crmLastWorkingDay: '',
+        crmClientCallingTotal: 0,
+        crmClientCallingYesterday: 0,
+        crmConversationLog: []
     });
 
     // --- STATE FOR CORPORATE SECTOR DATA ---
@@ -186,7 +189,8 @@ export default function MorningReportPage() {
                     const lastDay = data.data.lastWorkingDay || '';
                     const lastDayFormatted = lastDay ? new Date(lastDay).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '';
                     
-                    setDomesticStats({
+                    setDomesticStats(prev => ({
+                        ...prev,
                         totalVisits: data.data.totalVisits || 0,
                         yesterdayVisits: data.data.yesterdayVisits || 0,
                         totalOnboarded: data.data.totalOnboarded || 0,
@@ -197,8 +201,8 @@ export default function MorningReportPage() {
                         yesterdayReachedOut: data.data.yesterdayReachedOut || 0,
                         yesterdayInterested: data.data.yesterdayInterested || 0,
                         lastWorkingDay: lastDayFormatted,
-                        loading: false
-                    });
+                        loading: prev.crmClientCallingTotal > 0 ? false : true // Keep loading if CRM not yet fetched
+                    }));
                 }
             } catch (error) {
                 console.error('Error fetching domestic stats:', error);
@@ -207,6 +211,65 @@ export default function MorningReportPage() {
         };
 
         fetchDomesticStats();
+    }, []);
+
+    // --- FETCH DOMESTIC CRM CLIENT CALLING DATA ---
+    useEffect(() => {
+        const fetchCrmCallingData = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const response = await fetch('/api/admin/morning-report/domestic/crm-calling', {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+                const data = await response.json();
+                
+                console.log('CRM Calling API Response:', data);
+                
+                if (data.success) {
+                    setDomesticStats(prev => ({
+                        ...prev,
+                        crmClientCallingTotal: data.data.total || 0,
+                        crmClientCallingYesterday: data.data.yesterday || 0,
+                        crmLastWorkingDay: data.data.latestDateFormatted || '',
+                        loading: false
+                    }));
+                }
+            } catch (error) {
+                console.error('Error fetching CRM calling data:', error);
+            }
+        };
+
+        fetchCrmCallingData();
+    }, []);
+
+    // --- FETCH DOMESTIC CRM CONVERSATION LOG ---
+    useEffect(() => {
+        const fetchCrmConversationLog = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const response = await fetch('/api/admin/morning-report/domestic/crm-conversation-log', {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+                const data = await response.json();
+                
+                console.log('CRM Conversation Log API Response:', data);
+                
+                if (data.success) {
+                    setDomesticStats(prev => ({
+                        ...prev,
+                        crmConversationLog: data.data.conversations || []
+                    }));
+                }
+            } catch (error) {
+                console.error('Error fetching CRM conversation log:', error);
+            }
+        };
+
+        fetchCrmConversationLog();
     }, []);
 
     // --- FETCH CORPORATE SECTOR DATA ---
@@ -842,32 +905,32 @@ export default function MorningReportPage() {
                                             <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col">
                                                 <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Tracker to Client</p></div>
                                                 <div className="flex divide-x divide-slate-100 h-[50px]">
-                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
-                                                    <div className="flex-1 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-500 uppercase">Yest</p><p className="text-sm font-black text-indigo-700 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">-</p></div>
+                                                    <div className="flex-1 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-500 uppercase">Yest</p><p className="text-sm font-black text-indigo-700 leading-none">-</p></div>
                                                 </div>
                                             </div>
                                             {/* Interview */}
                                             <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col">
                                                 <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Interview</p></div>
                                                 <div className="flex divide-x divide-slate-100 h-[50px]">
-                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
-                                                    <div className="flex-1 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-500 uppercase">Yest</p><p className="text-sm font-black text-indigo-700 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">-</p></div>
+                                                    <div className="flex-1 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-500 uppercase">Yest</p><p className="text-sm font-black text-indigo-700 leading-none">-</p></div>
                                                 </div>
                                             </div>
                                             {/* Selection */}
                                             <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col">
                                                 <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Selection</p></div>
                                                 <div className="flex divide-x divide-slate-100 h-[50px]">
-                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
-                                                    <div className="flex-1 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-500 uppercase">Yest</p><p className="text-sm font-black text-indigo-700 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">-</p></div>
+                                                    <div className="flex-1 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-500 uppercase">Yest</p><p className="text-sm font-black text-indigo-700 leading-none">-</p></div>
                                                 </div>
                                             </div>
                                             {/* Joining */}
                                             <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col">
                                                 <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Joining</p></div>
                                                 <div className="flex divide-x divide-slate-100 h-[50px]">
-                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
-                                                    <div className="flex-1 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-500 uppercase">Yest</p><p className="text-sm font-black text-indigo-700 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">-</p></div>
+                                                    <div className="flex-1 text-center bg-indigo-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-indigo-500 uppercase">Yest</p><p className="text-sm font-black text-indigo-700 leading-none">-</p></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1087,48 +1150,53 @@ export default function MorningReportPage() {
                                     <div className="p-4 bg-orange-50/20 border-t border-orange-100">
                                         <h4 className="text-[11px] font-black text-orange-800 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                                             <UserCheck size={14}/> Domestic Client Handling
+                                            {domesticStats.crmLastWorkingDay && (
+                                                <span className="ml-2 text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded">
+                                                    Latest Date: {domesticStats.crmLastWorkingDay}
+                                                </span>
+                                            )}
                                         </h4>
                                         
                                         {/* KPI CARDS */}
                                         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
                                             {/* Client Calling */}
-                                            <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col">
+                                            <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col cursor-pointer" onClick={() => router.push('/admin/morning-report/domestic?filter=crm-client-calling')}>
                                                 <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">CRM Client Calling</p></div>
                                                 <div className="flex divide-x divide-slate-100 h-[50px]">
-                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
-                                                    <div className="flex-1 text-center bg-orange-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-orange-500 uppercase">Yest</p><p className="text-sm font-black text-orange-700 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">{domesticStats.crmClientCallingTotal}</p></div>
+                                                    <div className="flex-1 text-center bg-orange-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-orange-500 uppercase">{domesticStats.crmLastWorkingDay || 'Yest'}</p><p className="text-sm font-black text-orange-700 leading-none">{domesticStats.crmClientCallingYesterday}</p></div>
                                                 </div>
                                             </div>
                                             {/* Tracker to Client */}
                                             <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col">
                                                 <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Tracker to Client</p></div>
                                                 <div className="flex divide-x divide-slate-100 h-[50px]">
-                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
-                                                    <div className="flex-1 text-center bg-orange-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-orange-500 uppercase">Yest</p><p className="text-sm font-black text-orange-700 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">-</p></div>
+                                                    <div className="flex-1 text-center bg-orange-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-orange-500 uppercase">Yest</p><p className="text-sm font-black text-orange-700 leading-none">-</p></div>
                                                 </div>
                                             </div>
                                             {/* Interview */}
                                             <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col">
                                                 <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Interview</p></div>
                                                 <div className="flex divide-x divide-slate-100 h-[50px]">
-                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
-                                                    <div className="flex-1 text-center bg-orange-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-orange-500 uppercase">Yest</p><p className="text-sm font-black text-orange-700 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">-</p></div>
+                                                    <div className="flex-1 text-center bg-orange-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-orange-500 uppercase">Yest</p><p className="text-sm font-black text-orange-700 leading-none">-</p></div>
                                                 </div>
                                             </div>
                                             {/* Selection */}
                                             <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col">
                                                 <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Selection</p></div>
                                                 <div className="flex divide-x divide-slate-100 h-[50px]">
-                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
-                                                    <div className="flex-1 text-center bg-orange-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-orange-500 uppercase">Yest</p><p className="text-sm font-black text-orange-700 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">-</p></div>
+                                                    <div className="flex-1 text-center bg-orange-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-orange-500 uppercase">Yest</p><p className="text-sm font-black text-orange-700 leading-none">-</p></div>
                                                 </div>
                                             </div>
                                             {/* Joining */}
                                             <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-orange-400 transition-all flex flex-col">
                                                 <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Joining</p></div>
                                                 <div className="flex divide-x divide-slate-100 h-[50px]">
-                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">0</p></div>
-                                                    <div className="flex-1 text-center bg-orange-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-orange-500 uppercase">Yest</p><p className="text-sm font-black text-orange-700 leading-none">0</p></div>
+                                                    <div className="flex-1 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-sm font-black text-slate-800 leading-none">-</p></div>
+                                                    <div className="flex-1 text-center bg-orange-50/50 flex flex-col justify-center"><p className="text-[8px] font-black text-orange-500 uppercase">Yest</p><p className="text-sm font-black text-orange-700 leading-none">-</p></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1152,30 +1220,41 @@ export default function MorningReportPage() {
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-slate-100">
-                                                        {/* Static Mock Row (Replace with your map function) */}
-                                                        <tr className="hover:bg-orange-50/30 transition">
-                                                            <td className="p-2.5 align-top">
-                                                                <div className="flex flex-col gap-0.5 items-start">
-                                                                    <span className="font-bold text-gray-800">2026-03-02</span>
-                                                                    <span className="text-[9px] font-black text-orange-600 bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded w-max">On Call</span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="p-2.5 align-top">
-                                                                <span className="text-[10px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded shadow-sm w-max truncate">
-                                                                    Priya Singh
-                                                                </span>
-                                                            </td>
-                                                            <td className="p-2.5 align-top font-black text-[#103c7f]">Reliance Retail</td>
-                                                            <td className="p-2.5 align-top">
-                                                                <div className="flex flex-col gap-0.5">
-                                                                    <span className="font-bold text-gray-700">Ms. Anjali Sharma</span>
-                                                                    <span className="text-[9px] text-gray-500 uppercase tracking-wide">Talent Acquisition</span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="p-2.5 align-top text-[11px] text-gray-600 italic">
-                                                                "Follow-up regarding the Store Manager profiles. They shortlisted 3 candidates for the final round. Will schedule interviews for tomorrow."
-                                                            </td>
-                                                        </tr>
+                                                        {domesticStats.crmConversationLog && domesticStats.crmConversationLog.length > 0 ? (
+                                                            domesticStats.crmConversationLog.map((row) => (
+                                                                <tr key={row.conversation_id} className="hover:bg-orange-50/30 transition">
+                                                                    <td className="p-2.5 align-top">
+                                                                        <div className="flex flex-col gap-0.5 items-start">
+                                                                            <span className="font-bold text-gray-800">{row.date}</span>
+                                                                            <span className="text-[9px] font-black text-orange-600 bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded w-max">{row.mode || 'N/A'}</span>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="p-2.5 align-top">
+                                                                        <span className="text-[10px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded shadow-sm w-max truncate">
+                                                                            {row.user_name}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="p-2.5 align-top font-black text-[#103c7f]">{row.company_name || row.branch_name || 'N/A'}</td>
+                                                                    <td className="p-2.5 align-top">
+                                                                        <div className="flex flex-col gap-0.5">
+                                                                            <span className="font-bold text-gray-700">{row.contact_name || 'N/A'}</span>
+                                                                            {row.designation && (
+                                                                                <span className="text-[9px] text-gray-500 uppercase tracking-wide">{row.designation}</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="p-2.5 align-top text-[11px] text-gray-600 italic">
+                                                                        "{row.discussion || 'No discussion recorded'}"
+                                                                    </td>
+                                                                </tr>
+                                                            ))
+                                                        ) : (
+                                                            <tr>
+                                                                <td colSpan="5" className="p-4 text-center text-gray-500 text-xs">
+                                                                    No conversation data available
+                                                                </td>
+                                                            </tr>
+                                                        )}
                                                     </tbody>
                                                 </table>
                                             </div>

@@ -524,6 +524,41 @@ export async function GET(request) {
           }
           break
 
+        case 'crm-client-calling':
+          filterTitle = 'CRM Client Calling'
+          
+          // Get today's date
+          const crmToday = new Date().toISOString().split('T')[0]
+          
+          // Get the latest past date from domestic_crm_conversation
+          const { data: crmLatestDateData } = await supabaseServer
+            .from('domestic_crm_conversation')
+            .select('date')
+            .neq('date', crmToday)
+            .order('date', { ascending: false })
+            .limit(1)
+            .single()
+          
+          const crmLastWorkingDayStr = crmLatestDateData?.date || null
+          
+          // Get all CRM conversations
+          const { data: crmAllData } = await supabaseServer
+            .from('domestic_crm_conversation')
+            .select('*, domestic_crm_branches!inner(company, branch_name)')
+          
+          // Format all data for table display
+          details = (crmAllData || []).map(conversation => ({
+            client_id: conversation.branch_id,
+            companyName: conversation.domestic_crm_branches?.company || '',
+            contactName: conversation.contact_name || '',
+            contactNumber: conversation.contact_no || '',
+            lastInteraction: conversation.discussion || '',
+            lastInteractionDate: conversation.date || '',
+            mode: conversation.mode || '',
+            owner: conversation.user_id || ''
+          }))
+          break
+
         default:
           details = []
       }
