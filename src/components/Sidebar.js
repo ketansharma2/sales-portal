@@ -3,7 +3,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
-  Users, Wallet, LayoutGrid, ShieldCheck, 
+  Users, Wallet, LayoutGrid, ShieldCheck, Store ,
   Settings, FileText, Target, Search, BarChart, Phone,Calendar,MapPin,Truck,UserPlus,IndianRupee,UserCheck,Edit,Plus,
   Package,PhoneCall,ClipboardList,KanbanSquare,TableProperties, SunMedium, UploadCloud,Activity,Building2,History,LayoutDashboard
 } from "lucide-react";
@@ -39,13 +39,10 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   // 1. ADMIN
   if (currentRole === "admin") {
     menuItems = [
-     // { name: "Admin Home", href: "/admin", icon: <LayoutGrid size={20} /> },
-      { 
-    name: "Morning Report", 
-    href: "/admin/morning-report", 
-    icon: <SunMedium size={20} /> 
-}
-     // { name: "Hierarchy", href: "/admin/hierarchy", icon: <Users size={20} /> },
+    { name: "Admin Home", href: "/admin", icon: <LayoutGrid size={20} /> },
+    {name: "Morning Report", href: "/admin/morning-report", icon: <SunMedium size={20} /> },
+    { name: "Franchise", href: "/admin/franchise", icon: <Store size={20} /> },
+    { name: "Hierarchy", href: "/admin/hierarchy", icon: <Users size={20} /> },
     ];
   } 
   

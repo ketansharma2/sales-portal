@@ -112,10 +112,6 @@ export default function SalesManagerDashboard() {
 
             <DateInput label="From" value={fromDate} onChange={setFromDate} />
             <DateInput label="To" value={toDate} onChange={setToDate} />
-            
-            <button onClick={handleFilter} className="bg-[#103c7f] text-white p-2.5 rounded-xl hover:bg-[#1a4da1] transition-all shadow-sm">
-                <Filter size={16} />
-            </button>
           </div>
         </div>
 
@@ -220,7 +216,7 @@ export default function SalesManagerDashboard() {
                             
                             {/* Left Side: 4 KPI Cards */}
                             <div className="flex-1 grid grid-cols-2 xl:grid-cols-4 gap-2"> 
-                              <CompactMonthCard label="Total Visit Target" value={stats.monthly.visitTarget} icon={<TrendingUp size={14} />} target={stats.monthly.visitGoal} progress={90} trend="-1%" />
+                              <CompactMonthCard label="Total Visit" value={stats.monthly.visitTarget} icon={<TrendingUp size={14} />} target={stats.monthly.visitGoal} progress={90} trend="-1%" />
                               <CompactMonthCard label="Individual Visits" value={stats.monthly.individualVisits} icon={<Users size={14} />} />
                               <CompactMonthCard label="Onboard (MTD)" value={stats.monthly.onboardMtd} icon={<CheckCircle size={14} />} target={stats.monthly.onboardGoal} progress={40} trend="+5%" />
                               <CompactMonthCard label="Avg Visit/Day" value={stats.monthly.avgVisit} icon={<Activity size={14} />} />
@@ -244,49 +240,70 @@ export default function SalesManagerDashboard() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
-                          <DynamicCard label="Total Visits" value={stats.dynamicMetrics.totalVisits} color="border-l-[#103c7f]" />
-                          <DynamicCard label="Calls" value={stats.dynamicMetrics.calls} color="border-l-[#1a4da1]" />
-                          <DynamicCard label="Individual" value={stats.dynamicMetrics.individual} color="border-l-blue-400" />
-                          <DynamicCard label="Repeat" value={stats.dynamicMetrics.repeat} color="border-l-blue-400" />
-                          <DynamicCard label="Interested" value={stats.dynamicMetrics.interested} color="border-l-[#a1db40]" />
-                          <DynamicCard label="Not Int." value={stats.dynamicMetrics.notInterested} color="border-l-red-400" />
-                          <DynamicCard label="Reached Out" value={stats.dynamicMetrics.reachedOut} color="border-l-orange-400" />
-                          <DynamicCard label="Onboarded" value={stats.dynamicMetrics.onboard} color="border-l-emerald-500" />
-                        </div>
-
-                        {/* --- FSE SPECIFIC TABLE --- */}
-                        <div className="h-[300px] bg-white rounded-[1rem] border border-gray-100 shadow-xl overflow-hidden flex flex-col mt-4"> 
-                          <div className="px-5 py-3 border-b border-gray-50 flex justify-between items-center bg-slate-50">
-                              <h3 className="font-black text-[11px] text-[#103c7f] uppercase tracking-widest flex items-center gap-2">
-                                  <MapPin size={14}/> FSE Visit Log
-                              </h3>
+                       {/* --- FSE LATEST ACTIVITY & LOG (Highlighted Section) --- */}
+                        <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-2xl shadow-sm w-full mt-4">
+                          
+                          {/* Section Header with Latest Date */}
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                              <Activity size={16} className="text-[#103c7f]" />
+                              <h2 className="text-xs font-black text-[#103c7f] uppercase tracking-widest">
+                                Latest Activity Report
+                              </h2>
+                            </div>
+                            {latestDate && (
+                              <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100/50 border border-indigo-200 px-2.5 py-1 rounded-md shadow-sm uppercase tracking-widest">
+                                Date: {latestDate}
+                              </span>
+                            )}
                           </div>
-                          <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
-                            <table className="w-full text-left border-collapse text-xs">
-                              <thead className="sticky top-0 z-20 shadow-sm bg-white">
-                                <tr>
-                                  <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">Date</th>
-                                  <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">FSE Name</th>
-                                  <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">Client Name</th>
-                                  <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white text-center">Visit Status</th>
-                                  <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white text-right">Remarks/Location</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-100">
-                                {stats.clientsFSE.map((client, idx) => (
-                                  <tr key={idx} className="hover:bg-blue-50 transition-all group">
-                                    <td className="px-6 py-2.5 font-bold text-slate-700">{client.date}</td>
-                                    <td className="px-6 py-2.5 font-black text-[#103c7f]">{selectedAgent === "All" ? client.agent : selectedAgent}</td>
-                                    <td className="px-6 py-2.5 font-bold text-slate-700">{client.name}</td>
-                                    <td className="px-6 py-2.5 text-center">
-                                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter ${client.color}`}>{client.status}</span>
-                                    </td>
-                                    <td className="px-6 py-2.5 text-[10px] font-bold text-gray-400 italic text-right group-hover:text-[#103c7f]">{client.sub}</td>
+
+                          {/* 8 Dynamic Metric Cards */}
+                          <div className="grid grid-cols-4 md:grid-cols-8 gap-2 mb-4">
+                            <DynamicCard label="Total Visits" value={stats.dynamicMetrics.totalVisits} color="border-l-[#103c7f]" />
+                            <DynamicCard label="Calls" value={stats.dynamicMetrics.calls} color="border-l-[#1a4da1]" />
+                            <DynamicCard label="Individual" value={stats.dynamicMetrics.individual} color="border-l-blue-400" />
+                            <DynamicCard label="Repeat" value={stats.dynamicMetrics.repeat} color="border-l-blue-400" />
+                            <DynamicCard label="Interested" value={stats.dynamicMetrics.interested} color="border-l-[#a1db40]" />
+                            <DynamicCard label="Not Int." value={stats.dynamicMetrics.notInterested} color="border-l-red-400" />
+                            <DynamicCard label="Reached Out" value={stats.dynamicMetrics.reachedOut} color="border-l-orange-400" />
+                            <DynamicCard label="Onboarded" value={stats.dynamicMetrics.onboard} color="border-l-emerald-500" />
+                          </div>
+
+                          {/* --- FSE SPECIFIC TABLE --- */}
+                          <div className="h-[300px] bg-white rounded-xl border border-indigo-100 shadow-sm overflow-hidden flex flex-col"> 
+                            <div className="px-5 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                <h3 className="font-black text-[11px] text-[#103c7f] uppercase tracking-widest flex items-center gap-2">
+                                    <MapPin size={14}/> FSE Visit Log
+                                </h3>
+                            </div>
+                            <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
+                              <table className="w-full text-left border-collapse text-xs">
+                                <thead className="sticky top-0 z-20 shadow-sm bg-white">
+                                  <tr>
+                                    <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">Date</th>
+                                    <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">FSE Name</th>
+                                    <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">Client Name</th>
+                                    {/* Updated Headers */}
+                                    <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white text-center">Status</th>
+                                    <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white text-right">Substatus</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                  {stats.clientsFSE.map((client, idx) => (
+                                    <tr key={idx} className="hover:bg-blue-50 transition-all group">
+                                      <td className="px-6 py-2.5 font-bold text-slate-700">{client.date}</td>
+                                      <td className="px-6 py-2.5 font-black text-[#103c7f]">{selectedAgent === "All" ? client.agent : selectedAgent}</td>
+                                      <td className="px-6 py-2.5 font-bold text-slate-700">{client.name}</td>
+                                      <td className="px-6 py-2.5 text-center">
+                                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter ${client.color}`}>{client.status}</span>
+                                      </td>
+                                      <td className="px-6 py-2.5 text-[10px] font-bold text-gray-400 italic text-right group-hover:text-[#103c7f]">{client.sub}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
                         </div>
                     </>
@@ -297,95 +314,15 @@ export default function SalesManagerDashboard() {
                 {/* ========================================= */}
                 {activeTab === "LeadGen" && (
                     <>
-                        {/* --- LEADGEN GRID --- */}
-                        <div className="flex flex-row flex-nowrap gap-2 w-full items-stretch overflow-x-auto custom-scrollbar pb-2">
-                          <div className="flex-1 min-w-[150px] bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px]">
-                            <div className="flex justify-between items-start min-w-0">
-                              <div className="overflow-hidden min-w-0">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">Total Database</p>
-                                <h3 className="text-xl font-black text-[#103c7f] leading-none mt-1 truncate">8,540</h3>
-                              </div>
-                              <div className="p-1.5 bg-blue-50 text-[#103c7f] rounded-lg shrink-0"><Database size={16} /></div>
-                            </div>
-                          </div>
-
-                          <div className="flex-1 min-w-[150px] bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px] text-left">
-                            <div className="flex justify-between items-start min-w-0">
-                              <div className="overflow-hidden min-w-0">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">Calls Made</p>
-                                <h3 className="text-xl font-black text-blue-600 leading-none mt-1 truncate">2,140</h3>
-                              </div>
-                              <div className="p-1.5 bg-blue-50 text-blue-500 rounded-lg shrink-0"><PhoneCall size={16} /></div>
-                            </div>
-                          </div>
-
-                          <div className="flex-1 min-w-[150px] bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px] text-left">
-                            <div className="flex justify-between items-start min-w-0">
-                              <div className="overflow-hidden min-w-0">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">Connected</p>
-                                <h3 className="text-xl font-black text-green-600 leading-none mt-1 truncate">850</h3>
-                              </div>
-                              <div className="p-1.5 bg-green-50 text-green-500 rounded-lg shrink-0"><Headset size={16} /></div>
-                            </div>
-                          </div>
-
-                          <div className="flex-1 min-w-[150px] bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-[90px]">
-                            <div className="flex justify-between items-start min-w-0">
-                              <div className="overflow-hidden min-w-0">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">Meetings Fixed</p>
-                                <h3 className="text-xl font-black text-[#a1db40] leading-none mt-1 truncate">45</h3>
-                              </div>
-                              <div className="p-1.5 bg-[#a1db40]/20 text-[#8cc530] rounded-lg shrink-0"><CalendarDays size={16} /></div>
-                            </div>
-                          </div>
+                        {/* --- NO LEADGEN MESSAGE --- */}
+                        <div className="flex items-center justify-center py-16 opacity-50 mt-4">
+                            <p className="text-sm font-semibold text-slate-400 tracking-wide flex items-center gap-2">
+                                <Headset size={16} strokeWidth={1.5} />
+                                No LeadGen in Domestic
+                            </p>
                         </div>
 
-                        {/* --- LEADGEN KPIs --- */}
-                        <div className="flex flex-col lg:flex-row gap-3 mb-4 items-stretch">
-                          <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-2"> 
-                            <CompactMonthCard label="Total Call Target" value="2,140" icon={<PhoneCall size={16} />} target="3,000" progress={71} trend="+2%" />
-                            <CompactMonthCard label="Connect Rate" value="39%" icon={<Activity size={16} />} trend="+5%" />
-                            <CompactMonthCard label="Interested Leads" value="120" icon={<CheckCircle size={16} />} target="200" progress={60} />
-                            <CompactMonthCard label="Avg Talk Time" value="2m 30s" icon={<Clock size={16} />} />
-                          </div>
-                        </div>
-
-                        {/* --- LEADGEN SPECIFIC TABLE --- */}
-                        <div className="h-[300px] bg-white rounded-[1rem] border border-gray-100 shadow-xl overflow-hidden flex flex-col mt-4"> 
-                          <div className="px-5 py-3 border-b border-gray-50 flex justify-between items-center bg-slate-50">
-                              <h3 className="font-black text-[11px] text-[#103c7f] uppercase tracking-widest flex items-center gap-2">
-                                  <Headset size={14}/> LeadGen Call Log
-                              </h3>
-                          </div>
-                          <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
-                            <table className="w-full text-left border-collapse text-xs">
-                              <thead className="sticky top-0 z-20 shadow-sm bg-white">
-                                <tr>
-                                  <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">Date</th>
-                                  <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">Telecaller</th>
-                                  <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">Company Name</th>
-                                  <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white text-center">Call Status</th>
-                                  <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white text-center">Talk Time</th>
-                                  <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white text-right">Remarks</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-100">
-                                {stats.clientsLeadGen.map((client, idx) => (
-                                  <tr key={idx} className="hover:bg-blue-50 transition-all group">
-                                    <td className="px-6 py-2.5 font-bold text-slate-700">{client.date}</td>
-                                    <td className="px-6 py-2.5 font-black text-[#103c7f]">{selectedAgent === "All" ? client.agent : selectedAgent}</td>
-                                    <td className="px-6 py-2.5 font-bold text-slate-700">{client.name}</td>
-                                    <td className="px-6 py-2.5 text-center">
-                                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter ${client.color}`}>{client.status}</span>
-                                    </td>
-                                    <td className="px-6 py-2.5 text-center font-bold text-gray-600">{client.duration}</td>
-                                    <td className="px-6 py-2.5 text-[10px] font-bold text-gray-400 italic text-right group-hover:text-[#103c7f]">{client.remarks}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
+                        
                     </>
                 )}
 
