@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
+import mammoth from "mammoth";
 import { supabaseServer } from '@/lib/supabase-server'
 
 export async function GET(request) {
@@ -58,24 +59,85 @@ export async function POST(request) {
       return NextResponse.json({ error: "GEMINI_API_KEY is not configured" }, { status: 500 });
     }
 
-    // Read file as base64 for Gemini
+    // Determine file type for proper handling
+    const fileType = file.type;
+    const fileName = file.name;
+    console.log("File type:", fileType);
+    console.log("File name:", fileName);
+
+    // Read file as buffer for mammoth/PDF processing
     const arrayBuffer = await file.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString("base64");
+    const buffer = Buffer.from(arrayBuffer);
+    const base64 = buffer.toString("base64");
     
     console.log("File size:", arrayBuffer.byteLength);
 
+    // Check if it's a Word document and convert to text
+    const isWordDoc = file.type === 'application/msword' || 
+                      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    
+    // Check if it's an image file
+    const isImage = file.type === 'image/jpeg' || 
+                    file.type === 'image/jpg' || 
+                    file.type === 'image/png' || 
+                    file.type === 'image/gif' || 
+                    file.type === 'image/webp';
+    
+    let textContent = "";
+    let mimeType = file.type;
+    
+    if (isWordDoc) {
+      // Convert Word document to text using mammoth
+      console.log("Converting Word document to text...");
+      try {
+        const result = await mammoth.extractRawText({ buffer: buffer });
+        textContent = result.value;
+        console.log("Extracted text length:", textContent.length);
+        mimeType = "text/plain";
+      } catch (mammothError) {
+        console.error("Error converting Word document:", mammothError);
+        return NextResponse.json({ 
+          error: "Failed to read Word document. Please convert to PDF and try again.", 
+          details: mammothError.message 
+        }, { status: 400 });
+      }
+    }
+    
     // Use Gemini 1.5 with direct PDF input
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    // Create inline data for PDF
-    const inlineData = {
-      mimeType: file.type,
-      data: base64
-    };
+    // Create inline data for the file
+    let inlineData;
+    let documentType;
+    
+    if (isWordDoc) {
+      // For Word docs, send the extracted text
+      inlineData = {
+        mimeType: mimeType,
+        data: Buffer.from(textContent).toString("base64")
+      };
+      documentType = "resume text extracted from Word document";
+    } else if (isImage) {
+      // For images, send directly to Gemini (it can read images)
+      inlineData = {
+        mimeType: file.type,
+        data: base64
+      };
+      documentType = "resume image (scanned document photo)";
+    } else {
+      // For PDF, send the file directly
+      inlineData = {
+        mimeType: file.type,
+        data: base64
+      };
+      documentType = "resume PDF";
+    }
 
     const prompt = `
-You are an expert resume parser. Extract information from this resume PDF and return ONLY a valid JSON object.
+You are an expert resume parser. Extract information from this ${documentType} and return ONLY a valid JSON object.
+    
+    ${isWordDoc ? 'This file contains resume text extracted from a Word document. Parse the extracted text accordingly.' : isImage ? 'This is an image of a resume (scanned or photographed). Read the image carefully and extract all visible text and information.' : 'Parse the PDF content to extract resume information.'}
 
 CRITICAL JSON FORMATTING RULES:
 - Return ONLY a valid JSON object with double quotes around ALL keys and ALL string values
@@ -245,10 +307,11 @@ IMPORTANT: Return ONLY the JSON object, nothing else. No markdown, no code block
       success: true,
       data: parsedData,
       debug: { 
-        extractedText: "[PDF sent directly to Gemini]",
+        extractedText: fileType.includes('image') ? "[Image sent to Gemini]" : (fileType.includes('word') ? "[Word document sent to Gemini]" : "[PDF sent to Gemini]"),
         geminiRawResponse: responseText, 
         pdfParseSuccess: true, 
-        textLength: arrayBuffer.byteLength 
+        textLength: arrayBuffer.byteLength,
+        fileType: fileType
       },
     });
   } catch (error) {

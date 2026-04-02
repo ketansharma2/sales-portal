@@ -198,6 +198,15 @@ export default function CVParsingPage() {
             return;
         }
 
+        // Validate file type
+        const supportedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/jpg', 'image/png'];
+        const supportedExtensions = ['PDF', 'DOC', 'DOCX', 'JPG', 'JPEG', 'PNG'];
+        
+        if (!supportedTypes.includes(selectedFile.type)) {
+            alert("File type not supported!\n\nSupported formats:\n• PDF\n• DOC\n• DOCX\n• JPG\n• JPEG\n• PNG");
+            return;
+        }
+
         if (!selectedPortal) {
             alert("Please select a portal first");
             return;
@@ -434,7 +443,7 @@ export default function CVParsingPage() {
                             e.stopPropagation();
                             e.currentTarget.classList.remove('border-blue-400', 'bg-blue-100');
                             const file = e.dataTransfer.files?.[0];
-                            if (file && (file.type === 'application/pdf' || file.type === 'application/msword' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')) {
+                            if (file && (file.type === 'application/pdf' || file.type === 'application/msword' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type === 'image/jpeg' || file.type === 'image/jpg' || file.type === 'image/png')) {
                                 console.log('File dropped:', file.name, file.size);
                                 setSelectedFile(file);
                             }
@@ -450,7 +459,7 @@ export default function CVParsingPage() {
                                     {selectedFile ? selectedFile.name : "Drop CV Here"}
                                 </p>
                                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1 truncate">
-                                    {selectedFile ? formatFileSize(selectedFile.size) : "(PDF/DOC)"}
+                                    {selectedFile ? formatFileSize(selectedFile.size) : "(PDF/DOC/IMG)"}
                                 </p>
                             </div>
                         </div>
@@ -466,7 +475,7 @@ export default function CVParsingPage() {
                         <input
                             ref={fileInputRef}
                             type="file"
-                            accept=".pdf,.doc,.docx"
+                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                             onChange={handleFileChange}
                             className="hidden"
                         />
