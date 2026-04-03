@@ -69,104 +69,11 @@ export default function SalesManagerDashboard() {
       }
     };
 
-     if (mounted) {
-       fetchFseTeam();
-       fetchLeadGenTeam();
-       fetchTotalClients();
-       fetchTotalOnboarded();
-       fetchTotalVisits();
-       fetchManagerMetrics();
-     }
-  }, [mounted]);
-
-   // Fetch total onboarded count
-   const fetchTotalOnboarded = async (fseId = null) => {
-     try {
-       const session = JSON.parse(localStorage.getItem('session') || '{}');
-       const url = fseId 
-         ? `/api/domestic/manager/onboarded-count?fse_id=${fseId}`
-         : '/api/domestic/manager/onboarded-count';
-       const response = await fetch(url, {
-         headers: { 'Authorization': `Bearer ${session.access_token}` }
-       });
-       const data = await response.json();
-       if (data.success) {
-         setTotalOnboardedCount(data.onboarded_count || 0);
-       }
-     } catch (error) {
-       console.error('Error fetching onboarded count:', error);
-     }
-   };
-
-   // Fetch total visits count
-   const fetchTotalVisits = async () => {
-     try {
-       const session = JSON.parse(localStorage.getItem('session') || '{}');
-       const response = await fetch('/api/domestic/manager/total-visits', {
-         headers: { 'Authorization': `Bearer ${session.access_token}` }
-       });
-       const data = await response.json();
-       if (data.success) {
-         setTotalVisitsCount(data.data.totalVisits || 0);
-       }
-     } catch (error) {
-       console.error('Error fetching total visits:', error);
-     }
-   };
-
-   // Fetch manager metrics (dynamic cards data)
-   const fetchManagerMetrics = async () => {
-     try {
-       const session = JSON.parse(localStorage.getItem('session') || '{}');
-       const response = await fetch('/api/domestic/manager/metrics', {
-         headers: { 'Authorization': `Bearer ${session.access_token}` }
-       });
-       const data = await response.json();
-       if (data.success) {
-         setStats(prev => ({
-           ...prev,
-           dynamicMetrics: data.data
-         }));
-       }
-     } catch (error) {
-       console.error('Error fetching manager metrics:', error);
-     }
-   };
-
-   // Refetch total clients and onboarded when FSE filter changes
-   useEffect(() => {
-     if (mounted && activeTab === "FSE") {
-       const fseId = selectedAgent === "All" ? null : selectedAgent;
-       fetchTotalClients(fseId);
-       fetchTotalOnboarded(fseId);
-     }
-   }, [selectedAgent, activeTab, mounted]);
-
-   // Refetch manager metrics when FSE team changes
-   useEffect(() => {
-     if (mounted) {
-       fetchManagerMetrics();
-     }
-   }, [mounted]);
-
-  // Fetch total clients count
-  const fetchTotalClients = async (fseId = null) => {
-    try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const url = fseId 
-        ? `/api/domestic/manager/all-clients-database?limit=all&fse_id=${fseId}`
-        : '/api/domestic/manager/all-clients-database?limit=all';
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setTotalClientsCount(data.total_count || 0);
+if (mounted) {
+        fetchFseTeam();
+        fetchLeadGenTeam();
       }
-    } catch (error) {
-      console.error('Error fetching total clients:', error);
-    }
-  };
+  }, [mounted]);
 
   // Get dropdown options from API data
   const fseList = fseTeam.map(fse => fse.name);
@@ -176,7 +83,7 @@ export default function SalesManagerDashboard() {
 
 const [stats, setStats] = useState({
     global: { totalClients: 0, totalOnboard: 0, onboardCall: 0, onboardVisit: 0, untouched: 0, noStatus: 0, duplicate: 0 },
-    monthly: { visitTarget: 0, individualVisits: 0, onboardMtd: "0/0", avgVisit: 0, visitGoal: 0, onboardGoal: 0 },
+    monthly: { visitTarget: 0, individualVisits: 0, onboardMtd: 0, avgVisit: 0, visitGoal: 0, onboardGoal: 0 },
     projections: { mpLess50: 0, mpGreater50: 0, wpLess50: 0, wpGreater50: 0 },
     dynamicMetrics: { total: 0, individual: 0, repeat: 0, interested: 0, notInterested: 0, reachedOut: 0, onboard: 0 },
     clientsFSE: [],
@@ -193,7 +100,7 @@ const [stats, setStats] = useState({
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ from: fromDate, to: toDate })
+        body: JSON.stringify({ from: fromDate, to: toDate, fse_id: selectedAgent === "All" ? null : selectedAgent })
       });
       const data = await response.json();
       if (data.success && data.data) {
@@ -209,13 +116,15 @@ const [stats, setStats] = useState({
             noStatus: d.noStatus || 0,
             duplicate: d.duplicate || 0
           },
-          monthly: {
+monthly: {
             visitTarget: d.monthlyStats?.totalVisits || 0,
             individualVisits: d.monthlyStats?.individualVisits || 0,
             onboardMtd: d.monthlyStats?.mtdMp || "0/0",
             avgVisit: d.monthlyStats?.avg || 0,
-            visitGoal: 200,
-            onboardGoal: 20
+            visitGoal: d.monthlyStats?.visitGoal || 0,
+            onboardGoal: d.monthlyStats?.onboardGoal || 0,
+            visitProgress: d.monthlyStats?.visitProgress || 0,
+            onboardProgress: d.monthlyStats?.onboardProgress || 0
           },
           projections: d.projections || { mpLess50: 0, mpGreater50: 0, wpLess50: 0, wpGreater50: 0 },
           dynamicMetrics: {
@@ -228,13 +137,16 @@ const [stats, setStats] = useState({
             reachedOut: d.latestActivity?.reachedOut || 0,
             onboard: d.latestActivity?.onboarded || 0
           },
-          clientsFSE: d.latestLeads || []
-        }));
+clientsFSE: d.latestLeads || []
+          }));
+          setTotalClientsCount(d.totalClients || 0);
+          setTotalOnboardedCount(d.totalOnboarded || 0);
+          setTotalVisitsCount(d.totalVisits || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard:', error);
       }
-    } catch (error) {
-      console.error('Error fetching dashboard:', error);
-    }
-  };
+    };
 
   useEffect(() => {
     if (mounted && fseTeam.length > 0) {
@@ -243,9 +155,15 @@ const [stats, setStats] = useState({
   }, [mounted, fseTeam.length]);
 
   useEffect(() => {
+    if (mounted && fseTeam.length > 0 && selectedAgent !== "All") {
+      fetchDashboard();
+    }
+  }, [selectedAgent]);
+
+  useEffect(() => {
     setMounted(true);
     setLoading(false);
-    setLatestDate("2026-03-02");
+    setLatestDate("");
   }, []);
 
   const handleFilter = () => {
@@ -418,9 +336,9 @@ const [stats, setStats] = useState({
                             
                             {/* Left Side: 4 KPI Cards */}
                             <div className="flex-1 grid grid-cols-2 xl:grid-cols-4 gap-2"> 
-                              <CompactMonthCard label="Total Visit" value={stats.monthly.visitTarget} icon={<TrendingUp size={14} />} target={stats.monthly.visitGoal} progress={90} trend="-1%" />
+                              <CompactMonthCard label="Total Visit" value={stats.monthly.visitTarget} icon={<TrendingUp size={14} />} target={selectedAgent !== "All" ? stats.monthly.visitGoal : undefined} progress={selectedAgent !== "All" ? stats.monthly.visitProgress : undefined} trend="-1%" />
                               <CompactMonthCard label="Individual Visits" value={stats.monthly.individualVisits} icon={<Users size={14} />} />
-                              <CompactMonthCard label="Onboard (MTD)" value={stats.monthly.onboardMtd} icon={<CheckCircle size={14} />} target={stats.monthly.onboardGoal} progress={40} trend="+5%" />
+                              <CompactMonthCard label="Onboard (MTD)" value={stats.monthly.onboardMtd} icon={<CheckCircle size={14} />} target={selectedAgent !== "All" ? stats.monthly.onboardGoal : undefined} progress={selectedAgent !== "All" ? stats.monthly.onboardProgress : undefined} trend="+5%" />
                               <CompactMonthCard label="Avg Visit/Day" value={stats.monthly.avgVisit} icon={<Activity size={14} />} />
                             </div>
                             

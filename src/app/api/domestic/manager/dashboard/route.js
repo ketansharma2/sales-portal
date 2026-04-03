@@ -28,7 +28,7 @@ export async function POST(request) {
     }
 
     const body = await request.json()
-    const { from, to } = body
+    const { from, to, fse_id } = body
 
     const today = new Date().toISOString().split('T')[0]
     const currentMonth = new Date().getMonth() + 1
@@ -61,7 +61,7 @@ export async function POST(request) {
           duplicate: 0,
           totalVisits: 0,
           projections: { wpGreater50: 0, wpLess50: 0, mpGreater50: 0, mpLess50: 0 },
-          monthlyStats: { month: new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }).toUpperCase(), totalVisits: 0, individualVisits: 0, totalOnboarded: 0, mtdMp: "0/12", avg: "0.00" },
+          monthlyStats: { month: new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }).toUpperCase(), totalVisits: 0, individualVisits: 0, totalOnboarded: 0, mtdMp: 0, avg: "0.00" },
           latestActivity: { date: today, total: 0, totalVisits: 0, calls: 0, individual: 0, repeat: 0, interested: 0, notInterested: 0, reachedOut: 0, onboarded: 0 },
           latestLeads: [],
           fseList: []
@@ -484,7 +484,27 @@ export async function POST(request) {
     neverVisited += (totalClients || 0) - clientsWithInteractions.size
     totalNeverVisited = neverVisited
 
-    let totalVisitsEver = 0
+    let visitGoal = 0
+    let onboardGoal = 0
+    if (fse_id) {
+      const targetMonthStart = (from && from !== '') ? from.substring(0, 7) + '-01' : startDate
+      const targetMonthEnd = monthEnd
+      
+      const { data: targetData, error: targetError } = await supabaseServer
+        .from('domestic_sm_fse_targets')
+        .select('monthly_visits, monthly_onboards')
+        .eq('fse_id', fse_id)
+        .gte('month', targetMonthStart)
+        .lte('month', targetMonthEnd)
+        .limit(1)
+
+      if (!targetError && targetData && targetData.length > 0) {
+        visitGoal = targetData[0].monthly_visits || 0
+        onboardGoal = targetData[0].monthly_onboards || 0
+      }
+    }
+
+    let allVisitClients = []
     let visitOffset = 0
 
     while (true) {
@@ -502,12 +522,13 @@ export async function POST(request) {
 
       if (!data || data.length === 0) break
 
-      const uniqueClients = new Set(data.map(i => `${i.user_id}_${i.client_id}`))
-      totalVisitsEver += uniqueClients.size
+      allVisitClients.push(...data)
       visitOffset += batchSize
 
       if (data.length < batchSize) break
     }
+
+    const totalVisitsEver = new Set(allVisitClients.map(i => `${i.user_id}_${i.client_id}`)).size
 
     const dashboardData = {
       totalClients: totalClients || 0,
@@ -524,8 +545,12 @@ export async function POST(request) {
         totalVisits: monthlyTotalVisits,
         individualVisits: monthlyIndividualVisits,
         totalOnboarded: monthlyOnboarded,
-        mtdMp: `${monthlyOnboarded}/12`,
-        avg: monthlyAvg
+        mtdMp: monthlyOnboarded,
+        avg: monthlyAvg,
+        visitGoal: visitGoal,
+        onboardGoal: onboardGoal,
+        visitProgress: visitGoal > 0 ? Math.round((monthlyTotalVisits / visitGoal) * 100) : 0,
+        onboardProgress: onboardGoal > 0 ? Math.round((monthlyOnboarded / onboardGoal) * 100) : 0
       },
       latestActivity: {
         date: latestActivityDate ? new Date(latestActivityDate).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'),
