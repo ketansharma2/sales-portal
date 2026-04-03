@@ -15,32 +15,232 @@ export default function SalesManagerDashboard() {
   // --- MANAGER CONTROLS ---
   const [activeTab, setActiveTab] = useState("FSE"); // 'FSE' or 'LeadGen'
   const [selectedAgent, setSelectedAgent] = useState("All");
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const firstDayOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
+  const lastDayOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(currentYear, currentMonth, 0).getDate()}`;
+
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [latestDate, setLatestDate] = useState("");
+  const [fseTeam, setFseTeam] = useState([]);
+  const [leadGenTeam, setLeadGenTeam] = useState([]);
+  const [fseLoading, setFseLoading] = useState(true);
+  const [leadGenLoading, setLeadGenLoading] = useState(true);
+  const [totalClientsCount, setTotalClientsCount] = useState(0);
+  const [totalOnboardedCount, setTotalOnboardedCount] = useState(0);
+  const [totalVisitsCount, setTotalVisitsCount] = useState(0);
 
-  const currentMonth = new Date().toLocaleString('default', { month: 'long' }).toUpperCase();
+  // Fetch FSE team from API
+  useEffect(() => {
+    const fetchFseTeam = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const response = await fetch('/api/domestic/manager/fse-team', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setFseTeam(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching FSE team:', error);
+      } finally {
+        setFseLoading(false);
+      }
+    };
 
-  // Mock Lists for Dropdown
-  const fseList = ["Rahul Sharma", "Vikram Singh", "Amit Desai", "Neha Gupta"];
-  const leadGenList = ["Pooja", "Sneha", "Khushi", "Amit Kumar"];
+    // Fetch LeadGen users from API
+    const fetchLeadGenTeam = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const response = await fetch('/api/domestic/manager/leadgen-users', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setLeadGenTeam(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching LeadGen team:', error);
+      } finally {
+        setLeadGenLoading(false);
+      }
+    };
 
-  // --- MOCK STATS ---
-  const [stats, setStats] = useState({
-    global: { totalClients: 1240, totalOnboard: 45, totalVisits: 320, onboardCall: 15, onboardVisit: 30, untouched: 150, noStatus: 42, duplicate: 12 },
-    monthly: { visitTarget: 180, individualVisits: 110, onboardMtd: "12/20", avgVisit: 4.5, visitGoal: 200, onboardGoal: 20 },
-    projections: { mpLess50: 12, mpGreater50: 8, wpLess50: 20, wpGreater50: 15 },
-    dynamicMetrics: { total: 320, individual: 110, repeat: 210, interested: 45, notInterested: 80, reachedOut: 300, onboard: 12 },
-    clientsFSE: [
-      { date: "2026-03-02", name: "TechCorp Solutions", agent: "Vikram Singh", status: "Visited", sub: "Follow up tomorrow", color: "bg-blue-100 text-blue-800" },
-      { date: "2026-03-02", name: "Urban Money", agent: "Neha Gupta", status: "Onboarded", sub: "Docs pending", color: "bg-green-100 text-green-800" },
-    ],
-    clientsLeadGen: [
-      { date: "2026-03-02", name: "Frankfin", agent: "Pooja", status: "Connected", duration: "2m 15s", remarks: "Meeting fixed for Friday", color: "bg-purple-100 text-purple-800" },
-      { date: "2026-03-01", name: "MKS", agent: "Sneha", status: "Not Interested", duration: "0m 45s", remarks: "Budget issue", color: "bg-red-100 text-red-800" },
-    ]
+     if (mounted) {
+       fetchFseTeam();
+       fetchLeadGenTeam();
+       fetchTotalClients();
+       fetchTotalOnboarded();
+       fetchTotalVisits();
+       fetchManagerMetrics();
+     }
+  }, [mounted]);
+
+   // Fetch total onboarded count
+   const fetchTotalOnboarded = async (fseId = null) => {
+     try {
+       const session = JSON.parse(localStorage.getItem('session') || '{}');
+       const url = fseId 
+         ? `/api/domestic/manager/onboarded-count?fse_id=${fseId}`
+         : '/api/domestic/manager/onboarded-count';
+       const response = await fetch(url, {
+         headers: { 'Authorization': `Bearer ${session.access_token}` }
+       });
+       const data = await response.json();
+       if (data.success) {
+         setTotalOnboardedCount(data.onboarded_count || 0);
+       }
+     } catch (error) {
+       console.error('Error fetching onboarded count:', error);
+     }
+   };
+
+   // Fetch total visits count
+   const fetchTotalVisits = async () => {
+     try {
+       const session = JSON.parse(localStorage.getItem('session') || '{}');
+       const response = await fetch('/api/domestic/manager/total-visits', {
+         headers: { 'Authorization': `Bearer ${session.access_token}` }
+       });
+       const data = await response.json();
+       if (data.success) {
+         setTotalVisitsCount(data.data.totalVisits || 0);
+       }
+     } catch (error) {
+       console.error('Error fetching total visits:', error);
+     }
+   };
+
+   // Fetch manager metrics (dynamic cards data)
+   const fetchManagerMetrics = async () => {
+     try {
+       const session = JSON.parse(localStorage.getItem('session') || '{}');
+       const response = await fetch('/api/domestic/manager/metrics', {
+         headers: { 'Authorization': `Bearer ${session.access_token}` }
+       });
+       const data = await response.json();
+       if (data.success) {
+         setStats(prev => ({
+           ...prev,
+           dynamicMetrics: data.data
+         }));
+       }
+     } catch (error) {
+       console.error('Error fetching manager metrics:', error);
+     }
+   };
+
+   // Refetch total clients and onboarded when FSE filter changes
+   useEffect(() => {
+     if (mounted && activeTab === "FSE") {
+       const fseId = selectedAgent === "All" ? null : selectedAgent;
+       fetchTotalClients(fseId);
+       fetchTotalOnboarded(fseId);
+     }
+   }, [selectedAgent, activeTab, mounted]);
+
+   // Refetch manager metrics when FSE team changes
+   useEffect(() => {
+     if (mounted) {
+       fetchManagerMetrics();
+     }
+   }, [mounted]);
+
+  // Fetch total clients count
+  const fetchTotalClients = async (fseId = null) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const url = fseId 
+        ? `/api/domestic/manager/all-clients-database?limit=all&fse_id=${fseId}`
+        : '/api/domestic/manager/all-clients-database?limit=all';
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setTotalClientsCount(data.total_count || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching total clients:', error);
+    }
+  };
+
+  // Get dropdown options from API data
+  const fseList = fseTeam.map(fse => fse.name);
+  const fseIdList = fseTeam.map(fse => fse.user_id);
+  const leadGenList = leadGenTeam.map(lg => lg.name);
+  const leadGenIdList = leadGenTeam.map(lg => lg.user_id);
+
+const [stats, setStats] = useState({
+    global: { totalClients: 0, totalOnboard: 0, onboardCall: 0, onboardVisit: 0, untouched: 0, noStatus: 0, duplicate: 0 },
+    monthly: { visitTarget: 0, individualVisits: 0, onboardMtd: "0/0", avgVisit: 0, visitGoal: 0, onboardGoal: 0 },
+    projections: { mpLess50: 0, mpGreater50: 0, wpLess50: 0, wpGreater50: 0 },
+    dynamicMetrics: { total: 0, individual: 0, repeat: 0, interested: 0, notInterested: 0, reachedOut: 0, onboard: 0 },
+    clientsFSE: [],
+    clientsLeadGen: []
   });
+
+  const fetchDashboard = async () => {
+    if (!mounted || fseTeam.length === 0) return;
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/manager/dashboard', {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ from: fromDate, to: toDate })
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        const d = data.data;
+        setStats(prev => ({
+          ...prev,
+          global: {
+            totalClients: d.totalClients || 0,
+            totalOnboard: d.totalOnboarded || 0,
+            onboardCall: d.totalOnboardCall || 0,
+            onboardVisit: d.totalOnboardVisit || 0,
+            untouched: d.totalNeverVisited || 0,
+            noStatus: d.noStatus || 0,
+            duplicate: d.duplicate || 0
+          },
+          monthly: {
+            visitTarget: d.monthlyStats?.totalVisits || 0,
+            individualVisits: d.monthlyStats?.individualVisits || 0,
+            onboardMtd: d.monthlyStats?.mtdMp || "0/0",
+            avgVisit: d.monthlyStats?.avg || 0,
+            visitGoal: 200,
+            onboardGoal: 20
+          },
+          projections: d.projections || { mpLess50: 0, mpGreater50: 0, wpLess50: 0, wpGreater50: 0 },
+          dynamicMetrics: {
+            totalVisits: d.latestActivity?.totalVisits || 0,
+            calls: d.latestActivity?.calls || 0,
+            individual: d.latestActivity?.individual || 0,
+            repeat: d.latestActivity?.repeat || 0,
+            interested: d.latestActivity?.interested || 0,
+            notInterested: d.latestActivity?.notInterested || 0,
+            reachedOut: d.latestActivity?.reachedOut || 0,
+            onboard: d.latestActivity?.onboarded || 0
+          },
+          clientsFSE: d.latestLeads || []
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (mounted && fseTeam.length > 0) {
+      fetchDashboard();
+    }
+  }, [mounted, fseTeam.length]);
 
   useEffect(() => {
     setMounted(true);
@@ -99,19 +299,21 @@ export default function SalesManagerDashboard() {
             <div className="flex items-center bg-blue-50 border border-blue-100 rounded-xl px-3 py-1.5 gap-2 hover:border-[#103c7f]/30 transition-colors">
               <span className="text-[10px] font-black text-blue-800 uppercase tracking-wider">{activeTab === "FSE" ? "FSE:" : "Agent:"}</span>
               <select 
-                className="bg-transparent text-xs font-bold text-[#103c7f] outline-none cursor-pointer uppercase"
+                className="bg-transparent text-xs font-bold text-[#103c7f] outline-none cursor-pointer uppercase min-w-[150px] px-2 py-1"
                 value={selectedAgent}
                 onChange={(e) => setSelectedAgent(e.target.value)}
+                disabled={activeTab === "FSE" ? fseLoading : leadGenLoading}
               >
                 <option value="All">All {activeTab}</option>
-                {(activeTab === "FSE" ? fseList : leadGenList).map(agent => (
-                    <option key={agent} value={agent}>{agent}</option>
+                {(activeTab === "FSE" ? fseList : leadGenList).map((agent, index) => (
+                    <option key={agent} value={activeTab === "FSE" ? fseIdList[index] : leadGenIdList[index]}>{agent}</option>
                 ))}
               </select>
             </div>
 
             <DateInput label="From" value={fromDate} onChange={setFromDate} />
             <DateInput label="To" value={toDate} onChange={setToDate} />
+            <button onClick={() => fetchDashboard()} className="bg-[#103c7f] text-white p-2.5 rounded-xl hover:bg-[#1a4da1] transition-all"><Filter size={16} /></button>
           </div>
         </div>
 
@@ -155,7 +357,7 @@ export default function SalesManagerDashboard() {
                                 </div>
                               </div>
                               <div className="mt-0.5 pl-1">
-                                <h3 className="text-xl font-black text-[#103c7f] leading-none truncate">{stats.global.totalClients}</h3>
+                                <h3 className="text-xl font-black text-[#103c7f] leading-none truncate">{totalClientsCount}</h3>
                               </div>
                             </div>
 
@@ -172,7 +374,7 @@ export default function SalesManagerDashboard() {
                                 </div>
                               </div>
                               <div className="mt-0.5 pl-1">
-                                <h3 className="text-xl font-black text-[#1a4da1] leading-none truncate">{stats.global.totalVisits}</h3>
+                                 <h3 className="text-xl font-black text-[#1a4da1] leading-none truncate">{totalVisitsCount}</h3>
                               </div>
                             </div>
 
@@ -193,7 +395,7 @@ export default function SalesManagerDashboard() {
                                 </div>
                               </div>
                               <div className="mt-0.5 pl-1">
-                                <h3 className="text-xl font-black text-slate-800 leading-none truncate">{stats.global.totalOnboard}</h3>
+                                <h3 className="text-xl font-black text-slate-800 leading-none truncate">{totalOnboardedCount}</h3>
                               </div>
                             </div>
 
@@ -207,7 +409,7 @@ export default function SalesManagerDashboard() {
                           <div className="flex items-center gap-2 mb-2">
                             <Calendar size={14} className="text-[#103c7f]" />
                             <h2 className="text-[11px] font-black text-[#103c7f] uppercase tracking-widest">
-                              {currentMonth}
+                              {new Date().toLocaleString('default', { month: 'long' }).toUpperCase()}
                             </h2>
                           </div>
                           
@@ -281,6 +483,7 @@ export default function SalesManagerDashboard() {
                               <table className="w-full text-left border-collapse text-xs">
                                 <thead className="sticky top-0 z-20 shadow-sm bg-white">
                                   <tr>
+                                    <th className="px-4 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">Sno</th>
                                     <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">Date</th>
                                     <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">FSE Name</th>
                                     <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">Client Name</th>
@@ -292,8 +495,9 @@ export default function SalesManagerDashboard() {
                                 <tbody className="divide-y divide-gray-100">
                                   {stats.clientsFSE.map((client, idx) => (
                                     <tr key={idx} className="hover:bg-blue-50 transition-all group">
+                                      <td className="px-4 py-2.5 font-bold text-slate-700">{idx + 1}</td>
                                       <td className="px-6 py-2.5 font-bold text-slate-700">{client.date}</td>
-                                      <td className="px-6 py-2.5 font-black text-[#103c7f]">{selectedAgent === "All" ? client.agent : selectedAgent}</td>
+                                      <td className="px-6 py-2.5 font-black text-[#103c7f]">{selectedAgent === "All" ? client.agent : (fseList[fseIdList.indexOf(selectedAgent)] || selectedAgent)}</td>
                                       <td className="px-6 py-2.5 font-bold text-slate-700">{client.name}</td>
                                       <td className="px-6 py-2.5 text-center">
                                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter ${client.color}`}>{client.status}</span>
