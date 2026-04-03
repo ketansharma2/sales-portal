@@ -31,9 +31,10 @@ export async function GET(request) {
     
     // Filter by month if provided (format: YYYY-MM-DD)
     if (requestedMonth) {
-      const monthPrefix = requestedMonth.substring(0, 7); // Extract YYYY-MM from YYYY-MM-DD
-      console.log('Filtering by month prefix:', monthPrefix);
-      query = query.like('month', `${monthPrefix}%`);
+      const monthStart = requestedMonth.substring(0, 7) + '-01';
+      const monthDays = new Date(parseInt(requestedMonth.substring(0, 4)), parseInt(requestedMonth.substring(5, 7)), 0).getDate();
+      const monthEnd = requestedMonth.substring(0, 7) + '-' + String(monthDays).padStart(2, '0');
+      query = query.gte('month', monthStart).lte('month', monthEnd);
     }
     
     let { data: targets, error: targetsError } = await query
