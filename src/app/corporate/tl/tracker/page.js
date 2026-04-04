@@ -20,6 +20,9 @@ export default function TLTrackerPage() {
     
     // Loading state for Auto-Update CV
     const [isUpdatingCV, setIsUpdatingCV] = useState(false);
+    
+    // Preview state for CV redaction
+    const [previewData, setPreviewData] = useState(null);
 
     // Form State for TL Update Modal
     const [tlForm, setTlForm] = useState({
@@ -164,9 +167,9 @@ export default function TLTrackerPage() {
         }
 
         setIsUpdatingCV(true);
+        setPreviewData(null);
 
         try {
-            // Get the cv_parsing id from selected candidate
             const cvParsingId = selectedCandidate.cv_parsing_id;
             
             if (!cvParsingId) {
@@ -176,7 +179,6 @@ export default function TLTrackerPage() {
 
             console.log("Calling Redact CV API with cv_parsing_id:", cvParsingId);
             
-            // Call our Next.js API route which talks to the Python Redactor API
             const session = JSON.parse(localStorage.getItem('session') || '{}');
             const token = session.access_token;
 
@@ -196,8 +198,18 @@ export default function TLTrackerPage() {
             const result = await response.json();
             console.log("Redact CV API response:", result);
 
+            if (result.preview) {
+                setPreviewData({
+                    cv_parsing_id: cvParsingId,
+                    emails_found: result.emails_found || [],
+                    phones_found: result.phones_found || [],
+                    message: result.message
+                });
+                setIsUpdatingCV(false);
+                return;
+            }
+
             if (result.success && result.redacted_cv_url) {
-                // Update form with the redacted CV URL
                 setTlForm({ 
                     ...tlForm, 
                     updatedCvName: result.redacted_cv_url 
@@ -214,6 +226,53 @@ export default function TLTrackerPage() {
         } finally {
             setIsUpdatingCV(false);
         }
+    };
+
+    // Confirm CV Redaction Handler
+    const handleConfirmRedaction = async () => {
+        if (!previewData?.cv_parsing_id) return;
+
+        setIsUpdatingCV(true);
+
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+
+            const response = await fetch('/api/corporate/recruiter/redact-cv', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    cv_parsing_id: previewData.cv_parsing_id
+                })
+            });
+
+            const result = await response.json();
+            console.log("Confirm response:", result);
+
+            if (result.success && result.redacted_cv_url) {
+                setPreviewData(null);
+                setTlForm({ 
+                    ...tlForm, 
+                    updatedCvName: result.redacted_cv_url 
+                });
+                alert("CV redacted successfully!\n\nRedacted CV URL: " + result.redacted_cv_url);
+            } else {
+                alert("Failed to redact CV.\n\nReason: " + (result.message || result.error || "Unknown error"));
+            }
+        } catch (error) {
+            console.error("Error confirming redacted CV:", error);
+            alert("Failed to redact CV.\n\nError: " + error.message);
+        } finally {
+            setIsUpdatingCV(false);
+        }
+    };
+
+    // Cancel preview
+    const handleCancelPreview = () => {
+        setPreviewData(null);
     };
 
     const handleSaveTLUpdate = async () => {
@@ -573,7 +632,7 @@ export default function TLTrackerPage() {
                                 <div>
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Auto-Format CV (Remove Contact Info)</label>
                                     
-                                    {!tlForm.updatedCvName ? (
+                                    {!tlForm.updatedCvName && !previewData ? (
                                         <button 
                                             onClick={handleAutoUpdateCV}
                                             disabled={isUpdatingCV}
@@ -592,6 +651,53 @@ export default function TLTrackerPage() {
                                                 </>
                                             )}
                                         </button>
+                                    ) : previewData ? (
+                                        <div className="border-2 border-amber-300 bg-amber-50 rounded-xl p-4 shadow-sm">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <AlertCircle size={18} className="text-amber-600" />
+                                                <span className="text-xs font-black text-amber-800 uppercase tracking-widest">PII Detected - Confirm Redaction</span>
+                                            </div>
+                                            
+                                            {previewData.emails_found?.length > 0 && (
+                                                <div className="mb-2">
+                                                    <span className="text-[9px] font-bold text-slate-500 uppercase">Emails Found:</span>
+                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                        {previewData.emails_found.map((email, idx) => (
+                                                            <span key={idx} className="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded font-medium">{email}</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {previewData.phones_found?.length > 0 && (
+                                                <div className="mb-3">
+                                                    <span className="text-[9px] font-bold text-slate-500 uppercase">Phones Found:</span>
+                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                        {previewData.phones_found.map((phone, idx) => (
+                                                            <span key={idx} className="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded font-medium">{phone}</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            <div className="flex gap-2 mt-3">
+                                                <button 
+                                                    onClick={handleCancelPreview}
+                                                    disabled={isUpdatingCV}
+                                                    className="flex-1 border border-slate-300 text-slate-600 px-3 py-2 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-colors"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button 
+                                                    onClick={handleConfirmRedaction}
+                                                    disabled={isUpdatingCV}
+                                                    className="flex-1 bg-amber-500 text-white px-3 py-2 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-amber-600 transition-colors flex items-center justify-center gap-1"
+                                                >
+                                                    {isUpdatingCV ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                                                    Confirm Redact
+                                                </button>
+                                            </div>
+                                        </div>
                                     ) : (
                                         <div className="border border-emerald-200 bg-emerald-50 rounded-xl p-4 flex items-center justify-between shadow-sm">
                                             <div className="flex items-center gap-3">
