@@ -790,7 +790,7 @@ export default function MorningReportPage() {
                                             </h3>
                                         </div>                                       
                                     </div>
-                                   <div className="overflow-x-auto custom-scrollbar">
+                                {/* <div className="overflow-x-auto custom-scrollbar">
                                         <table className="w-full text-left border-collapse min-w-[1250px] text-xs">
                                             <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-10">
                                                 <tr>
@@ -887,7 +887,6 @@ export default function MorningReportPage() {
                                                     </tr>
                                                 )}
                                             </tbody>
-                                            {/* --- TOTAL FOOTER ROW --- */}
                                             {reportData && reportData.length > 0 && (
                                                 <tfoot className="bg-slate-100 border-t-2 border-slate-300">
                                                     <tr>
@@ -932,7 +931,7 @@ export default function MorningReportPage() {
                                                 </tfoot>
                                             )}
                                         </table>
-                                    </div>               
+                                    </div>   */}           
                                    {/* --- CORPORATE CLIENT HANDLING KPI CARDS & TABLE --- */}
                                     <div className="p-4 bg-indigo-50/20 border-t border-indigo-100">
                                         <h4 className="text-[11px] font-black text-indigo-800 uppercase tracking-widest mb-3 flex items-center gap-1.5">
@@ -1067,7 +1066,7 @@ export default function MorningReportPage() {
                                         
                                     </div>
 
-                                    <div className="overflow-x-auto custom-scrollbar">
+                                  {/*  <div className="overflow-x-auto custom-scrollbar">
                                         <table className="w-full text-left border-collapse min-w-[1250px] text-xs">
                                             <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-10">
                                                 <tr>    
@@ -1163,7 +1162,6 @@ export default function MorningReportPage() {
                                                     </tr>
                                                 )}
                                             </tbody>
-                                            {/* --- TOTAL FOOTER ROW --- */}
                                             {reportData && reportData.length > 0 && (
                                                 <tfoot className="bg-slate-100 border-t-2 border-slate-300">
                                                     <tr>
@@ -1208,7 +1206,7 @@ export default function MorningReportPage() {
                                                 </tfoot>
                                             )}
                                         </table>
-                                    </div>
+                                    </div>*/}
 
                                     {/* --- DOMESTIC CLIENT HANDLING KPI CARDS & TABLE --- */}
                                     <div className="p-4 bg-orange-50/20 border-t border-orange-100">
