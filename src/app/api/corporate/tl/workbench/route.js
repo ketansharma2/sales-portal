@@ -58,6 +58,24 @@ export async function GET(request) {
       .in('user_id', recruiterIds)
 
     // Fetch tracker sent, today_asset, today_conversion, and CV counts for each workbench item
+    const workbenchIds = workbenchData?.map(item => item.workbench_id).filter(Boolean) || []
+    let stiData = []
+    if (workbenchIds.length > 0) {
+      const { data: stiRecords } = await supabaseServer
+        .from('corporate_workbench_sti')
+        .select('workbench_id, advance_sti')
+        .in('workbench_id', workbenchIds)
+      
+      stiData = stiRecords || []
+    }
+
+    // Calculate STI sum per workbench_id
+    const stiSumMap = new Map()
+    stiData.forEach(item => {
+      const current = stiSumMap.get(item.workbench_id) || 0
+      stiSumMap.set(item.workbench_id, current + (parseFloat(item.advance_sti) || 0))
+    })
+
     const countsPromises = workbenchData.map(async (item) => {
       if (!item.req_id || !item.sent_to_rc || !item.date) return { workbench_id: item.workbench_id, tracker_sent: 0, today_asset: 0, today_conversion: 0, cv_naukri: 0, cv_indeed: 0, cv_other: 0, totalCv: 0 };
       
@@ -170,7 +188,7 @@ export async function GET(request) {
         // TL remarks
         tl_remarks: item.tl_remarks || '',
         rc_remarks: item.rc_remarks || '',
-        advance_sti: item.advance_sti || '',
+        advance_sti: stiSumMap.get(item.workbench_id) || 0,
         // JD details from requirements
         location: req?.location || '',
         employment_type: req?.employment_type || '',

@@ -24,7 +24,7 @@ export async function GET(request) {
       .from('corporate_workbench_sti')
       .select('*')
       .eq('workbench_id', workbench_id)
-      .order('created_at', { ascending: false })
+      .order('date', { ascending: false })
 
     if (error) {
       console.error('Fetch STI history error:', error)

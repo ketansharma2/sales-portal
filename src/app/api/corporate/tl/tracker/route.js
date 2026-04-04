@@ -41,6 +41,7 @@ export async function GET(request) {
 
     // Extract unique user_ids and parsing_ids for joining
     const userIds = [...new Set(conversations.map(c => c.user_id).filter(Boolean))]
+    const crmUserIds = [...new Set(conversations.map(c => c.sent_to_crm).filter(Boolean))]
     const parsingIds = [...new Set(conversations.map(c => c.parsing_id).filter(Boolean))]
     const reqIds = [...new Set(conversations.map(c => c.req_id).filter(Boolean))]
 
@@ -54,6 +55,19 @@ export async function GET(request) {
       
       if (usersData) {
         usersMap = new Map(usersData.map(u => [u.user_id, u.name]))
+      }
+    }
+
+    // Fetch CRM user names
+    let crmUsersMap = new Map()
+    if (crmUserIds.length > 0) {
+      const { data: crmUsersData } = await supabaseServer
+        .from('users')
+        .select('user_id, name')
+        .in('user_id', crmUserIds)
+      
+      if (crmUsersData) {
+        crmUsersMap = new Map(crmUsersData.map(u => [u.user_id, u.name]))
       }
     }
 
@@ -113,7 +127,9 @@ export async function GET(request) {
         job_title: reqsMap.get(conversation.req_id) || '',
         // TL evaluation fields
         cv_status: conversation.cv_status || '',
-        tl_remarks: conversation.tl_remarks || ''
+        tl_remarks: conversation.tl_remarks || '',
+        sent_to_crm: conversation.sent_to_crm || null,
+        sent_to_crm_name: conversation.sent_to_crm ? (crmUsersMap.get(conversation.sent_to_crm) || 'Unknown') : null
       }
     })
 

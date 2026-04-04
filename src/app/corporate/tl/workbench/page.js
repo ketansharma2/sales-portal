@@ -29,6 +29,10 @@ export default function TLWorkbenchPage() {
     const [remarkForm, setRemarkForm] = useState({ remark: "" });
     const [savingRemark, setSavingRemark] = useState(false);
 
+    // STI History Modal State
+    const [isStiHistoryOpen, setIsStiHistoryOpen] = useState(false);
+    const [stiHistoryData, setStiHistoryData] = useState([]);
+
     // Slots List
     const slotsList = [
         "10:00 - 11:30",
@@ -191,6 +195,28 @@ export default function TLWorkbenchPage() {
     const handleCloseRemarkModal = () => {
         setIsRemarkModalOpen(false);
         setSelectedRemarkTask(null);
+    };
+
+    const handleViewStiHistory = async (workbenchId) => {
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            const response = await fetch(`/api/corporate/recruiter/advance-sti?workbench_id=${workbenchId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const result = await response.json();
+            if (result.success) {
+                setStiHistoryData(result.data || []);
+                setIsStiHistoryOpen(true);
+            }
+        } catch (error) {
+            console.error('Error fetching STI history:', error);
+        }
+    };
+
+    const handleCloseStiHistory = () => {
+        setIsStiHistoryOpen(false);
+        setStiHistoryData([]);
     };
 
     const handleSaveRemark = async () => {
@@ -494,9 +520,20 @@ export default function TLWorkbenchPage() {
                                             </div>
                                         </div>
                                         <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 flex flex-col justify-center items-center text-center">
-                                            <Send size={16} className="text-purple-500 mb-1"/>
-                                            <p className="text-[10px] font-black text-gray-500 uppercase mb-0.5">Advance STI</p>
-                                            <p className="text-xl font-black text-purple-700">{selectedWork.advance_sti || 'N/A'}</p>
+                                            <div className="flex items-center gap-1">
+                                                <Send size={16} className="text-purple-500"/>
+                                                <p className="text-[10px] font-black text-gray-500 uppercase">Advance STI</p>
+                                                {selectedWork.advance_sti > 0 && (
+                                                    <button 
+                                                        onClick={() => handleViewStiHistory(selectedWork.id)}
+                                                        className="p-1 text-purple-500 hover:bg-purple-100 rounded transition"
+                                                        title="View STI History"
+                                                    >
+                                                        <Eye size={14}/>
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <p className="text-xl font-black text-purple-700 mt-1">{selectedWork.advance_sti !== undefined && selectedWork.advance_sti !== null && selectedWork.advance_sti !== 0 ? selectedWork.advance_sti : 'N/A'}</p>
                                         </div>
                                         <div className="bg-gray-100 border border-gray-200 rounded-xl p-4 flex flex-col justify-center items-center text-center">
                                             <UserCheck size={16} className="text-gray-500 mb-1"/>
@@ -652,6 +689,35 @@ export default function TLWorkbenchPage() {
                             </div>
                         </div>
 
+                    </div>
+                </div>
+            )}
+
+            {/* --- STI HISTORY MODAL --- */}
+            {isStiHistoryOpen && (
+                <div className="fixed inset-0 bg-[#103c7f]/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="bg-purple-600 px-6 py-4 flex justify-between items-center text-white">
+                            <h3 className="text-lg font-black uppercase tracking-wide">STI History</h3>
+                            <button onClick={handleCloseStiHistory} className="hover:bg-white/10 p-1.5 rounded-full transition-colors"><X size={20}/></button>
+                        </div>
+                        <div className="p-4 max-h-80 overflow-y-auto">
+                            {stiHistoryData.length > 0 ? (
+                                <div className="space-y-2">
+                                    {stiHistoryData.map((item) => (
+                                        <div key={item.id} className="flex justify-between items-center p-3 bg-purple-50 rounded-lg border border-purple-100">
+                                            <span className="text-xs font-bold text-gray-600">{item.date}</span>
+                                            <span className="text-sm font-bold text-green-600">{item.advance_sti}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-center text-gray-500 text-sm">No STI history found.</p>
+                            )}
+                        </div>
+                        <div className="p-4 bg-gray-50 border-t flex justify-end">
+                            <button onClick={handleCloseStiHistory} className="px-5 py-2 bg-purple-600 text-white rounded-xl font-bold text-sm hover:bg-purple-700 transition">Close</button>
+                        </div>
                     </div>
                 </div>
             )}

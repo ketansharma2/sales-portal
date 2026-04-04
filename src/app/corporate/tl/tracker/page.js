@@ -71,7 +71,8 @@ export default function TLTrackerPage() {
                         tlReview: item.tl_remarks || '',
                         cvUpdateStatus: item.cv_status || '',
                         tlCvName: item.redacted_cv_url || '',
-                        isSentToCRM: false
+                        sentToCrm: item.sent_to_crm || null,
+                        sentToCrmName: item.sent_to_crm_name || null
                     }));
                     setTrackerData(transformed);
                 }
@@ -501,12 +502,18 @@ export default function TLTrackerPage() {
 
                                                 {/* Send to CRM */}
                                                 {row.cvUpdateStatus && (
-                                                    <button 
-                                                        onClick={() => handleSendToCRM(row)}
-                                                        className="w-full py-1.5 px-2 rounded bg-emerald-600 text-white border border-emerald-700 hover:bg-emerald-700 flex items-center justify-center gap-1 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
-                                                    >
-                                                        <Send size={10}/> To CRM
-                                                    </button>
+                                                    row.sentToCrm ? (
+<div className="w-full py-1.5 px-2 rounded bg-green-50 text-green-700 border border-green-200 flex items-center justify-center gap-1 font-black text-[9px] uppercase tracking-widest">
+    <CheckCircle2 size={10}/> SENT TO {row.sentToCrmName}
+</div>
+                                                    ) : (
+                                                        <button 
+                                                            onClick={() => handleSendToCRM(row)}
+                                                            className="w-full py-1.5 px-2 rounded bg-emerald-600 text-white border border-emerald-700 hover:bg-emerald-700 flex items-center justify-center gap-1 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
+                                                        >
+                                                            <Send size={10}/> To CRM
+                                                        </button>
+                                                    )
                                                 )}
                                             </div>
                                         )}
