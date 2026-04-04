@@ -931,11 +931,7 @@ export default function MorningReportPage() {
                                                 </tfoot>
                                             )}
                                         </table>
-<<<<<<< HEAD
-                                    </div>             
-=======
                                     </div>   */}           
->>>>>>> 19959c358293fb80f75c243e4b8f17fa86eeeccc
                                    {/* --- CORPORATE CLIENT HANDLING KPI CARDS & TABLE --- */}
                                     <div className="p-4 bg-indigo-50/20 border-t border-indigo-100">
                                         <h4 className="text-[11px] font-black text-indigo-800 uppercase tracking-widest mb-3 flex items-center gap-1.5">
