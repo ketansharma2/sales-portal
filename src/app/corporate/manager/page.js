@@ -49,63 +49,194 @@ export default function SalesManagerDashboard() {
 
   const currentMonth = new Date().toLocaleString('default', { month: 'long' }).toUpperCase();
 
-  // Mock Lists for Dropdown
-  const fseList = ["Rahul Sharma", "Vikram Singh", "Amit Desai", "Neha Gupta"];
-  const leadGenList = ["Pooja", "Sneha", "Khushi", "Amit Kumar"];
+  const [leadGenTeam, setLeadGenTeam] = useState([]);
+  const [leadGenLoading, setLeadGenLoading] = useState(true);
 
-  // --- MOCK STATS ---
+  const leadGenList = leadGenTeam.map(lg => lg.name);
+  const leadGenIdList = leadGenTeam.map(lg => lg.user_id);
+
   const [stats, setStats] = useState({
-    global: { totalClients: 1240, totalOnboard: 45, totalVisits: 320, onboardCall: 15, onboardVisit: 30, untouched: 150, noStatus: 42, duplicate: 12 },
-    monthly: { visitTarget: 180, individualVisits: 110, onboardMtd: "12/20", avgVisit: 4.5, visitGoal: 200, onboardGoal: 20 },
-    projections: { mpLess50: 12, mpGreater50: 8, wpLess50: 20, wpGreater50: 15 },
-    dynamicMetrics: { totalVisits: 320, calls: 450, individual: 110, repeat: 210, interested: 45, notInterested: 80, reachedOut: 300, onboard: 12 },
-    clientsFSE: [
-      { date: "2026-03-02", name: "TechCorp Solutions", agent: "Vikram Singh", status: "Visited", sub: "Follow up tomorrow", color: "bg-blue-100 text-blue-800" },
-      { date: "2026-03-02", name: "Urban Money", agent: "Neha Gupta", status: "Onboarded", sub: "Docs pending", color: "bg-emerald-100 text-emerald-800" },
-    ],
-
-    clientsLeadGen: [
-      { 
-        date: "02 Mar 2026", time: "10:30 AM", agent: "Pooja", name: "Frankfin Solutions", 
-        contactPerson: "Rahul Verma", phone: "+91 9876543210", email: "rahul@frankfin.in",
-        status: "Connected", subStatus: "Meeting Fixed", franchiseStatus: "Not Applicable",
-        interaction: "Discussed about new hiring needs.",
-        color: "bg-purple-100 text-purple-800" 
-      },
-      { 
-        date: "01 Mar 2026", time: "02:15 PM", agent: "Sneha", name: "MKS Pvt Ltd", 
-        contactPerson: "Priya Sharma", phone: "+91 8765432109", email: "hr@mkspvt.com",
-        status: "Not Interested", subStatus: "Budget Issue", franchiseStatus: "Discussed",
-        interaction: "Currently have an internal team.",
-        color: "bg-red-100 text-red-800" 
-      },
-    ],
-    // MOCK KPI DATA FOR LEADGEN TAB
+    global: { totalClients: 0, totalOnboard: 0, totalVisits: 0, onboardCall: 0, onboardVisit: 0, untouched: 0, noStatus: 0, duplicate: 0 },
+    monthly: { visitTarget: 0, individualVisits: 0, onboardMtd: 0, avgVisit: 0, visitGoal: 0, onboardGoal: 0 },
+    projections: { mpLess50: 0, mpGreater50: 0, wpLess50: 0, wpGreater50: 0 },
+    dynamicMetrics: { totalVisits: 0, calls: 0, individual: 0, repeat: 0, interested: 0, notInterested: 0, reachedOut: 0, onboard: 0 },
+    clientsFSE: [],
+    clientsLeadGen: [],
     kpiData: {
-      searched: { total: '8,540', startup: '3,200' },
-      normal: { leads: '5,340', calls: '1,800' },
-      contacts: { total: '4,200', startup: '1,500' },
-      calls: { total: '2,140', startup: '850', new: { total: '1,200', startup: '400' }, followup: { total: '940', startup: '450' } },
-      picked: { total: '850', startup: '320' },
-      notPicked: { total: '1,290', startup: '530' },
-      contract: { total: '120', startup: '45' },
-      sentToManager: { total: '60', startup: '25' },
-      onboarded: { total: '15', startup: '8' },
-      interested: { total: '120', startup: '50' },
-      masterUnion: { company: '150', profiles: '450', calling: '300' },
+      searched: { total: 0, startup: 0 },
+      normal: { leads: 0, calls: 0 },
+      contacts: { total: 0, startup: 0 },
+      calls: { total: 0, startup: 0, new: { total: 0, startup: 0 }, followup: { total: 0, startup: 0 } },
+      picked: { total: 0, startup: 0 },
+      notPicked: { total: 0, startup: 0 },
+      contract: { total: 0, startup: 0 },
+      sentToManager: { total: 0, startup: 0 },
+      onboarded: { total: 0, startup: 0 },
+      interested: { total: 0, startup: 0 },
+      masterUnion: { company: 0, profiles: 0, calling: 0 },
       franchise: {
-          discussed: { total: '80', startup: '0' },
-          formAsk: { total: '40', startup: '0' },
-          formShared: { total: '35', startup: '0' },
-          accepted: { total: '5', startup: '0' }
+          discussed: { total: 0 },
+          formAsk: { total: 0 },
+          formShared: { total: 0 },
+          accepted: { total: 0 }
       }
     }
   });
 
+  // Fetch LeadGen team
+  useEffect(() => {
+    const fetchLeadGenTeam = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const response = await fetch('/api/corporate/manager/leadgen-users', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setLeadGenTeam(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching LeadGen team:', error);
+      } finally {
+        setLeadGenLoading(false);
+      }
+    };
+
+    if (mounted) {
+      fetchLeadGenTeam();
+    }
+  }, [mounted]);
+
+  // Fetch latest date and return it
+  const fetchLatestDate = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/corporate/leadgen/latest-interaction-date', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.latestDate) {
+        const latestDate = data.latestDate;
+        setFromDate(latestDate);
+        setToDate(latestDate);
+        setLatestDate(latestDate);
+        return latestDate;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching latest date:', error);
+      return null;
+    }
+  };
+
+  // Fetch normal leads count
+  const fetchNormalLeadsCount = async (useLatestFromApi = false) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/normal-leads-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, normal: { ...prev.kpiData.normal, leads: data.data.leads?.total || 0 } } }));
+      }
+    } catch (error) {
+      console.error('Error fetching normal leads:', error);
+    }
+  };
+
+  // Fetch normal calls count
+  const fetchNormalCallsCount = async (useLatestFromApi = false) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/normal-calls-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, normal: { ...prev.kpiData.normal, calls: data.data.calls?.total || 0 } } }));
+      }
+    } catch (error) {
+      console.error('Error fetching normal calls:', error);
+    }
+  };
+
+  // Fetch dashboard data
+  const fetchDashboard = async () => {
+    if (!mounted || leadGenTeam.length === 0) return;
+    setLoading(true);
+    await fetchLatestDate();
+    await Promise.all([
+      fetchNormalLeadsCount(true),
+      fetchNormalCallsCount(true),
+    ]);
+    setLoading(false);
+  };
+
+  // Fetch data with current date filter (without resetting dates)
+  const fetchWithCurrentFilter = async () => {
+    if (!mounted || leadGenTeam.length === 0) return;
+    setLoading(true);
+    await Promise.all([
+      fetchNormalLeadsCount(false),
+      fetchNormalCallsCount(false),
+    ]);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (mounted && leadGenTeam.length > 0) {
+      fetchDashboard();
+    }
+  }, [mounted, leadGenTeam.length]);
+
+  useEffect(() => {
+    if (mounted && leadGenTeam.length > 0 && selectedAgent) {
+      if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        fetchNormalLeadsCount(false);
+        fetchNormalCallsCount(false);
+      } else {
+        fetchDashboard();
+      }
+    }
+  }, [selectedAgent]);
+
+  useEffect(() => {
+    if (mounted && leadGenTeam.length > 0 && fromDate && toDate && fromDate !== '' && toDate !== '') {
+      fetchNormalLeadsCount(false);
+      fetchNormalCallsCount(false);
+    }
+  }, [fromDate, toDate]);
+
   useEffect(() => {
     setMounted(true);
     setLoading(false);
-    setLatestDate("2026-03-02");
   }, []);
 
   const handleFilter = () => {
@@ -165,14 +296,15 @@ export default function SalesManagerDashboard() {
                 onChange={(e) => setSelectedAgent(e.target.value)}
               >
                 <option value="All">All {activeTab}</option>
-                {(activeTab === "FSE" ? fseList : leadGenList).map(agent => (
-                    <option key={agent} value={agent}>{agent}</option>
+                {(activeTab === "FSE" ? fseList : leadGenList).map((agent, idx) => (
+                    <option key={agent} value={activeTab === "FSE" ? agent : leadGenIdList[idx]}>{agent}</option>
                 ))}
               </select>
             </div>
 
             <DateInput label="From" value={fromDate} onChange={setFromDate} />
             <DateInput label="To" value={toDate} onChange={setToDate} />
+            <button onClick={fetchWithCurrentFilter} className="bg-[#103c7f] text-white p-2.5 rounded-xl hover:bg-[#1a4da1] transition-all"><Filter size={16} /></button>
           </div>
         </div>
 
@@ -198,17 +330,17 @@ export default function SalesManagerDashboard() {
                                 </h2>
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-3">
-                                <KpiCard title="Total Leads" total={stats.kpiData.searched.total} icon={<SearchIcon/>} color="blue" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})} />
-                                <KpiCard title="Total Contacts" total={stats.kpiData.contacts.total} icon={<UserCheck size={18}/>} color="blue" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'contacts' })} />
-                                <KpiCard title="Total Calls" total={stats.kpiData.calls.total} icon={<Phone size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'calls' })} />
-                                <KpiCard title="New Calls" total={stats.kpiData.calls.new.total} icon={<PhoneOutgoing size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'new_calls' })} />
-                                <KpiCard title="Followup Calls" total={stats.kpiData.calls.followup.total} icon={<PhoneIncoming size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'followup_calls' })} />
-                                <KpiCard title="Picked" total={stats.kpiData.picked.total} icon={<CheckCircle size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'picked' })} />
-                                <KpiCard title="Not Picked" total={stats.kpiData.notPicked.total} icon={<PhoneMissed size={18}/>} color="red" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'not_picked' })} />
-                                <KpiCard title="Contract Share" total={stats.kpiData.contract.total} icon={<FileText size={18}/>} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'contract' })} />
-                                <KpiCard title="Interested" total={stats.kpiData.interested.total} icon={<TrendingUp size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'interested' })} />
-                                <KpiCard title="Sent to Manager" total={stats.kpiData.sentToManager.total} icon={<Send size={18}/>} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'sent_to_manager' })} />
-                                <KpiCard title="Total Onboard" total={stats.kpiData.onboarded.total} icon={<Briefcase size={18}/>} color="teal" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'onboard' })} />
+                                <KpiCard title="Total Leads" total={stats?.kpiData?.searched?.total || 0} icon={<SearchIcon/>} color="blue" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})} />
+                                <KpiCard title="Total Contacts" total={stats?.kpiData?.contacts?.total || 0} icon={<UserCheck size={18}/>} color="blue" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'contacts' })} />
+                                <KpiCard title="Total Calls" total={stats?.kpiData?.calls?.total || 0} icon={<Phone size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'calls' })} />
+                                <KpiCard title="New Calls" total={stats?.kpiData?.calls?.new?.total || 0} icon={<PhoneOutgoing size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'new_calls' })} />
+                                <KpiCard title="Followup Calls" total={stats?.kpiData?.calls?.followup?.total || 0} icon={<PhoneIncoming size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'followup_calls' })} />
+                                <KpiCard title="Picked" total={stats?.kpiData?.picked?.total || 0} icon={<CheckCircle size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'picked' })} />
+                                <KpiCard title="Not Picked" total={stats?.kpiData?.notPicked?.total || 0} icon={<PhoneMissed size={18}/>} color="red" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'not_picked' })} />
+                                <KpiCard title="Contract Share" total={stats?.kpiData?.contract?.total || 0} icon={<FileText size={18}/>} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'contract' })} />
+                                <KpiCard title="Interested" total={stats?.kpiData?.interested?.total || 0} icon={<TrendingUp size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'interested' })} />
+                                <KpiCard title="Sent to Manager" total={stats?.kpiData?.sentToManager?.total || 0} icon={<Send size={18}/>} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'sent_to_manager' })} />
+                                <KpiCard title="Total Onboard" total={stats?.kpiData?.onboarded?.total || 0} icon={<Briefcase size={18}/>} color="teal" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'onboard' })} />
                             </div>
                         </div>
                         {/* ROW 2 & 3: NORMAL AND STARTUP CLIENTS (HIGHLIGHTED) */}
@@ -224,8 +356,8 @@ export default function SalesManagerDashboard() {
                                         </h2>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
-                                        <KpiCard title="Leads" total={stats.kpiData.normal.leads} icon={<Search size={18} />} color="blue" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'No' })} />
-                                        <KpiCard title="Calls" total={stats.kpiData.normal.calls} icon={<Phone size={18} />} color="blue" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'No', cardType: 'normal_calls' })} />
+                                        <KpiCard title="Leads" total={stats?.kpiData.normal.leads} icon={<Search size={18} />} color="blue" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'No' })} />
+                                        <KpiCard title="Calls" total={stats?.kpiData.normal.calls} icon={<Phone size={18} />} color="blue" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'No', cardType: 'normal_calls' })} />
                                     </div>
                                 </div>
 
@@ -240,8 +372,8 @@ export default function SalesManagerDashboard() {
                                         </h2>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
-                                        <KpiCard title="Leads" total={stats.kpiData.searched.startup} icon={<Search size={18} />} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Yes' })} />
-                                        <KpiCard title="Calls" total={stats.kpiData.calls.startup} icon={<Phone size={18} />} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Yes' })} />
+                                        <KpiCard title="Leads" total={stats?.kpiData?.searched.startup} icon={<Search size={18} />} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Yes' })} />
+                                        <KpiCard title="Calls" total={stats?.kpiData.calls.startup} icon={<Phone size={18} />} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Yes' })} />
                                     </div>
                                 </div>
 
@@ -262,9 +394,9 @@ export default function SalesManagerDashboard() {
                                         </h2>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                        <KpiCard title="Leads" total={stats.kpiData.masterUnion.company} icon={<Briefcase size={18} />} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union' })} />
-                                        <KpiCard title="Profiles" total={stats.kpiData.masterUnion.profiles} icon={<UserCheck size={18} />} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union' })} />
-                                        <KpiCard title="Calls" total={stats.kpiData.masterUnion.calling} icon={<Phone size={18} />} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union', cardType: 'master_union_calls' })} />
+                                        <KpiCard title="Leads" total={stats?.kpiData.masterUnion.company} icon={<Briefcase size={18} />} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union' })} />
+                                        <KpiCard title="Profiles" total={stats?.kpiData.masterUnion.profiles} icon={<UserCheck size={18} />} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union' })} />
+                                        <KpiCard title="Calls" total={stats?.kpiData.masterUnion.calling} icon={<Phone size={18} />} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union', cardType: 'master_union_calls' })} />
                                     </div>
                                 </div>
 
@@ -280,10 +412,10 @@ export default function SalesManagerDashboard() {
                                         </h2>
                                     </div>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                        <KpiCard title="Discussed" total={stats.kpiData.franchise.discussed.total} icon={<Phone size={18} />} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_discussed' })} />
-                                        <KpiCard title="Form Ask" total={stats.kpiData.franchise.formAsk.total} icon={<FileText size={18} />} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_form_ask' })} />
-                                        <KpiCard title="Shared" total={stats.kpiData.franchise.formShared.total} icon={<Send size={18} />} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_form_shared' })} />
-                                        <KpiCard title="Accepted" total={stats.kpiData.franchise.accepted.total} icon={<CheckCircle size={18} />} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_accepted' })} />
+                                        <KpiCard title="Discussed" total={stats?.kpiData.franchise.discussed.total} icon={<Phone size={18} />} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_discussed' })} />
+                                        <KpiCard title="Form Ask" total={stats?.kpiData.franchise.formAsk.total} icon={<FileText size={18} />} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_form_ask' })} />
+                                        <KpiCard title="Shared" total={stats?.kpiData.franchise.formShared.total} icon={<Send size={18} />} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_form_shared' })} />
+                                        <KpiCard title="Accepted" total={stats?.kpiData.franchise.accepted.total} icon={<CheckCircle size={18} />} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_accepted' })} />
                                     </div>
                                 </div>
 
