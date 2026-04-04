@@ -66,6 +66,25 @@ export async function GET(request) {
       usersData = users || []
     }
 
+    // Fetch STI data for all workbench ids
+    const workbenchIds = workbenchData?.map(item => item.workbench_id).filter(Boolean) || []
+    let stiData = []
+    if (workbenchIds.length > 0) {
+      const { data: stiRecords } = await supabaseServer
+        .from('corporate_workbench_sti')
+        .select('workbench_id, advance_sti')
+        .in('workbench_id', workbenchIds)
+      
+      stiData = stiRecords || []
+    }
+
+    // Calculate STI sum per workbench_id
+    const stiSumMap = new Map()
+    stiData.forEach(item => {
+      const current = stiSumMap.get(item.workbench_id) || 0
+      stiSumMap.set(item.workbench_id, current + (parseFloat(item.advance_sti) || 0))
+    })
+
     // Create lookup maps
     const reqsMap = new Map(reqsData.map(r => [r.req_id, r]))
     const clientsMap = new Map(clientsData.map(c => [c.client_id, c]))
@@ -76,6 +95,7 @@ export async function GET(request) {
       const req = reqsMap.get(item.req_id)
       const client = clientsMap.get(item.client_id)
       const tl = usersMap.get(item.sent_to_tl)
+      const totalSti = stiSumMap.get(item.workbench_id) || 0
 
       return {
         id: item.workbench_id,
@@ -97,7 +117,7 @@ export async function GET(request) {
         created_at: item.created_at,
         slot: item.slot || '',
         // Remark fields
-        advance_sti: item.advance_sti || '',
+        advance_sti: totalSti,
         rc_remarks: item.rc_remarks || '',
         // JD details from requirements
         location: req?.location || '',

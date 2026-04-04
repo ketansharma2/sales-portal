@@ -15,19 +15,18 @@ export async function PUT(request) {
     }
 
     const body = await request.json()
-    const { id, rc_remarks, advance_sti } = body
+    const { id, rc_remarks } = body
 
     if (!id) {
       return NextResponse.json({ error: 'workbench_id is required' }, { status: 400 })
     }
 
-    // Update rc_remarks, advance_sti and status in corporate_workbench
+    // Update rc_remarks and status in corporate_workbench
     const { data, error } = await supabaseServer
       .from('corporate_workbench')
       .update({
         rc_remarks: rc_remarks || null,
-        advance_sti: advance_sti || null,
-        status: 'Logged'
+        status: 'Done'
       })
       .eq('workbench_id', id)
       .select()

@@ -24,7 +24,22 @@ export default function RecruiterWorkbenchPage() {
     // Add Remark Modal State
     const [isRemarkModalOpen, setIsRemarkModalOpen] = useState(false);
     const [selectedRemarkTask, setSelectedRemarkTask] = useState(null);
-    const [remarkForm, setRemarkForm] = useState({ remark: "", advanceSti: "" });
+    const [remarkForm, setRemarkForm] = useState({ remark: "" });
+
+    const today = () => {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+    
+    // Advance STI Modal State
+    const [isStiModalOpen, setIsStiModalOpen] = useState(false);
+    const [selectedStiTask, setSelectedStiTask] = useState(null);
+    const [stiForm, setStiForm] = useState({ date: today(), advanceSti: "" });
+    const [isStiSaving, setIsStiSaving] = useState(false);
+    const [stiHistory, setStiHistory] = useState([]);
 
     // Slots List
     const slotsList = [
@@ -56,6 +71,7 @@ export default function RecruiterWorkbenchPage() {
                         requirement: item.requirement?.toString() || '',
                         // Use API fields for remark data
                         advance_sti: item.advance_sti || '',
+                        sti_date: item.sti_date || '',
                         rc_remarks: item.rc_remarks || '',
                         jd: {
                             title: item.job_title,
@@ -78,7 +94,7 @@ export default function RecruiterWorkbenchPage() {
                         slot: item.slot || '',
                         isFinalAssigned: !!item.sent_to_rc,
                         recruiterRemarks: [],
-                        progress: { cv_naukri: 0, cv_indeed: 0, cv_other: 0, totalCv: 0, advance_sti: 0, today_conversion: 0, today_asset: 0, tracker_sent: 0, notes: '' }
+                        progress: { cv_naukri: 0, cv_indeed: 0, cv_other: 0, totalCv: 0, advance_sti: item.advance_sti || 0, today_conversion: 0, today_asset: 0, tracker_sent: 0, notes: '' }
                     }));
                     
                     // Sort by date descending
@@ -129,14 +145,13 @@ export default function RecruiterWorkbenchPage() {
     const handleOpenRemarkModal = (item) => {
         setSelectedRemarkTask(item);
         
-        // If status is 'Logged', pre-fill with existing data
-        if (item.status === 'Logged' && (item.rc_remarks || item.advance_sti)) {
+        // If status is 'Done', pre-fill with existing data
+        if (item.status === 'Done' && item.rc_remarks) {
             setRemarkForm({ 
-                remark: item.rc_remarks || "", 
-                advanceSti: item.advance_sti || "" 
+                remark: item.rc_remarks || ""
             });
         } else {
-            setRemarkForm({ remark: "", advanceSti: "" });
+            setRemarkForm({ remark: "" });
         }
         setIsRemarkModalOpen(true);
     };
@@ -146,13 +161,97 @@ export default function RecruiterWorkbenchPage() {
         setSelectedRemarkTask(null);
     };
 
+    const handleOpenStiModal = async (item) => {
+        setSelectedStiTask(item);
+        setStiForm({ date: today(), advanceSti: "" });
+        setIsStiModalOpen(true);
+        
+        // Fetch STI history
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            const response = await fetch(`/api/corporate/recruiter/advance-sti?workbench_id=${item.id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const result = await response.json();
+            if (result.success) {
+                setStiHistory(result.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching STI history:', error);
+            setStiHistory([]);
+        }
+    };
+
+    const handleCloseStiModal = () => {
+        setIsStiModalOpen(false);
+        setSelectedStiTask(null);
+        setStiForm({ date: today(), advanceSti: "" });
+        setStiHistory([]);
+    };
+
+    const handleSaveSti = async () => {
+        if(!stiForm.advanceSti) {
+            alert("Please fill Advance STI.");
+            return;
+        }
+        
+        setIsStiSaving(true);
+        
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            
+            const response = await fetch('/api/corporate/recruiter/advance-sti', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    id: selectedStiTask.id,
+                    advance_sti: stiForm.advanceSti,
+                    date: stiForm.date
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                alert(result.error || 'Failed to save STI');
+                setIsStiSaving(false);
+                return;
+            }
+            
+            setAssignments(prev => prev.map(a => {
+                if (a.id === selectedStiTask.id) {
+                    return { 
+                        ...a, 
+                        advance_sti: stiForm.advanceSti,
+                        sti_date: stiForm.date
+                    };
+                }
+                return a;
+            }));
+            
+            handleCloseStiModal();
+            setIsStiSaving(false);
+            alert("Advance STI saved successfully!");
+            
+        } catch (error) {
+            console.error('Error saving STI:', error);
+            alert('Failed to save STI');
+            setIsStiSaving(false);
+        }
+    };
+
     const handleSaveRemark = async () => {
         if(!remarkForm.remark) {
             alert("Please fill Remark.");
             return;
         }
         
-        // Call API to update rc_remarks and advance_sti
+        // Call API to update rc_remarks
         try {
             const session = JSON.parse(localStorage.getItem('session') || '{}');
             const token = session.access_token;
@@ -165,8 +264,7 @@ export default function RecruiterWorkbenchPage() {
                 },
                 body: JSON.stringify({
                     id: selectedRemarkTask.id,
-                    rc_remarks: remarkForm.remark,
-                    advance_sti: remarkForm.advanceSti
+                    rc_remarks: remarkForm.remark
                 })
             });
             
@@ -183,9 +281,8 @@ export default function RecruiterWorkbenchPage() {
                     return { 
                         ...a, 
                         rc_remarks: remarkForm.remark,
-                        advance_sti: remarkForm.advanceSti,
-                        status: 'Logged',
-                        recruiterRemarks: [...(a.recruiterRemarks || []), { text: remarkForm.remark, advanceSti: remarkForm.advanceSti }] 
+                        status: 'Done',
+                        recruiterRemarks: [...(a.recruiterRemarks || []), { text: remarkForm.remark }] 
                     };
                 }
                 return a;
@@ -320,9 +417,9 @@ export default function RecruiterWorkbenchPage() {
 
                                             {/* Status */}
                                             <td className="p-2 border-r border-gray-200 text-center">
-                                                {item.status === 'Logged' ? (
+                                                {item.status === 'Done' ? (
                                                     <span className="px-2 py-1 rounded text-[9px] font-black uppercase border bg-green-50 text-green-700 border-green-200">
-                                                        Logged
+                                                        Done
                                                     </span>
                                                 ) : (
                                                     <span className="px-2 py-1 rounded text-[9px] font-black uppercase border bg-orange-50 text-orange-700 border-orange-200">
@@ -353,7 +450,7 @@ export default function RecruiterWorkbenchPage() {
                                                     </button>
 
                                                     {/* Add/Edit Remark Button */}
-                                                    {item.status === 'Logged' ? (
+                                                    {item.status === 'Done' ? (
                                                         <button
                                                             onClick={() => handleOpenRemarkModal(item)}
                                                             className="p-1.5 bg-yellow-50 text-yellow-600 border border-yellow-200 rounded hover:bg-yellow-100 transition"
@@ -370,6 +467,15 @@ export default function RecruiterWorkbenchPage() {
                                                             <MessageSquarePlus size={14}/>
                                                         </button>
                                                     )}
+
+                                                    {/* Advance STI Button */}
+                                                    <button
+                                                        onClick={() => handleOpenStiModal(item)}
+                                                        className="px-2 py-1 bg-green-50 text-green-600 border border-green-200 rounded hover:bg-green-100 transition text-[10px] font-bold"
+                                                        title="Advance STI"
+                                                    >
+                                                        STI
+                                                    </button>
                                                 </div>
                                             </td>
 
@@ -393,7 +499,7 @@ export default function RecruiterWorkbenchPage() {
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="bg-[#103c7f] p-4 flex justify-between items-center text-white shrink-0">
                             <h3 className="font-black text-md uppercase tracking-wide flex items-center gap-2">
-                                {selectedRemarkTask?.status === 'Logged' ? <Edit size={18}/> : <MessageSquarePlus size={18}/>} {selectedRemarkTask?.status === 'Logged' ? 'Edit Remark' : 'Add Remark'}
+                                {selectedRemarkTask?.status === 'Done' ? <Edit size={18}/> : <MessageSquarePlus size={18}/>} {selectedRemarkTask?.status === 'Done' ? 'Edit Remark' : 'Add Remark'}
                             </h3>
                             <button onClick={handleCloseRemarkModal} className="hover:bg-white/20 p-1.5 rounded-full transition bg-white/10">
                                 <X size={20} />
@@ -407,10 +513,6 @@ export default function RecruiterWorkbenchPage() {
                             <div className="mb-2">
                                 <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Remark / Feedback</label>
                                 <textarea rows="4" placeholder="Enter your remarks here..." className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:border-[#103c7f] outline-none resize-none shadow-sm bg-white" value={remarkForm.remark} onChange={(e) => setRemarkForm({...remarkForm, remark: e.target.value})}></textarea>
-                            </div>
-                            <div className="mb-2">
-                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Advance STI</label>
-                                <input type="text" placeholder="Enter advance STI..." className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none shadow-sm bg-white" value={remarkForm.advanceSti} onChange={(e) => setRemarkForm({...remarkForm, advanceSti: e.target.value})}/>
                             </div>
                         </div>
                         <div className="p-4 border-t border-gray-100 bg-white flex justify-end gap-3">
@@ -493,7 +595,6 @@ export default function RecruiterWorkbenchPage() {
                                                         <div key={i} className="relative pl-4 border-l-2 border-blue-400">
                                                             <div className="absolute w-2 h-2 bg-blue-500 rounded-full -left-[5px] top-1.5 border border-white"></div>
                                                             <p className="text-xs font-medium text-gray-800">{rem.text}</p>
-                                                            {rem.advanceSti && <p className="text-[10px] font-bold text-green-600 mt-1">Advance STI: {rem.advanceSti}</p>}
                                                         </div>
                                                     ))}
                                                 </div>
@@ -728,6 +829,56 @@ export default function RecruiterWorkbenchPage() {
                             </div>
                         </div>
 
+                    </div>
+                </div>
+            )}
+
+            {/* --- ADVANCE STI MODAL --- */}
+            {isStiModalOpen && selectedStiTask && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="bg-[#103c7f] p-4 flex justify-between items-center text-white shrink-0">
+                            <h3 className="font-black text-md uppercase tracking-wide flex items-center gap-2">
+                                <IndianRupee size={18}/> Advance STI
+                            </h3>
+                            <button onClick={handleCloseStiModal} className="hover:bg-white/20 p-1.5 rounded-full transition bg-white/10">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 bg-gray-50">
+                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-5">
+                                <p className="text-xs font-bold text-gray-600">Profile: <span className="text-[#103c7f]">{selectedStiTask.profile}</span></p>
+                            </div>
+                            <div className="mb-2">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Date</label>
+                                <input type="date" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none shadow-sm bg-white" value={stiForm.date} onChange={(e) => setStiForm({...stiForm, date: e.target.value})}/>
+                            </div>
+                            <div className="mb-2">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Advance STI</label>
+                                <input type="text" placeholder="Enter advance STI..." className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none shadow-sm bg-white" value={stiForm.advanceSti} onChange={(e) => setStiForm({...stiForm, advanceSti: e.target.value})}/>
+                            </div>
+                            
+                            {/* STI History */}
+                            {stiHistory.length > 0 && (
+                                <div className="mt-4">
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-2"> STI History</label>
+                                    <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-200 max-h-40 overflow-y-auto">
+                                        {stiHistory.map((item) => (
+                                            <div key={item.id} className="p-2 flex justify-between items-center">
+                                                <span className="text-xs font-bold text-gray-600">{item.date}</span>
+                                                <span className="text-xs font-bold text-green-600">{item.advance_sti}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-4 border-t border-gray-100 bg-white flex justify-end gap-3">
+                            <button onClick={handleCloseStiModal} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition shadow-sm">Cancel</button>
+                            <button onClick={handleSaveSti} disabled={isStiSaving} className="bg-[#103c7f] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-blue-900 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                                {isStiSaving ? 'Saving...' : 'Save STI'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
