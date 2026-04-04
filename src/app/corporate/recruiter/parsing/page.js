@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import jsPDF from "jspdf";
 import {
     UploadCloud, FileText, Search, Calendar, MapPin,
-    Loader2, History, File, CheckCircle2, X
+    Loader2, History, File, CheckCircle2, X, AlertCircle, User, MessageSquare
 } from "lucide-react";
 
 // CV Preview Component - Handles PDF, Images, and Word documents
@@ -168,6 +168,13 @@ export default function CVParsingPage() {
     const [parsedCandidateName, setParsedCandidateName] = useState("");
     const [parsedDataForModal, setParsedDataForModal] = useState(null);
     const [editableData, setEditableData] = useState(null);
+    
+    // Duplicate candidate modal state
+    const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
+    const [duplicateData, setDuplicateData] = useState(null);
+    const [newConversation, setNewConversation] = useState("");
+    const [isAddingConversation, setIsAddingConversation] = useState(false);
+    const [isAddingToParsing, setIsAddingToParsing] = useState(false);
 
     // --- PARSED DATA ---
     const [parsedData, setParsedData] = useState([]);
@@ -431,14 +438,18 @@ export default function CVParsingPage() {
                 console.log('Resetting selectedFile after successful save');
                 setSelectedFile(null); // Reset file after successful save
                 alert("Data saved to database successfully!");
+            } else if (result.success === false && result.error === 'Data already exists') {
+                // Show duplicate modal with existing candidate data and conversations
+                console.log("Duplicate found:", result);
+                setDuplicateData(result);
+                setDuplicateModalOpen(true);
+                // Keep selectedFile as is - user can try again with different data
             } else if (response.status === 409) {
                 const duplicateMessage = result.existing_user_name
                     ? `Data already exists! User: ${result.existing_user_name}`
                     : (result.details || "A record with this name, email, and mobile already exists");
                 console.error("409 Conflict error:", result);
-                alert(duplicateMessage);
-                // Don't reset file on duplicate error - user might want to try again with different data
-                // Keep selectedFile as is
+                // Keep selectedFile as is - user might want to try again with different data
             } else {
                 console.error("Save error:", result);
                 alert("Failed to save data: " + (result.error || "Unknown error"));
@@ -981,6 +992,145 @@ export default function CVParsingPage() {
                                     )}
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Duplicate Candidate Modal */}
+            {duplicateModalOpen && duplicateData && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+                        <div className="bg-amber-500 text-white p-5 flex justify-between items-center shrink-0">
+                            <div>
+                                <h2 className="text-base font-black uppercase tracking-widest flex items-center gap-2">
+                                    <AlertCircle size={18}/> Candidate Already Exists
+                                </h2>
+                                <p className="text-xs font-bold text-white/80 mt-1">
+                                    Added by: {duplicateData.existing_user_name}
+                                </p>
+                            </div>
+                            <button onClick={() => setDuplicateModalOpen(false)} className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors">
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Interaction History Only */}
+                        <div className="flex-1 overflow-y-auto p-4 bg-slate-50/30">
+                            <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Interaction History</h3>
+                            {duplicateData.conversations && duplicateData.conversations.length > 0 ? (
+                                <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                                    {duplicateData.conversations.map((conv, idx) => (
+                                        <div key={conv.conversation_id || idx} className="bg-white border border-slate-200 rounded-lg p-3">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <User size={12} className="text-slate-400" />
+                                                <span className="text-xs font-black text-slate-700 uppercase">
+                                                    {conv.users?.name || conv.user_id || 'Unknown'}
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-3 text-[10px] mb-2">
+                                                <div>
+                                                    <span className="text-slate-400 font-bold">Status: </span>
+                                                    <span className={`px-1.5 py-0.5 rounded font-black ${
+                                                        conv.candidate_status === 'Shortlisted' ? 'bg-amber-100 text-amber-700' :
+                                                        conv.candidate_status === 'Conversion' ? 'bg-green-100 text-green-700' :
+                                                        conv.candidate_status === 'Interview' ? 'bg-blue-100 text-blue-700' :
+                                                        'bg-slate-100 text-slate-600'
+                                                    }`}>{conv.candidate_status || '-'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-slate-400 font-bold">Rel. Exp: </span>
+                                                    <span className="font-bold text-slate-700">{conv.relevant_exp || '-'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-slate-400 font-bold">Curr CTC: </span>
+                                                    <span className="font-bold text-slate-700">{conv.curr_ctc || '-'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-slate-400 font-bold">Exp CTC: </span>
+                                                    <span className="font-bold text-emerald-600">{conv.exp_ctc || '-'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-slate-400 font-bold">Calling Date: </span>
+                                                    <span className="font-bold text-slate-700">{conv.calling_date || '-'}</span>
+                                                </div>
+                                            </div>
+                                            {conv.remarks && (
+                                                <p className="text-[10px] font-medium text-slate-600 italic border-l-2 border-slate-300 pl-2">
+                                                    "{conv.remarks}"
+                                                </p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-8 text-slate-400">
+                                    <MessageSquare size={24} className="mx-auto mb-2 opacity-50" />
+                                    <p className="text-xs font-bold">No interactions yet</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer - Two Buttons */}
+                        <div className="p-4 border-t border-slate-100 bg-white flex justify-center gap-3 shrink-0">
+                            <button
+                                onClick={() => {
+                                    setDuplicateModalOpen(false);
+                                    setDuplicateData(null);
+                                }}
+                                className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-colors cursor-pointer"
+                            >
+                                Close
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    setIsAddingToParsing(true);
+                                    try {
+                                        const session = JSON.parse(localStorage.getItem('session') || '{}');
+                                        const token = session.access_token;
+                                        
+                                        const response = await fetch('/api/corporate/recruiter/add-to-parsing', {
+                                            method: 'PUT',
+                                            headers: {
+                                                'Authorization': `Bearer ${token}`,
+                                                'Content-Type': 'application/json'
+                                            },
+                                            body: JSON.stringify({
+                                                candidate_id: duplicateData.existing_candidate.id
+                                            })
+                                        });
+                                        
+                                        const result = await response.json();
+                                        
+                                        if (result.success) {
+                                            alert("Added to your parsing data!");
+                                            setDuplicateModalOpen(false);
+                                            setDuplicateData(null);
+                                            setSelectedFile(null);
+                                        } else {
+                                            alert(result.message || "Failed to add");
+                                        }
+                                    } catch (error) {
+                                        console.error("Error adding to parsing:", error);
+                                        alert("Failed to add");
+                                    } finally {
+                                        setIsAddingToParsing(false);
+                                    }
+                                }}
+                                disabled={isAddingToParsing}
+                                className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {isAddingToParsing ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin" />
+                                        Adding...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle2 size={14}/> Add in my Parsing Data
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>

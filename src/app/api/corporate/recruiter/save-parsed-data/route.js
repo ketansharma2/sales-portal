@@ -43,15 +43,52 @@ export async function POST(request) {
     }
 
     if (existingRecord) {
+      // Fetch conversation history for this candidate (ordered by created_at descending)
+      const { data: conversations, error: convError } = await supabaseServer
+        .from('candidates_conversation')
+        .select(`
+          conversation_id,
+          parsing_id,
+          user_id,
+          candidate_status,
+          remarks,
+          relevant_exp,
+          curr_ctc,
+          exp_ctc,
+          calling_date,
+          apply_date,
+          created_at,
+          users!inner(name)
+        `)
+        .eq('parsing_id', existingRecord.id)
+        .order('created_at', { ascending: false })
+
+      console.log('Conversations fetched:', conversations)
+
       const userName = existingRecord.users?.name || existingRecord.user_id
+      
       return NextResponse.json(
         {
+          success: false,
           error: 'Data already exists',
           details: 'A record with this name, email, and mobile already exists',
           existing_user_id: existingRecord.user_id,
-          existing_user_name: userName
+          existing_user_name: userName,
+          existing_candidate: {
+            id: existingRecord.id,
+            name: existingRecord.name,
+            email: existingRecord.email,
+            mobile: existingRecord.mobile,
+            location: existingRecord.location,
+            qualification: existingRecord.qualification,
+            experience: existingRecord.experience,
+            portal: existingRecord.portal,
+            portal_date: existingRecord.portal_date,
+            cv_url: existingRecord.cv_url
+          },
+          conversations: conversations || []
         },
-        { status: 409 }
+        { status: 200 }
       )
     }
 
