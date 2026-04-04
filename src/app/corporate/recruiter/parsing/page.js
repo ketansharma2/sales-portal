@@ -1,7 +1,8 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation"; // Added router for navigation
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import jsPDF from "jspdf";
 import {
     UploadCloud, FileText, Search, Calendar, MapPin,
     Loader2, History, File, CheckCircle2, X
@@ -29,11 +30,36 @@ function CVPreview({ url, name }) {
                 
                 const blob = await response.blob();
                 console.log('File blob size:', blob.size, 'type:', blob.type);
-                
                 setFileType(blob.type);
                 
-                const fileBlobUrl = URL.createObjectURL(blob);
-                setBlobUrl(fileBlobUrl);
+                // For images, convert to PDF first
+                if (blob.type.startsWith('image/')) {
+                    const img = new Image();
+                    const imgUrl = URL.createObjectURL(blob);
+                    
+                    await new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = reject;
+                        img.src = imgUrl;
+                    });
+                    
+                    // Convert image to PDF
+                    const orientation = img.width > img.height ? 'landscape' : 'portrait';
+                    const pdf = new jsPDF({
+                        orientation: orientation,
+                        unit: 'px',
+                        format: [img.width, img.height]
+                    });
+                    
+                    pdf.addImage(imgUrl, 'JPEG', 0, 0, img.width, img.height);
+                    const pdfBlob = pdf.output('blob');
+                    const pdfUrl = URL.createObjectURL(pdfBlob);
+                    setBlobUrl(pdfUrl);
+                } else {
+                    const fileBlobUrl = URL.createObjectURL(blob);
+                    setBlobUrl(fileBlobUrl);
+                }
+                
                 setLoading(false);
             } catch (err) {
                 console.error('Error fetching file:', err);
@@ -46,7 +72,6 @@ function CVPreview({ url, name }) {
             fetchFileAsBlob();
         }
 
-        // Cleanup blob URL on unmount
         return () => {
             if (blobUrl) {
                 URL.revokeObjectURL(blobUrl);
@@ -79,31 +104,29 @@ function CVPreview({ url, name }) {
         );
     }
 
-    // Handle different file types
     const isPDF = fileType === 'application/pdf';
     const isImage = fileType && fileType.startsWith('image/');
     const isWord = fileType === 'application/msword' || 
                    fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
     if (isImage) {
-        // Show image
+        // Image converted to PDF - display in iframe (native PDF viewer controls)
         return (
-            <img 
-                src={blobUrl} 
-                alt={`CV - ${name}`}
-                className="w-full h-full object-contain rounded-lg"
+            <iframe
+                src={blobUrl}
+                className="w-full h-full border-0 rounded-lg"
+                title={`CV Image: ${name}`}
             />
         );
     }
 
     if (isWord) {
-        // Show Word document message with download option
         return (
             <div className="flex flex-col items-center justify-center w-full h-full bg-slate-50 rounded-lg p-4">
                 <FileText size={64} className="text-blue-500 mb-4" />
                 <p className="text-sm font-bold text-slate-700 mb-2">Word Document</p>
                 <p className="text-xs text-slate-500 mb-4 text-center">
-                    Preview not available for Word documents.\nPlease download to view.
+                    Preview not available for Word documents.<br/>Please download to view.
                 </p>
                 <a 
                     href={url} 
@@ -116,7 +139,6 @@ function CVPreview({ url, name }) {
         );
     }
 
-    // Default: Show PDF in iframe
     return (
         <iframe
             src={blobUrl}
