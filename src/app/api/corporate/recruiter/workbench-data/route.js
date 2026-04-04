@@ -71,6 +71,25 @@ export async function GET(request) {
       usersData = users || []
     }
 
+    // Fetch STI data for all workbench ids
+    const workbenchIds = workbenchData?.map(item => item.workbench_id).filter(Boolean) || []
+    let stiData = []
+    if (workbenchIds.length > 0) {
+      const { data: stiRecords } = await supabaseServer
+        .from('corporate_workbench_sti')
+        .select('workbench_id, advance_sti')
+        .in('workbench_id', workbenchIds)
+      
+      stiData = stiRecords || []
+    }
+
+    // Calculate STI sum per workbench_id
+    const stiSumMap = new Map()
+    stiData.forEach(item => {
+      const current = stiSumMap.get(item.workbench_id) || 0
+      stiSumMap.set(item.workbench_id, current + (parseFloat(item.advance_sti) || 0))
+    })
+
     // Create lookup maps
     const reqsMap = new Map(reqsData.map(r => [r.req_id, r]))
     const usersMap = new Map(usersData.map(u => [u.user_id, u]))
@@ -81,6 +100,7 @@ export async function GET(request) {
     const transformedData = await Promise.all(workbenchData.map(async (item) => {
       const req = reqsMap.get(item.req_id)
       const tl = usersMap.get(item.sent_to_tl)
+      const totalSti = stiSumMap.get(item.workbench_id) || 0
       
       console.log('item.req_id:', item.req_id, 'req:', req)
 
@@ -152,7 +172,7 @@ export async function GET(request) {
         sent_to_tl: item.sent_to_tl,
         tl_name: tl?.name || 'Unknown TL',
         slot: item.slot || '',
-        advance_sti: item.advance_sti || 0,
+        advance_sti: totalSti,
         rc_remarks: item.rc_remarks || '',
         conversion: conversationStats.conversion,
         asset: conversationStats.asset,
