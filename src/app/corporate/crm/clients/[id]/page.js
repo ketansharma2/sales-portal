@@ -41,7 +41,13 @@ export default function ClientMasterProfile() {
     date: '', mode: '', discussion: '', nextFollowUp: ''
   });
   const [isUpdatingConversation, setIsUpdatingConversation] = useState(false);
- // --- STATE FOR JD BUILDER MODAL ---
+  const [editingBranch, setEditingBranch] = useState(null);
+  const [editBranchData, setEditBranchData] = useState({
+    name: '', state: '', city: '', address: '', status: ''
+  });
+  const [isEditBranchModalOpen, setIsEditBranchModalOpen] = useState(false);
+  const [isUpdatingBranch, setIsUpdatingBranch] = useState(false);
+  // --- STATE FOR JD BUILDER MODAL ---
   const [isJdModalOpen, setIsJdModalOpen] = useState(false);
   const [jdTab, setJdTab] = useState('create');
   const [viewJdData, setViewJdData] = useState(null);
@@ -390,6 +396,56 @@ const [newConversationData, setNewConversationData] = useState({
     } catch (error) {
       console.error('Error creating branch:', error);
       alert('Error creating branch');
+    }
+  };
+
+  const handleUpdateBranch = async () => {
+    if (!editingBranch) return;
+    setIsUpdatingBranch(true);
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch(`/api/corporate/crm/branches/${editingBranch.branch_id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          branch_name: editBranchData.name,
+          state: editBranchData.state,
+          city: editBranchData.city,
+          full_address: editBranchData.address,
+          initial_status: editBranchData.status
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setClientData(prev => ({
+          ...prev,
+          branches: prev.branches.map(b => 
+            b.branch_id === editingBranch.branch_id ? { 
+              ...b, 
+              name: editBranchData.name,
+              state: editBranchData.state,
+              city: editBranchData.city,
+              full_address: editBranchData.address,
+              status: editBranchData.status
+            } : b
+          )
+        }));
+        setIsEditBranchModalOpen(false);
+        setEditingBranch(null);
+        setEditBranchData({ name: '', state: '', city: '', address: '', status: '' });
+        alert('Branch updated successfully!');
+      } else {
+        alert('Failed to update branch: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error updating branch:', error);
+      alert('Error updating branch');
+    } finally {
+      setIsUpdatingBranch(false);
     }
   };
 
@@ -899,30 +955,50 @@ const [newConversationData, setNewConversationData] = useState({
               </button>
            </div>
            
-           <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-              {clientData.branches.map((branch) => (
-                <button
-                  key={branch.branch_id}
-                  onClick={() => setSelectedBranchId(branch.branch_id)}
-                  className={`w-full text-left p-3 rounded-xl border transition-all group relative ${
-                    selectedBranchId === branch.branch_id
-                    ? "bg-white border-[#103c7f] shadow-md ring-1 ring-blue-50"
-                    : "bg-white border-gray-200 hover:border-blue-300 hover:shadow-sm"
-                  }`}
-                >
-                  {selectedBranchId === branch.branch_id && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#103c7f] rounded-l-xl"></div>}
-                  <div className="flex justify-between items-center pl-1">
-                    <span className={`text-xs font-bold ${selectedBranchId === branch.branch_id ? "text-[#103c7f]" : "text-gray-700"}`}>
-                      {branch.name}
-                    </span>
-                    {selectedBranchId === branch.branch_id && <ChevronRight size={14} className="text-[#103c7f]" />}
-                  </div>
-                  <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-1 pl-1">
-                    <MapPin size={10} /> {branch.state}
-                  </div>
-                </button>
-              ))}
-           </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+               {clientData.branches.map((branch) => (
+                 <button
+                   key={branch.branch_id}
+                   onClick={() => setSelectedBranchId(branch.branch_id)}
+                   className={`w-full text-left p-3 rounded-xl border transition-all group relative ${
+                     selectedBranchId === branch.branch_id
+                     ? "bg-white border-[#103c7f] shadow-md ring-1 ring-blue-50"
+                     : "bg-white border-gray-200 hover:border-blue-300 hover:shadow-sm"
+                   }`}
+                 >
+                   {selectedBranchId === branch.branch_id && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#103c7f] rounded-l-xl"></div>}
+                   <div className="flex justify-between items-center pl-1">
+                     <span className={`text-xs font-bold ${selectedBranchId === branch.branch_id ? "text-[#103c7f]" : "text-gray-700"}`}>
+                       {branch.name}
+                     </span>
+                     <div className="flex items-center gap-1">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingBranch(branch);
+                            setEditBranchData({
+                              name: branch.name,
+                              state: branch.state || '',
+                              city: branch.city || '',
+                              address: branch.full_address || '',
+                              status: branch.status || ''
+                            });
+                            setIsEditBranchModalOpen(true);
+                          }}
+                          className="p-1 text-gray-400 hover:text-[#103c7f] hover:bg-blue-50 rounded transition"
+                          title="Edit Branch"
+                        >
+                          <Edit size={12}/>
+                        </button>
+                        {selectedBranchId === branch.branch_id && <ChevronRight size={14} className="text-[#103c7f]" />}
+                     </div>
+                   </div>
+                   <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-1 pl-1">
+                     <MapPin size={10} /> {branch.state}
+                   </div>
+                 </button>
+               ))}
+            </div>
         </div>
       </div>
 
@@ -2302,6 +2378,101 @@ const [newConversationData, setNewConversationData] = useState({
                  <button onClick={() => setEditingConversation(null)} disabled={isUpdatingConversation} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition disabled:opacity-50">Cancel</button>
                  <button onClick={handleUpdateConversation} disabled={isUpdatingConversation} className="bg-orange-500 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-orange-600 transition disabled:opacity-50">
                     {isUpdatingConversation ? 'Updating...' : 'Update Conversation'}
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: EDIT BRANCH ================= */}
+      {isEditBranchModalOpen && editingBranch && (
+        <div className="fixed inset-0 bg-[#103c7f]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+              
+              {/* Header */}
+              <div className="bg-green-600 px-6 py-4 flex justify-between items-center text-white">
+                 <div>
+                    <h3 className="text-lg font-black uppercase tracking-wide">Edit Branch</h3>
+                    <p className="text-xs text-green-100 opacity-80">Update branch details</p>
+                 </div>
+                 <button onClick={() => { setIsEditBranchModalOpen(false); setEditingBranch(null); }} className="hover:bg-white/10 p-1.5 rounded-full transition-colors"><X size={20}/></button>
+              </div>
+
+              {/* Form */}
+              <div className="p-6 space-y-4">
+                 <div>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Branch Name</label>
+                    <input type="text" value={editBranchData.name} onChange={(e) => setEditBranchData({...editBranchData, name: e.target.value})} className="w-full border border-gray-300 rounded p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none"/>
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">State</label>
+                        <select value={editBranchData.state} onChange={(e) => setEditBranchData({...editBranchData, state: e.target.value})} className="w-full border border-gray-300 rounded p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none">
+                           <option value="">Select State...</option>
+                           <option value="Andhra Pradesh">Andhra Pradesh</option>
+                           <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                           <option value="Assam">Assam</option>
+                           <option value="Bihar">Bihar</option>
+                           <option value="Chhattisgarh">Chhattisgarh</option>
+                           <option value="Goa">Goa</option>
+                           <option value="Gujarat">Gujarat</option>
+                           <option value="Haryana">Haryana</option>
+                           <option value="Himachal Pradesh">Himachal Pradesh</option>
+                           <option value="Jharkhand">Jharkhand</option>
+                           <option value="Karnataka">Karnataka</option>
+                           <option value="Kerala">Kerala</option>
+                           <option value="Madhya Pradesh">Madhya Pradesh</option>
+                           <option value="Maharashtra">Maharashtra</option>
+                           <option value="Manipur">Manipur</option>
+                           <option value="Meghalaya">Meghalaya</option>
+                           <option value="Mizoram">Mizoram</option>
+                           <option value="Nagaland">Nagaland</option>
+                           <option value="Odisha">Odisha</option>
+                           <option value="Punjab">Punjab</option>
+                           <option value="Rajasthan">Rajasthan</option>
+                           <option value="Sikkim">Sikkim</option>
+                           <option value="Tamil Nadu">Tamil Nadu</option>
+                           <option value="Telangana">Telangana</option>
+                           <option value="Tripura">Tripura</option>
+                           <option value="Uttar Pradesh">Uttar Pradesh</option>
+                           <option value="Uttarakhand">Uttarakhand</option>
+                           <option value="West Bengal">West Bengal</option>
+                           <option disabled>──────────</option>
+                           <option value="Andaman and Nicobar Islands">Andaman and Nicobar Islands</option>
+                           <option value="Chandigarh">Chandigarh</option>
+                           <option value="Dadra and Nagar Haveli and Daman and Diu">Dadra & Nagar Haveli</option>
+                           <option value="Delhi">Delhi</option>
+                           <option value="Jammu and Kashmir">Jammu and Kashmir</option>
+                           <option value="Ladakh">Ladakh</option>
+                           <option value="Lakshadweep">Lakshadweep</option>
+                           <option value="Puducherry">Puducherry</option>
+                        </select>
+                     </div>
+                    <div>
+                       <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">City</label>
+                       <input type="text" value={editBranchData.city} onChange={(e) => setEditBranchData({...editBranchData, city: e.target.value})} className="w-full border border-gray-300 rounded p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none"/>
+                    </div>
+                 </div>
+                 <div>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Address</label>
+                    <textarea value={editBranchData.address} onChange={(e) => setEditBranchData({...editBranchData, address: e.target.value})} className="w-full border border-gray-300 rounded p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none" rows="2"></textarea>
+                 </div>
+                 <div>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Status</label>
+                    <select value={editBranchData.status} onChange={(e) => setEditBranchData({...editBranchData, status: e.target.value})} className="w-full border border-gray-300 rounded p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none">
+                       <option value="">Select Status</option>
+                       <option value="Active">Active</option>
+                       <option value="Inactive">Inactive</option>
+                       <option value="Pending">Pending</option>
+                    </select>
+                 </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 bg-gray-50 border-t flex justify-end gap-3">
+                 <button onClick={() => { setIsEditBranchModalOpen(false); setEditingBranch(null); }} disabled={isUpdatingBranch} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition disabled:opacity-50">Cancel</button>
+                 <button onClick={handleUpdateBranch} disabled={isUpdatingBranch} className="bg-green-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-green-700 transition disabled:opacity-50">
+                    {isUpdatingBranch ? 'Updating...' : 'Update Branch'}
                  </button>
               </div>
            </div>
