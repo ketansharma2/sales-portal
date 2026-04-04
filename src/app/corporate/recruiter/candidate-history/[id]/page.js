@@ -193,7 +193,8 @@ export default function CandidateHistoryPage() {
                         status: item.candidate_status || '',
                         feedback: item.remarks || '',
                         isTracker: !!item.sent_to_tl,
-                        tl_name: item.tl_name || ''
+                        tl_name: item.tl_name || '',
+                        rc_name: item.rc_name || '-'
                     }));
                     setFollowups(transformed);
                 }
@@ -392,7 +393,8 @@ export default function CandidateHistoryPage() {
                             status: item.candidate_status || '',
                             feedback: item.remarks || '',
                             isTracker: !!item.sent_to_tl,
-                            tl_name: item.tl_name || ''
+                            tl_name: item.tl_name || '',
+                            rc_name: item.rc_name || '-'
                         }));
                         setFollowups(transformed);
                     }
@@ -465,7 +467,8 @@ export default function CandidateHistoryPage() {
                     <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1200px]">
                         <thead className="sticky top-0 bg-white shadow-sm z-10">
                             <tr className="border-b-2 border-slate-100">
-                                <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-12">#</th>
+                                <th className="py-3 px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-10">#</th>
+                                <th className="py-3 px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest w-24">RC Name</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Assigned Profile & Slot</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Dates</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Relevant Exp</th>
@@ -479,7 +482,12 @@ export default function CandidateHistoryPage() {
                         <tbody className="divide-y divide-slate-100 bg-white">
                             {followups.length > 0 ? followups.map((row, idx) => (
                                 <tr key={row.id} className={`transition-colors ${row.isTracker ? 'bg-emerald-50/20 hover:bg-emerald-50/40' : 'hover:bg-blue-50/30'}`}>
-                                    <td className="py-3 px-4 text-center text-xs font-bold text-slate-400">{idx + 1}</td>
+                                    <td className="py-3 px-3 text-center text-xs font-bold text-slate-400">{idx + 1}</td>
+                                    
+                                    {/* RC Name */}
+                                    <td className="py-3 px-3">
+                                        <span className="text-[10px] font-black text-slate-600 uppercase">{row.rc_name || '-'}</span>
+                                    </td>
                                     
                                     {/* Display Profile & Slot */}
                                     <td className="py-3 px-4">

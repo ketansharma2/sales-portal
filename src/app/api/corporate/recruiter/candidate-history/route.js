@@ -36,6 +36,25 @@ export async function GET(request) {
       }, { status: 500 })
     }
 
+    // Fetch user names for all user_ids in conversations
+    let userNamesMap = new Map()
+    if (data && data.length > 0) {
+      const userIds = [...new Set(data.map(item => item.user_id).filter(Boolean))]
+      console.log('User IDs in conversations:', userIds)
+      if (userIds.length > 0) {
+        const { data: userData, error: userError } = await supabaseServer
+          .from('users')
+          .select('user_id, name')
+          .in('user_id', userIds)
+        
+        console.log('User data from users table:', userData, userError)
+        
+        if (userData) {
+          userNamesMap = new Map(userData.map(u => [u.user_id, u.name]))
+        }
+      }
+    }
+
     // If there are conversations with req_id, fetch the job titles
     let reqsMap = new Map()
     if (data && data.length > 0) {
@@ -71,6 +90,7 @@ export async function GET(request) {
     // Add job_title and tl_name to the response
     const enrichedData = data?.map(item => ({
       ...item,
+      rc_name: userNamesMap.get(item.user_id) || item.user_id || null,
       job_title: reqsMap.get(item.req_id) || null,
       tl_name: tlNamesMap.get(item.sent_to_tl) || null
     })) || []

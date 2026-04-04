@@ -226,7 +226,8 @@ export default function CVParsingPage() {
                     allSkills: item.skills_all || "NA",
                     allCompanies: item.company_names_all || "NA",
                     status: item.status || "Pending",
-                    cvUrl: item.cv_url || null
+                    cvUrl: item.cv_url || null,
+                    is_shared: item.is_shared || false
                 }));
                 setParsedData(transformedData);
             }
@@ -624,7 +625,7 @@ export default function CVParsingPage() {
                                         <tr
                                             key={row.id}
                                             onClick={() => navigateToHistory(row.id)} // Clicking ROW redirects to new page
-                                            className="hover:bg-blue-50/30 transition-colors group cursor-pointer"
+                                            className={`hover:bg-blue-50/30 transition-colors group cursor-pointer ${row.is_shared ? 'bg-blue-100' : ''}`}
                                         >
                                             
                                             {/* 1. CV View Button (Sticky Left) */}

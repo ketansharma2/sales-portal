@@ -16,24 +16,46 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Fetch CV parsing data for the logged-in user
-    const { data: cvData, error: fetchError } = await supabaseServer
+    const userId = user.user_id || user.id
+
+    // First get user's own records
+    const { data: myData, error: myError } = await supabaseServer
       .from('cv_parsing')
       .select('*')
-      .eq('user_id', user.user_id || user.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
-    if (fetchError) {
-      console.error('Fetch CV parsing error:', fetchError)
+    // Then get records where other_users contains userId
+    const { data: sharedData, error: sharedError } = await supabaseServer
+      .from('cv_parsing')
+      .select('*')
+      .contains('other_users', [userId])
+      .order('created_at', { ascending: false })
+
+    if (myError || sharedError) {
+      console.error('Fetch CV parsing error:', myError || sharedError)
       return NextResponse.json({
         error: 'Failed to fetch CV parsing data',
-        details: fetchError.message
+        details: myError?.message || sharedError?.message
       }, { status: 500 })
     }
 
+    // Combine and mark shared records
+    const allData = [...(myData || []), ...(sharedData || [])]
+    
+    // Remove duplicates (in case user is in both)
+    const uniqueData = allData.filter((item, index, self) => 
+      index === self.findIndex((t) => t.id === item.id)
+    )
+
+    const processedData = uniqueData.map(item => ({
+      ...item,
+      is_shared: item.other_users && item.other_users.includes(userId) && item.user_id !== userId
+    }))
+
     return NextResponse.json({
       success: true,
-      data: cvData || []
+      data: processedData
     })
 
   } catch (error) {
