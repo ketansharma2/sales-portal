@@ -3,8 +3,135 @@ import { useState ,useEffect} from "react";
 import { 
     FileText, Eye, Search, Filter, MapPin, 
     Calendar, ShieldCheck, Edit, Send, CheckCircle2,
-    X, Clock, MessageSquare, User, FileCheck, AlertCircle, Loader2
+    X, Clock, MessageSquare, User, FileCheck, AlertCircle, Loader2, File
 } from "lucide-react";
+import jsPDF from "jspdf";
+
+// CV Preview Component - Handles PDF, Images, and Word documents
+function CVPreview({ url, name }) {
+    const [blobUrl, setBlobUrl] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [fileType, setFileType] = useState(null);
+
+    useEffect(() => {
+        const fetchFileAsBlob = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch file: ${response.status}`);
+                }
+                
+                const blob = await response.blob();
+                setFileType(blob.type);
+                
+                // For images, convert to PDF first
+                if (blob.type.startsWith('image/')) {
+                    const img = new Image();
+                    const imgUrl = URL.createObjectURL(blob);
+                    
+                    await new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = reject;
+                        img.src = imgUrl;
+                    });
+                    
+                    const orientation = img.width > img.height ? 'landscape' : 'portrait';
+                    const pdf = new jsPDF({
+                        orientation: orientation,
+                        unit: 'px',
+                        format: [img.width, img.height]
+                    });
+                    
+                    pdf.addImage(imgUrl, 'JPEG', 0, 0, img.width, img.height);
+                    const pdfBlob = pdf.output('blob');
+                    const pdfUrl = URL.createObjectURL(pdfBlob);
+                    setBlobUrl(pdfUrl);
+                } else {
+                    const fileBlobUrl = URL.createObjectURL(blob);
+                    setBlobUrl(fileBlobUrl);
+                }
+                
+                setLoading(false);
+            } catch (err) {
+                console.error('Error fetching file:', err);
+                setError(err.message);
+                setLoading(false);
+            }
+        };
+
+        if (url) {
+            fetchFileAsBlob();
+        }
+
+        return () => {
+            if (blobUrl) {
+                URL.revokeObjectURL(blobUrl);
+            }
+        };
+    }, [url]);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center w-full h-full">
+                <Loader2 size={32} className="animate-spin text-blue-500" />
+                <span className="ml-3 text-sm font-bold text-slate-500">Loading...</span>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="text-center text-slate-500 p-4">
+                <File size={48} className="mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-black uppercase tracking-widest mb-1">Error Loading File</p>
+                <p className="text-xs font-bold">{error}</p>
+                <button
+                    onClick={() => window.open(url, '_blank')}
+                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg text-xs font-bold hover:bg-blue-600"
+                >
+                    Open in New Tab
+                </button>
+            </div>
+        );
+    }
+
+    const isImage = fileType && fileType.startsWith('image/');
+    const isWord = fileType === 'application/msword' || 
+                   fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+    if (isWord) {
+        return (
+            <div className="flex flex-col items-center justify-center w-full h-full bg-slate-50 rounded-lg p-4">
+                <FileText size={64} className="text-blue-500 mb-4" />
+                <p className="text-sm font-bold text-slate-700 mb-2">Word Document</p>
+                <p className="text-xs text-slate-500 mb-4 text-center">
+                    Preview not available for Word documents.<br/>Please download to view.
+                </p>
+                <a 
+                    href={url} 
+                    download={name + '_CV.docx'}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"
+                >
+                    Download CV
+                </a>
+            </div>
+        );
+    }
+
+    // PDF and converted images display in iframe with native PDF viewer
+    return (
+        <iframe
+            src={blobUrl}
+            className="w-full h-full border-0 rounded-lg"
+            title={`CV Preview: ${name}`}
+        />
+    );
+}
 
 export default function TLTrackerPage() {
     // --- STATE ---
@@ -14,9 +141,7 @@ export default function TLTrackerPage() {
     const [selectedCandidate, setSelectedCandidate] = useState(null);
     
     // Independent state for CV Viewer so it doesn't close the TL form
-    const [cvViewer, setCvViewer] = useState({ isOpen: false, source: null });
-    const [cvBlob, setCvBlob] = useState(null);
-    const [isLoadingCV, setIsLoadingCV] = useState(false); 
+    const [cvViewer, setCvViewer] = useState({ isOpen: false, source: null }); 
     
     // Loading state for Auto-Update CV
     const [isUpdatingCV, setIsUpdatingCV] = useState(false);
@@ -116,37 +241,10 @@ export default function TLTrackerPage() {
     }, []);
 
     // --- HANDLERS ---
-    const openCVModal = async (candidate, source) => {
+    const openCVModal = (candidate, source) => {
         setSelectedCandidate(candidate);
         setCvViewer({ isOpen: true, source: source });
-        
-        // Determine which URL to use based on source
-        // 'rc' = Recruiter's Original CV (cv_url)
-        // 'tl' = TL's Redacted CV (redacted_cv_url)
-        const urlToFetch = source === 'tl' ? candidate.redacted_cv_url : candidate.cv_url;
-        
-        if (urlToFetch) {
-            setIsLoadingCV(true);
-            try {
-                // Fetch the CV file as blob - directly without auth header like parsing page does
-                const response = await fetch(urlToFetch);
-                
-                if (response.ok) {
-                    const blob = await response.blob();
-                    setCvBlob(blob);
-                } else {
-                    console.error('Failed to fetch CV:', response.status);
-                    setCvBlob(null);
-                }
-            } catch (error) {
-                console.error('Error fetching CV:', error);
-                setCvBlob(null);
-            } finally {
-                setIsLoadingCV(false);
-            }
-        } else {
-            setCvBlob(null);
-        }
+        // CVPreview component handles loading internally
     };
 
     const openTLUpdateModal = (candidate) => {
@@ -769,26 +867,10 @@ export default function TLTrackerPage() {
                             
                         </div>
                         <div className="flex-1 bg-slate-200 flex items-center justify-center p-8">
-                            {isLoadingCV ? (
-                                <div className="text-center text-slate-500">
-                                    <Loader2 className="animate-spin mx-auto mb-4" size={48} />
-                                    <p className="text-lg font-black uppercase tracking-widest mb-1">Loading CV...</p>
-                                </div>
-                            ) : cvBlob ? (
-                                <iframe 
-                                    src={URL.createObjectURL(cvBlob)}
-                                    className="w-full h-full rounded-lg border border-slate-300"
-                                    title="CV Viewer"
-                                />
-                            ) : (
-                                <div className="text-center text-slate-500">
-                                    <FileText size={48} className="mx-auto mb-4 opacity-50" />
-                                    <p className="text-lg font-black uppercase tracking-widest mb-1">PDF Viewer Placeholder</p>
-                                    <p className="text-xs font-bold">
-                                        Displaying {cvViewer.source === 'rc' ? "Original File" : `Processed File: ${tlForm.updatedCvName || selectedCandidate.tlCvName}`}
-                                    </p>
-                                </div>
-                            )}
+                            <CVPreview 
+                                url={cvViewer.source === 'rc' ? selectedCandidate.cv_url : (tlForm.updatedCvName || selectedCandidate.redacted_cv_url)} 
+                                name={selectedCandidate.name} 
+                            />
                         </div>
                     </div>
                 </div>
