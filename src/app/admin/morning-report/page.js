@@ -994,7 +994,7 @@ export default function MorningReportPage() {
                                                     <MessageSquare size={12}/> Client Conversation Log
                                                 </h3>
                                             </div>
-                                            <div className="overflow-x-auto custom-scrollbar max-h-[150px] overflow-y-auto">
+                                            <div className="overflow-x-auto custom-scrollbar max-h-[300px] overflow-y-auto">
                                                 <table className="w-full text-left border-collapse text-xs min-w-[900px]">
                                                     <thead className="bg-indigo-100 text-indigo-700 text-[9px] uppercase font-bold sticky top-0 z-10">
                                                         <tr>
@@ -1270,7 +1270,7 @@ export default function MorningReportPage() {
                                                     <MessageSquare size={12}/> Client Conversation Log
                                                 </h3>
                                             </div>
-                                            <div className="overflow-x-auto custom-scrollbar max-h-[150px] overflow-y-auto">
+                                            <div className="overflow-x-auto custom-scrollbar max-h-[300px] overflow-y-auto">
                                                 <table className="w-full text-left border-collapse text-xs min-w-[900px]">
                                                     <thead className="bg-orange-100 text-orange-700 text-[9px] uppercase font-bold sticky top-0 z-10">
                                                         <tr>
