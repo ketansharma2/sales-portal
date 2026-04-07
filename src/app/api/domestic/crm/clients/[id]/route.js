@@ -78,6 +78,7 @@ export async function GET(request, { params }) {
         branch_id: branch.branch_id,
         name: branch.branch_name,
         state: branch.state,
+        city: branch.city,
         type: "Branch",
         status: branch.initial_status,
         contacts: branchContacts,
