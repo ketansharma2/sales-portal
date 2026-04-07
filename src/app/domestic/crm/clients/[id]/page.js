@@ -63,6 +63,7 @@ export default function ClientMasterProfile() {
           // Populate branchDetails from API data
           const branchDetailsMap = {};
           data.data.branches.forEach(branch => {
+            console.log('Branch:', branch.branch_name, 'contacts is_primary values:', branch.contacts?.map(c => ({ name: c.name, is_primary: c.is_primary, type: typeof c.is_primary })));
             branchDetailsMap[branch.branch_id] = {
               address: branch.full_address || '',
               contacts: branch.contacts || [],
@@ -227,7 +228,19 @@ export default function ClientMasterProfile() {
     isPrimary: '',
     roleDescription: ''
   });
-   
+
+  const [editingContact, setEditingContact] = useState(null);
+  const [editContactData, setEditContactData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    designation: '',
+    department: '',
+    isPrimary: '',
+    roleDescription: ''
+  });
+  const [isUpdatingContact, setIsUpdatingContact] = useState(false);
+    
 const [newConversationData, setNewConversationData] = useState({
     contactId: '',
     date: new Date().toISOString().split('T')[0], // Default to today
@@ -535,6 +548,55 @@ const [newConversationData, setNewConversationData] = useState({
     } catch (error) {
       console.error('Error creating contact:', error);
       alert('Error creating contact');
+    }
+  };
+
+  const handleUpdateContact = async () => {
+    if (!editingContact) return;
+    setIsUpdatingContact(true);
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/crm/contacts', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          contactId: editingContact.contact_id,
+          branch_id: editingContact.branch_id,
+          name: editContactData.name,
+          email: editContactData.email,
+          phone: editContactData.phone,
+          designation: editContactData.designation,
+          department: editContactData.department,
+          roleDescription: editContactData.roleDescription,
+          isPrimary: editContactData.isPrimary === 'true'
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setBranchDetails(prev => ({
+          ...prev,
+          [editingContact.branch_id]: {
+            ...prev[editingContact.branch_id],
+            contacts: prev[editingContact.branch_id].contacts.map(c => 
+              c.contact_id === editingContact.contact_id ? { ...c, ...editContactData, role: editContactData.designation } : c
+            )
+          }
+        }));
+        setEditingContact(null);
+        setEditContactData({ name: '', email: '', phone: '', designation: '', department: '', isPrimary: '', roleDescription: '' });
+        alert('Contact updated successfully!');
+      } else {
+        alert('Failed to update contact: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error updating contact:', error);
+      alert('Error updating contact');
+    } finally {
+      setIsUpdatingContact(false);
     }
   };
   const handleSaveTracker = async () => {
@@ -1923,13 +1985,14 @@ return (
                              <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse">
                                    <thead>
-                                      <tr className="bg-gray-50 text-[10px] uppercase text-gray-500 font-bold border-b border-gray-100">
-                                         <th className="px-4 py-3">Name</th>
-                                         <th className="px-4 py-3">Details</th>
-                                         <th className="px-4 py-3">Role & Dept</th>
-                                         <th className="px-4 py-3 text-center">Primary</th>
-                                         <th className="px-4 py-3">Handles</th>
-                                      </tr>
+                                       <tr className="bg-gray-50 text-[10px] uppercase text-gray-500 font-bold border-b border-gray-100">
+                                          <th className="px-4 py-3">Name</th>
+                                          <th className="px-4 py-3">Details</th>
+                                          <th className="px-4 py-3">Role & Dept</th>
+                                          <th className="px-4 py-3 text-center">Primary</th>
+                                          <th className="px-4 py-3">Handles</th>
+                                          <th className="px-4 py-3 text-center">Action</th>
+                                       </tr>
                                    </thead>
                                    <tbody className="text-xs text-gray-700">
                                       {contacts.length > 0 ? contacts.map((c, index) => (
@@ -1974,6 +2037,35 @@ return (
                                                {c.handles || 'N/A'}
                                             </td>
 
+                                            {/* Action */}
+                                            <td className="px-4 py-3 text-center">
+                                                <button 
+                                                  onClick={() => {
+                                                    console.log('RAW is_primary:', c.is_primary, 'type:', typeof c.is_primary);
+                                                    let isPrimaryVal = 'false';
+                                                    const isPrimaryStr = String(c.is_primary).toLowerCase();
+                                                    if (isPrimaryStr === 'true' || isPrimaryStr === 'yes') {
+                                                      isPrimaryVal = 'true';
+                                                    }
+                                                    console.log('is_primary value:', c.is_primary, 'converted to:', isPrimaryVal);
+                                                    setEditingContact({ contact_id: c.contact_id, branch_id: branch.branch_id });
+                                                    setEditContactData({
+                                                      name: c.name,
+                                                      email: c.email,
+                                                      phone: c.phone,
+                                                      designation: c.role,
+                                                      department: c.dept || '',
+                                                      isPrimary: isPrimaryVal,
+                                                      roleDescription: c.handles || ''
+                                                    });
+                                                  }}
+                                                 className="p-1.5 bg-yellow-50 text-yellow-600 border border-yellow-200 rounded hover:bg-yellow-100 transition"
+                                                 title="Edit Contact"
+                                               >
+                                                 <Edit size={14}/>
+                                               </button>
+                                            </td>
+
                                          </tr>
                                       )) : (
                                          <tr>
@@ -1995,6 +2087,69 @@ return (
               {/* Footer */}
               <div className="p-4 bg-gray-50 border-t flex justify-end">
                  <button onClick={() => setIsAllContactsOpen(false)} className="px-6 py-2 bg-gray-200 text-gray-700 font-bold text-xs rounded-lg hover:bg-gray-300 transition">Close List</button>
+              </div>
+            </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: EDIT CONTACT ================= */}
+      {editingContact && (
+        <div className="fixed inset-0 bg-[#103c7f]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+              
+              {/* Header */}
+              <div className="bg-orange-500 px-6 py-4 flex justify-between items-center text-white">
+                 <div>
+                    <h3 className="text-lg font-black uppercase tracking-wide">Edit Contact</h3>
+                    <p className="text-xs text-orange-100 opacity-80">Update contact details</p>
+                 </div>
+                 <button onClick={() => setEditingContact(null)} className="hover:bg-white/10 p-1.5 rounded-full transition-colors"><X size={20}/></button>
+              </div>
+
+              {/* Form */}
+              <div className="p-6 space-y-4">
+                 <div>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Name</label>
+                    <input type="text" value={editContactData.name} onChange={(e) => setEditContactData({...editContactData, name: e.target.value})} className="w-full border border-gray-300 rounded p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none"/>
+                 </div>
+                 <div>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Email</label>
+                    <input type="email" value={editContactData.email} onChange={(e) => setEditContactData({...editContactData, email: e.target.value})} className="w-full border border-gray-300 rounded p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none"/>
+                 </div>
+                 <div>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Phone</label>
+                    <input type="text" value={editContactData.phone} onChange={(e) => setEditContactData({...editContactData, phone: e.target.value})} className="w-full border border-gray-300 rounded p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none"/>
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                       <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Designation</label>
+                       <input type="text" value={editContactData.designation} onChange={(e) => setEditContactData({...editContactData, designation: e.target.value})} className="w-full border border-gray-300 rounded p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none"/>
+                    </div>
+                    <div>
+                       <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Department</label>
+                       <input type="text" value={editContactData.department} onChange={(e) => setEditContactData({...editContactData, department: e.target.value})} className="w-full border border-gray-300 rounded p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none"/>
+                    </div>
+                 </div>
+                 <div>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Primary Contact</label>
+                    <select value={editContactData.isPrimary} onChange={(e) => setEditContactData({...editContactData, isPrimary: e.target.value})} className="w-full border border-gray-300 rounded p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none">
+                       <option value="">Select</option>
+                       <option value="true">Yes</option>
+                       <option value="false">No</option>
+                    </select>
+                 </div>
+                 <div>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Role Description</label>
+                    <textarea value={editContactData.roleDescription} onChange={(e) => setEditContactData({...editContactData, roleDescription: e.target.value})} className="w-full border border-gray-300 rounded p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none" rows="2"></textarea>
+                 </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 bg-gray-50 border-t flex justify-end gap-3">
+                 <button onClick={() => setEditingContact(null)} disabled={isUpdatingContact} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition disabled:opacity-50">Cancel</button>
+                 <button onClick={handleUpdateContact} disabled={isUpdatingContact} className="bg-orange-500 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-orange-600 transition disabled:opacity-50">
+                    {isUpdatingContact ? 'Updating...' : 'Update Contact'}
+                 </button>
               </div>
            </div>
         </div>
