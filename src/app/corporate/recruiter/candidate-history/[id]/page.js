@@ -22,6 +22,12 @@ export default function CandidateHistoryPage() {
     const [editId, setEditId] = useState(null);
 
     const handleEditOpen = (row) => {
+        const today = new Date().toISOString().split('T')[0];
+        if (row.callingDate !== today) {
+            alert("You can't edit past conversations. Only today's followups can be edited.");
+            return;
+        }
+        
         setFormData({
             req_id: row.req_id || '',
             profile: row.profile,
@@ -555,9 +561,9 @@ export default function CandidateHistoryPage() {
                                             </button>
                                             <button 
                                                 onClick={() => handleDelete(row.id)}
-                                                disabled={isDeleting}
-                                                className="w-7 h-7 rounded bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                title="Delete Followup"
+                                                disabled={isDeleting || row.isTracker}
+                                                className={`w-7 h-7 rounded flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${row.isTracker ? 'bg-slate-50 text-slate-300 border border-slate-200' : 'bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100'}`}
+                                                title={row.isTracker ? "Cannot delete - already sent to TL" : "Delete Followup"}
                                             >
                                                 <Trash2 size={13} />
                                             </button>
