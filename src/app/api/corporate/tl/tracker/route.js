@@ -128,6 +128,7 @@ export async function GET(request) {
         // TL evaluation fields
         cv_status: conversation.cv_status || '',
         tl_remarks: conversation.tl_remarks || '',
+        call_respond: conversation.call_respond || '',
         sent_to_crm: conversation.sent_to_crm || null,
         sent_to_crm_name: conversation.sent_to_crm ? (crmUsersMap.get(conversation.sent_to_crm) || 'Unknown') : null
       }
@@ -161,7 +162,7 @@ export async function PUT(request) {
     }
 
     const body = await request.json()
-    const { conversation_id, cv_status, tl_remarks, sent_to_crm } = body
+    const { conversation_id, cv_status, tl_remarks, sent_to_crm, call_respond } = body
 
     if (!conversation_id) {
       return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 })
@@ -170,6 +171,7 @@ export async function PUT(request) {
     const updateData = {}
     if (cv_status !== undefined) updateData.cv_status = cv_status
     if (tl_remarks !== undefined) updateData.tl_remarks = tl_remarks
+    if (call_respond !== undefined) updateData.call_respond = call_respond
     if (sent_to_crm !== undefined) {
       updateData.sent_to_crm = sent_to_crm
       updateData.crm_sent_date = new Date().toISOString()

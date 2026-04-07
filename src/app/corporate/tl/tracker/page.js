@@ -145,6 +145,7 @@ export default function TLTrackerPage() {
     
     // Loading state for Auto-Update CV
     const [isUpdatingCV, setIsUpdatingCV] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     
     // Preview state for CV redaction
     const [previewData, setPreviewData] = useState(null);
@@ -153,7 +154,8 @@ export default function TLTrackerPage() {
     const [tlForm, setTlForm] = useState({
         tlReview: "",
         cvUpdateStatus: "", // 'JD Match', 'Average Match', 'Rejected'
-        updatedCvName: "" 
+        updatedCvName: "",
+        callResponding: "" // 'Yes', 'No'
     });
 
     // CRM User Selection State
@@ -199,6 +201,7 @@ export default function TLTrackerPage() {
                         tlReview: item.tl_remarks || '',
                         cvUpdateStatus: item.cv_status || '',
                         tlCvName: item.redacted_cv_url || '',
+                        callResponding: item.call_respond || '',
                         sentToCrm: item.sent_to_crm || null,
                         sentToCrmName: item.sent_to_crm_name || null
                     }));
@@ -252,7 +255,8 @@ export default function TLTrackerPage() {
         setTlForm({
             tlReview: candidate.tlReview || "",
             cvUpdateStatus: candidate.cvUpdateStatus || "",
-            updatedCvName: candidate.tlCvName || ""
+            updatedCvName: candidate.tlCvName || "",
+            callResponding: candidate.callResponding || ""
         });
         setModalType('tl_update');
     };
@@ -379,9 +383,18 @@ export default function TLTrackerPage() {
             return;
         }
 
+        setIsSaving(true);
+
         try {
             const session = JSON.parse(localStorage.getItem('session') || '{}');
             const token = session.access_token;
+            
+            console.log('Saving evaluation:', {
+                conversation_id: selectedCandidate.id,
+                cv_status: tlForm.cvUpdateStatus,
+                tl_remarks: tlForm.tlReview,
+                call_respond: tlForm.callResponding
+            });
             
             const response = await fetch('/api/corporate/tl/tracker', {
                 method: 'PUT',
@@ -392,11 +405,15 @@ export default function TLTrackerPage() {
                 body: JSON.stringify({
                     conversation_id: selectedCandidate.id,
                     cv_status: tlForm.cvUpdateStatus,
-                    tl_remarks: tlForm.tlReview
+                    tl_remarks: tlForm.tlReview,
+                    call_respond: tlForm.callResponding
                 })
             });
             
+            console.log('Save response status:', response.status);
+            
             const result = await response.json();
+            console.log('Save result:', result);
             
             if (result.success) {
                 const updatedData = trackerData.map(item => {
@@ -405,7 +422,8 @@ export default function TLTrackerPage() {
                             ...item,
                             tlReview: tlForm.tlReview,
                             cvUpdateStatus: tlForm.cvUpdateStatus,
-                            tlCvName: tlForm.updatedCvName
+                            tlCvName: tlForm.updatedCvName,
+                            callResponding: tlForm.callResponding
                         };
                     }
                     return item;
@@ -419,6 +437,8 @@ export default function TLTrackerPage() {
         } catch (error) {
             console.error('Error saving evaluation:', error);
             alert("An error occurred. Please try again.");
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -726,6 +746,20 @@ export default function TLTrackerPage() {
                                     </select>
                                 </div>
 
+                                {/* Call Responding */}
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Call Responding</label>
+                                    <select 
+                                        className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#103c7f] shadow-sm cursor-pointer"
+                                        value={tlForm.callResponding} 
+                                        onChange={(e) => setTlForm({...tlForm, callResponding: e.target.value})}
+                                    >
+                                        <option value="">-- Select --</option>
+                                        <option value="Yes">Yes</option>
+                                        <option value="No">No</option>
+                                    </select>
+                                </div>
+
                                 {/* Auto-Update CV Button */}
                                 <div>
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Auto-Format CV (Remove Contact Info)</label>
@@ -838,8 +872,16 @@ export default function TLTrackerPage() {
                             <button onClick={() => setModalType(null)} className="bg-slate-50 border border-slate-200 text-slate-600 px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-colors shadow-sm">
                                 Cancel
                             </button>
-                            <button onClick={handleSaveTLUpdate} className="bg-[#103c7f] hover:bg-blue-900 text-white px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest shadow-md transition-colors flex items-center justify-center gap-2">
-                                <CheckCircle2 size={14}/> Save Evaluation
+                            <button onClick={handleSaveTLUpdate} disabled={isSaving} className="bg-[#103c7f] hover:bg-blue-900 disabled:bg-blue-400 text-white px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest shadow-md transition-colors flex items-center justify-center gap-2 min-w-[140px]">
+                                {isSaving ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin" /> Saving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle2 size={14}/> Save Evaluation
+                                    </>
+                                )}
                             </button>
                         </div>
 

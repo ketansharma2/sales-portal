@@ -20,6 +20,7 @@ export default function RecruiterWorkbenchReport() {
     const [trackerSent, setTrackerSent] = useState(0);
     const [totalAssets, setTotalAssets] = useState(0);
     const [conversions, setConversions] = useState(0);
+    const [accuracy, setAccuracy] = useState(0);
     
     // Workbench assignments data
     const [reportData, setReportData] = useState([]);
@@ -135,6 +136,7 @@ export default function RecruiterWorkbenchReport() {
                     setTrackerSent(result.trackerSent);
                     setTotalAssets(result.totalAssets);
                     setConversions(result.conversions);
+                    setAccuracy(result.accuracy);
                 }
             } catch (error) {
                 console.error('Failed to fetch candidate stats:', error);
@@ -194,9 +196,10 @@ export default function RecruiterWorkbenchReport() {
             total_sti: totalSti,
             total_conversion: conversions,
             total_asset: totalAssets,
-            total_trackers: trackerSent
+            total_trackers: trackerSent,
+            accuracy: accuracy
         };
-    }, [totalCvs, totalSti, conversions, totalAssets, trackerSent]);
+    }, [totalCvs, totalSti, conversions, totalAssets, trackerSent, accuracy]);
 
     return (
         <div className="min-h-screen bg-gray-50 font-['Calibri'] p-2 md:p-3">
@@ -249,8 +252,8 @@ export default function RecruiterWorkbenchReport() {
                 </div>
             </div>
 
-            {/* --- TOP KPI SUMMARY CARDS (Now 5 Cards) --- */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+            {/* --- TOP KPI SUMMARY CARDS (Now 6 Cards) --- */}
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
                 
                 {/* 1. Total CVs */}
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-blue-100 flex items-center gap-3 relative overflow-hidden group">
@@ -309,6 +312,18 @@ export default function RecruiterWorkbenchReport() {
                     <div className="z-10">
                         <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Trackers Sent</p>
                         <p className="text-2xl font-black text-gray-800 leading-none mt-1">{kpiTotals.total_trackers}</p>
+                    </div>
+                </div>
+
+                {/* 6. Accuracy */}
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-cyan-100 flex items-center gap-3 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-12 h-12 bg-cyan-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                    <div className="w-10 h-10 bg-cyan-100 text-cyan-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                        <Target size={20} />
+                    </div>
+                    <div className="z-10">
+                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Accuracy</p>
+                        <p className="text-2xl font-black text-cyan-700 leading-none mt-1">{kpiTotals.accuracy}%</p>
                     </div>
                 </div>
 

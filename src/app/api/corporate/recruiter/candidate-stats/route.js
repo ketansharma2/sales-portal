@@ -75,7 +75,8 @@ export async function GET(request) {
       success: true, 
       trackerSent: trackerSent || 0,
       totalAssets: totalAssets || 0,
-      conversions: conversions || 0
+      conversions: conversions || 0,
+      accuracy: trackerSent > 0 ? Math.round((conversions / trackerSent) * 100) : 0
     })
 
   } catch (error) {
