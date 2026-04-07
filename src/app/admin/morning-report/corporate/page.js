@@ -73,6 +73,14 @@ function CorporateDetailsContent() {
                         filterParam = 'master-union-calling';
                         setFilterTitle('Master Union Calling');
                         break;
+                    case 'master-union-clients-yesterday':
+                        filterParam = 'master-union-clients-yesterday';
+                        setFilterTitle('Master Union Clients (Yesterday)');
+                        break;
+                    case 'master-union-calling-yesterday':
+                        filterParam = 'master-union-calling-yesterday';
+                        setFilterTitle('Master Union Calling (Yesterday)');
+                        break;
                     case 'new-calls-yesterday':
                         filterParam = 'new-calls-yesterday';
                         setFilterTitle('New Calls (Yesterday)');

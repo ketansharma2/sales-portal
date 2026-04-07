@@ -1046,6 +1046,93 @@ export async function GET(request) {
           }
           break
 
+        case 'master-union-clients-yesterday':
+          filterTitle = 'Master Union Clients (Yesterday)'
+          if (lastWorkingDayStr) {
+            // Get Master Union clients from corporate_leadgen_leads where sourcing_date = lastWorkingDay
+            const { data: muClientsYesterdayData } = await supabaseServer
+              .from('corporate_leadgen_leads')
+              .select('*')
+              .eq('sourcing_date', lastWorkingDayStr)
+              .ilike('startup', 'master union')
+            
+            if (muClientsYesterdayData && muClientsYesterdayData.length > 0) {
+              const clientIds = muClientsYesterdayData.map(c => c.client_id).filter(Boolean)
+              
+              // Get latest interactions for these clients from corporate_leads_interaction
+              let interactionsMap = new Map()
+              if (clientIds.length > 0) {
+                const { data: interactionsData } = await supabaseServer
+                  .from('corporate_leads_interaction')
+                  .select('client_id, contact_person, contact_no, remarks, next_follow_up, status, sub_status, franchise_status, date')
+                  .in('client_id', clientIds)
+                  .order('date', { ascending: false })
+                
+                interactionsData?.forEach(interaction => {
+                  if (!interactionsMap.has(interaction.client_id)) {
+                    interactionsMap.set(interaction.client_id, interaction)
+                  }
+                })
+              }
+              
+              const muClientOwnerIds = [...new Set(muClientsYesterdayData.map(c => c.leadgen_id).filter(Boolean))]
+              const muUserNamesMap = await getLeadgenNames(muClientOwnerIds)
+              
+              details = muClientsYesterdayData.map(client => {
+                const interaction = interactionsMap.get(client.client_id)
+                return {
+                  client_id: client.client_id,
+                  companyName: client.company,
+                  contactName: interaction?.contact_person || '',
+                  contactNumber: interaction?.contact_no || '',
+                  lastInteraction: interaction?.remarks || client.remarks || '',
+                  lastInteractionDate: interaction?.date || client.sourcing_date || '',
+                  nextFollowup: interaction?.next_follow_up || client.next_follow_up || '',
+                  status: interaction?.status || client.status || '',
+                  substatus: interaction?.sub_status || client.sub_status || '',
+                  franchiseStatus: interaction?.franchise_status || client.franchise_status || 'Not Applicable',
+                  owner: muUserNamesMap.get(client.leadgen_id) || client.leadgen_id || 'Unknown'
+                }
+              })
+            }
+          }
+          break
+
+        case 'master-union-calling-yesterday':
+          filterTitle = 'Master Union Calling (Yesterday)'
+          if (lastWorkingDayStr) {
+            // Get all interactions where startup = 'Master Union' and date = lastWorkingDay
+            const { data: muCallingYesterdayData } = await supabaseServer
+              .from('corporate_leads_interaction')
+              .select('*, corporate_leadgen_leads!inner(startup, company)')
+              .eq('date', lastWorkingDayStr)
+            
+            if (muCallingYesterdayData && muCallingYesterdayData.length > 0) {
+              // Filter where startup = 'Master Union' (case insensitive)
+              const muInteractionsYesterday = muCallingYesterdayData.filter(rec => 
+                rec.corporate_leadgen_leads?.startup?.toLowerCase() === 'master union'
+              )
+              
+              const muCallingYesterdayOwnerIds = [...new Set(muInteractionsYesterday.map(c => c.leadgen_id).filter(Boolean))]
+              const muCallingYesterdayUserNamesMap = await getLeadgenNames(muCallingYesterdayOwnerIds)
+              
+              details = muInteractionsYesterday.map(interaction => ({
+                client_id: interaction.client_id,
+                companyName: interaction.corporate_leadgen_leads?.company || '',
+                contactName: interaction.contact_person || '',
+                contactNumber: interaction.contact_no || '',
+                lastInteraction: interaction.remarks || '',
+                lastInteractionDate: interaction.date || '',
+                nextFollowup: interaction.next_follow_up || '',
+                status: interaction.status || '',
+                substatus: interaction.sub_status || '',
+                franchiseStatus: interaction.franchise_status || 'Not Applicable',
+                owner: muCallingYesterdayUserNamesMap.get(interaction.leadgen_id) || interaction.leadgen_id || 'Unknown'
+              }))
+            }
+          }
+          break
+
         case 'new-calls-yesterday':
           filterTitle = 'New Calls (Yesterday)'
           if (lastWorkingDayStr) {
