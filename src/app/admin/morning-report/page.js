@@ -539,7 +539,7 @@ export default function MorningReportPage() {
                                             </div>
                                             <div className="p-2 flex gap-2 bg-white">
                                                 {/* Client Search */}
-                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=client-search-yesterday')}>
+                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=normal-client-search-yesterday')}>
                                                     <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Client Search</p></div>
                                                     <div className="flex divide-x divide-slate-100 h-[60px]">
                                                         <div className="flex-1 p-1.5 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none">{corporateStats.loading ? '-' : corporateStats.clientSearchTotal}</p></div>
@@ -548,7 +548,7 @@ export default function MorningReportPage() {
                                                 </div>
 
                                                 {/* Client Calling */}
-                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=client-calling-yesterday')}>
+                                                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm hover:border-indigo-400 transition-all flex flex-col cursor-pointer flex-1 min-w-[120px]" onClick={() => router.push('/admin/morning-report/corporate?filter=normal-client-calling-yesterday')}>
                                                     <div className="bg-slate-50 py-1.5 text-center border-b border-slate-100"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate px-1">Client Calling</p></div>
                                                     <div className="flex divide-x divide-slate-100 h-[60px]">
                                                         <div className="flex-1 p-1.5 text-center flex flex-col justify-center"><p className="text-[8px] font-black text-slate-400 uppercase">Total</p><p className="text-base font-black text-slate-800 leading-none">{corporateStats.loading ? '-' : corporateStats.clientCallingTotal}</p></div>

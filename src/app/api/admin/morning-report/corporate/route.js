@@ -602,12 +602,11 @@ export async function GET(request) {
         case 'client-search-yesterday':
           filterTitle = 'Client Search (Yesterday)'
           if (lastWorkingDayStr) {
-            // First get client search leads from corporate_leadgen_leads
+            // First get client search leads from corporate_leadgen_leads (ALL - no startup filter to match count)
             const { data: clientSearchData } = await supabaseServer
               .from('corporate_leadgen_leads')
               .select('*')
               .eq('sourcing_date', lastWorkingDayStr)
-              .or('startup.ilike.%no%,startup.is.null')
             
             if (clientSearchData && clientSearchData.length > 0) {
               const clientIds = clientSearchData.map(c => c.client_id).filter(Boolean)
@@ -652,6 +651,57 @@ export async function GET(request) {
           }
           break
 
+        case 'normal-client-search-yesterday':
+          filterTitle = 'Normal Client Search (Yesterday)'
+          if (lastWorkingDayStr) {
+            // Get client search leads where startup = 'NO' or NULL (to match Normal Clients count)
+            const { data: clientSearchData } = await supabaseServer
+              .from('corporate_leadgen_leads')
+              .select('*')
+              .eq('sourcing_date', lastWorkingDayStr)
+              .or('startup.ilike.%no%,startup.is.null')
+            
+            if (clientSearchData && clientSearchData.length > 0) {
+              const clientIds = clientSearchData.map(c => c.client_id).filter(Boolean)
+              
+              let interactionsMap = new Map()
+              if (clientIds.length > 0) {
+                const { data: interactionsData } = await supabaseServer
+                  .from('corporate_leads_interaction')
+                  .select('client_id, contact_person, contact_no, remarks, next_follow_up, status, sub_status, franchise_status, date')
+                  .in('client_id', clientIds)
+                  .order('date', { ascending: false })
+                
+                interactionsData?.forEach(interaction => {
+                  if (!interactionsMap.has(interaction.client_id)) {
+                    interactionsMap.set(interaction.client_id, interaction)
+                  }
+                })
+              }
+              
+              const ownerIds = [...new Set(clientSearchData.map(c => c.leadgen_id).filter(Boolean))]
+              const userNamesMap = await getLeadgenNames(ownerIds)
+              
+              details = clientSearchData.map(client => {
+                const interaction = interactionsMap.get(client.client_id)
+                return {
+                  client_id: client.client_id,
+                  companyName: client.company,
+                  contactName: interaction?.contact_person || '',
+                  contactNumber: interaction?.contact_no || '',
+                  lastInteraction: interaction?.remarks || client.remarks || '',
+                  lastInteractionDate: interaction?.date || client.sourcing_date || '',
+                  nextFollowup: interaction?.next_follow_up || client.next_follow_up || '',
+                  status: interaction?.status || client.status || '',
+                  substatus: interaction?.sub_status || client.sub_status || '',
+                  franchiseStatus: interaction?.franchise_status || client.franchise_status || 'Not Applicable',
+                  owner: userNamesMap.get(client.leadgen_id) || client.leadgen_id || 'Unknown'
+                }
+              })
+            }
+          }
+          break
+
         case 'client-calling-yesterday':
           filterTitle = 'Client Calling (Yesterday)'
           if (lastWorkingDayStr) {
@@ -664,6 +714,42 @@ export async function GET(request) {
               const filteredData = callingData
               
               // Removed deduplication - show ALL interactions
+              const ownerIds = [...new Set(filteredData.map(c => c.leadgen_id).filter(Boolean))]
+              const userNamesMap = await getLeadgenNames(ownerIds)
+              
+              details = filteredData.map(interaction => ({
+                client_id: interaction.client_id,
+                companyName: interaction.corporate_leadgen_leads?.company || '',
+                contactName: interaction.contact_person || '',
+                contactNumber: interaction.contact_no || '',
+                lastInteraction: interaction.remarks || '',
+                lastInteractionDate: interaction.date || '',
+                nextFollowup: interaction.next_follow_up || '',
+                status: interaction.status || '',
+                substatus: interaction.sub_status || '',
+                franchiseStatus: interaction.franchise_status || 'Not Applicable',
+                owner: userNamesMap.get(interaction.leadgen_id) || interaction.leadgen_id || 'Unknown'
+              }))
+            }
+          }
+          break
+
+        case 'normal-client-calling-yesterday':
+          filterTitle = 'Normal Client Calling (Yesterday)'
+          if (lastWorkingDayStr) {
+            // Get calling data where startup is NULL or contains 'no' (to match Normal Client Calling count)
+            const { data: callingData } = await supabaseServer
+              .from('corporate_leads_interaction')
+              .select('*, corporate_leadgen_leads!inner(startup, company)')
+              .eq('date', lastWorkingDayStr)
+            
+            if (callingData && callingData.length > 0) {
+              // Apply same filter as count: startup is NULL or contains 'no'
+              const filteredData = callingData.filter(rec => {
+                const startupValue = rec.corporate_leadgen_leads?.startup
+                return !startupValue || startupValue.toLowerCase().includes('no')
+              })
+              
               const ownerIds = [...new Set(filteredData.map(c => c.leadgen_id).filter(Boolean))]
               const userNamesMap = await getLeadgenNames(ownerIds)
               

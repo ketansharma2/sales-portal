@@ -41,6 +41,18 @@ function CorporateDetailsContent() {
                         filterParam = 'client-calling-yesterday';
                         setFilterTitle('Client Calling (Yesterday)');
                         break;
+                    case 'normal-client-search-yesterday':
+                        filterParam = 'normal-client-search-yesterday';
+                        setFilterTitle('Normal Client Search (Yesterday)');
+                        break;
+                    case 'client-calling-yesterday':
+                        filterParam = 'client-calling-yesterday';
+                        setFilterTitle('Client Calling (Yesterday)');
+                        break;
+                    case 'normal-client-calling-yesterday':
+                        filterParam = 'normal-client-calling-yesterday';
+                        setFilterTitle('Normal Client Calling (Yesterday)');
+                        break;
                     case 'contract-share-yesterday':
                         filterParam = 'contract-share-yesterday';
                         setFilterTitle('Contract Share (Yesterday)');
