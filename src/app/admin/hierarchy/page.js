@@ -1,22 +1,54 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
     Users, UploadCloud, Building2, Rocket, FileImage, 
-    MonitorSmartphone, ShieldCheck, Briefcase, Maximize2
+    MonitorSmartphone, ShieldCheck, Briefcase, Maximize2, Loader2
 } from "lucide-react";
 
 export default function HierarchyPage() {
     // --- STATE ---
     const [activeTab, setActiveTab] = useState("admin"); // 'admin', 'operations', 'sales', 'delivery', 'tech'
+    const [isUploading, setIsUploading] = useState(false);
     
-    // Simulated state to hold uploaded document URLs (or files) per department
+    // State to hold uploaded document URLs per department
     const [documents, setDocuments] = useState({
-        admin: null, // e.g., "https://example.com/entire-org-chart.png"
+        admin: null,
         operations: null,
         sales: null,
         delivery: null,
         tech: null
     });
+
+    // Fetch charts on load
+    useEffect(() => {
+        const fetchCharts = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) return;
+                
+                const response = await fetch('/api/admin/hierarchy', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                console.log('Fetch charts result:', result);
+                
+                if (result.success && result.data) {
+                    const docsMap = {};
+                    result.data.forEach(chart => {
+                        docsMap[chart.dept] = chart.link;
+                    });
+                    setDocuments(docsMap);
+                }
+            } catch (error) {
+                console.error('Error fetching charts:', error);
+            }
+        };
+        
+        fetchCharts();
+    }, []);
 
     // --- TABS CONFIGURATION ---
     const tabs = [
@@ -28,16 +60,49 @@ export default function HierarchyPage() {
     ];
 
     // --- HANDLERS ---
-    const handleFileUpload = (e, deptId) => {
+    const handleFileUpload = async (e, deptId) => {
         const file = e.target.files[0];
-        if (file) {
-            // For demonstration, creating a local object URL to view the image
-            const fileUrl = URL.createObjectURL(file);
-            setDocuments(prev => ({
-                ...prev,
-                [deptId]: fileUrl
-            }));
-            // Note: In real app, you would upload this file to S3/Server here
+        if (!file) return;
+
+        setIsUploading(true);
+
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            
+            if (!token) {
+                alert("Unauthorized");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('dept', deptId);
+
+            const response = await fetch('/api/admin/hierarchy', {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success && result.link) {
+                setDocuments(prev => ({
+                    ...prev,
+                    [deptId]: result.link
+                }));
+                alert("Chart uploaded successfully!");
+            } else {
+                alert(result.error || "Failed to upload chart");
+            }
+        } catch (error) {
+            console.error('Error uploading chart:', error);
+            alert("Failed to upload chart");
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -47,7 +112,7 @@ export default function HierarchyPage() {
         const tabInfo = tabs.find(t => t.id === deptId);
 
         return (
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[70vh] animate-in fade-in duration-500">
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[150vh] animate-in fade-in duration-500">
                 
                 {/* Viewer Header & Upload Controls */}
                 <div className="bg-slate-50 border-b border-slate-200 p-4 flex justify-between items-center shrink-0">
@@ -68,17 +133,18 @@ export default function HierarchyPage() {
                         <input 
                             type="file" 
                             id={`upload-${deptId}`} 
-                            accept="image/*,application/pdf" 
+                            accept="application/pdf" 
                             className="hidden" 
                             onChange={(e) => handleFileUpload(e, deptId)}
+                            disabled={isUploading}
                         />
                         
                         {/* Upload Button */}
                         <label 
                             htmlFor={`upload-${deptId}`}
-                            className="cursor-pointer bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-colors flex items-center gap-2 shadow-sm"
+                            className={`cursor-pointer bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-colors flex items-center gap-2 shadow-sm ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
                         >
-                            <UploadCloud size={16} /> 
+                            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />} 
                             {currentDoc ? "Update Chart" : "Upload Chart"}
                         </label>
                         
@@ -94,13 +160,20 @@ export default function HierarchyPage() {
                 {/* Document Display Area */}
                 <div className="flex-1 bg-slate-100/50 flex flex-col items-center justify-center p-6 relative overflow-auto">
                     {currentDoc ? (
-                        // Shows Uploaded Image
                         <div className="relative w-full h-full flex items-center justify-center">
-                            <img 
-                                src={currentDoc} 
-                                alt={`${tabInfo.label} Hierarchy`} 
-                                className="max-w-full max-h-full object-contain rounded-lg shadow-sm border border-slate-200 bg-white"
-                            />
+                            {currentDoc.toLowerCase().endsWith('.pdf') ? (
+                                <iframe 
+                                    src={currentDoc} 
+                                    className="w-full h-full rounded-lg shadow-sm border border-slate-200 bg-white"
+                                    title={`${tabInfo.label} Hierarchy`}
+                                />
+                            ) : (
+                                <img 
+                                    src={currentDoc} 
+                                    alt={`${tabInfo.label} Hierarchy`} 
+                                    className="max-w-full max-h-full object-contain rounded-lg shadow-sm border border-slate-200 bg-white"
+                                />
+                            )}
                         </div>
                     ) : (
                         // Blank State
