@@ -46,6 +46,7 @@ export default function SalesManagerDashboard() {
   const [isAllData, setIsAllData] = useState(false);
   const [loading, setLoading] = useState(true);
   const [latestDate, setLatestDate] = useState("");
+  const [isFetching, setIsFetching] = useState(false); // Flag to prevent duplicate calls
 
   const currentMonth = new Date().toLocaleString('default', { month: 'long' }).toUpperCase();
 
@@ -71,6 +72,7 @@ export default function SalesManagerDashboard() {
     kpiData: {
       searched: { total: 0, startup: 0 },
       normal: { leads: 0, calls: 0 },
+      startup: { leads: 0, calls: 0 },
       contacts: { total: 0, startup: 0 },
       calls: { total: 0, startup: 0, new: { total: 0, startup: 0 }, followup: { total: 0, startup: 0 } },
       picked: { total: 0, startup: 0 },
@@ -217,40 +219,170 @@ export default function SalesManagerDashboard() {
     }
   };
 
+  // Fetch startup leads count
+  const fetchStartupLeadsCount = async (useLatestFromApi = false) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/startup-leads-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, startup: { ...prev.kpiData.startup, leads: data.data.leads?.total || 0 } } }));
+      }
+    } catch (error) {
+      console.error('Error fetching startup leads:', error);
+    }
+  };
+
+  // Fetch startup calls count
+  const fetchStartupCallsCount = async (useLatestFromApi = false) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/startup-calls-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, startup: { ...prev.kpiData.startup, calls: data.data.calls?.total || 0 } } }));
+      }
+    } catch (error) {
+      console.error('Error fetching startup calls:', error);
+    }
+  };
+
+  // Fetch Master Union leads count
+  const fetchMasterUnionLeadsCount = async (useLatestFromApi = false) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/master-union-leads-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, masterUnion: { ...prev.kpiData.masterUnion, company: data.data.leads?.total || 0 } } }));
+      }
+    } catch (error) {
+      console.error('Error fetching Master Union leads:', error);
+    }
+  };
+
+  // Fetch Master Union calls count
+  const fetchMasterUnionCallsCount = async (useLatestFromApi = false) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/master-union-calls-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, masterUnion: { ...prev.kpiData.masterUnion, calling: data.data.calls?.total || 0 } } }));
+      }
+    } catch (error) {
+      console.error('Error fetching Master Union calls:', error);
+    }
+  };
+
   // Fetch dashboard data
   const fetchDashboard = async () => {
-    if (!mounted || leadGenTeam.length === 0) return;
+    if (!mounted || leadGenTeam.length === 0 || isFetching) return;
+    setIsFetching(true);
     setLoading(true);
     await fetchLatestDate();
     await Promise.all([
       fetchNormalLeadsCount(true),
       fetchNormalCallsCount(true),
+      fetchStartupLeadsCount(true),
+      fetchStartupCallsCount(true),
+      fetchMasterUnionLeadsCount(true),
+      fetchMasterUnionCallsCount(true),
     ]);
     setLoading(false);
+    setIsFetching(false);
   };
 
   // Fetch data with current date filter (without resetting dates)
   const fetchWithCurrentFilter = async () => {
-    if (!mounted || leadGenTeam.length === 0) return;
+    if (!mounted || leadGenTeam.length === 0 || isFetching) return;
+    setIsFetching(true);
     setLoading(true);
     await Promise.all([
       fetchNormalLeadsCount(false),
       fetchNormalCallsCount(false),
+      fetchStartupLeadsCount(false),
+      fetchStartupCallsCount(false),
+      fetchMasterUnionLeadsCount(false),
+      fetchMasterUnionCallsCount(false),
     ]);
     setLoading(false);
+    setIsFetching(false);
   };
 
   useEffect(() => {
-    if (mounted && leadGenTeam.length > 0) {
+    if (mounted && leadGenTeam.length > 0 && !isFetching) {
       fetchDashboard();
     }
   }, [mounted, leadGenTeam.length]);
 
   useEffect(() => {
-    if (mounted && leadGenTeam.length > 0 && selectedAgent) {
+    if (mounted && leadGenTeam.length > 0 && selectedAgent && !isFetching) {
       if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         fetchNormalLeadsCount(false);
         fetchNormalCallsCount(false);
+        fetchStartupLeadsCount(false);
+        fetchStartupCallsCount(false);
       } else {
         fetchDashboard();
       }
@@ -258,9 +390,11 @@ export default function SalesManagerDashboard() {
   }, [selectedAgent]);
 
   useEffect(() => {
-    if (mounted && leadGenTeam.length > 0 && fromDate && toDate && fromDate !== '' && toDate !== '') {
+    if (mounted && leadGenTeam.length > 0 && fromDate && toDate && fromDate !== '' && toDate !== '' && !isFetching) {
       fetchNormalLeadsCount(false);
       fetchNormalCallsCount(false);
+      fetchStartupLeadsCount(false);
+      fetchStartupCallsCount(false);
     }
   }, [fromDate, toDate]);
 
@@ -402,8 +536,8 @@ export default function SalesManagerDashboard() {
                                         </h2>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
-                                        <KpiCard title="Leads" total={stats?.kpiData?.searched.startup} icon={<Search size={18} />} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Yes' })} />
-                                        <KpiCard title="Calls" total={stats?.kpiData.calls.startup} icon={<Phone size={18} />} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Yes' })} />
+                                        <KpiCard title="Leads" total={stats?.kpiData?.startup?.leads || 0} icon={<Search size={18} />} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Yes' })} />
+                                        <KpiCard title="Calls" total={stats?.kpiData?.startup?.calls || 0} icon={<Phone size={18} />} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Yes' })} />
                                     </div>
                                 </div>
 

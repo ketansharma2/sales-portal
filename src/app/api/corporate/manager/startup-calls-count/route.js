@@ -48,67 +48,83 @@ export async function GET(request) {
     }
 
     if (leadgenIds.length === 0) {
-      return NextResponse.json({ success: true, data: { leads: { total: 0 } } });
+      return NextResponse.json({ success: true, data: { calls: { total: 0 } } });
     }
 
     let query = supabaseServer
-      .from('corporate_leadgen_leads')
-      .select('*')
-      .in('leadgen_id', leadgenIds)
-      .or('startup.ilike.no,startup.is.null');
+      .from('corporate_leads_interaction')
+      .select(`
+        id,
+        corporate_leadgen_leads(
+          startup
+        )
+      `)
+      .in('leadgen_id', leadgenIds);
 
     let latestDate = null;
 
+    console.log('Startup calls - dateRange:', dateRange, 'fromDate:', fromDate, 'toDate:', toDate);
+
     if (dateRange === 'specific' && fromDate && toDate) {
       query = query
-        .gte('sourcing_date', fromDate)
-        .lte('sourcing_date', toDate);
+        .gte('date', fromDate)
+        .lte('date', toDate);
     } else if (dateRange === 'default') {
-      // First get all unique sourcing dates for the leadgenIds
+      // First get all unique dates for the leadgenIds
       const { data: allDatesData } = await supabaseServer
-        .from('corporate_leadgen_leads')
-        .select('sourcing_date')
+        .from('corporate_leads_interaction')
+        .select('date')
         .in('leadgen_id', leadgenIds)
-        .not('sourcing_date', 'is', null)
-        .order('sourcing_date', { ascending: false })
+        .not('date', 'is', null)
+        .order('date', { ascending: false })
         .limit(100);
 
+      console.log('Startup calls - All dates found:', allDatesData);
+
       // Get the most recent non-null date
-      const uniqueDates = [...new Set(allDatesData?.map(d => d.sourcing_date).filter(Boolean) || [])];
+      const uniqueDates = [...new Set(allDatesData?.map(d => d.date).filter(Boolean) || [])];
+      console.log('Startup calls - Unique dates:', uniqueDates);
 
       if (uniqueDates.length > 0) {
         latestDate = uniqueDates[0];
-        query = query.eq('sourcing_date', latestDate);
+        query = query.eq('date', latestDate);
+        console.log('Startup calls - Using latest date:', latestDate);
       } else {
         return NextResponse.json({
           success: true,
           data: {
-            leads: { total: 0 },
+            calls: { total: 0 },
             latestDate: null
           }
         });
       }
     }
 
-    const { data: normalLeadsData, error: leadsError } = await query;
+    const { data: interactionsData, error: interactionsError } = await query;
 
-    if (leadsError) {
-      console.error('Normal leads query error:', leadsError);
-      return NextResponse.json({ success: false, error: leadsError.message }, { status: 500 });
+    if (interactionsError) {
+      console.error('Startup calls query error:', interactionsError);
+      return NextResponse.json({ success: false, error: interactionsError.message }, { status: 500 });
     }
 
-    const totalNormalLeads = normalLeadsData?.length || 0;
+    const startupCalls = (interactionsData || []).filter(interaction => {
+      const startup = interaction.corporate_leadgen_leads?.startup;
+      const startupStr = String(startup || '').toLowerCase().trim();
+      return startupStr === 'yes';
+    });
+
+    const totalStartupCalls = startupCalls.length;
 
     return NextResponse.json({
       success: true,
       data: {
-        leads: { total: totalNormalLeads },
+        calls: { total: totalStartupCalls },
         latestDate: latestDate
       }
     });
 
   } catch (error) {
-    console.error('Normal leads count API error:', error);
+    console.error('Startup calls count API error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

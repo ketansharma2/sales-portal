@@ -63,22 +63,40 @@ export async function GET(request) {
 
     let latestDate = null;
 
+    console.log('Normal calls - dateRange:', dateRange, 'fromDate:', fromDate, 'toDate:', toDate);
+
     if (dateRange === 'specific' && fromDate && toDate) {
       query = query
         .gte('date', fromDate)
         .lte('date', toDate);
     } else if (dateRange === 'default') {
-      const { data: latestData } = await supabaseServer
+      // First get all unique dates for the leadgenIds
+      const { data: allDatesData } = await supabaseServer
         .from('corporate_leads_interaction')
         .select('date')
         .in('leadgen_id', leadgenIds)
+        .not('date', 'is', null)
         .order('date', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(100);
 
-      if (latestData && latestData.date) {
-        latestDate = latestData.date;
-        query = query.eq('date', latestData.date);
+      console.log('Normal calls - All dates found:', allDatesData);
+
+      // Get the most recent non-null date
+      const uniqueDates = [...new Set(allDatesData?.map(d => d.date).filter(Boolean) || [])];
+      console.log('Normal calls - Unique dates:', uniqueDates);
+
+      if (uniqueDates.length > 0) {
+        latestDate = uniqueDates[0];
+        query = query.eq('date', latestDate);
+        console.log('Normal calls - Using latest date:', latestDate);
+      } else {
+        return NextResponse.json({
+          success: true,
+          data: {
+            calls: { total: 0 },
+            latestDate: null
+          }
+        });
       }
     }
 

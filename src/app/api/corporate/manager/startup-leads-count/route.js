@@ -55,7 +55,7 @@ export async function GET(request) {
       .from('corporate_leadgen_leads')
       .select('*')
       .in('leadgen_id', leadgenIds)
-      .or('startup.ilike.no,startup.is.null');
+      .or('startup.ilike.yes');
 
     let latestDate = null;
 
@@ -90,25 +90,25 @@ export async function GET(request) {
       }
     }
 
-    const { data: normalLeadsData, error: leadsError } = await query;
+    const { data: startupLeadsData, error: leadsError } = await query;
 
     if (leadsError) {
-      console.error('Normal leads query error:', leadsError);
+      console.error('Startup leads query error:', leadsError);
       return NextResponse.json({ success: false, error: leadsError.message }, { status: 500 });
     }
 
-    const totalNormalLeads = normalLeadsData?.length || 0;
+    const totalStartupLeads = startupLeadsData?.length || 0;
 
     return NextResponse.json({
       success: true,
       data: {
-        leads: { total: totalNormalLeads },
+        leads: { total: totalStartupLeads },
         latestDate: latestDate
       }
     });
 
   } catch (error) {
-    console.error('Normal leads count API error:', error);
+    console.error('Startup leads count API error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

@@ -55,7 +55,7 @@ export async function GET(request) {
       .from('corporate_leadgen_leads')
       .select('*')
       .in('leadgen_id', leadgenIds)
-      .or('startup.ilike.no,startup.is.null');
+      .eq('startup', 'Master Union');
 
     let latestDate = null;
 
@@ -64,16 +64,15 @@ export async function GET(request) {
         .gte('sourcing_date', fromDate)
         .lte('sourcing_date', toDate);
     } else if (dateRange === 'default') {
-      // First get all unique sourcing dates for the leadgenIds
       const { data: allDatesData } = await supabaseServer
         .from('corporate_leadgen_leads')
         .select('sourcing_date')
         .in('leadgen_id', leadgenIds)
+        .eq('startup', 'Master Union')
         .not('sourcing_date', 'is', null)
         .order('sourcing_date', { ascending: false })
         .limit(100);
 
-      // Get the most recent non-null date
       const uniqueDates = [...new Set(allDatesData?.map(d => d.sourcing_date).filter(Boolean) || [])];
 
       if (uniqueDates.length > 0) {
@@ -90,25 +89,25 @@ export async function GET(request) {
       }
     }
 
-    const { data: normalLeadsData, error: leadsError } = await query;
+    const { data: masterUnionLeadsData, error: leadsError } = await query;
 
     if (leadsError) {
-      console.error('Normal leads query error:', leadsError);
+      console.error('Master Union leads query error:', leadsError);
       return NextResponse.json({ success: false, error: leadsError.message }, { status: 500 });
     }
 
-    const totalNormalLeads = normalLeadsData?.length || 0;
+    const totalMasterUnionLeads = masterUnionLeadsData?.length || 0;
 
     return NextResponse.json({
       success: true,
       data: {
-        leads: { total: totalNormalLeads },
+        leads: { total: totalMasterUnionLeads },
         latestDate: latestDate
       }
     });
 
   } catch (error) {
-    console.error('Normal leads count API error:', error);
+    console.error('Master Union leads count API error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
