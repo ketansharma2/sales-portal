@@ -342,6 +342,42 @@ export async function GET(request) {
       }
     })
 
+    // Get Master Union Clients Yesterday: Count rows where sourcing_date = lastWorkingDay
+    let masterUnionClientsYesterday = 0
+    if (lastWorkingDayStr) {
+      const { count: masterUnionClientsYesterdayCount, error: masterUnionClientsYesterdayError } = await supabaseServer
+        .from('corporate_leadgen_leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('sourcing_date', lastWorkingDayStr)
+        .ilike('startup', 'master union')
+
+      if (masterUnionClientsYesterdayError) {
+        console.error('Master union clients yesterday error:', masterUnionClientsYesterdayError)
+      }
+
+      masterUnionClientsYesterday = masterUnionClientsYesterdayCount || 0
+    }
+
+    // Get Master Union Calling Yesterday: Count ALL rows where date = lastWorkingDay
+    let masterUnionCallingYesterday = 0
+    if (lastWorkingDayStr) {
+      const { data: masterUnionCallingYesterdayData, error: masterUnionCallingYesterdayError } = await supabaseServer
+        .from('corporate_leads_interaction')
+        .select('client_id, date, corporate_leadgen_leads!inner(startup)')
+        .eq('date', lastWorkingDayStr)
+
+      if (masterUnionCallingYesterdayError) {
+        console.error('Master union calling yesterday error:', masterUnionCallingYesterdayError)
+      }
+
+      masterUnionCallingYesterdayData?.forEach(record => {
+        const startupValue = record.corporate_leadgen_leads?.startup
+        if (startupValue && startupValue.toLowerCase() === 'master union' && record.client_id && record.date) {
+          masterUnionCallingYesterday++
+        }
+      })
+    }
+
     // Get Franchise Discussed Total: Count first franchise discussed per client
     // (matching corporate/leadgen logic - first franchise discussed ever)
     const { data: franchiseDiscussedData, error: franchiseDiscussedError } = await supabaseServer
@@ -1235,6 +1271,8 @@ export async function GET(request) {
         startupCallingYesterday,
         masterUnionClientsTotal,
         masterUnionCallingTotal,
+        masterUnionClientsYesterday,
+        masterUnionCallingYesterday,
         franchiseDiscussedTotal,
         franchiseDiscussedYesterday,
         formSharedTotal,
