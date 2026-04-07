@@ -55,6 +55,12 @@ export default function SalesManagerDashboard() {
   const leadGenList = leadGenTeam.map(lg => lg.name);
   const leadGenIdList = leadGenTeam.map(lg => lg.user_id);
 
+  const [fseTeam, setFseTeam] = useState([]);
+  const [fseLoading, setFseLoading] = useState(false);
+
+  const fseList = [];
+  const fseIdList = [];
+
   const [stats, setStats] = useState({
     global: { totalClients: 0, totalOnboard: 0, totalVisits: 0, onboardCall: 0, onboardVisit: 0, untouched: 0, noStatus: 0, duplicate: 0 },
     monthly: { visitTarget: 0, individualVisits: 0, onboardMtd: 0, avgVisit: 0, visitGoal: 0, onboardGoal: 0 },
@@ -106,6 +112,30 @@ export default function SalesManagerDashboard() {
       fetchLeadGenTeam();
     }
   }, [mounted]);
+
+  // // Fetch FSE team
+  // useEffect(() => {
+  //   const fetchFseTeam = async () => {
+  //     try {
+  //       const session = JSON.parse(localStorage.getItem('session') || '{}');
+  //       const response = await fetch('/api/corporate/manager/fse-users', {
+  //         headers: { 'Authorization': `Bearer ${session.access_token}` }
+  //       });
+  //       const data = await response.json();
+  //       if (data.success) {
+  //         setFseTeam(data.data || []);
+  //       }
+  //     } catch (error) {
+  //       console.error('Error fetching FSE team:', error);
+  //     } finally {
+  //       setFseLoading(false);
+  //     }
+  //   };
+
+  //   if (mounted) {
+  //     fetchFseTeam();
+  //   }
+  // }, [mounted]);
 
   // Fetch latest date and return it
   const fetchLatestDate = async () => {
