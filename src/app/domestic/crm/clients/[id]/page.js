@@ -104,8 +104,10 @@ export default function ClientMasterProfile() {
           type: conv.mode,
           contact: conv.contact_name,
           date: new Date(conv.date).toLocaleDateString('en-GB'),
+          dateIso: conv.date ? new Date(conv.date).toISOString().split('T')[0] : '',
           msg: conv.discussion,
-          nextFollowUp: conv.next_follow_up ? new Date(conv.next_follow_up).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'
+          nextFollowUp: conv.next_follow_up ? new Date(conv.next_follow_up).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A',
+          nextFollowUpIso: conv.next_follow_up ? new Date(conv.next_follow_up).toISOString().split('T')[0] : ''
         }));
 
         // Update branchDetails with fetched conversations
@@ -193,6 +195,15 @@ export default function ClientMasterProfile() {
   // --- FILE UPLOAD STATE ---
   const [uploadingKyc, setUploadingKyc] = useState(false);
   const [uploadingEmail, setUploadingEmail] = useState(false);
+  const [isSavingConversation, setIsSavingConversation] = useState(false);
+  const [editingConversation, setEditingConversation] = useState(null);
+  const [editConversationData, setEditConversationData] = useState({
+    date: '',
+    mode: '',
+    discussion: '',
+    nextFollowUp: ''
+  });
+  const [isUpdatingConversation, setIsUpdatingConversation] = useState(false);
   
   // --- MOCK BRANCH DETAILS ---
  // --- BRANCH DETAILS STATE (Populated from API) ---
@@ -308,6 +319,7 @@ const [newConversationData, setNewConversationData] = useState({
   };
 
   const handleSaveConversation = async () => {
+    setIsSavingConversation(true);
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
 
@@ -349,9 +361,64 @@ const [newConversationData, setNewConversationData] = useState({
     } catch (error) {
       console.error('Error saving conversation:', error);
       alert('Error saving conversation');
+    } finally {
+      setIsSavingConversation(false);
     }
   };
-  
+
+  const handleUpdateConversation = async () => {
+    if (!editingConversation) return;
+    setIsUpdatingConversation(true);
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/crm/conversation', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          conversationId: editingConversation.id,
+          date: editConversationData.date,
+          mode: editConversationData.mode,
+          discussion: editConversationData.discussion,
+          nextFollowUp: editConversationData.nextFollowUp
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setBranchDetails(prev => ({
+          ...prev,
+          [selectedBranchId]: {
+            ...prev[selectedBranchId],
+            logs: prev[selectedBranchId].logs.map(log => 
+              log.id === editingConversation.id ? { 
+                ...log, 
+                date: editConversationData.date ? new Date(editConversationData.date).toLocaleDateString('en-GB') : '',
+                dateIso: editConversationData.date,
+                type: editConversationData.mode,
+                msg: editConversationData.discussion,
+                nextFollowUp: editConversationData.nextFollowUp ? new Date(editConversationData.nextFollowUp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A',
+                nextFollowUpIso: editConversationData.nextFollowUp || ''
+              } : log
+            )
+          }
+        }));
+        setEditingConversation(null);
+        setEditConversationData({ date: '', mode: '', discussion: '', nextFollowUp: '' });
+        alert('Conversation updated successfully!');
+      } else {
+        alert('Failed to update conversation: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error updating conversation:', error);
+      alert('Error updating conversation');
+    } finally {
+      setIsUpdatingConversation(false);
+    }
+  };
+
   const currentBranchData = useMemo(() => branchDetails[selectedBranchId] || { contacts: [], requirements: [], logs: [], trackers: [] }, [branchDetails, selectedBranchId]);
 
   // --- HANDLERS ---
@@ -697,10 +764,25 @@ return (
                                     {log.date}
                                  </span>
                               </div>
-                              <div className="text-right flex items-center gap-2">
-                                 <span className="text-[9px] text-gray-400 uppercase font-bold">Next Follow-up</span>
-                                 <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">{log.nextFollowUp}</span>
-                              </div>
+                               <div className="text-right flex items-center gap-2">
+                                   <button 
+                                     onClick={() => {
+                                       setEditingConversation({ id: log.id });
+                                       setEditConversationData({
+                                         date: log.dateIso || log.date,
+                                         mode: log.type,
+                                         discussion: log.msg,
+                                         nextFollowUp: log.nextFollowUpIso || ''
+                                       });
+                                     }}
+                                     className="p-1 bg-yellow-50 text-yellow-600 border border-yellow-200 rounded hover:bg-yellow-100 transition"
+                                     title="Edit Conversation"
+                                   >
+                                    <Edit size={12}/>
+                                   </button>
+                                   <span className="text-[9px] text-gray-400 uppercase font-bold">Next Follow-up</span>
+                                   <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">{log.nextFollowUp}</span>
+                               </div>
                            </div>
                            <p className="text-xs text-gray-700 font-medium leading-relaxed pl-2">
                               {log.msg}
@@ -1464,12 +1546,74 @@ return (
 
                 {/* Footer */}
                 <div className="p-5 bg-gray-50 border-t flex justify-end gap-3">
-                    <button onClick={() => setIsConversationModalOpen(false)} className="px-5 py-2.5 text-gray-500 font-bold hover:text-gray-700 text-sm">Cancel</button>
-                    <button onClick={handleSaveConversation} className="bg-[#103c7f] hover:bg-blue-900 text-white px-8 py-2.5 rounded-lg font-bold text-sm shadow-md flex items-center gap-2">
-                        <MessageSquare size={16}/> Save Conversation
+                    <button onClick={() => setIsConversationModalOpen(false)} disabled={isSavingConversation} className="px-5 py-2.5 text-gray-500 font-bold hover:text-gray-700 text-sm disabled:opacity-50">Cancel</button>
+                    <button onClick={handleSaveConversation} disabled={isSavingConversation} className="bg-[#103c7f] hover:bg-blue-900 text-white px-8 py-2.5 rounded-lg font-bold text-sm shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        {isSavingConversation ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <MessageSquare size={16}/> Save Conversation
+                          </>
+                        )}
                     </button>
                 </div>
             </div>
+        </div>
+      )}
+      {/* ================= MODAL: EDIT CONVERSATION ================= */}
+      {editingConversation && (
+        <div className="fixed inset-0 bg-[#103c7f]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+              
+              {/* Header */}
+              <div className="bg-orange-500 px-6 py-4 flex justify-between items-center text-white">
+                 <div>
+                    <h3 className="text-lg font-black uppercase tracking-wide">Edit Conversation</h3>
+                    <p className="text-xs text-orange-100 opacity-80">Update conversation details</p>
+                 </div>
+                 <button onClick={() => setEditingConversation(null)} className="hover:bg-white/10 p-1.5 rounded-full transition-colors"><X size={20}/></button>
+              </div>
+
+              {/* Form */}
+              <div className="p-6 space-y-4">
+                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                       <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Date</label>
+                       <input type="date" value={editConversationData.date} onChange={(e) => setEditConversationData({...editConversationData, date: e.target.value})} className="w-full border border-gray-300 rounded p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none"/>
+                    </div>
+                     <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Mode</label>
+                        <select value={editConversationData.mode} onChange={(e) => setEditConversationData({...editConversationData, mode: e.target.value})} className="w-full border border-gray-300 rounded p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none">
+                           <option value="">Select Mode</option>
+                           <option value="Call">Call</option>
+                           <option value="Email">Email</option>
+                           <option value="Whatsapp">Whatsapp</option>
+                           <option value="Visit">Visit</option>
+                           <option value="Virtual Meeting">Virtual Meeting</option>
+                        </select>
+                    </div>
+                 </div>
+                 <div>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Discussion</label>
+                    <textarea value={editConversationData.discussion} onChange={(e) => setEditConversationData({...editConversationData, discussion: e.target.value})} className="w-full border border-gray-300 rounded p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none" rows="3"></textarea>
+                 </div>
+                 <div>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Next Follow-up</label>
+                    <input type="date" value={editConversationData.nextFollowUp} onChange={(e) => setEditConversationData({...editConversationData, nextFollowUp: e.target.value})} className="w-full border border-gray-300 rounded p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none"/>
+                 </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 bg-gray-50 border-t flex justify-end gap-3">
+                 <button onClick={() => setEditingConversation(null)} disabled={isUpdatingConversation} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition disabled:opacity-50">Cancel</button>
+                 <button onClick={handleUpdateConversation} disabled={isUpdatingConversation} className="bg-orange-500 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-orange-600 transition disabled:opacity-50">
+                    {isUpdatingConversation ? 'Updating...' : 'Update Conversation'}
+                 </button>
+              </div>
+           </div>
         </div>
       )}
       {/* ================= MODAL 6: ADD REQUIREMENT ================= */}
