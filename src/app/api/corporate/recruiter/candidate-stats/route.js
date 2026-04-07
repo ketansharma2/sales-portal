@@ -71,53 +71,91 @@ export async function GET(request) {
       console.error('Fetch conversions error:', conversionError)
     }
 
-    // Get count for sent to TL
-    let tlQuery = supabaseServer
+    // Get count for JD Match status
+    let jdMatchQuery = supabaseServer
       .from('candidates_conversation')
-      .select('sent_to_tl', { count: 'exact', head: true })
+      .select('cv_status', { count: 'exact', head: true })
       .eq('user_id', currentUserId)
-      .not('sent_to_tl', 'is', null)
+      .eq('cv_status', 'JD Match')
 
     if (fromDate && toDate) {
-      tlQuery = tlQuery.gte('calling_date', fromDate).lte('calling_date', toDate)
+      jdMatchQuery = jdMatchQuery.gte('calling_date', fromDate).lte('calling_date', toDate)
     }
 
-    const { count: sentToTl, error: tlError } = await tlQuery
+    const { count: jdMatchCount, error: jdMatchError } = await jdMatchQuery
 
-    if (tlError) {
-      console.error('Fetch sent to TL error:', tlError)
+    if (jdMatchError) {
+      console.error('Fetch JD Match error:', jdMatchError)
     }
 
-    // Get count for sent to CRM - calling_date matches crm_sent_date
-    let crmQuery = supabaseServer
+    // Fetch detailed data for the table
+    let detailsQuery = supabaseServer
       .from('candidates_conversation')
-      .select('sent_to_crm, calling_date, crm_sent_date', { count: 'exact', head: true })
+      .select('conversation_id, calling_date, cv_status, req_id, parsing_id')
       .eq('user_id', currentUserId)
-      .not('sent_to_crm', 'is', null)
-      .not('calling_date', 'is', null)
-      .not('crm_sent_date', 'is', null)
 
     if (fromDate && toDate) {
-      crmQuery = crmQuery
-        .gte('calling_date', fromDate).lte('calling_date', toDate)
-        .gte('crm_sent_date', fromDate).lte('crm_sent_date', toDate)
+      detailsQuery = detailsQuery.gte('calling_date', fromDate).lte('calling_date', toDate)
     }
 
-    const { count: sentToCrm, error: crmError } = await crmQuery
+    const { data: conversationData, error: detailsError } = await detailsQuery
 
-    if (crmError) {
-      console.error('Fetch sent to CRM error:', crmError)
+    if (detailsError) {
+      console.error('Fetch details error:', detailsError)
     }
 
-    console.log('Accuracy Debug - sentToTl:', sentToTl, 'sentToCrm:', sentToCrm)
+    // Get parsing IDs and req IDs
+    const parsingIds = [...new Set(conversationData?.map(c => c.parsing_id).filter(Boolean) || [])]
+    const reqIds = [...new Set(conversationData?.map(c => c.req_id).filter(Boolean) || [])]
+
+    // Fetch candidate names from cv_parsing
+    let cvParsingMap = new Map()
+    if (parsingIds.length > 0) {
+      const { data: cvData } = await supabaseServer
+        .from('cv_parsing')
+        .select('id, name, cv_url')
+        .in('id', parsingIds)
+      if (cvData) {
+        cvData.forEach(c => cvParsingMap.set(c.id, c))
+      }
+    }
+
+    // Fetch job titles from corporate_crm_reqs
+    let reqsMap = new Map()
+    if (reqIds.length > 0) {
+      const { data: reqData } = await supabaseServer
+        .from('corporate_crm_reqs')
+        .select('req_id, job_title')
+        .in('req_id', reqIds)
+      if (reqData) {
+        reqData.forEach(r => reqsMap.set(r.req_id, r))
+      }
+    }
+
+    // Transform detailed data
+    const trackerDetails = conversationData?.map((item, index) => {
+      const cvData = cvParsingMap.get(item.parsing_id)
+      const reqData = reqsMap.get(item.req_id)
+      return {
+        sno: index + 1,
+        date: item.calling_date,
+        profile: reqData?.job_title || '-',
+        candidateName: cvData?.name || '-',
+        cvUrl: cvData?.cv_url || '',
+        cvStatus: item.cv_status || '-'
+      }
+    }) || []
+
+    const accuracy = trackerSent > 0 ? Math.round((jdMatchCount / trackerSent) * 100) : 0
 
     return NextResponse.json({ 
       success: true, 
       trackerSent: trackerSent || 0,
       totalAssets: totalAssets || 0,
       conversions: conversions || 0,
-      accuracy: sentToTl > 0 ? Math.round((sentToCrm / sentToTl) * 100) : 0,
-      sentToCrm: sentToCrm || 0
+      accuracy: accuracy,
+      jdMatchCount: jdMatchCount || 0,
+      trackerDetails: trackerDetails
     })
 
   } catch (error) {

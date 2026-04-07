@@ -3,8 +3,9 @@ import { useState, useMemo, useEffect } from "react";
 import { 
     Calendar, Building2, Briefcase, IndianRupee, Target, Clock, 
     FileText, Send, TrendingUp, Database, UserCheck, MessageSquare, 
-    LayoutDashboard, Search, Eye, X , User, File, Download
+    LayoutDashboard, Search, Eye, X , User, File, Download, FileText as FileTextIcon, Loader2
 } from "lucide-react";
+import { jsPDF } from "jspdf";
 import Image from 'next/image';
 
 export default function RecruiterWorkbenchReport() {
@@ -21,7 +22,8 @@ export default function RecruiterWorkbenchReport() {
     const [totalAssets, setTotalAssets] = useState(0);
     const [conversions, setConversions] = useState(0);
     const [accuracy, setAccuracy] = useState(0);
-    const [sentToCrm, setSentToCrm] = useState(0);
+    const [jdMatchCount, setJdMatchCount] = useState(0);
+    const [trackerDetails, setTrackerDetails] = useState([]);
     
     // Workbench assignments data
     const [reportData, setReportData] = useState([]);
@@ -139,7 +141,8 @@ export default function RecruiterWorkbenchReport() {
                     setTotalAssets(result.totalAssets);
                     setConversions(result.conversions);
                     setAccuracy(result.accuracy);
-                    setSentToCrm(result.sentToCrm || 0);
+                    setJdMatchCount(result.jdMatchCount || 0);
+                    setTrackerDetails(result.trackerDetails || []);
                 }
             } catch (error) {
                 console.error('Failed to fetch candidate stats:', error);
@@ -157,6 +160,9 @@ export default function RecruiterWorkbenchReport() {
 
     // Modal State for Accuracy Details
     const [accuracyModalOpen, setAccuracyModalOpen] = useState(false);
+    const [cvPreviewUrl, setCvPreviewUrl] = useState(null);
+    const [cvPreviewLoading, setCvPreviewLoading] = useState(false);
+    const [cvPreviewName, setCvPreviewName] = useState('');
 
     // Fetch workbench data when date range changes
     useEffect(() => {
@@ -204,9 +210,9 @@ export default function RecruiterWorkbenchReport() {
             total_asset: totalAssets,
             total_trackers: trackerSent,
             accuracy: accuracy,
-            sent_to_crm: sentToCrm
+            jd_match_count: jdMatchCount
         };
-    }, [totalCvs, totalSti, conversions, totalAssets, trackerSent, accuracy, sentToCrm]);
+    }, [totalCvs, totalSti, conversions, totalAssets, trackerSent, accuracy, jdMatchCount]);
 
     return (
         <div className="min-h-screen bg-gray-50 font-['Calibri'] p-2 md:p-3">
@@ -625,15 +631,15 @@ export default function RecruiterWorkbenchReport() {
                         </div>
 
                         {/* Body */}
-                        <div className="p-6">
+                        <div className="p-6 pb-0">
                             <div className="grid grid-cols-2 gap-4 mb-6">
                                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Trackers Sent to TL</p>
+                                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Total Trackers Sent</p>
                                     <p className="text-3xl font-black text-blue-800">{kpiTotals.total_trackers}</p>
                                 </div>
                                 <div className="bg-green-50 p-4 rounded-xl border border-green-100">
-                                    <p className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Trackers Sent to CRM</p>
-                                    <p className="text-3xl font-black text-green-800">{kpiTotals.sent_to_crm}</p>
+                                    <p className="text-[10px] font-bold text-green-600 uppercase tracking-wider">JD Match</p>
+                                    <p className="text-3xl font-black text-green-800">{kpiTotals.jd_match_count}</p>
                                 </div>
                             </div>
                         </div>
@@ -641,10 +647,149 @@ export default function RecruiterWorkbenchReport() {
                         {/* Footer Strip */}
                         <div className="bg-gray-100 p-3 text-center border-t border-gray-200">
                             <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                Tracker Sent to TL / Tracker Sent to CRM × 100
+                                JD Match / Total Trackers Sent × 100
                             </p>
                         </div>
 
+                        {/* Details Table */}
+                        <div className="p-4 max-h-[300px] overflow-y-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-slate-100 text-slate-600 text-[10px] uppercase font-bold sticky top-0">
+                                    <tr>
+                                        <th className="p-2 border border-slate-200">Sno.</th>
+                                        <th className="p-2 border border-slate-200">Date</th>
+                                        <th className="p-2 border border-slate-200">Profile</th>
+                                        <th className="p-2 border border-slate-200">Candidate Name</th>
+                                        <th className="p-2 border border-slate-200">CV</th>
+                                        <th className="p-2 border border-slate-200">CV Status (BY TL)</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-xs text-slate-800 font-medium">
+                                    {trackerDetails.length > 0 ? (
+                                        trackerDetails.map((row) => (
+                                            <tr key={row.sno} className="hover:bg-slate-50">
+                                                <td className="p-2 border border-slate-200">{row.sno}</td>
+                                                <td className="p-2 border border-slate-200">{row.date}</td>
+                                                <td className="p-2 border border-slate-200">{row.profile}</td>
+                                                <td className="p-2 border border-slate-200">{row.candidateName}</td>
+                                                <td className="p-2 border border-slate-200">
+                                                    {row.cvUrl ? (
+                                                        <button 
+                                                            onClick={async () => {
+                                                                setCvPreviewLoading(true);
+                                                                setCvPreviewName(row.candidateName);
+                                                                try {
+                                                                    const response = await fetch(row.cvUrl);
+                                                                    const blob = await response.blob();
+                                                                    const fileType = blob.type;
+                                                                    
+                                                                    // Handle images - convert to PDF
+                                                                    if (fileType.startsWith('image/')) {
+                                                                        const imgUrl = URL.createObjectURL(blob);
+                                                                        const img = document.createElement('img');
+                                                                        img.src = imgUrl;
+                                                                        await new Promise((resolve, reject) => {
+                                                                            img.onload = resolve;
+                                                                            img.onerror = reject;
+                                                                        });
+                                                                        const orientation = img.width > img.height ? 'landscape' : 'portrait';
+                                                                        const pdf = new jsPDF({
+                                                                            orientation: orientation,
+                                                                            unit: 'px',
+                                                                            format: [img.width, img.height]
+                                                                        });
+                                                                        pdf.addImage(imgUrl, 'JPEG', 0, 0, img.width, img.height);
+                                                                        const pdfBlob = pdf.output('blob');
+                                                                        const pdfUrl = URL.createObjectURL(pdfBlob);
+                                                                        setCvPreviewUrl(pdfUrl);
+                                                                    } 
+                                                                    // Handle Word documents - show download option
+                                                                    else if (fileType === 'application/msword' || 
+                                                                            fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                                                                        setCvPreviewUrl('word');
+                                                                    }
+                                                                    // Handle PDF and other files
+                                                                    else {
+                                                                        const fileUrl = URL.createObjectURL(blob);
+                                                                        setCvPreviewUrl(fileUrl);
+                                                                    }
+                                                                } catch (err) {
+                                                                    console.error('Error fetching CV:', err);
+                                                                    setCvPreviewUrl('error');
+                                                                } finally {
+                                                                    setCvPreviewLoading(false);
+                                                                }
+                                                            }}
+                                                            disabled={cvPreviewLoading}
+                                                            className="text-blue-600 hover:underline text-xs font-bold"
+                                                        >
+                                                            {cvPreviewLoading ? 'Loading...' : 'View CV'}
+                                                        </button>
+                                                    ) : '-'}
+                                                </td>
+                                                <td className="p-2 border border-slate-200">
+                                                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                                        row.cvStatus === 'JD Match' ? 'bg-green-100 text-green-700' :
+                                                        row.cvStatus === 'Average Match' ? 'bg-amber-100 text-amber-700' :
+                                                        row.cvStatus === 'Rejected' ? 'bg-red-100 text-red-700' :
+                                                        'bg-slate-100 text-slate-600'
+                                                    }`}>
+                                                        {row.cvStatus}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="6" className="p-4 text-center text-slate-500 text-xs">No data available</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+            )}
+
+            {/* --- CV PREVIEW MODAL --- */}
+            {cvPreviewUrl && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm p-4" onClick={() => setCvPreviewUrl(null)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        <div className="bg-[#103c7f] text-white p-4 flex justify-between items-center shrink-0">
+                            <h3 className="font-black text-lg uppercase tracking-wide flex items-center gap-2">
+                                <FileTextIcon size={20}/> CV Preview - {cvPreviewName}
+                            </h3>
+                            <button onClick={() => setCvPreviewUrl(null)} className="hover:bg-white/20 p-1 rounded-full transition bg-white/10">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="flex-1 bg-slate-200 p-4">
+                            {cvPreviewUrl === 'word' ? (
+                                <div className="flex flex-col items-center justify-center w-full h-full bg-slate-50 rounded-lg p-4">
+                                    <FileTextIcon size={64} className="text-blue-500 mb-4" />
+                                    <p className="text-sm font-bold text-slate-700 mb-2">Word Document</p>
+                                    <p className="text-xs text-slate-500 mb-4 text-center">
+                                        Preview not available for Word documents.<br/>Please download to view.
+                                    </p>
+                                    <a 
+                                        href={trackerDetails.find(t => t.candidateName === cvPreviewName)?.cvUrl} 
+                                        download={`${cvPreviewName}_CV.docx`}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"
+                                    >
+                                        Download CV
+                                    </a>
+                                </div>
+                            ) : cvPreviewUrl === 'error' ? (
+                                <div className="flex flex-col items-center justify-center w-full h-full bg-slate-50 rounded-lg p-4">
+                                    <File size={48} className="text-red-500 mb-4" />
+                                    <p className="text-lg font-black uppercase tracking-widest mb-1">Error Loading File</p>
+                                    <p className="text-xs font-bold text-slate-500">Could not load the CV file</p>
+                                </div>
+                            ) : (
+                                <iframe src={cvPreviewUrl} className="w-full h-full rounded-lg border border-slate-300" title="CV Preview" />
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
