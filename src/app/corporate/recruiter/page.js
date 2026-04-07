@@ -21,6 +21,7 @@ export default function RecruiterWorkbenchReport() {
     const [totalAssets, setTotalAssets] = useState(0);
     const [conversions, setConversions] = useState(0);
     const [accuracy, setAccuracy] = useState(0);
+    const [sentToCrm, setSentToCrm] = useState(0);
     
     // Workbench assignments data
     const [reportData, setReportData] = useState([]);
@@ -133,10 +134,12 @@ export default function RecruiterWorkbenchReport() {
                 const result = await response.json();
                 
                 if (result.success) {
+                    console.log('Candidate stats result:', result);
                     setTrackerSent(result.trackerSent);
                     setTotalAssets(result.totalAssets);
                     setConversions(result.conversions);
                     setAccuracy(result.accuracy);
+                    setSentToCrm(result.sentToCrm || 0);
                 }
             } catch (error) {
                 console.error('Failed to fetch candidate stats:', error);
@@ -151,6 +154,9 @@ export default function RecruiterWorkbenchReport() {
     
     // Modal State for JD Preview
     const [jdPreviewData, setJdPreviewData] = useState(null);
+
+    // Modal State for Accuracy Details
+    const [accuracyModalOpen, setAccuracyModalOpen] = useState(false);
 
     // Fetch workbench data when date range changes
     useEffect(() => {
@@ -197,9 +203,10 @@ export default function RecruiterWorkbenchReport() {
             total_conversion: conversions,
             total_asset: totalAssets,
             total_trackers: trackerSent,
-            accuracy: accuracy
+            accuracy: accuracy,
+            sent_to_crm: sentToCrm
         };
-    }, [totalCvs, totalSti, conversions, totalAssets, trackerSent, accuracy]);
+    }, [totalCvs, totalSti, conversions, totalAssets, trackerSent, accuracy, sentToCrm]);
 
     return (
         <div className="min-h-screen bg-gray-50 font-['Calibri'] p-2 md:p-3">
@@ -316,7 +323,10 @@ export default function RecruiterWorkbenchReport() {
                 </div>
 
                 {/* 6. Accuracy */}
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-cyan-100 flex items-center gap-3 relative overflow-hidden group">
+                <div 
+                    className="bg-white p-4 rounded-2xl shadow-sm border border-cyan-100 flex items-center gap-3 relative overflow-hidden group cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => setAccuracyModalOpen(true)}
+                >
                     <div className="absolute top-0 right-0 w-12 h-12 bg-cyan-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
                     <div className="w-10 h-10 bg-cyan-100 text-cyan-600 rounded-full flex items-center justify-center shrink-0 z-10">
                         <Target size={20} />
@@ -588,6 +598,51 @@ export default function RecruiterWorkbenchReport() {
 
                                 </div>
                             </div>
+                        </div>
+
+                    </div>
+                </div>
+            )}
+
+            {/* --- ACCURACY DETAILS MODAL --- */}
+            {accuracyModalOpen && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4" onClick={() => setAccuracyModalOpen(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                        
+                        {/* Header */}
+                        <div className="bg-cyan-600 p-4 flex justify-between items-center text-white shrink-0">
+                            <h3 className="font-black text-lg uppercase tracking-wide flex items-center gap-2">
+                                <Target size={20}/> Accuracy Details
+                            </h3>
+                            <div className="flex items-center gap-3">
+                                <div className="bg-white/20 px-3 py-1 rounded-full">
+                                    <span className="text-lg font-black">{kpiTotals.accuracy}%</span>
+                                </div>
+                                <button onClick={() => setAccuracyModalOpen(false)} className="hover:bg-white/20 p-1 rounded-full transition bg-white/10">
+                                    <X size={18} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6">
+                            <div className="grid grid-cols-2 gap-4 mb-6">
+                                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Trackers Sent to TL</p>
+                                    <p className="text-3xl font-black text-blue-800">{kpiTotals.total_trackers}</p>
+                                </div>
+                                <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                                    <p className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Trackers Sent to CRM</p>
+                                    <p className="text-3xl font-black text-green-800">{kpiTotals.sent_to_crm}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer Strip */}
+                        <div className="bg-gray-100 p-3 text-center border-t border-gray-200">
+                            <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                                Tracker Sent to TL / Tracker Sent to CRM × 100
+                            </p>
                         </div>
 
                     </div>

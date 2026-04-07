@@ -71,12 +71,53 @@ export async function GET(request) {
       console.error('Fetch conversions error:', conversionError)
     }
 
+    // Get count for sent to TL
+    let tlQuery = supabaseServer
+      .from('candidates_conversation')
+      .select('sent_to_tl', { count: 'exact', head: true })
+      .eq('user_id', currentUserId)
+      .not('sent_to_tl', 'is', null)
+
+    if (fromDate && toDate) {
+      tlQuery = tlQuery.gte('calling_date', fromDate).lte('calling_date', toDate)
+    }
+
+    const { count: sentToTl, error: tlError } = await tlQuery
+
+    if (tlError) {
+      console.error('Fetch sent to TL error:', tlError)
+    }
+
+    // Get count for sent to CRM - calling_date matches crm_sent_date
+    let crmQuery = supabaseServer
+      .from('candidates_conversation')
+      .select('sent_to_crm, calling_date, crm_sent_date', { count: 'exact', head: true })
+      .eq('user_id', currentUserId)
+      .not('sent_to_crm', 'is', null)
+      .not('calling_date', 'is', null)
+      .not('crm_sent_date', 'is', null)
+
+    if (fromDate && toDate) {
+      crmQuery = crmQuery
+        .gte('calling_date', fromDate).lte('calling_date', toDate)
+        .gte('crm_sent_date', fromDate).lte('crm_sent_date', toDate)
+    }
+
+    const { count: sentToCrm, error: crmError } = await crmQuery
+
+    if (crmError) {
+      console.error('Fetch sent to CRM error:', crmError)
+    }
+
+    console.log('Accuracy Debug - sentToTl:', sentToTl, 'sentToCrm:', sentToCrm)
+
     return NextResponse.json({ 
       success: true, 
       trackerSent: trackerSent || 0,
       totalAssets: totalAssets || 0,
       conversions: conversions || 0,
-      accuracy: trackerSent > 0 ? Math.round((conversions / trackerSent) * 100) : 0
+      accuracy: sentToTl > 0 ? Math.round((sentToCrm / sentToTl) * 100) : 0,
+      sentToCrm: sentToCrm || 0
     })
 
   } catch (error) {
