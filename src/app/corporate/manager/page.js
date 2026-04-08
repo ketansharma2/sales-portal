@@ -335,6 +335,436 @@ export default function SalesManagerDashboard() {
     }
   };
 
+  // Fetch total leads count
+  const fetchTotalLeadsCount = async (useLatestFromApi = false) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/total-leads-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, searched: { ...prev.kpiData.searched, total: data.data.leads?.total || 0 } } }));
+      }
+    } catch (error) {
+      console.error('Error fetching total leads:', error);
+    }
+  };
+
+  // Fetch total calls count
+  const fetchTotalCallsCount = async (useLatestFromApi = false) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/total-calls-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, calls: { ...prev.kpiData.calls, total: data.data.calls?.total || 0 } } }));
+      }
+    } catch (error) {
+      console.error('Error fetching total calls:', error);
+    }
+  };
+
+  // Fetch total contacts count
+  const fetchTotalContactsCount = async (useLatestFromApi = false) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/total-contacts-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, contacts: { ...prev.kpiData.contacts, total: data.data.contacts?.total || 0 } } }));
+      }
+    } catch (error) {
+      console.error('Error fetching total contacts:', error);
+    }
+  };
+
+  // Fetch new calls and followup calls count
+  const fetchNewFollowupCallsCount = async (useLatestFromApi = false) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/new-followup-calls-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({ 
+          ...prev, 
+          kpiData: { 
+            ...prev.kpiData, 
+            calls: { 
+              ...prev.kpiData.calls, 
+              new: { total: data.data.newCalls?.total || 0, startup: prev.kpiData.calls?.new?.startup || 0 },
+              followup: { total: data.data.followupCalls?.total || 0, startup: prev.kpiData.calls?.followup?.startup || 0 }
+            }
+          } 
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching new/followup calls:', error);
+    }
+  };
+
+  // Fetch picked and not picked count
+  const fetchPickedNotPickedCount = async (useLatestFromApi = false) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/picked-not-picked-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({ 
+          ...prev, 
+          kpiData: { 
+            ...prev.kpiData, 
+            picked: { total: data.data.picked?.total || 0, startup: prev.kpiData.picked?.startup || 0 },
+            notPicked: { total: data.data.notPicked?.total || 0, startup: prev.kpiData.notPicked?.startup || 0 }
+          } 
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching picked/not picked:', error);
+    }
+  };
+
+  // Fetch contract share count
+  const fetchContractShareCount = async (useLatestFromApi = false) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/contract-share-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({ 
+          ...prev, 
+          kpiData: { 
+            ...prev.kpiData, 
+            contract: { total: data.data.contract?.total || 0, startup: prev.kpiData.contract?.startup || 0 }
+          } 
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching contract share:', error);
+    }
+  };
+
+  // Fetch interested count
+  const fetchInterestedCount = async (useLatestFromApi = false) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/interested-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({ 
+          ...prev, 
+          kpiData: { 
+            ...prev.kpiData, 
+            interested: { total: data.data.interested?.total || 0, startup: prev.kpiData.interested?.startup || 0 }
+          } 
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching interested:', error);
+    }
+  };
+
+  // Fetch sent to manager count
+  const fetchSentToManagerCount = async (useLatestFromApi = false) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/sent-to-manager-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({ 
+          ...prev, 
+          kpiData: { 
+            ...prev.kpiData, 
+            sentToManager: { total: data.data.sentToManager?.total || 0, startup: prev.kpiData.sentToManager?.startup || 0 }
+          } 
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching sent to manager:', error);
+    }
+  };
+
+  // Fetch total onboard count
+  const fetchTotalOnboardCount = async (useLatestFromApi = false) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/total-onboard-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({ 
+          ...prev, 
+          kpiData: { 
+            ...prev.kpiData, 
+            onboarded: { total: data.data.onboard?.total || 0, startup: prev.kpiData.onboarded?.startup || 0 }
+          } 
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching total onboard:', error);
+    }
+  };
+
+  // Fetch franchise form ask and form shared count
+  const fetchFranchiseFormCount = async (useLatestFromApi = false, formType = 'formAsk') => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      params.append('status', 'application form share');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/franchise-form-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        if (formType === 'formAsk') {
+          setStats(prev => ({ 
+            ...prev, 
+            kpiData: { 
+              ...prev.kpiData, 
+              franchise: { 
+                ...prev.kpiData.franchise, 
+                formAsk: { total: data.data.franchise?.total || 0 } 
+              }
+            } 
+          }));
+        } else {
+          setStats(prev => ({ 
+            ...prev, 
+            kpiData: { 
+              ...prev.kpiData, 
+              franchise: { 
+                ...prev.kpiData.franchise, 
+                formShared: { total: data.data.franchise?.total || 0 } 
+              }
+            } 
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching franchise form count:', error);
+    }
+  };
+
+  // Fetch franchise discussed count
+  const fetchFranchiseDiscussedCount = async (useLatestFromApi = false) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/franchise-discussed-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({ 
+          ...prev, 
+          kpiData: { 
+            ...prev.kpiData, 
+            franchise: { 
+              ...prev.kpiData.franchise, 
+              discussed: { total: data.data.franchise?.discussed?.total || 0 } 
+            }
+          } 
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching franchise discussed:', error);
+    }
+  };
+
+  // Fetch franchise accepted count
+  const fetchFranchiseAcceptedCount = async (useLatestFromApi = false) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi) {
+        params.append('dateRange', 'default');
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/franchise-accepted-count?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({ 
+          ...prev, 
+          kpiData: { 
+            ...prev.kpiData, 
+            franchise: { 
+              ...prev.kpiData.franchise, 
+              accepted: { total: data.data.franchiseAccepted?.total || 0 } 
+            }
+          } 
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching franchise accepted:', error);
+    }
+  };
+
   // Fetch dashboard data
   const fetchDashboard = async () => {
     if (!mounted || leadGenTeam.length === 0 || isFetching) return;
@@ -342,6 +772,19 @@ export default function SalesManagerDashboard() {
     setLoading(true);
     await fetchLatestDate();
     await Promise.all([
+      fetchTotalLeadsCount(true),
+      fetchTotalCallsCount(true),
+      fetchTotalContactsCount(true),
+      fetchNewFollowupCallsCount(true),
+      fetchPickedNotPickedCount(true),
+      fetchContractShareCount(true),
+      fetchInterestedCount(true),
+      fetchSentToManagerCount(true),
+      fetchTotalOnboardCount(true),
+      fetchFranchiseFormCount(true, 'formAsk'),
+      fetchFranchiseFormCount(true, 'formShared'),
+      fetchFranchiseDiscussedCount(true),
+      fetchFranchiseAcceptedCount(true),
       fetchNormalLeadsCount(true),
       fetchNormalCallsCount(true),
       fetchStartupLeadsCount(true),
@@ -359,6 +802,19 @@ export default function SalesManagerDashboard() {
     setIsFetching(true);
     setLoading(true);
     await Promise.all([
+      fetchTotalLeadsCount(false),
+      fetchTotalCallsCount(false),
+      fetchTotalContactsCount(false),
+      fetchNewFollowupCallsCount(false),
+      fetchPickedNotPickedCount(false),
+      fetchContractShareCount(false),
+      fetchInterestedCount(false),
+      fetchSentToManagerCount(false),
+      fetchTotalOnboardCount(false),
+      fetchFranchiseFormCount(false, 'formAsk'),
+      fetchFranchiseFormCount(false, 'formShared'),
+      fetchFranchiseDiscussedCount(false),
+      fetchFranchiseAcceptedCount(false),
       fetchNormalLeadsCount(false),
       fetchNormalCallsCount(false),
       fetchStartupLeadsCount(false),
@@ -379,6 +835,19 @@ export default function SalesManagerDashboard() {
   useEffect(() => {
     if (mounted && leadGenTeam.length > 0 && selectedAgent && !isFetching) {
       if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        fetchTotalLeadsCount(false);
+        fetchTotalCallsCount(false);
+        fetchTotalContactsCount(false);
+        fetchNewFollowupCallsCount(false);
+        fetchPickedNotPickedCount(false);
+        fetchContractShareCount(false);
+        fetchInterestedCount(false);
+        fetchSentToManagerCount(false);
+        fetchTotalOnboardCount(false);
+        fetchFranchiseFormCount(false, 'formAsk');
+        fetchFranchiseFormCount(false, 'formShared');
+        fetchFranchiseDiscussedCount(false);
+        fetchFranchiseAcceptedCount(false);
         fetchNormalLeadsCount(false);
         fetchNormalCallsCount(false);
         fetchStartupLeadsCount(false);
@@ -391,6 +860,19 @@ export default function SalesManagerDashboard() {
 
   useEffect(() => {
     if (mounted && leadGenTeam.length > 0 && fromDate && toDate && fromDate !== '' && toDate !== '' && !isFetching) {
+      fetchTotalLeadsCount(false);
+      fetchTotalCallsCount(false);
+      fetchTotalContactsCount(false);
+      fetchNewFollowupCallsCount(false);
+      fetchPickedNotPickedCount(false);
+      fetchContractShareCount(false);
+      fetchInterestedCount(false);
+      fetchSentToManagerCount(false);
+      fetchTotalOnboardCount(false);
+      fetchFranchiseFormCount(false, 'formAsk');
+      fetchFranchiseFormCount(false, 'formShared');
+      fetchFranchiseDiscussedCount(false);
+      fetchFranchiseAcceptedCount(false);
       fetchNormalLeadsCount(false);
       fetchNormalCallsCount(false);
       fetchStartupLeadsCount(false);
