@@ -1028,17 +1028,17 @@ export default function SalesManagerDashboard() {
                                 </h2>
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-3">
-                                <KpiCard title="Total Leads" total={stats?.kpiData?.searched?.total || 0} icon={<SearchIcon/>} color="blue" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, {})} />
-                                <KpiCard title="Total Contacts" total={stats?.kpiData?.contacts?.total || 0} icon={<UserCheck size={18}/>} color="blue" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'contacts' })} />
-                                <KpiCard title="Total Calls" total={stats?.kpiData?.calls?.total || 0} icon={<Phone size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'calls' })} />
-                                <KpiCard title="New Calls" total={stats?.kpiData?.calls?.new?.total || 0} icon={<PhoneOutgoing size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'new_calls' })} />
-                                <KpiCard title="Followup Calls" total={stats?.kpiData?.calls?.followup?.total || 0} icon={<PhoneIncoming size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'followup_calls' })} />
-                                <KpiCard title="Picked" total={stats?.kpiData?.picked?.total || 0} icon={<CheckCircle size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'picked' })} />
-                                <KpiCard title="Not Picked" total={stats?.kpiData?.notPicked?.total || 0} icon={<PhoneMissed size={18}/>} color="red" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'not_picked' })} />
-                                <KpiCard title="Contract Share" total={stats?.kpiData?.contract?.total || 0} icon={<FileText size={18}/>} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'contract' })} />
-                                <KpiCard title="Interested" total={stats?.kpiData?.interested?.total || 0} icon={<TrendingUp size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'interested' })} />
-                                <KpiCard title="Sent to Manager" total={stats?.kpiData?.sentToManager?.total || 0} icon={<Send size={18}/>} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'sent_to_manager' })} />
-                                <KpiCard title="Total Onboard" total={stats?.kpiData?.onboarded?.total || 0} icon={<Briefcase size={18}/>} color="teal" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'onboard' })} />
+                                <KpiCard title="Total Leads" total={stats?.kpiData?.searched?.total || 0} icon={<SearchIcon/>} color="blue" onClick={() => {}} />
+                                <KpiCard title="Total Contacts" total={stats?.kpiData?.contacts?.total || 0} icon={<UserCheck size={18}/>} color="blue" onClick={() => {}} />
+                                <KpiCard title="Total Calls" total={stats?.kpiData?.calls?.total || 0} icon={<Phone size={18}/>} color="purple" onClick={() => {}} />
+                                <KpiCard title="New Calls" total={stats?.kpiData?.calls?.new?.total || 0} icon={<PhoneOutgoing size={18}/>} color="purple" onClick={() => {}} />
+                                <KpiCard title="Followup Calls" total={stats?.kpiData?.calls?.followup?.total || 0} icon={<PhoneIncoming size={18}/>} color="purple" onClick={() => {}} />
+                                <KpiCard title="Picked" total={stats?.kpiData?.picked?.total || 0} icon={<CheckCircle size={18}/>} color="green" onClick={() => {}} />
+                                <KpiCard title="Not Picked" total={stats?.kpiData?.notPicked?.total || 0} icon={<PhoneMissed size={18}/>} color="red" onClick={() => {}} />
+                                <KpiCard title="Contract Share" total={stats?.kpiData?.contract?.total || 0} icon={<FileText size={18}/>} color="orange" onClick={() => {}} />
+                                <KpiCard title="Interested" total={stats?.kpiData?.interested?.total || 0} icon={<TrendingUp size={18}/>} color="green" onClick={() => {}} />
+                                <KpiCard title="Sent to Manager" total={stats?.kpiData?.sentToManager?.total || 0} icon={<Send size={18}/>} color="orange" onClick={() => {}} />
+                                <KpiCard title="Total Onboard" total={stats?.kpiData?.onboarded?.total || 0} icon={<Briefcase size={18}/>} color="teal" onClick={() => {}} />
                             </div>
                         </div>
                         {/* ROW 2 & 3: NORMAL AND STARTUP CLIENTS (HIGHLIGHTED) */}
@@ -1054,8 +1054,8 @@ export default function SalesManagerDashboard() {
                                         </h2>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
-                                        <KpiCard title="Leads" total={stats?.kpiData.normal.leads} icon={<Search size={18} />} color="blue" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'No' })} />
-                                        <KpiCard title="Calls" total={stats?.kpiData.normal.calls} icon={<Phone size={18} />} color="blue" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'No', cardType: 'normal_calls' })} />
+                                        <KpiCard title="Leads" total={stats?.kpiData.normal.leads} icon={<Search size={18} />} color="blue" onClick={() => {}} />
+                                        <KpiCard title="Calls" total={stats?.kpiData.normal.calls} icon={<Phone size={18} />} color="blue" onClick={() => {}} />
                                     </div>
                                 </div>
 
@@ -1070,8 +1070,8 @@ export default function SalesManagerDashboard() {
                                         </h2>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
-                                        <KpiCard title="Leads" total={stats?.kpiData?.startup?.leads || 0} icon={<Search size={18} />} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Yes' })} />
-                                        <KpiCard title="Calls" total={stats?.kpiData?.startup?.calls || 0} icon={<Phone size={18} />} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Yes' })} />
+                                        <KpiCard title="Leads" total={stats?.kpiData?.startup?.leads || 0} icon={<Search size={18} />} color="orange" onClick={() => {}} />
+                                        <KpiCard title="Calls" total={stats?.kpiData?.startup?.calls || 0} icon={<Phone size={18} />} color="orange" onClick={() => {}} />
                                     </div>
                                 </div>
 
@@ -1092,9 +1092,9 @@ export default function SalesManagerDashboard() {
                                         </h2>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                        <KpiCard title="Leads" total={stats?.kpiData.masterUnion.company} icon={<Briefcase size={18} />} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union' })} />
-                                        <KpiCard title="Profiles" total={stats?.kpiData.masterUnion.profiles} icon={<UserCheck size={18} />} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union' })} />
-                                        <KpiCard title="Calls" total={stats?.kpiData.masterUnion.calling} icon={<Phone size={18} />} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union', cardType: 'master_union_calls' })} />
+                                        <KpiCard title="Leads" total={stats?.kpiData.masterUnion.company} icon={<Briefcase size={18} />} color="purple" onClick={() => {}} />
+                                        <KpiCard title="Profiles" total={stats?.kpiData.masterUnion.profiles} icon={<UserCheck size={18} />} color="purple" onClick={() => {}} />
+                                        <KpiCard title="Calls" total={stats?.kpiData.masterUnion.calling} icon={<Phone size={18} />} color="purple" onClick={() => {}} />
                                     </div>
                                 </div>
 
@@ -1110,10 +1110,10 @@ export default function SalesManagerDashboard() {
                                         </h2>
                                     </div>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                        <KpiCard title="Discussed" total={stats?.kpiData.franchise.discussed.total} icon={<Phone size={18} />} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_discussed' })} />
-                                        <KpiCard title="Form Ask" total={stats?.kpiData.franchise.formAsk.total} icon={<FileText size={18} />} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_form_ask' })} />
-                                        <KpiCard title="Shared" total={stats?.kpiData.franchise.formShared.total} icon={<Send size={18} />} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_form_shared' })} />
-                                        <KpiCard title="Accepted" total={stats?.kpiData.franchise.accepted.total} icon={<CheckCircle size={18} />} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_accepted' })} />
+                                        <KpiCard title="Discussed" total={stats?.kpiData.franchise.discussed.total} icon={<Phone size={18} />} color="green" onClick={() => {}} />
+                                        <KpiCard title="Form Ask" total={stats?.kpiData.franchise.formAsk.total} icon={<FileText size={18} />} color="green" onClick={() => {}} />
+                                        <KpiCard title="Shared" total={stats?.kpiData.franchise.formShared.total} icon={<Send size={18} />} color="green" onClick={() => {}} />
+                                        <KpiCard title="Accepted" total={stats?.kpiData.franchise.accepted.total} icon={<CheckCircle size={18} />} color="green" onClick={() => {}} />
                                     </div>
                                 </div>
 
