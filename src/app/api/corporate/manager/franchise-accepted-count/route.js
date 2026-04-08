@@ -82,7 +82,9 @@ export async function GET(request) {
     const filteredInteractions = (allFranchiseInteractions || []).filter(interaction => {
       const fs = interaction.franchise_status;
       if (!fs) return false;
-      return fs.toLowerCase() === franchiseStatus.toLowerCase();
+      const fsLower = fs.toLowerCase();
+      const statusLower = franchiseStatus.toLowerCase();
+      return fsLower.includes(statusLower) || fsLower === statusLower;
     });
 
     const firstFranchiseMap = new Map();

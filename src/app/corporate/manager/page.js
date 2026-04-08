@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Users, CheckCircle, MapPin, Target,
-  TrendingUp, Calendar, Filter,
+  TrendingUp, Calendar, Filter,MessageSquare,
   Search, Activity, Phone, Ghost, AlertCircle, Copy,
   UserCheck, Headset, PhoneCall, CalendarDays, Database, Clock,
   PhoneOutgoing, PhoneIncoming, PhoneMissed, Send, FileText, Briefcase, Award, Rocket
@@ -61,6 +61,8 @@ export default function SalesManagerDashboard() {
 
   const fseList = [];
   const fseIdList = [];
+
+  const [conversationLog, setConversationLog] = useState([]);
 
   const [stats, setStats] = useState({
     global: { totalClients: 0, totalOnboard: 0, totalVisits: 0, onboardCall: 0, onboardVisit: 0, untouched: 0, noStatus: 0, duplicate: 0 },
@@ -158,6 +160,38 @@ export default function SalesManagerDashboard() {
     } catch (error) {
       console.error('Error fetching latest date:', error);
       return null;
+    }
+  };
+
+  // Fetch conversation log
+  const fetchConversationLog = async (useLatestFromApi = false, latestDateFromApi = null) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+      
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/manager/conversation-log?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await response.json();
+      console.log('Manager conversation log API response:', data);
+      if (data.success && data.data) {
+        setConversationLog(data.data.conversationLog || []);
+      }
+    } catch (error) {
+      console.error('Error fetching conversation log:', error);
     }
   };
 
@@ -827,6 +861,7 @@ export default function SalesManagerDashboard() {
       fetchStartupCallsCount(true, latestDateFromApi),
       fetchMasterUnionLeadsCount(true, latestDateFromApi),
       fetchMasterUnionCallsCount(true, latestDateFromApi),
+      fetchConversationLog(true, latestDateFromApi),
     ]);
     setLoading(false);
     setIsFetching(false);
@@ -857,6 +892,7 @@ export default function SalesManagerDashboard() {
       fetchStartupCallsCount(false),
       fetchMasterUnionLeadsCount(false),
       fetchMasterUnionCallsCount(false),
+      fetchConversationLog(false),
     ]);
     setLoading(false);
     setIsFetching(false);
@@ -888,33 +924,13 @@ export default function SalesManagerDashboard() {
         fetchNormalCallsCount(false);
         fetchStartupLeadsCount(false);
         fetchStartupCallsCount(false);
+        fetchMasterUnionLeadsCount(false);
+        fetchMasterUnionCallsCount(false);
       } else {
         fetchDashboard();
       }
     }
   }, [selectedAgent]);
-
-  useEffect(() => {
-    if (mounted && leadGenTeam.length > 0 && fromDate && toDate && fromDate !== '' && toDate !== '' && !isFetching) {
-      fetchTotalLeadsCount(false);
-      fetchTotalCallsCount(false);
-      fetchTotalContactsCount(false);
-      fetchNewFollowupCallsCount(false);
-      fetchPickedNotPickedCount(false);
-      fetchContractShareCount(false);
-      fetchInterestedCount(false);
-      fetchSentToManagerCount(false);
-      fetchTotalOnboardCount(false);
-      fetchFranchiseFormCount(false, null, 'formAsk');
-      fetchFranchiseFormCount(false, null, 'formShared');
-      fetchFranchiseDiscussedCount(false);
-      fetchFranchiseAcceptedCount(false);
-      fetchNormalLeadsCount(false);
-      fetchNormalCallsCount(false);
-      fetchStartupLeadsCount(false);
-      fetchStartupCallsCount(false);
-    }
-  }, [fromDate, toDate]);
 
   useEffect(() => {
     setMounted(true);
@@ -1104,88 +1120,87 @@ export default function SalesManagerDashboard() {
                             </div>
                         </div>
 
-
-                        {/* --- LEADGEN CONVERSATION LOG TABLE --- */}
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-[350px]"> 
-                            <div className="px-5 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                                <h3 className="font-black text-[11px] text-slate-700 uppercase tracking-widest flex items-center gap-2">
-                                    <Activity size={14}/> LeadGen Conversation Log
-                                </h3>
-                                {latestDate && (
-                                    <span className="text-[10px] font-bold text-gray-500 bg-white border border-gray-200 px-2 py-0.5 rounded shadow-sm">
-                                        {latestDate}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
-                                <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
-                                    <thead className="sticky top-0 z-20 shadow-sm bg-white">
-                                        <tr>
-                                            <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">LeadGen & Date</th>
-                                            <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">Company</th>
-                                            <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">Contact Details</th>
-                                            <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">Interaction</th>
-                                            <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white text-center">Status / Substatus</th>
-                                            <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white text-center">Franchise Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {stats.clientsLeadGen?.map((client, idx) => (
-                                            <tr key={idx} className="hover:bg-slate-50 transition-all group align-top">
-                                                
-                                                {/* Agent & Date */}
-                                                <td className="px-6 py-3">
-                                                    <p className="font-black text-[#103c7f] text-xs">{selectedAgent === "All" ? client.agent : selectedAgent}</p>
-                                                    <div className="flex items-center gap-1 mt-1 text-[10px] font-bold text-gray-400">
-                                                        <Calendar size={10} /> {client.date} 
-                                                        <Clock size={10} className="ml-1" /> {client.time}
-                                                    </div>
-                                                </td>
-
-                                                {/* Company Name */}
-                                                <td className="px-6 py-3">
-                                                    <p className="font-bold text-slate-800">{client.name}</p>
-                                                </td>
-
-                                                {/* Contact Details (Combined) */}
-                                                <td className="px-6 py-3">
-                                                    <p className="font-bold text-slate-700 text-xs">{client.contactPerson}</p>
-                                                    <p className="text-[10px] font-semibold text-gray-500 mt-0.5">{client.phone}</p>
-                                                    <p className="text-[10px] font-semibold text-gray-400">{client.email}</p>
-                                                </td>
-
-                                                {/* Interaction */}
-                                                <td className="px-6 py-3">
-                                                    <p className="text-[11px] font-semibold text-slate-600 max-w-[200px] truncate whitespace-normal leading-snug" title={client.interaction}>
-                                                        {client.interaction}
-                                                    </p>
-                                                </td>
-
-                                                {/* Status & Substatus */}
-                                                <td className="px-6 py-3 text-center">
-                                                    <div className="flex flex-col items-center gap-1.5">
-                                                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter ${client.color}`}>
-                                                            {client.status}
-                                                        </span>
-                                                        <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                                                            {client.subStatus}
-                                                        </span>
-                                                    </div>
-                                                </td>
-
-                                                {/* Franchise Status */}
-                                                <td className="px-6 py-3 text-center">
-                                                    <span className={`px-2 py-1 rounded text-[10px] font-bold ${client.franchiseStatus === 'Not Applicable' ? 'text-gray-400 bg-gray-50' : 'text-emerald-700 bg-emerald-50'}`}>
-                                                        {client.franchiseStatus}
-                                                    </span>
-                                                </td>
-
+                        {/* CONVERSATION LOG TABLE */}
+                        <div className="mt-6">
+                            <h4 className="text-xs font-black text-blue-600 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                                <MessageSquare size={14} /> Conversation Log
+                            </h4>
+                            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                                <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                                    <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
+                                        <thead className="sticky top-0 z-20 shadow-sm bg-white">
+                                            <tr>
+                                                <th className="px-4 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">Leadgen & Date</th>
+                                                <th className="px-4 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">Company</th>
+                                                <th className="px-4 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">Contact Details</th>
+                                                <th className="px-4 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white">Interaction</th>
+                                                <th className="px-4 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white text-center">Status / Substatus</th>
+                                                <th className="px-4 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white text-center">Franchise Status</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {conversationLog.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={6} className="p-8 text-center text-gray-400 font-bold">No conversation logs found</td>
+                                                </tr>
+                                            ) : (
+                                                conversationLog.map((log) => (
+                                                    <tr key={log.id} className="hover:bg-slate-50 transition-all group align-top">
+                                                        <td className="px-4 py-3">
+                                                            <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 rounded text-[10px] font-bold">
+                                                                {log.leadgen_name}
+                                                            </span>
+                                                            <div className="flex items-center gap-1 mt-1 text-[10px] font-bold text-gray-400">
+                                                                <Calendar size={10} /> {log.date}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-bold text-slate-800">{log.company}</span>
+                                                                {log.startupBadge && (
+                                                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${log.startupBadge === 'S' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'}`}>
+                                                                        {log.startupBadge}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <p className="font-bold text-slate-700 text-xs">{log.contact_person}</p>
+                                                            <p className="text-[10px] font-semibold text-gray-500 mt-0.5">{log.contact_no}</p>
+                                                            <p className="text-[10px] font-semibold text-gray-400">{log.email}</p>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <p className="text-[11px] font-semibold text-slate-600 max-w-[200px] truncate whitespace-normal leading-snug" title={log.remarks}>
+                                                                {log.remarks}
+                                                            </p>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <div className="flex flex-col items-center gap-1.5">
+                                                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter ${log.status === 'Interested' ? 'bg-green-100 text-green-700' : log.status === 'Not Interested' ? 'bg-red-100 text-red-700' : log.status === 'Not Picked' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                                                                    {log.status}
+                                                                </span>
+                                                                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                                                                    {log.sub_status}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <span className={`px-2 py-1 rounded text-[10px] font-bold ${log.franchise_status === 'Not Applicable' ? 'text-gray-400 bg-gray-50' : 'text-emerald-700 bg-emerald-50'}`}>
+                                                                {log.franchise_status}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
+
+                   
+                        
+ 
 
                     </div>
                 )}

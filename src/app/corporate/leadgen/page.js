@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { 
   Database, Phone, CheckCircle, Clock, Calendar,
   TrendingUp, UserCheck, FileText, Briefcase, Award, Send,
-  Rocket, ChevronDown, Filter, PhoneOutgoing, PhoneIncoming, PhoneMissed
+  Rocket, ChevronDown, Filter, PhoneOutgoing, PhoneIncoming, PhoneMissed,
+  MessageSquare
 } from "lucide-react";
 
 // --- Helper function to build filter URL ---
@@ -66,6 +67,7 @@ export default function LeadGenHome() {
   });
 
   const [followUps, setFollowUps] = useState([]);
+  const [conversationLog, setConversationLog] = useState([]);
 
   const fetchTodayFollowUps = async () => {
     try {
@@ -81,6 +83,36 @@ export default function LeadGenHome() {
       }
     } catch (error) {
       console.error('Failed to fetch today follow-ups:', error);
+    }
+  };
+
+  const fetchConversationLog = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      
+      if (isAllData) {
+        params.append('dateRange', 'all');
+      } else if (fromDate && toDate) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+      
+      const response = await fetch(`/api/corporate/leadgen/conversation-log?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      console.log('Conversation log API response:', data);
+      if (data.success && data.data) {
+        setConversationLog(data.data.conversationLog || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch conversation log:', error);
     }
   };
 
@@ -676,6 +708,7 @@ export default function LeadGenHome() {
       fetchInterestedCount();
       fetchOnboardCount();
       fetchMasterUnionCount();
+      fetchConversationLog();
     }
   }, [latestInteractionDate]);
 
@@ -693,10 +726,11 @@ export default function LeadGenHome() {
     fetchInterestedCount();
     fetchOnboardCount();
     fetchContractCount();
-    fetchFranchiseDiscussedCount();
+    fetchFranchiseDiscussCount();
     fetchFranchiseFormAskCount();
     fetchFranchiseFormSharedCount();
     fetchFranchiseAcceptedCount();
+    fetchConversationLog();
   }, [isAllData]);
 
   // Refetch data when date range changes (after initial date is fetched)
@@ -723,6 +757,7 @@ export default function LeadGenHome() {
       fetchFranchiseFormSharedCount();
       fetchFranchiseAcceptedCount();
       fetchMasterUnionCount();
+      fetchConversationLog();
     }
   }, [fromDate, toDate]);
 
@@ -905,6 +940,91 @@ export default function LeadGenHome() {
               <KpiCard title="Form Ask" total={kpiData.franchise.formAsk.total} icon={<FileText size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_form_ask' })} />
               <KpiCard title="Form Shared" total={kpiData.franchise.formShared.total} icon={<Send size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_form_shared' })} />
               <KpiCard title="Franchise Accepted" total={kpiData.franchise.accepted.total} icon={<CheckCircle size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'franchise_accepted' })} />
+            </div>
+          </div>
+
+          {/* ROW 6: CONVERSATION LOG */}
+          <div>
+            <h4 className="text-xs font-black text-blue-600 uppercase tracking-[0.2em] mb-3 flex items-center gap-2"><MessageSquare size={14} /> 6. Conversation Log</h4>
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+              <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
+                  <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                    <tr>
+                      <th className="px-4 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-gray-50">Leadgen & Date</th>
+                      <th className="px-4 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-gray-50">Company</th>
+                      <th className="px-4 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-gray-50">Contact Details</th>
+                      <th className="px-4 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-gray-50">Interaction</th>
+                      <th className="px-4 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-gray-50 text-center">Status / Substatus</th>
+                      <th className="px-4 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-gray-50 text-center">Franchise Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {conversationLog.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-gray-400 font-bold">No conversation logs found</td>
+                      </tr>
+                    ) : (
+                      conversationLog.map((log) => (
+                        <tr key={log.id} className="hover:bg-gray-50 transition-colors align-top">
+                          {/* Leadgen & Date */}
+                          <td className="px-4 py-3">
+                            <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 rounded text-[10px] font-bold">
+                              {log.leadgen_name}
+                            </span>
+                            <div className="flex items-center gap-1 mt-1 text-[10px] font-bold text-gray-400">
+                              <Calendar size={10} /> {log.date}
+                            </div>
+                          </td>
+
+                          {/* Company */}
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-gray-800">{log.company}</span>
+                              {log.startupBadge && (
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${log.startupBadge === 'S' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'}`}>
+                                  {log.startupBadge}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Contact Details */}
+                          <td className="px-4 py-3">
+                            <p className="font-bold text-gray-700 text-xs">{log.contact_person}</p>
+                            <p className="text-[10px] font-semibold text-gray-500 mt-0.5">{log.contact_no}</p>
+                            <p className="text-[10px] font-semibold text-gray-400">{log.email}</p>
+                          </td>
+
+                          {/* Interaction */}
+                          <td className="px-4 py-3">
+                            <p className="text-[11px] font-semibold text-gray-600 max-w-[200px] truncate whitespace-normal leading-snug" title={log.remarks}>
+                              {log.remarks}
+                            </p>
+                          </td>
+
+                          {/* Status / Substatus */}
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${log.status === 'Interested' ? 'bg-green-100 text-green-700' : log.status === 'Not Interested' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                              {log.status}
+                            </span>
+                            {log.sub_status && (
+                              <p className="text-[10px] font-semibold text-gray-500 mt-1">{log.sub_status}</p>
+                            )}
+                          </td>
+
+                          {/* Franchise Status */}
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-1 rounded text-[10px] font-bold ${log.franchise_status === 'Not Applicable' ? 'text-gray-400 bg-gray-50' : 'text-emerald-700 bg-emerald-50'}`}>
+                              {log.franchise_status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
