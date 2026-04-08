@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import { 
     Calendar, Briefcase, IndianRupee, Clock, 
     FileText, Send, TrendingUp, Database, UserCheck, MessageSquare, 
-    Search, Eye, X, Users, LayoutDashboard, Settings
+    Search, Eye, X, Users, LayoutDashboard, Settings , Award,CheckCircle,Target,
 } from "lucide-react";
 
 export default function TLWorkbenchReport() {
@@ -144,60 +144,145 @@ export default function TLWorkbenchReport() {
                 </div>
             </div>
 
-            {/* --- TOP KPI SUMMARY CARDS --- */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-blue-100 flex items-center gap-3 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-12 h-12 bg-blue-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
-                    <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center shrink-0 z-10">
-                        <FileText size={20} />
+           {/* ============================================== */}
+            {/* --- SECTION 1: TL LEVEL HIGHLIGHTED CARDS --- */}
+            {/* ============================================== */}
+           {/* ============================================== */}
+            {/* --- SECTION 1: TL LEVEL METRICS (CLEAN DESIGN) --- */}
+            {/* ============================================== */}
+            <div className="mb-4">
+                <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <Award size={14} className="text-[#103c7f]"/> TL Level Metrics
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    
+                    {/* TL Card 1: Tracker Sent to CRM */}
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-blue-100 flex items-center gap-3 relative overflow-hidden group hover:border-blue-300 transition-colors">
+                        <div className="absolute top-0 right-0 w-12 h-12 bg-blue-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                        <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                            <Send size={20} />
+                        </div>
+                        <div className="z-10">
+                            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Tracker Sent To CRM</p>
+                            <p className="text-2xl font-black text-blue-700 leading-none mt-1">120</p>
+                        </div>
                     </div>
-                    <div className="z-10">
-                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Total CVs</p>
-                        <p className="text-2xl font-black text-gray-800 leading-none mt-1">{kpiTotals.total_cvs}</p>
-                    </div>
-                </div>
 
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-purple-100 flex items-center gap-3 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-12 h-12 bg-purple-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
-                    <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center shrink-0 z-10">
-                        <Send size={20} />
+                    {/* TL Card 2: Pipeline CV */}
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100 flex items-center gap-3 relative overflow-hidden group hover:border-indigo-300 transition-colors">
+                        <div className="absolute top-0 right-0 w-12 h-12 bg-indigo-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                        <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                            <Database size={20} />
+                        </div>
+                        <div className="z-10">
+                            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Pipeline CV</p>
+                            <p className="text-2xl font-black text-indigo-700 leading-none mt-1">45</p>
+                        </div>
                     </div>
-                    <div className="z-10">
-                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Adv. STI</p>
-                        <p className="text-2xl font-black text-gray-800 leading-none mt-1">{kpiTotals.total_sti}</p>
-                    </div>
-                </div>
 
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-green-100 flex items-center gap-3 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-12 h-12 bg-green-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
-                    <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center shrink-0 z-10">
-                        <TrendingUp size={20} />
+                    {/* TL Card 3: Rejected CV */}
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-red-100 flex items-center gap-3 relative overflow-hidden group hover:border-red-300 transition-colors">
+                        <div className="absolute top-0 right-0 w-12 h-12 bg-red-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                        <div className="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                            <X size={20} />
+                        </div>
+                        <div className="z-10">
+                            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Rejected CV</p>
+                            <p className="text-2xl font-black text-red-700 leading-none mt-1">12</p>
+                        </div>
                     </div>
-                    <div className="z-10">
-                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Conversions</p>
-                        <p className="text-2xl font-black text-gray-800 leading-none mt-1">{kpiTotals.total_conversion}</p>
-                    </div>
-                </div>
 
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-orange-100 flex items-center gap-3 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-12 h-12 bg-orange-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
-                    <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center shrink-0 z-10">
-                        <Database size={20} />
+                    {/* TL Card 4: Joining */}
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 flex items-center gap-3 relative overflow-hidden group hover:border-emerald-300 transition-colors">
+                        <div className="absolute top-0 right-0 w-12 h-12 bg-emerald-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                        <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                            <CheckCircle size={20} />
+                        </div>
+                        <div className="z-10">
+                            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Joining</p>
+                            <p className="text-2xl font-black text-emerald-700 leading-none mt-1">8</p>
+                        </div>
                     </div>
-                    <div className="z-10">
-                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Total Assets</p>
-                        <p className="text-2xl font-black text-gray-800 leading-none mt-1">{kpiTotals.total_asset}</p>
-                    </div>
-                </div>
 
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex items-center gap-3 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-12 h-12 bg-gray-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
-                    <div className="w-10 h-10 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center shrink-0 z-10">
-                        <UserCheck size={20} />
+                    {/* TL Card 5: Accuracy % */}
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-amber-100 flex items-center gap-3 relative overflow-hidden group hover:border-amber-300 transition-colors">
+                        <div className="absolute top-0 right-0 w-12 h-12 bg-amber-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                        <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                            <Target size={20} />
+                        </div>
+                        <div className="z-10 flex items-baseline gap-1">
+                            <div>
+                                <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Accuracy %</p>
+                                <p className="text-2xl font-black text-amber-700 leading-none mt-1">88<span className="text-sm ml-0.5">%</span></p>
+                            </div>
+                        </div>
                     </div>
-                    <div className="z-10">
-                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Trackers Sent By Team</p>
-                        <p className="text-2xl font-black text-gray-800 leading-none mt-1">{kpiTotals.total_trackers}</p>
+
+                </div>
+            </div>
+
+            {/* ============================================== */}
+            {/* --- SECTION 2: TEAM LEVEL KPI SUMMARY CARDS ---*/}
+            {/* ============================================== */}
+            <div className="mb-6">
+                <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <Users size={14} className="text-blue-500"/> Team Operational Metrics
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-blue-100 flex items-center gap-3 relative overflow-hidden group hover:border-blue-300 transition-colors">
+                        <div className="absolute top-0 right-0 w-12 h-12 bg-blue-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                        <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                            <FileText size={20} />
+                        </div>
+                        <div className="z-10">
+                            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Total CVs</p>
+                            <p className="text-2xl font-black text-[#103c7f] leading-none mt-1">{kpiTotals.total_cvs}</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-purple-100 flex items-center gap-3 relative overflow-hidden group hover:border-purple-300 transition-colors">
+                        <div className="absolute top-0 right-0 w-12 h-12 bg-purple-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                        <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                            <Send size={20} />
+                        </div>
+                        <div className="z-10">
+                            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Adv. STI</p>
+                            <p className="text-2xl font-black text-purple-700 leading-none mt-1">{kpiTotals.total_sti}</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 flex items-center gap-3 relative overflow-hidden group hover:border-emerald-300 transition-colors">
+                        <div className="absolute top-0 right-0 w-12 h-12 bg-emerald-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                        <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                            <TrendingUp size={20} />
+                        </div>
+                        <div className="z-10">
+                            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Conversions</p>
+                            <p className="text-2xl font-black text-emerald-700 leading-none mt-1">{kpiTotals.total_conversion}</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-orange-100 flex items-center gap-3 relative overflow-hidden group hover:border-orange-300 transition-colors">
+                        <div className="absolute top-0 right-0 w-12 h-12 bg-orange-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                        <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                            <Database size={20} />
+                        </div>
+                        <div className="z-10">
+                            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Total Assets</p>
+                            <p className="text-2xl font-black text-orange-700 leading-none mt-1">{kpiTotals.total_asset}</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex items-center gap-3 relative overflow-hidden group hover:border-gray-400 transition-colors">
+                        <div className="absolute top-0 right-0 w-12 h-12 bg-gray-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                        <div className="w-10 h-10 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                            <UserCheck size={20} />
+                        </div>
+                        <div className="z-10">
+                            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Trackers Sent By Team</p>
+                            <p className="text-2xl font-black text-slate-700 leading-none mt-1">{kpiTotals.total_trackers}</p>
+                        </div>
                     </div>
                 </div>
             </div>

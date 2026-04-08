@@ -90,7 +90,6 @@ export default function Header() {
       roleLabel = "Delivery Manager";
       pageSubtitle = "DELIVERY OPERATIONS";
       break;
-    case "operations":
     case "operation_head":
       roleLabel = "Operation Head";
       pageSubtitle = "OPERATIONS CONTROL";
@@ -104,10 +103,7 @@ export default function Header() {
       pageSubtitle = "TEAM MANAGEMENT"; 
       break;
       
-    case "recruiter":
-      roleLabel = "Recruiter";
-      pageSubtitle = "TALENT ACQUISITION"; 
-      break;  
+    
     default:
       roleLabel = "Team Member";
       pageSubtitle = "WORK DASHBOARD";

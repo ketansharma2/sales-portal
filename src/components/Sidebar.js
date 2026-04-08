@@ -3,7 +3,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
-  Users, Wallet, LayoutGrid, ShieldCheck, Store ,Briefcase,
+  Users, Wallet, LayoutGrid, ShieldCheck, Store ,Briefcase,HelpCircle,
   Settings, FileText, Target, Search, BarChart, Phone,Calendar,MapPin,Truck,UserPlus,IndianRupee,UserCheck,Edit,Plus,
   Package,PhoneCall,ClipboardList,KanbanSquare,TableProperties, SunMedium, UploadCloud,Activity,Building2,History,LayoutDashboard
 } from "lucide-react";
@@ -116,6 +116,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       { name: "Workbench Report", href: `${roleBaseHref}/workbench`, icon: <LayoutDashboard size={20} /> },
       { name: "JD Management", href: `${roleBaseHref}/jd`, icon: <FileText size={20} /> }, // Naya JD Page Tab
       { name: "Billing & Revenue", href: `${roleBaseHref}/revenue`, icon: <IndianRupee size={20} /> }, // Direct Access to Finance
+      { name: "Client FAQs", href: `${roleBaseHref}/faq`, icon: <HelpCircle size={20} /> }, // Interview Questions Repo
     ];
   }
   else if (currentRole === "recruiter") {
@@ -123,6 +124,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       { name: "Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "Workbench", href: `${roleBaseHref}/workbench`, icon: <TableProperties size={20} /> },
       { name: "CV Parsing", href: `${roleBaseHref}/parsing`, icon: <UploadCloud size={20} /> },
+      { name: "Targets", href: `${roleBaseHref}/target`, icon: <Target size={20} /> }, 
       { name: "Candidate Follow-up", href: `${roleBaseHref}/followup`, icon: <PhoneCall size={20} /> }, 
     ];
   }
