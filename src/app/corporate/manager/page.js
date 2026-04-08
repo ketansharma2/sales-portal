@@ -162,14 +162,16 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch normal leads count
-  const fetchNormalLeadsCount = async (useLatestFromApi = false) => {
+  const fetchNormalLeadsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -191,14 +193,16 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch normal calls count
-  const fetchNormalCallsCount = async (useLatestFromApi = false) => {
+  const fetchNormalCallsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -220,14 +224,16 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch startup leads count
-  const fetchStartupLeadsCount = async (useLatestFromApi = false) => {
+  const fetchStartupLeadsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -249,14 +255,16 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch startup calls count
-  const fetchStartupCallsCount = async (useLatestFromApi = false) => {
+  const fetchStartupCallsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -278,14 +286,16 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch Master Union leads count
-  const fetchMasterUnionLeadsCount = async (useLatestFromApi = false) => {
+  const fetchMasterUnionLeadsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -307,14 +317,16 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch Master Union calls count
-  const fetchMasterUnionCallsCount = async (useLatestFromApi = false) => {
+  const fetchMasterUnionCallsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -336,14 +348,16 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch total leads count
-  const fetchTotalLeadsCount = async (useLatestFromApi = false) => {
+  const fetchTotalLeadsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -365,14 +379,16 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch total calls count
-  const fetchTotalCallsCount = async (useLatestFromApi = false) => {
+  const fetchTotalCallsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -394,14 +410,16 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch total contacts count
-  const fetchTotalContactsCount = async (useLatestFromApi = false) => {
+  const fetchTotalContactsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -423,14 +441,16 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch new calls and followup calls count
-  const fetchNewFollowupCallsCount = async (useLatestFromApi = false) => {
+  const fetchNewFollowupCallsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -462,14 +482,16 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch picked and not picked count
-  const fetchPickedNotPickedCount = async (useLatestFromApi = false) => {
+  const fetchPickedNotPickedCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -498,14 +520,16 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch contract share count
-  const fetchContractShareCount = async (useLatestFromApi = false) => {
+  const fetchContractShareCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -533,14 +557,16 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch interested count
-  const fetchInterestedCount = async (useLatestFromApi = false) => {
+  const fetchInterestedCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -568,14 +594,16 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch sent to manager count
-  const fetchSentToManagerCount = async (useLatestFromApi = false) => {
+  const fetchSentToManagerCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -603,14 +631,16 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch total onboard count
-  const fetchTotalOnboardCount = async (useLatestFromApi = false) => {
+  const fetchTotalOnboardCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -638,15 +668,17 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch franchise form ask and form shared count
-  const fetchFranchiseFormCount = async (useLatestFromApi = false, formType = 'formAsk') => {
+  const fetchFranchiseFormCount = async (useLatestFromApi = false, latestDateFromApi = null, formType = 'formAsk') => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       params.append('status', 'application form share');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -690,14 +722,16 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch franchise discussed count
-  const fetchFranchiseDiscussedCount = async (useLatestFromApi = false) => {
+  const fetchFranchiseDiscussedCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -728,14 +762,16 @@ export default function SalesManagerDashboard() {
   };
 
   // Fetch franchise accepted count
-  const fetchFranchiseAcceptedCount = async (useLatestFromApi = false) => {
+  const fetchFranchiseAcceptedCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
-      if (useLatestFromApi) {
-        params.append('dateRange', 'default');
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
       } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         params.append('dateRange', 'specific');
         params.append('fromDate', fromDate);
@@ -770,27 +806,27 @@ export default function SalesManagerDashboard() {
     if (!mounted || leadGenTeam.length === 0 || isFetching) return;
     setIsFetching(true);
     setLoading(true);
-    await fetchLatestDate();
+    const latestDateFromApi = await fetchLatestDate();
     await Promise.all([
-      fetchTotalLeadsCount(true),
-      fetchTotalCallsCount(true),
-      fetchTotalContactsCount(true),
-      fetchNewFollowupCallsCount(true),
-      fetchPickedNotPickedCount(true),
-      fetchContractShareCount(true),
-      fetchInterestedCount(true),
-      fetchSentToManagerCount(true),
-      fetchTotalOnboardCount(true),
-      fetchFranchiseFormCount(true, 'formAsk'),
-      fetchFranchiseFormCount(true, 'formShared'),
-      fetchFranchiseDiscussedCount(true),
-      fetchFranchiseAcceptedCount(true),
-      fetchNormalLeadsCount(true),
-      fetchNormalCallsCount(true),
-      fetchStartupLeadsCount(true),
-      fetchStartupCallsCount(true),
-      fetchMasterUnionLeadsCount(true),
-      fetchMasterUnionCallsCount(true),
+      fetchTotalLeadsCount(true, latestDateFromApi),
+      fetchTotalCallsCount(true, latestDateFromApi),
+      fetchTotalContactsCount(true, latestDateFromApi),
+      fetchNewFollowupCallsCount(true, latestDateFromApi),
+      fetchPickedNotPickedCount(true, latestDateFromApi),
+      fetchContractShareCount(true, latestDateFromApi),
+      fetchInterestedCount(true, latestDateFromApi),
+      fetchSentToManagerCount(true, latestDateFromApi),
+      fetchTotalOnboardCount(true, latestDateFromApi),
+      fetchFranchiseFormCount(true, latestDateFromApi, 'formAsk'),
+      fetchFranchiseFormCount(true, latestDateFromApi, 'formShared'),
+      fetchFranchiseDiscussedCount(true, latestDateFromApi),
+      fetchFranchiseAcceptedCount(true, latestDateFromApi),
+      fetchNormalLeadsCount(true, latestDateFromApi),
+      fetchNormalCallsCount(true, latestDateFromApi),
+      fetchStartupLeadsCount(true, latestDateFromApi),
+      fetchStartupCallsCount(true, latestDateFromApi),
+      fetchMasterUnionLeadsCount(true, latestDateFromApi),
+      fetchMasterUnionCallsCount(true, latestDateFromApi),
     ]);
     setLoading(false);
     setIsFetching(false);
@@ -811,8 +847,8 @@ export default function SalesManagerDashboard() {
       fetchInterestedCount(false),
       fetchSentToManagerCount(false),
       fetchTotalOnboardCount(false),
-      fetchFranchiseFormCount(false, 'formAsk'),
-      fetchFranchiseFormCount(false, 'formShared'),
+      fetchFranchiseFormCount(false, null, 'formAsk'),
+      fetchFranchiseFormCount(false, null, 'formShared'),
       fetchFranchiseDiscussedCount(false),
       fetchFranchiseAcceptedCount(false),
       fetchNormalLeadsCount(false),
@@ -844,8 +880,8 @@ export default function SalesManagerDashboard() {
         fetchInterestedCount(false);
         fetchSentToManagerCount(false);
         fetchTotalOnboardCount(false);
-        fetchFranchiseFormCount(false, 'formAsk');
-        fetchFranchiseFormCount(false, 'formShared');
+        fetchFranchiseFormCount(false, null, 'formAsk');
+        fetchFranchiseFormCount(false, null, 'formShared');
         fetchFranchiseDiscussedCount(false);
         fetchFranchiseAcceptedCount(false);
         fetchNormalLeadsCount(false);
@@ -869,8 +905,8 @@ export default function SalesManagerDashboard() {
       fetchInterestedCount(false);
       fetchSentToManagerCount(false);
       fetchTotalOnboardCount(false);
-      fetchFranchiseFormCount(false, 'formAsk');
-      fetchFranchiseFormCount(false, 'formShared');
+      fetchFranchiseFormCount(false, null, 'formAsk');
+      fetchFranchiseFormCount(false, null, 'formShared');
       fetchFranchiseDiscussedCount(false);
       fetchFranchiseAcceptedCount(false);
       fetchNormalLeadsCount(false);
