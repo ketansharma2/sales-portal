@@ -111,7 +111,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     { name: "CRM Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "Onboardings", href: `${roleBaseHref}/onboard`, icon: <UserPlus size={20} /> }, // For New Handovers
       { name: "Client Tracker", href: `${roleBaseHref}/tracker`, icon: <Building2 size={20} /> },
-      { name: "Email History", href: `${roleBaseHref}/emailhistory`, icon: <History size={20} /> },
+      { name: "Tracker History", href: `${roleBaseHref}/emailhistory`, icon: <History size={20} /> },
       { name: "Requirement Allocation", href: `${roleBaseHref}/assign`, icon: <ClipboardList size={20} /> },
       { name: "Workbench Report", href: `${roleBaseHref}/workbench`, icon: <LayoutDashboard size={20} /> },
       { name: "JD Management", href: `${roleBaseHref}/jd`, icon: <FileText size={20} /> }, // Naya JD Page Tab
