@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation";
 import { 
   Users, Wallet, LayoutGrid, ShieldCheck, Store ,Briefcase,HelpCircle,
   Settings, FileText, Target, Search, BarChart, Phone,Calendar,MapPin,Truck,UserPlus,IndianRupee,UserCheck,Edit,Plus,
-  Package,PhoneCall,ClipboardList,KanbanSquare,TableProperties, SunMedium, UploadCloud,Activity,Building2,History,LayoutDashboard
+  Package,PhoneCall,ClipboardList,KanbanSquare,TableProperties, SunMedium, UploadCloud,Activity,History,LayoutDashboard,  Building2,
+  House,ShoppingCart
+
 } from "lucide-react";
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
@@ -51,6 +53,12 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   else if (currentRole === "hod") {
     menuItems = [
       { name: "Dept. Overview", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
+      { name: "Corporate Sales", href: `${roleBaseHref}/corporate/sales`, icon: <Building2 size={20} /> },
+      { name: "Corporate Delivery", href: `${roleBaseHref}/corporate/delivery`, icon: <Truck size={20} /> },
+
+      { name: "Domestic Sales", href: `${roleBaseHref}/domestic/sales`, icon: <House size={20} /> },
+      { name: "Domestic Delivery", href: `${roleBaseHref}/domestic/delivery`, icon: <ShoppingCart size={20} /> },
+
       { name: "Sector Targets", href: `${roleBaseHref}/targets`, icon: <Target size={20} /> },
       { name: "Expense Approval", href: `${roleBaseHref}/approvals`, icon: <FileText size={20} /> },
       { name: "My Expenses", href: `${roleBaseHref}/expenses`, icon: <Wallet size={20} /> },

@@ -16,7 +16,12 @@ export default function AdminFranchiseDashboard() {
   const [toDate, setToDate] = useState("");
 
   // --- MOCK DATA FOR FRANCHISE (LEADGEN GENERATED) ---
-  const pipeline = { discussed: "80", formAsk: "40", formShared: "35", accepted: "15" };
+const [pipeline, setPipeline] = useState({
+  discussed: 0,
+  formAsk: 0,
+  formShared: 0,
+  accepted: 0
+});
 
   const franchiseClients = [
     { 
@@ -45,10 +50,36 @@ export default function AdminFranchiseDashboard() {
     },
   ];
 
-  useEffect(() => {
-    setMounted(true);
-    setTimeout(() => setLoading(false), 600); // Simulate data fetch
-  }, []);
+useEffect(() => {
+  setMounted(true);
+
+  const fetchDashboard = async () => {
+    try {
+const token = localStorage.getItem("token");
+
+const res = await fetch("/api/admin/franchise", {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+});
+      const data = await res.json();
+ console.log("check data:",data);
+setPipeline(data?.pipeline || {
+      discussed: 0,
+      formAsk: 0,
+      formShared: 0,
+      accepted: 0
+    });
+    //   setFranchiseClients(data.clients);
+    } catch (error) {
+      console.error("API Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchDashboard();
+}, []);
 
   if (!mounted) return null;
 
