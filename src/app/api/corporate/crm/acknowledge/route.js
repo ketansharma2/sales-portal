@@ -22,10 +22,13 @@ export async function POST(request) {
       return NextResponse.json({ error: 'client_id is required' }, { status: 400 })
     }
 
-    // Update status to 'Done' for this client
+    // Update status to 'Done' and set ack_date to today
     const { data, error: updateError } = await supabaseServer
       .from('corporate_crm_clients')
-      .update({ status: 'Done' })
+      .update({ 
+        status: 'Done',
+        ack_date: new Date().toISOString().split('T')[0]
+      })
       .eq('client_id', client_id)
       .eq('user_id', user.id)
       .select()
