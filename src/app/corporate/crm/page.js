@@ -4,13 +4,14 @@ import Link from "next/link";
 import {
   Users, Briefcase, FileText, CheckCircle,
   Phone, Mail, Calendar, TrendingUp,
-  Share2, UserCheck, Award, MessageSquare,
+  Share2, UserCheck, Award, MessageSquare, XCircle, X,
   Clock, ArrowUpRight, Filter, Search
 } from "lucide-react";
 
 export default function CRMDashboard() {
 
   // --- STATE FOR DATE FILTER ---
+  const [allDatabaseActive, setAllDatabaseActive] = useState(false);
   const [dateRange, setDateRange] = useState({
     from: new Date().toISOString().split('T')[0], // Default Today
     to: new Date().toISOString().split('T')[0]    // Default Today
@@ -19,6 +20,12 @@ export default function CRMDashboard() {
   // --- STATE FOR TOTAL ONBOARDED CLIENTS ---
   const [totalOnboarded, setTotalOnboarded] = useState(0);
   const [acknowledged, setAcknowledged] = useState(0);
+  const [activeClients, setActiveClients] = useState('-');
+  const [nonActiveClients, setNonActiveClients] = useState('-');
+  const [pipelineClients, setPipelineClients] = useState('-');
+  const [rejectedByClient, setRejectedByClient] = useState('-');
+  const [shortlistedClients, setShortlistedClients] = useState('-');
+  const [ghostedClients, setGhostedClients] = useState('-');
   const [callsMade, setCallsMade] = useState(0);
   const [followUps, setFollowUps] = useState([]);
   const [conversations, setConversations] = useState([]);
@@ -157,24 +164,23 @@ export default function CRMDashboard() {
   const totalStats = [
     { label: "Total Onboarded Clients", value: totalOnboarded, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
     { label: "Acknowledged", value: acknowledged, icon: Mail, color: "text-green-600", bg: "bg-green-50" },
+    { label: "Active Clients", value: activeClients, icon: Briefcase, color: "text-emerald-600", bg: "bg-emerald-50" },
+    { label: "Non-Active Clients", value: nonActiveClients, icon: Clock, color: "text-rose-600", bg: "bg-rose-50" },
     { label: "Total Reqs", value: "-", icon: FileText, color: "text-purple-600", bg: "bg-purple-50" },
     { label: "Total Package", value: "-", icon: Award, color: "text-orange-600", bg: "bg-orange-50" },
     { label: "Trackers Shared", value: "-", icon: Share2, color: "text-indigo-600", bg: "bg-indigo-50" },
+    { label: "Reqs Worked", value: "-", icon: Briefcase, color: "text-violet-600", bg: "bg-violet-50" },
+    { label: "Calls Made", value: "-", icon: Phone, color: "text-green-600", bg: "bg-green-50" },
+    { label: "Pipeline", value: pipelineClients, icon: TrendingUp, color: "text-cyan-600", bg: "bg-cyan-50" },
+    { label: "Rejected By Client", value: rejectedByClient, icon: XCircle, color: "text-red-600", bg: "bg-red-50" },
+    { label: "Shortlisted", value: shortlistedClients, icon: CheckCircle, color: "text-lime-600", bg: "bg-lime-50" },
+    { label: "Ghosted", value: ghostedClients, icon: MessageSquare, color: "text-slate-600", bg: "bg-slate-50" },
     { label: "Total Interviews", value: "-", icon: Phone, color: "text-pink-600", bg: "bg-pink-50" },
     { label: "Total Selected", value: "-", icon: CheckCircle, color: "text-green-600", bg: "bg-green-50" },
     { label: "Total Joined", value: "-", icon: UserCheck, color: "text-teal-600", bg: "bg-teal-50" },
   ];
 
-  // --- MOCK DATA: ROW 2 (FILTERED ACTIVITY) ---
-  // This data represents metrics ONLY for the Selected Date Range
-  const filteredStats = [
-    { label: "Calls Made", value: callsMade, icon: Phone },
-    { label: "Reqs Worked", value: "-", icon: Briefcase },
-    { label: "Trackers Shared", value: "-", icon: Share2 },
-    { label: "Interviews", value: "-", icon: Users },
-    { label: "Selected", value: "-", icon: CheckCircle },
-    { label: "Joined", value: "-", icon: UserCheck },
-  ];
+  
 
   // --- TABLE DATA (FROM API) ---
   const tableData = conversations.map((conv) => ({
@@ -223,6 +229,13 @@ export default function CRMDashboard() {
 
           {/* DATE FILTER CONTROLS */}
           <div className="flex items-center gap-3 bg-white/10 p-1.5 rounded-lg border border-white/10">
+             <button
+               onClick={() => setAllDatabaseActive((prev) => !prev)}
+               className={`${allDatabaseActive ? 'bg-yellow-300 text-[#103c7f] border-yellow-200 shadow-md' : 'bg-white text-[#103c7f] border-white/80'} text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded hover:bg-blue-50 transition-colors`}
+             >
+               All Database
+             </button>
+             <div className="w-px h-6 bg-blue-800"></div>
              <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold text-blue-200 uppercase px-2">From</span>
                 <input 
@@ -250,12 +263,15 @@ export default function CRMDashboard() {
           
           {/* --- ROW 1: DATABASE OVERVIEW (LIFETIME) --- */}
           <div className="shrink-0">
-            <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+             <span className="text-[10px] font-bold text-[#103c7f] bg-blue-100 px-2 py-0.5 rounded border border-blue-200 ">
+                    {dateRange.from} <span className="mx-1 text-gray-400">to</span> {dateRange.to}
+                </span>
+            {/* <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
               <Briefcase size={14}/> Database Overview (Lifetime)
-            </h3>
-            <div className="grid grid-cols-8 gap-3">
+            </h3> */}
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
               {totalStats.map((stat, idx) => (
-                <div key={idx} className="bg-white p-2.5 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center hover:shadow-md transition-all">
+                <div key={idx} className="bg-white p-2.5 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center hover:shadow-md transition-all mt-2">
                   <div className={`p-1.5 rounded-full ${stat.bg} mb-1.5`}>
                     <stat.icon size={14} className={stat.color} />
                   </div>
@@ -266,32 +282,6 @@ export default function CRMDashboard() {
             </div>
           </div>
 
-          {/* --- ROW 2: FILTERED ACTIVITY REPORT (MERGED MONTHLY/DAILY) --- */}
-          <div className="shrink-0">
-            <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                  <TrendingUp size={14}/> Activity Report
-                </h3>
-                <span className="text-[10px] font-bold text-[#103c7f] bg-blue-100 px-2 py-0.5 rounded border border-blue-200">
-                    {dateRange.from} <span className="mx-1 text-gray-400">to</span> {dateRange.to}
-                </span>
-            </div>
-            
-            <div className="grid grid-cols-7 gap-3">
-              {filteredStats.map((stat, idx) => (
-                <div key={idx} className="bg-white p-2.5 rounded-xl border border-blue-100 shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden group hover:border-[#103c7f] transition-all cursor-default">
-                   {/* Top Accent Line */}
-                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-[#103c7f]"></div>
-                   
-                   <div className="mb-1 text-blue-300 group-hover:text-[#103c7f] transition-colors">
-                      <stat.icon size={14} />
-                   </div>
-                   <h4 className="text-xl font-black text-[#103c7f] leading-none mt-1">{stat.value}</h4>
-                   <p className="text-[9px] font-bold text-gray-500 uppercase mt-1">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* --- ROW 3: DETAILED TABLE --- */}
           <div className="flex-1 flex flex-col min-h-0 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
