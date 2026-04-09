@@ -16,7 +16,23 @@ export default function TLWorkbenchReport() {
     
     // Modals State
     const [cvModalData, setCvModalData] = useState(null);
-    const [jdModalData, setJdModalData] = useState(null); // New state for JD View Modal
+    const [jdModalData, setJdModalData] = useState(null);
+    const [accuracyModalOpen, setAccuracyModalOpen] = useState(false);
+
+    // Accuracy details data (mock)
+    const accuracyStats = {
+        totalTrackers: 120,
+        jdMatch: 106,
+        accuracy: 88
+    };
+
+    const trackerDetails = [
+        { sno: 1, date: "2026-03-02", profile: "Telecouncellor", candidateName: "Rahul Sharma", cvUrl: null, cvStatus: "JD Match" },
+        { sno: 2, date: "2026-03-02", profile: "Telecouncellor", candidateName: "Priya Singh", cvUrl: null, cvStatus: "JD Match" },
+        { sno: 3, date: "2026-03-02", profile: "Telesales Executive", candidateName: "Amit Patel", cvUrl: null, cvStatus: "Average Match" },
+        { sno: 4, date: "2026-03-03", profile: "AutoCAD Draftsman", candidateName: "Vikram Kumar", cvUrl: null, cvStatus: "JD Match" },
+        { sno: 5, date: "2026-03-02", profile: "Java Developer", candidateName: "Sneha Gupta", cvUrl: null, cvStatus: "Rejected" },
+    ];
 
     // --- MOCK DATA: Whole Team's logged work (TL View) ---
     const recruitersList = ["Pooja", "Sneha", "Khushi Chawla", "Amit Kumar"];
@@ -205,7 +221,10 @@ export default function TLWorkbenchReport() {
                     </div>
 
                     {/* TL Card 5: Accuracy % */}
-                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-amber-100 flex items-center gap-3 relative overflow-hidden group hover:border-amber-300 transition-colors">
+                    <div 
+                        className="bg-white p-4 rounded-2xl shadow-sm border border-amber-100 flex items-center gap-3 relative overflow-hidden group hover:border-amber-300 transition-colors cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() => setAccuracyModalOpen(true)}
+                    >
                         <div className="absolute top-0 right-0 w-12 h-12 bg-amber-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
                         <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center shrink-0 z-10">
                             <Target size={20} />
@@ -477,6 +496,100 @@ export default function TLWorkbenchReport() {
                                 Close
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* --- ACCURACY DETAILS MODAL --- */}
+            {accuracyModalOpen && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4" onClick={() => setAccuracyModalOpen(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                        
+                        {/* Header */}
+                        <div className="bg-cyan-600 p-4 flex justify-between items-center text-white shrink-0">
+                            <h3 className="font-black text-lg uppercase tracking-wide flex items-center gap-2">
+                                <Target size={20}/> Accuracy Details
+                            </h3>
+                            <div className="flex items-center gap-3">
+                                <div className="bg-white/20 px-3 py-1 rounded-full">
+                                    <span className="text-lg font-black">{accuracyStats.accuracy}%</span>
+                                </div>
+                                <button onClick={() => setAccuracyModalOpen(false)} className="hover:bg-white/20 p-1 rounded-full transition bg-white/10">
+                                    <X size={18} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 pb-0">
+                            <div className="grid grid-cols-2 gap-4 mb-6">
+                                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Trackers Sent To CRM</p>
+                                    <p className="text-3xl font-black text-blue-800">{accuracyStats.totalTrackers}</p>
+                                </div>
+                                <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                                    <p className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Candidates Joined</p>
+                                    <p className="text-3xl font-black text-green-800">{accuracyStats.jdMatch}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer Strip */}
+                        <div className="bg-gray-100 p-3 text-center border-t border-gray-200">
+                            <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                                Candidates Joined / Trackers Sent To CRM × 100
+                            </p>
+                        </div>
+
+                        {/* Details Table */}
+                        <div className="p-4 max-h-[300px] overflow-y-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-slate-100 text-slate-600 text-[10px] uppercase font-bold sticky top-0">
+                                    <tr>
+                                        <th className="p-2 border border-slate-200">Sno.</th>
+                                        <th className="p-2 border border-slate-200">Date</th>
+                                        <th className="p-2 border border-slate-200">Profile</th>
+                                        <th className="p-2 border border-slate-200">Candidate Name</th>
+                                        <th className="p-2 border border-slate-200">CV</th>
+                                        <th className="p-2 border border-slate-200">CV Status (BY TL)</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-xs text-slate-800 font-medium">
+                                    {trackerDetails.length > 0 ? (
+                                        trackerDetails.map((row) => (
+                                            <tr key={row.sno} className="hover:bg-slate-50">
+                                                <td className="p-2 border border-slate-200">{row.sno}</td>
+                                                <td className="p-2 border border-slate-200">{row.date}</td>
+                                                <td className="p-2 border border-slate-200">{row.profile}</td>
+                                                <td className="p-2 border border-slate-200">{row.candidateName}</td>
+                                                <td className="p-2 border border-slate-200">
+                                                    {row.cvUrl ? (
+                                                        <button className="text-blue-600 hover:underline text-xs font-bold">
+                                                            View CV
+                                                        </button>
+                                                    ) : '-'}
+                                                </td>
+                                                <td className="p-2 border border-slate-200">
+                                                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                                        row.cvStatus === 'JD Match' ? 'bg-green-100 text-green-700' :
+                                                        row.cvStatus === 'Average Match' ? 'bg-amber-100 text-amber-700' :
+                                                        row.cvStatus === 'Rejected' ? 'bg-red-100 text-red-700' :
+                                                        'bg-slate-100 text-slate-600'
+                                                    }`}>
+                                                        {row.cvStatus}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="6" className="p-4 text-center text-slate-500 text-xs">No data available</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
                     </div>
                 </div>
             )}
