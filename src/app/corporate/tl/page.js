@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { 
     Calendar, Briefcase, IndianRupee, Clock, 
     FileText, Send, TrendingUp, Database, UserCheck, MessageSquare, 
@@ -13,11 +13,36 @@ export default function TLWorkbenchReport() {
     const [toDate, setToDate] = useState("2026-03-03");
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedRecruiter, setSelectedRecruiter] = useState("All");
+    const [recruitersList, setRecruitersList] = useState([]);
+    const [latestCvDate, setLatestCvDate] = useState("");
+    
+    // TL Metrics State
+    const [tlMetrics, setTlMetrics] = useState({
+        trackerSentToCrm: 0,
+        pipelineCv: 0,
+        rejectedCv: 0,
+        notResponding: 0,
+        joining: 0,
+        totalTrackersReceived: 0,
+        jdMatchCount: 0
+    });
+    
+    // Calculate accuracy percentage
+    const accuracy = tlMetrics.trackerSentToCrm > 0 
+        ? Math.round((tlMetrics.joining / tlMetrics.trackerSentToCrm) * 100) 
+        : 0;
     
     // Modals State
     const [cvModalData, setCvModalData] = useState(null);
     const [jdModalData, setJdModalData] = useState(null);
     const [accuracyModalOpen, setAccuracyModalOpen] = useState(false);
+    const [pipelineModalOpen, setPipelineModalOpen] = useState(false);
+    const [rejectedCvModalOpen, setRejectedCvModalOpen] = useState(false);
+    const [rejectedCvData, setRejectedCvData] = useState([]);
+    const [isLoadingRejectedCv, setIsLoadingRejectedCv] = useState(false);
+    const [joiningModalOpen, setJoiningModalOpen] = useState(false);
+    const [joiningData, setJoiningData] = useState([]);
+    const [isLoadingJoining, setIsLoadingJoining] = useState(false);
 
     // Accuracy details data (mock)
     const accuracyStats = {
@@ -34,8 +59,146 @@ export default function TLWorkbenchReport() {
         { sno: 5, date: "2026-03-02", profile: "Java Developer", candidateName: "Sneha Gupta", cvUrl: null, cvStatus: "Rejected" },
     ];
 
+    // Fetch RC users on mount
+    useEffect(() => {
+        const fetchRcUsers = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) return;
+                
+                const response = await fetch('/api/corporate/tl/rc-users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    setRecruitersList(result.data);
+                    
+                    // After getting recruiters, fetch latest CV date
+                    const userIds = result.data.map(r => r.user_id).join(',');
+                    if (userIds) {
+                        const dateResponse = await fetch(`/api/corporate/tl/latest-cv-date?userIds=${userIds}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        const dateResult = await dateResponse.json();
+                        if (dateResult.success && dateResult.maxDate) {
+                            setLatestCvDate(dateResult.maxDate);
+                            setFromDate(dateResult.maxDate);
+                            setToDate(dateResult.maxDate);
+                        } else {
+                            const today = new Date().toISOString().split('T')[0];
+                            setLatestCvDate(today);
+                            setFromDate(today);
+                            setToDate(today);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch RC users:', error);
+                const today = new Date().toISOString().split('T')[0];
+                setLatestCvDate(today);
+                setFromDate(today);
+                setToDate(today);
+            }
+        };
+        
+        fetchRcUsers();
+    }, []);
+
+    // Fetch TL metrics when date range changes
+    useEffect(() => {
+        const fetchTlMetrics = async () => {
+            if (!fromDate || !toDate) return;
+            
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) return;
+                
+                const response = await fetch(`/api/corporate/tl/metrics?fromDate=${fromDate}&toDate=${toDate}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    setTlMetrics(result.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch TL metrics:', error);
+            }
+        };
+        
+        fetchTlMetrics();
+    }, [fromDate, toDate]);
+
+    // Fetch rejected CV data when modal opens
+    useEffect(() => {
+        if (rejectedCvModalOpen) {
+            setIsLoadingRejectedCv(true);
+            const fetchRejectedCv = async () => {
+                try {
+                    const session = JSON.parse(localStorage.getItem('session') || '{}');
+                    const token = session.access_token;
+                    
+                    if (!token) return;
+                    
+                    const response = await fetch(`/api/corporate/tl/rejected-cv?fromDate=${fromDate}&toDate=${toDate}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success && result.data) {
+                        setRejectedCvData(result.data);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch rejected CV:', error);
+                } finally {
+                    setIsLoadingRejectedCv(false);
+                }
+            };
+            
+            fetchRejectedCv();
+        }
+    }, [rejectedCvModalOpen, fromDate, toDate]);
+
+    // Fetch joining data when modal opens
+    useEffect(() => {
+        if (joiningModalOpen) {
+            setIsLoadingJoining(true);
+            const fetchJoining = async () => {
+                try {
+                    const session = JSON.parse(localStorage.getItem('session') || '{}');
+                    const token = session.access_token;
+                    
+                    if (!token) return;
+                    
+                    const response = await fetch(`/api/corporate/tl/joining?fromDate=${fromDate}&toDate=${toDate}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success && result.data) {
+                        setJoiningData(result.data);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch joining:', error);
+                } finally {
+                    setIsLoadingJoining(false);
+                }
+            };
+            
+            fetchJoining();
+        }
+    }, [joiningModalOpen, fromDate, toDate]);
+
     // --- MOCK DATA: Whole Team's logged work (TL View) ---
-    const recruitersList = ["Pooja", "Sneha", "Khushi Chawla", "Amit Kumar"];
 
     const [reportData, setReportData] = useState([
         { 
@@ -126,7 +289,7 @@ export default function TLWorkbenchReport() {
                             onChange={(e) => setSelectedRecruiter(e.target.value)}
                         >
                             <option value="All">All Recruiters</option>
-                            {recruitersList.map(r => <option key={r} value={r}>{r}</option>)}
+                            {recruitersList.map(r => <option key={r.user_id} value={r.name}>{r.name}</option>)}
                         </select>
                     </div>
 
@@ -180,43 +343,52 @@ export default function TLWorkbenchReport() {
                         </div>
                         <div className="z-10">
                             <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Tracker Sent To CRM</p>
-                            <p className="text-2xl font-black text-blue-700 leading-none mt-1">120</p>
+                            <p className="text-2xl font-black text-blue-700 leading-none mt-1">{tlMetrics.trackerSentToCrm}</p>
                         </div>
                     </div>
 
                     {/* TL Card 2: Pipeline CV */}
-                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100 flex items-center gap-3 relative overflow-hidden group hover:border-indigo-300 transition-colors">
+                    <div 
+                        className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100 flex items-center gap-3 relative overflow-hidden group hover:border-indigo-300 transition-colors cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() => setPipelineModalOpen(true)}
+                    >
                         <div className="absolute top-0 right-0 w-12 h-12 bg-indigo-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
                         <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0 z-10">
                             <Database size={20} />
                         </div>
                         <div className="z-10">
                             <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Pipeline CV</p>
-                            <p className="text-2xl font-black text-indigo-700 leading-none mt-1">45</p>
+                            <p className="text-2xl font-black text-indigo-700 leading-none mt-1">{tlMetrics.pipelineCv}</p>
                         </div>
                     </div>
 
                     {/* TL Card 3: Rejected CV */}
-                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-red-100 flex items-center gap-3 relative overflow-hidden group hover:border-red-300 transition-colors">
+                    <div 
+                        className="bg-white p-4 rounded-2xl shadow-sm border border-red-100 flex items-center gap-3 relative overflow-hidden group hover:border-red-300 transition-colors cursor-pointer hover:shadow-md transition-shadow"
+                        
+                    >
                         <div className="absolute top-0 right-0 w-12 h-12 bg-red-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
                         <div className="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0 z-10">
                             <X size={20} />
                         </div>
                         <div className="z-10">
                             <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Rejected CV</p>
-                            <p className="text-2xl font-black text-red-700 leading-none mt-1">12</p>
+                            <p className="text-2xl font-black text-red-700 leading-none mt-1">{tlMetrics.rejectedCv}</p>
                         </div>
                     </div>
 
                     {/* TL Card 4: Joining */}
-                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 flex items-center gap-3 relative overflow-hidden group hover:border-emerald-300 transition-colors">
+                    <div 
+                        className="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 flex items-center gap-3 relative overflow-hidden group hover:border-emerald-300 transition-colors cursor-pointer hover:shadow-md transition-shadow"
+                        
+                    >
                         <div className="absolute top-0 right-0 w-12 h-12 bg-emerald-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
                         <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0 z-10">
                             <CheckCircle size={20} />
                         </div>
                         <div className="z-10">
                             <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Joining</p>
-                            <p className="text-2xl font-black text-emerald-700 leading-none mt-1">8</p>
+                            <p className="text-2xl font-black text-emerald-700 leading-none mt-1">{tlMetrics.joining}</p>
                         </div>
                     </div>
 
@@ -232,7 +404,7 @@ export default function TLWorkbenchReport() {
                         <div className="z-10 flex items-baseline gap-1">
                             <div>
                                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Accuracy %</p>
-                                <p className="text-2xl font-black text-amber-700 leading-none mt-1">88<span className="text-sm ml-0.5">%</span></p>
+                                <p className="text-2xl font-black text-amber-700 leading-none mt-1">{accuracy}<span className="text-sm ml-0.5">%</span></p>
                             </div>
                         </div>
                     </div>
@@ -246,6 +418,11 @@ export default function TLWorkbenchReport() {
             <div className="mb-6">
                 <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <Users size={14} className="text-blue-500"/> Team Operational Metrics
+                    {latestCvDate && (
+                        <span className="ml-2 bg-blue-100 text-blue-700 border border-blue-200 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
+                            <Calendar size={10}/> {latestCvDate}
+                        </span>
+                    )}
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                     
@@ -512,7 +689,7 @@ export default function TLWorkbenchReport() {
                             </h3>
                             <div className="flex items-center gap-3">
                                 <div className="bg-white/20 px-3 py-1 rounded-full">
-                                    <span className="text-lg font-black">{accuracyStats.accuracy}%</span>
+                                    <span className="text-lg font-black">{accuracy}%</span>
                                 </div>
                                 <button onClick={() => setAccuracyModalOpen(false)} className="hover:bg-white/20 p-1 rounded-full transition bg-white/10">
                                     <X size={18} />
@@ -524,12 +701,12 @@ export default function TLWorkbenchReport() {
                         <div className="p-6 pb-0">
                             <div className="grid grid-cols-2 gap-4 mb-6">
                                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Trackers Sent To CRM</p>
-                                    <p className="text-3xl font-black text-blue-800">{accuracyStats.totalTrackers}</p>
+                                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Trackers Sent TO CRM</p>
+                                    <p className="text-3xl font-black text-blue-800">{tlMetrics.trackerSentToCrm}</p>
                                 </div>
                                 <div className="bg-green-50 p-4 rounded-xl border border-green-100">
                                     <p className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Candidates Joined</p>
-                                    <p className="text-3xl font-black text-green-800">{accuracyStats.jdMatch}</p>
+                                    <p className="text-3xl font-black text-green-800">{tlMetrics.joining}</p>
                                 </div>
                             </div>
                         </div>
@@ -537,57 +714,209 @@ export default function TLWorkbenchReport() {
                         {/* Footer Strip */}
                         <div className="bg-gray-100 p-3 text-center border-t border-gray-200">
                             <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                Candidates Joined / Trackers Sent To CRM × 100
+                                Candidates Joined / Trackers Sent TO CRM × 100
                             </p>
                         </div>
 
-                        {/* Details Table */}
-                        <div className="p-4 max-h-[300px] overflow-y-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-slate-100 text-slate-600 text-[10px] uppercase font-bold sticky top-0">
-                                    <tr>
-                                        <th className="p-2 border border-slate-200">Sno.</th>
-                                        <th className="p-2 border border-slate-200">Date</th>
-                                        <th className="p-2 border border-slate-200">Profile</th>
-                                        <th className="p-2 border border-slate-200">Candidate Name</th>
-                                        <th className="p-2 border border-slate-200">CV</th>
-                                        <th className="p-2 border border-slate-200">CV Status (BY TL)</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="text-xs text-slate-800 font-medium">
-                                    {trackerDetails.length > 0 ? (
-                                        trackerDetails.map((row) => (
-                                            <tr key={row.sno} className="hover:bg-slate-50">
-                                                <td className="p-2 border border-slate-200">{row.sno}</td>
-                                                <td className="p-2 border border-slate-200">{row.date}</td>
-                                                <td className="p-2 border border-slate-200">{row.profile}</td>
-                                                <td className="p-2 border border-slate-200">{row.candidateName}</td>
-                                                <td className="p-2 border border-slate-200">
-                                                    {row.cvUrl ? (
-                                                        <button className="text-blue-600 hover:underline text-xs font-bold">
-                                                            View CV
-                                                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* --- PIPELINE CV MODAL --- */}
+            {pipelineModalOpen && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4" onClick={() => setPipelineModalOpen(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                        
+                        {/* Header */}
+                        <div className="bg-indigo-600 p-4 flex justify-between items-center text-white shrink-0">
+                            <h3 className="font-black text-lg uppercase tracking-wide flex items-center gap-2">
+                                <Database size={20}/> Pipeline CV Details
+                            </h3>
+                            <div className="flex items-center gap-3">
+                                <div className="bg-white/20 px-3 py-1 rounded-full">
+                                    <span className="text-lg font-black">{tlMetrics.pipelineCv}</span>
+                                </div>
+                                <button onClick={() => setPipelineModalOpen(false)} className="hover:bg-white/20 p-1 rounded-full transition bg-white/10">
+                                    <X size={18} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 pb-0">
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Tracker Received</p>
+                                    <p className="text-3xl font-black text-blue-800">{tlMetrics.totalTrackersReceived}</p>
+                                </div>
+                                <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                                    <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">Sent to CRM</p>
+                                    <p className="text-3xl font-black text-purple-800">{tlMetrics.trackerSentToCrm}</p>
+                                </div>
+                                <div className="bg-red-50 p-4 rounded-xl border border-red-100">
+                                    <p className="text-[10px] font-bold text-red-600 uppercase tracking-wider">Not Responding</p>
+                                    <p className="text-3xl font-black text-red-800">{tlMetrics.notResponding}</p>
+                                </div>
+                                <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
+                                    <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wider">Rejected</p>
+                                    <p className="text-3xl font-black text-orange-800">{tlMetrics.rejectedCv}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer Strip */}
+                        <div className="bg-gray-100 p-3 text-center border-t border-gray-200">
+                            <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                                (Tracker Received - Sent to CRM - Not Responding - Rejected)
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+            )}
+
+            {/* --- REJECTED CV MODAL --- */}
+            {rejectedCvModalOpen && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4" onClick={() => setRejectedCvModalOpen(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                        
+                        {/* Header */}
+                        <div className="bg-red-600 p-4 flex justify-between items-center text-white shrink-0">
+                            <h3 className="font-black text-lg uppercase tracking-wide flex items-center gap-2">
+                                <X size={20}/> Rejected CV Details
+                            </h3>
+                            <div className="flex items-center gap-3">
+                                <div className="bg-white/20 px-3 py-1 rounded-full">
+                                    <span className="text-lg font-black">{rejectedCvData.length}</span>
+                                </div>
+                                <button onClick={() => setRejectedCvModalOpen(false)} className="hover:bg-white/20 p-1 rounded-full transition bg-white/10">
+                                    <X size={18} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-4 max-h-[500px] overflow-y-auto">
+                            {isLoadingRejectedCv ? (
+                                <div className="flex justify-center items-center py-10">
+                                    <div className="w-8 h-8 border-4 border-red-200 border-t-red-600 rounded-full animate-spin"></div>
+                                </div>
+                            ) : rejectedCvData.length > 0 ? (
+                                <table className="w-full text-left border-collapse">
+                                    <thead className="bg-red-50 text-red-600 text-[10px] uppercase font-bold sticky top-0">
+                                        <tr>
+                                            <th className="p-2 border border-red-200">Sno.</th>
+                                            <th className="p-2 border border-red-200">Date</th>
+                                            <th className="p-2 border border-red-200">RC Name</th>
+                                            <th className="p-2 border border-red-200">Profile</th>
+                                            <th className="p-2 border border-red-200">Candidate</th>
+                                            <th className="p-2 border border-red-200">Phone</th>
+                                            <th className="p-2 border border-red-200">Location</th>
+                                            <th className="p-2 border border-red-200">Exp</th>
+                                            <th className="p-2 border border-red-200">CV</th>
+                                            <th className="p-2 border border-red-200">Call Respond</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-xs text-slate-800 font-medium">
+                                        {rejectedCvData.map((row, idx) => (
+                                            <tr key={row.conversation_id} className="hover:bg-red-50">
+                                                <td className="p-2 border border-red-200">{idx + 1}</td>
+                                                <td className="p-2 border border-red-200">{row.sent_date || '-'}</td>
+                                                <td className="p-2 border border-red-200">{row.rc_name || '-'}</td>
+                                                <td className="p-2 border border-red-200">{row.profile}</td>
+                                                <td className="p-2 border border-red-200">{row.candidate_name}</td>
+                                                <td className="p-2 border border-red-200">{row.candidate_phone || '-'}</td>
+                                                <td className="p-2 border border-red-200">{row.candidate_location || '-'}</td>
+                                                <td className="p-2 border border-red-200">{row.experience || '-'}</td>
+                                                <td className="p-2 border border-red-200">
+                                                    {row.redacted_cv_url ? (
+                                                        <a href={row.redacted_cv_url} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline font-bold">View CV</a>
+                                                    ) : row.cv_url ? (
+                                                        <a href={row.cv_url} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline font-bold">View CV</a>
                                                     ) : '-'}
                                                 </td>
-                                                <td className="p-2 border border-slate-200">
+                                                <td className="p-2 border border-red-200">
                                                     <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                                                        row.cvStatus === 'JD Match' ? 'bg-green-100 text-green-700' :
-                                                        row.cvStatus === 'Average Match' ? 'bg-amber-100 text-amber-700' :
-                                                        row.cvStatus === 'Rejected' ? 'bg-red-100 text-red-700' :
-                                                        'bg-slate-100 text-slate-600'
+                                                        row.call_respond === 'No' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'
                                                     }`}>
-                                                        {row.cvStatus}
+                                                        {row.call_respond || '-'}
                                                     </span>
                                                 </td>
                                             </tr>
-                                        ))
-                                    ) : (
+                                        ))}
+                                    </tbody>
+                                </table>
+                            ) : (
+                                <div className="text-center py-10 text-slate-500 text-xs">No rejected CVs found</div>
+                            )}
+                        </div>
+
+                    </div>
+                </div>
+            )}
+
+            {/* --- JOINING MODAL --- */}
+            {joiningModalOpen && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4" onClick={() => setJoiningModalOpen(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                        
+                        {/* Header */}
+                        <div className="bg-emerald-600 p-4 flex justify-between items-center text-white shrink-0">
+                            <h3 className="font-black text-lg uppercase tracking-wide flex items-center gap-2">
+                                <CheckCircle size={20}/> Joining Details
+                            </h3>
+                            <div className="flex items-center gap-3">
+                                <div className="bg-white/20 px-3 py-1 rounded-full">
+                                    <span className="text-lg font-black">{joiningData.length}</span>
+                                </div>
+                                <button onClick={() => setJoiningModalOpen(false)} className="hover:bg-white/20 p-1 rounded-full transition bg-white/10">
+                                    <X size={18} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-4 max-h-[500px] overflow-y-auto">
+                            {isLoadingJoining ? (
+                                <div className="flex justify-center items-center py-10">
+                                    <div className="w-8 h-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
+                                </div>
+                            ) : joiningData.length > 0 ? (
+                                <table className="w-full text-left border-collapse">
+                                    <thead className="bg-emerald-50 text-emerald-600 text-[10px] uppercase font-bold sticky top-0">
                                         <tr>
-                                            <td colSpan="6" className="p-4 text-center text-slate-500 text-xs">No data available</td>
+                                            <th className="p-2 border border-emerald-200">Sno.</th>
+                                            <th className="p-2 border border-emerald-200">Joining Date</th>
+                                            <th className="p-2 border border-emerald-200">Profile</th>
+                                            <th className="p-2 border border-emerald-200">Slot</th>
+                                            <th className="p-2 border border-emerald-200">Candidate Name</th>
+                                            <th className="p-2 border border-emerald-200">Email</th>
+                                            <th className="p-2 border border-emerald-200">Phone</th>
+                                            <th className="p-2 border border-emerald-200">Status</th>
                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="text-xs text-slate-800 font-medium">
+                                        {joiningData.map((row, idx) => (
+                                            <tr key={row.conversation_id} className="hover:bg-emerald-50">
+                                                <td className="p-2 border border-emerald-200">{idx + 1}</td>
+                                                <td className="p-2 border border-emerald-200">{row.date || '-'}</td>
+                                                <td className="p-2 border border-emerald-200">{row.profile || '-'}</td>
+                                                <td className="p-2 border border-emerald-200">{row.slot || '-'}</td>
+                                                <td className="p-2 border border-emerald-200">{row.candidate_name}</td>
+                                                <td className="p-2 border border-emerald-200">{row.candidate_email || '-'}</td>
+                                                <td className="p-2 border border-emerald-200">{row.candidate_phone || '-'}</td>
+                                                <td className="p-2 border border-emerald-200">
+                                                    <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-100 text-emerald-700">
+                                                        {row.interview_status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            ) : (
+                                <div className="text-center py-10 text-slate-500 text-xs">No joinings found</div>
+                            )}
                         </div>
 
                     </div>
