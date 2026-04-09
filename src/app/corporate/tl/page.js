@@ -1,5 +1,6 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
+import Image from 'next/image';
 import { 
     Calendar, Briefcase, IndianRupee, Clock, 
     FileText, Send, TrendingUp, Database, UserCheck, MessageSquare, 
@@ -15,17 +16,30 @@ export default function TLWorkbenchReport() {
     const [selectedRecruiter, setSelectedRecruiter] = useState("All");
     const [recruitersList, setRecruitersList] = useState([]);
     const [latestCvDate, setLatestCvDate] = useState("");
+    const [isDateInitialized, setIsDateInitialized] = useState(false);
     
-    // TL Metrics State
-    const [tlMetrics, setTlMetrics] = useState({
-        trackerSentToCrm: 0,
-        pipelineCv: 0,
-        rejectedCv: 0,
-        notResponding: 0,
-        joining: 0,
-        totalTrackersReceived: 0,
-        jdMatchCount: 0
-    });
+        // TL Metrics State
+        const [tlMetrics, setTlMetrics] = useState({
+            trackerSentToCrm: 0,
+            pipelineCv: 0,
+            rejectedCv: 0,
+            notResponding: 0,
+            joining: 0,
+            totalTrackersReceived: 0,
+            jdMatchCount: 0
+        });
+
+        // Team Metrics State
+        const [teamMetrics, setTeamMetrics] = useState({
+            total_cvs: 0,
+            total_conversion: 0,
+            total_asset: 0,
+            total_trackers: 0,
+            total_sti: 0
+        });
+        
+        // Assignment Breakdown State
+        const [assignmentData, setAssignmentData] = useState([]);
     
     // Calculate accuracy percentage
     const accuracy = tlMetrics.trackerSentToCrm > 0 
@@ -88,11 +102,13 @@ export default function TLWorkbenchReport() {
                             setLatestCvDate(dateResult.maxDate);
                             setFromDate(dateResult.maxDate);
                             setToDate(dateResult.maxDate);
+                            setIsDateInitialized(true);
                         } else {
                             const today = new Date().toISOString().split('T')[0];
                             setLatestCvDate(today);
                             setFromDate(today);
                             setToDate(today);
+                            setIsDateInitialized(true);
                         }
                     }
                 }
@@ -102,14 +118,17 @@ export default function TLWorkbenchReport() {
                 setLatestCvDate(today);
                 setFromDate(today);
                 setToDate(today);
+                setIsDateInitialized(true);
             }
         };
         
         fetchRcUsers();
     }, []);
 
-    // Fetch TL metrics when date range changes
+    // Fetch TL metrics when date range changes (only after date is initialized)
     useEffect(() => {
+        if (!isDateInitialized || !fromDate || !toDate) return;
+        
         const fetchTlMetrics = async () => {
             if (!fromDate || !toDate) return;
             
@@ -134,7 +153,111 @@ export default function TLWorkbenchReport() {
         };
         
         fetchTlMetrics();
-    }, [fromDate, toDate]);
+    }, [fromDate, toDate, isDateInitialized]);
+
+    // Fetch Team metrics when date range or selected recruiter changes (only after date is initialized)
+    useEffect(() => {
+        if (!isDateInitialized || !fromDate || !toDate) return;
+        
+        const fetchTeamMetrics = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) return;
+                
+                let url = `/api/corporate/tl/team-metrics?fromDate=${fromDate}&toDate=${toDate}`;
+                if (selectedRecruiter && selectedRecruiter !== "All") {
+                    url += `&recruiter_id=${selectedRecruiter}`;
+                }
+                
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    setTeamMetrics(prev => ({
+                        ...prev,
+                        total_cvs: result.data.total_cvs || 0,
+                        total_conversion: result.data.total_conversion || 0,
+                        total_asset: result.data.total_asset || 0,
+                        total_trackers: result.data.total_trackers || 0
+                    }));
+                }
+            } catch (error) {
+                console.error('Failed to fetch team metrics:', error);
+            }
+        };
+        
+        fetchTeamMetrics();
+
+        // Fetch STI data separately
+        const fetchSti = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) return;
+                
+                let url = `/api/corporate/tl/team-sti?fromDate=${fromDate}&toDate=${toDate}`;
+                if (selectedRecruiter && selectedRecruiter !== "All") {
+                    url += `&recruiter_id=${selectedRecruiter}`;
+                }
+                
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    setTeamMetrics(prev => ({
+                        ...prev,
+                        total_sti: result.total_sti || 0
+                    }));
+                }
+            } catch (error) {
+                console.error('Failed to fetch STI:', error);
+            }
+        };
+        
+        fetchSti();
+    }, [fromDate, toDate, selectedRecruiter]);
+
+    // Fetch Assignment Breakdown data when date range or selected recruiter changes (only after date is initialized)
+    useEffect(() => {
+        if (!isDateInitialized || !fromDate || !toDate) return;
+        
+        const fetchAssignmentData = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) return;
+                
+                let url = `/api/corporate/tl/workbench-data?fromDate=${fromDate}&toDate=${toDate}`;
+                if (selectedRecruiter && selectedRecruiter !== "All") {
+                    url += `&recruiter_id=${selectedRecruiter}`;
+                }
+                
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    setAssignmentData(result.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch assignment data:', error);
+            }
+        };
+        
+        fetchAssignmentData();
+    }, [fromDate, toDate, selectedRecruiter, isDateInitialized]);
 
     // Fetch rejected CV data when modal opens
     useEffect(() => {
@@ -200,67 +323,29 @@ export default function TLWorkbenchReport() {
 
     // --- MOCK DATA: Whole Team's logged work (TL View) ---
 
-    const [reportData, setReportData] = useState([
-        { 
-            id: 1, date: "2026-03-02", recruiter: "Pooja", profile: "Telecouncellor", package: "30k", requirement: "350", slot: "09:30 AM - 01:00 PM",
-            jdText: "Looking for excellent communication skills in Hindi & English. Minimum 6 months of BPO experience required. 6 days working.",
-            cv_naukri: 45, cv_indeed: 20, cv_other: 5, advance_sti: 15, conversion: 2, asset: 5, tracker_sent: 2, notes: "Good response today. Focused mostly on Naukri database.",
-            tlRemark: "Asked Pooja to focus only on immediate joiners."
-        },
-        { 
-            id: 2, date: "2026-03-02", recruiter: "Sneha", profile: "Telesales Executive", package: "21k", requirement: "30", slot: "Full Day (10-6)",
-            jdText: "Outbound sales for financial products. Target-oriented role. Freshers with good convincing power can apply.",
-            cv_naukri: 10, cv_indeed: 30, cv_other: 2, advance_sti: 8, conversion: 1, asset: 3, tracker_sent: 1, notes: "Indeed is giving better regional candidates for this profile.",
-            tlRemark: "Good progress. Maintain the momentum."
-        },
-        { 
-            id: 3, date: "2026-03-02", recruiter: "Khushi Chawla", profile: "Senior Merchandiser", package: "70k", requirement: "2", slot: "02:00 PM - 06:00 PM",
-            jdText: "", // Blank JD to show how it looks when JD is missing
-            cv_naukri: 5, cv_indeed: 2, cv_other: 1, advance_sti: 1, conversion: 0, asset: 1, tracker_sent: 0, notes: "Very niche profile. Hard to find relevant experience.",
-            tlRemark: "Try boolean search on Naukri tomorrow."
-        },
-        { 
-            id: 4, date: "2026-03-03", recruiter: "Amit Kumar", profile: "AutoCAD Draftsman", package: "40k", requirement: "2", slot: "09:30 AM - 01:00 PM",
-            jdText: "Must be proficient in AutoCAD 2D/3D. Knowledge of architectural drawings is a must. Immediate joiner preferred.",
-            cv_naukri: 15, cv_indeed: 5, cv_other: 0, advance_sti: 4, conversion: 1, asset: 2, tracker_sent: 1, notes: "Profiles sent to you. Waiting for client feedback.",
-            tlRemark: ""
-        },
-        { 
-            id: 5, date: "2026-03-02", recruiter: "Pooja", profile: "Java Developer", package: "12LPA", requirement: "5", slot: "Full Day (10-6)",
-            jdText: "Spring Boot, Microservices, REST APIs. 3-5 years of hardcore development experience. Hybrid mode.",
-            cv_naukri: 25, cv_indeed: 15, cv_other: 0, advance_sti: 5, conversion: 0, asset: 2, tracker_sent: 1, notes: "Notice period issues with max candidates.",
-            tlRemark: ""
-        }
-    ]);
+    const [reportData, setReportData] = useState([]);
 
     // --- CALCULATIONS ---
-    // Filter data by date range, search term (only profile now), and recruiter
+    // Filter data by date range, search term, and recruiter
     const filteredReports = useMemo(() => {
-        return reportData.filter(item => {
-            const rowDate = new Date(item.date);
-            const startDate = fromDate ? new Date(fromDate) : new Date("2000-01-01");
-            const endDate = toDate ? new Date(toDate) : new Date("2100-01-01");
+        return assignmentData.filter(item => {
+            const matchesSearch = (item.job_title || '').toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesRecruiter = selectedRecruiter === "All" || item.sent_to_rc === selectedRecruiter;
             
-            const matchesDate = rowDate >= startDate && rowDate <= endDate;
-            
-            const matchesSearch = item.profile.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesRecruiter = selectedRecruiter === "All" || item.recruiter === selectedRecruiter;
-            
-            return matchesDate && matchesSearch && matchesRecruiter;
+            return matchesSearch && matchesRecruiter;
         });
-    }, [reportData, fromDate, toDate, searchTerm, selectedRecruiter]);
+    }, [assignmentData, searchTerm, selectedRecruiter]);
 
-    // Calculate Top KPI Totals for the filtered view
+    // Calculate Top KPI Totals from teamMetrics
     const kpiTotals = useMemo(() => {
-        return filteredReports.reduce((acc, curr) => {
-            acc.total_cvs += (curr.cv_naukri + curr.cv_indeed + curr.cv_other);
-            acc.total_sti += curr.advance_sti;
-            acc.total_conversion += curr.conversion;
-            acc.total_asset += curr.asset;
-            acc.total_trackers += curr.tracker_sent; 
-            return acc;
-        }, { total_cvs: 0, total_sti: 0, total_conversion: 0, total_asset: 0, total_trackers: 0 });
-    }, [filteredReports]);
+        return {
+            total_cvs: teamMetrics.total_cvs || 0,
+            total_sti: teamMetrics.total_sti || 0,
+            total_conversion: teamMetrics.total_conversion || 0,
+            total_asset: teamMetrics.total_asset || 0,
+            total_trackers: teamMetrics.total_trackers || 0
+        };
+    }, [teamMetrics]);
 
     return (
         <div className="min-h-screen bg-gray-50 font-['Calibri'] p-2 md:p-2">
@@ -289,7 +374,7 @@ export default function TLWorkbenchReport() {
                             onChange={(e) => setSelectedRecruiter(e.target.value)}
                         >
                             <option value="All">All Recruiters</option>
-                            {recruitersList.map(r => <option key={r.user_id} value={r.name}>{r.name}</option>)}
+                            {recruitersList.map(r => <option key={r.user_id} value={r.user_id}>{r.name}</option>)}
                         </select>
                     </div>
 
@@ -363,10 +448,7 @@ export default function TLWorkbenchReport() {
                     </div>
 
                     {/* TL Card 3: Rejected CV */}
-                    <div 
-                        className="bg-white p-4 rounded-2xl shadow-sm border border-red-100 flex items-center gap-3 relative overflow-hidden group hover:border-red-300 transition-colors cursor-pointer hover:shadow-md transition-shadow"
-                        
-                    >
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-red-100 flex items-center gap-3 relative overflow-hidden group hover:border-red-300 transition-colors">
                         <div className="absolute top-0 right-0 w-12 h-12 bg-red-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
                         <div className="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0 z-10">
                             <X size={20} />
@@ -378,10 +460,7 @@ export default function TLWorkbenchReport() {
                     </div>
 
                     {/* TL Card 4: Joining */}
-                    <div 
-                        className="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 flex items-center gap-3 relative overflow-hidden group hover:border-emerald-300 transition-colors cursor-pointer hover:shadow-md transition-shadow"
-                        
-                    >
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 flex items-center gap-3 relative overflow-hidden group hover:border-emerald-300 transition-colors">
                         <div className="absolute top-0 right-0 w-12 h-12 bg-emerald-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
                         <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0 z-10">
                             <CheckCircle size={20} />
@@ -526,10 +605,10 @@ export default function TLWorkbenchReport() {
                         <tbody className="text-xs text-gray-800 font-medium divide-y divide-gray-200">
                             {filteredReports.length > 0 ? (
                                 filteredReports.map((row, index) => {
-                                    const totalRowCv = row.cv_naukri + row.cv_indeed + row.cv_other;
+                                    const totalRowCv = (row.cv_naukri || 0) + (row.cv_indeed || 0) + (row.cv_other || 0);
                                     
                                     return (
-                                        <tr key={row.id} className="hover:bg-blue-50/50 transition">
+                                        <tr key={row.workbench_id || index} className="hover:bg-blue-50/50 transition">
                                             
                                             <td className="p-3 border-r border-gray-200 text-center text-gray-400 font-bold bg-gray-50">{index + 1}</td>
                                             
@@ -540,7 +619,7 @@ export default function TLWorkbenchReport() {
                                             <td className="p-2 border-r border-gray-200">
                                                 <div className="flex flex-col gap-1 items-start">
                                                     <span className="bg-blue-50 text-blue-800 border border-blue-200 px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider text-center">
-                                                        {row.recruiter}
+                                                        {row.rc_name}
                                                     </span>
                                                     <span className="text-[9px] font-bold text-gray-500 text-center flex items-center justify-center gap-1">
                                                         <Clock size={10} className="text-orange-500"/> {row.slot}
@@ -551,17 +630,13 @@ export default function TLWorkbenchReport() {
                                            {/* Profile & JD View Button */}
                                             <td className="p-3 border-r border-gray-200">
                                                 <div className="flex flex-col items-start gap-1.5">
-                                                    <span className="font-black text-[#103c7f] leading-tight">{row.profile}</span>
-                                                    {row.jdText ? (
-                                                        <button 
-                                                            onClick={() => setJdModalData(row)}
-                                                            className="text-blue-600 hover:text-white hover:bg-blue-600 font-black text-[8px] uppercase tracking-widest bg-blue-50 px-1.5 py-0.5 rounded transition-colors border border-blue-200"
-                                                        >
-                                                            View JD
-                                                        </button>
-                                                    ) : (
-                                                        <span className="text-gray-400 text-[8px] italic uppercase tracking-widest">No JD</span>
-                                                    )}
+                                                    <span className="font-black text-[#103c7f] leading-tight">{row.job_title}</span>
+                                                    <button 
+                                                        onClick={() => setJdModalData(row)}
+                                                        className="text-blue-600 hover:text-white hover:bg-blue-600 font-black text-[8px] uppercase tracking-widest bg-blue-50 px-1.5 py-0.5 rounded transition-colors border border-blue-200"
+                                                    >
+                                                        View JD
+                                                    </button>
                                                 </div>
                                             </td>
                                             
@@ -570,8 +645,8 @@ export default function TLWorkbenchReport() {
                                                 <span className="text-green-700 font-bold">{row.package}</span> <span className="text-gray-300 mx-1">|</span> <span className="text-gray-800 font-black">{row.requirement}</span>
                                             </td>
 
-                                            {/* Clickable CV Column */}
-                                            <td className="p-2 border-r border-gray-200 text-center bg-blue-50/50 hover:bg-blue-100 transition cursor-pointer" onClick={() => setCvModalData(row)}>
+                                            {/* CV Column */}
+                                            <td className="p-2 border-r border-gray-200 text-center bg-blue-50/50">
                                                 <div className="flex items-center justify-center gap-1">
                                                     <span className="font-black text-blue-700 text-sm">{totalRowCv}</span>
                                                     <Eye size={12} className="text-blue-400" />
@@ -586,12 +661,12 @@ export default function TLWorkbenchReport() {
 
                                             {/* RC Notes */}
                                             <td className="p-3 text-[11px] text-gray-600 italic bg-yellow-50/30">
-                                                {row.notes ? `"${row.notes}"` : <span className="text-gray-400 not-italic">No notes</span>}
+                                                {row.rc_remarks ? `"${row.rc_remarks}"` : <span className="text-gray-400 not-italic">No notes</span>}
                                             </td>
 
                                             {/* TL Remarks */}
                                             <td className="p-3 text-[11px] font-bold text-[#103c7f] bg-blue-50/20 border-l border-blue-100">
-                                                {row.tlRemark ? row.tlRemark : <span className="text-gray-400 font-normal italic">No remark added</span>}
+                                                {row.tl_remarks ? row.tl_remarks : <span className="text-gray-400 font-normal italic">No remark added</span>}
                                             </td>
 
                                         </tr>
@@ -650,28 +725,84 @@ export default function TLWorkbenchReport() {
 
             {/* --- MODAL FOR VIEWING JD CONTENT --- */}
             {jdModalData && (
-                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4" onClick={() => setJdModalData(null)}>
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-                        <div className="bg-[#103c7f] p-3 flex justify-between items-center text-white shrink-0">
-                            <h3 className="font-black text-sm uppercase tracking-wide flex items-center gap-2">
-                                <FileText size={16}/> Job Description
-                            </h3>
-                            <button onClick={() => setJdModalData(null)} className="hover:bg-white/20 p-1 rounded-full transition bg-white/10">
-                                <X size={16} />
-                            </button>
+                <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-xl flex justify-center items-center z-[9999] p-0 md:p-4">
+                    <div className="bg-transparent w-full max-w-[800px] h-full md:h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 relative shadow-2xl rounded-2xl">
+                        <div className="bg-[#103c7f] text-white p-4 flex justify-between items-center shrink-0 border-b border-blue-900">
+                            <div className="flex items-center gap-3">
+                                <FileText size={20} />
+                                <h3 className="font-bold text-lg uppercase tracking-wide">Job Description Preview</h3>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={() => setJdModalData(null)} className="hover:bg-white/20 p-2 rounded-full transition">
+                                    <X size={20}/>
+                                </button>
+                            </div>
                         </div>
-                        <div className="p-6 bg-gray-50">
-                            <h4 className="text-lg font-black text-[#103c7f] mb-3 border-b border-gray-200 pb-2">
-                                {jdModalData.profile}
-                            </h4>
-                            <p className="text-sm font-medium text-gray-700 leading-relaxed whitespace-pre-wrap">
-                                {jdModalData.jdText}
-                            </p>
-                        </div>
-                        <div className="p-3 bg-white border-t border-gray-100 flex justify-end">
-                            <button onClick={() => setJdModalData(null)} className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold uppercase tracking-widest rounded-lg transition-colors">
-                                Close
-                            </button>
+
+                        <div className="flex-1 min-h-0 overflow-y-auto bg-gray-200 p-4 md:p-8 custom-scrollbar">
+                            <div className="bg-white w-full max-w-[210mm] min-h-[297mm] h-max mx-auto p-[10mm] md:p-[15mm] shadow-xl text-black font-['Calibri'] relative">
+                                <div className="mb-10">
+                                    <Image src="/maven-logo.png" alt="Maven Jobs" width={220} height={70} className="object-contain" priority />
+                                </div>
+
+                                <div className="border border-black p-8 min-h-[850px] relative">
+                                    <div className="space-y-4 mb-10 text-[15px] leading-relaxed">
+                                        {jdModalData.job_title && <p><span className="font-bold">JOB TITLE : </span> {jdModalData.job_title}</p>}
+                                        {jdModalData.location && <p><span className="font-bold">LOCATION : </span> {jdModalData.location}</p>}
+                                        {jdModalData.experience && <p><span className="font-bold">EXPERIENCE : </span> {jdModalData.experience}</p>}
+                                        {jdModalData.employment_type && <p><span className="font-bold">EMPLOYMENT TYPE : </span> {jdModalData.employment_type}</p>}
+                                        {jdModalData.working_days && <p><span className="font-bold">WORKING DAYS : </span> {jdModalData.working_days}</p>}
+                                        {jdModalData.timings && <p><span className="font-bold">TIMINGS : </span> {jdModalData.timings}</p>}
+                                        {jdModalData.package && <p><span className="font-bold">PACKAGE : </span> {jdModalData.package}</p>}
+                                        {jdModalData.tool_requirement && <p><span className="font-bold">TOOL REQUIREMENT : </span> {jdModalData.tool_requirement}</p>}
+                                    </div>
+
+                                    <div className="space-y-8 text-[15px]">
+                                        {jdModalData.job_summary && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Job Summary :</h4><p className="leading-relaxed text-justify text-gray-800">{jdModalData.job_summary}</p></div>
+                                        )}
+
+                                        {jdModalData.rnr && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Role & Responsibilities :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {jdModalData.rnr.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+
+                                        {jdModalData.req_skills && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Required Skills :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {jdModalData.req_skills.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+
+                                        {jdModalData.preferred_qual && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Preferred Qualifications :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {jdModalData.preferred_qual.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+
+                                        {jdModalData.company_offers && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">What Company Offer :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {jdModalData.company_offers.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+
+                                        {jdModalData.contact_details && (
+                                            <div className="mt-12 pt-6 border-t border-black/20">
+                                                <h4 className="font-bold mb-3 uppercase text-[16px]">Contact Us To Apply :</h4>
+                                                <div className="whitespace-pre-line leading-loose text-gray-900 font-medium">{jdModalData.contact_details}</div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
