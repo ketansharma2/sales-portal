@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server'
 
 export async function GET(request) {
   try {
-    // Authentication
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -14,43 +13,44 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Get query parameters
     const { searchParams } = new URL(request.url)
     const fromDate = searchParams.get('fromDate')
     const toDate = searchParams.get('toDate')
     const allDatabase = searchParams.get('allDatabase')
 
-    // Build query
     let query = supabaseServer
-      .from('corporate_crm_conversation')
-      .select('*', { count: 'exact', head: true })
+      .from('corporate_crm_interview')
+      .select('email_draft_id')
       .eq('user_id', user.id)
+      .eq('interview_status', 'Joining')
 
-    // Apply date filters if provided and not allDatabase
     if (allDatabase !== 'true' && fromDate && toDate) {
       query = query.gte('date', fromDate)
       query = query.lte('date', toDate)
     }
 
-    const { count, error: countError } = await query
+    const { data, error: fetchError } = await query
 
-    if (countError) {
-      console.error('Count calls made error:', countError)
+    if (fetchError) {
+      console.error('Count joined error:', fetchError)
       return NextResponse.json({
-        error: 'Failed to count calls',
-        details: countError.message
+        error: 'Failed to count joined',
+        details: fetchError.message
       }, { status: 500 })
     }
+
+    const uniqueEmails = new Set(data.map(row => row.email_draft_id).filter(Boolean))
+    const count = uniqueEmails.size
 
     return NextResponse.json({
       success: true,
       data: {
-        callsMade: count || 0
+        totalJoined: count || 0
       }
     })
 
   } catch (error) {
-    console.error('CRM calls made API error:', error)
+    console.error('CRM joined API error:', error)
     return NextResponse.json({
       error: 'Internal server error',
       details: error.message

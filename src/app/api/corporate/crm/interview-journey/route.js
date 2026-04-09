@@ -32,6 +32,7 @@ export async function POST(request) {
         interview_status,
         client_remark: client_remark || "",
         date: date || new Date().toISOString().split('T')[0],
+        user_id: user.id,
       })
       .select()
       .single();

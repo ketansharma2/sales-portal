@@ -14,11 +14,22 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Count total onboarded clients for this user
-    const { count, error: countError } = await supabaseServer
+    const { searchParams } = new URL(request.url)
+    const fromDate = searchParams.get('fromDate')
+    const toDate = searchParams.get('toDate')
+    const allDatabase = searchParams.get('allDatabase')
+
+    let query = supabaseServer
       .from('corporate_crm_clients')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
+
+    if (allDatabase !== 'true' && fromDate && toDate) {
+      query = query.gte('onboarding_date', fromDate)
+      query = query.lte('onboarding_date', toDate)
+    }
+
+    const { count, error: countError } = await query
 
     if (countError) {
       console.error('Count onboarded clients error:', countError)

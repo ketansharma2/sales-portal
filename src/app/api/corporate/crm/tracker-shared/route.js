@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server'
 
 export async function GET(request) {
   try {
-    // Authentication
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -14,30 +13,27 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Get query parameters
     const { searchParams } = new URL(request.url)
     const fromDate = searchParams.get('fromDate')
     const toDate = searchParams.get('toDate')
     const allDatabase = searchParams.get('allDatabase')
 
-    // Build query
     let query = supabaseServer
-      .from('corporate_crm_conversation')
+      .from('corporate_crm_emails')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
 
-    // Apply date filters if provided and not allDatabase
     if (allDatabase !== 'true' && fromDate && toDate) {
-      query = query.gte('date', fromDate)
-      query = query.lte('date', toDate)
+      query = query.gte('shared_date', fromDate)
+      query = query.lte('shared_date', toDate)
     }
 
     const { count, error: countError } = await query
 
     if (countError) {
-      console.error('Count calls made error:', countError)
+      console.error('Count tracker shared error:', countError)
       return NextResponse.json({
-        error: 'Failed to count calls',
+        error: 'Failed to count tracker shared',
         details: countError.message
       }, { status: 500 })
     }
@@ -45,12 +41,12 @@ export async function GET(request) {
     return NextResponse.json({
       success: true,
       data: {
-        callsMade: count || 0
+        trackerShared: count || 0
       }
     })
 
   } catch (error) {
-    console.error('CRM calls made API error:', error)
+    console.error('CRM tracker shared API error:', error)
     return NextResponse.json({
       error: 'Internal server error',
       details: error.message

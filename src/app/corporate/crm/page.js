@@ -22,10 +22,19 @@ export default function CRMDashboard() {
   const [acknowledged, setAcknowledged] = useState(0);
   const [activeClients, setActiveClients] = useState('-');
   const [nonActiveClients, setNonActiveClients] = useState('-');
-  const [pipelineClients, setPipelineClients] = useState('-');
-  const [rejectedByClient, setRejectedByClient] = useState('-');
-  const [shortlistedClients, setShortlistedClients] = useState('-');
-  const [ghostedClients, setGhostedClients] = useState('-');
+  const [totalReqs, setTotalReqs] = useState(0);
+  const [trackerShared, setTrackerShared] = useState(0);
+  const [reqsWorked, setReqsWorked] = useState(0);
+  const [pipelineClients, setPipelineClients] = useState(0);
+  const [rejectedByClient, setRejectedByClient] = useState(0);
+  const [shortlistedClients, setShortlistedClients] = useState(0);
+  const [ghostedClients, setGhostedClients] = useState(0);
+  const [totalInterviews, setTotalInterviews] = useState(0);
+  const [totalSelected, setTotalSelected] = useState(0);
+  const [totalJoined, setTotalJoined] = useState(0);
+  
+  
+
   const [callsMade, setCallsMade] = useState(0);
   const [followUps, setFollowUps] = useState([]);
   const [conversations, setConversations] = useState([]);
@@ -42,7 +51,15 @@ export default function CRMDashboard() {
         const token = session.access_token;
         if (!token) return;
 
-        const response = await fetch('/api/corporate/crm/onboarded', {
+        const params = new URLSearchParams();
+        if (allDatabaseActive) {
+          params.set('allDatabase', 'true');
+        } else {
+          params.set('fromDate', dateRange.from);
+          params.set('toDate', dateRange.to);
+        }
+
+        const response = await fetch(`/api/corporate/crm/onboarded?${params.toString()}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -57,13 +74,26 @@ export default function CRMDashboard() {
       }
     };
 
+    fetchTotalOnboarded();
+  }, [dateRange.from, dateRange.to, allDatabaseActive]);
+
+  // --- FETCH ACKNOWLEDGED ---
+  useEffect(() => {
     const fetchAcknowledged = async () => {
       try {
         const session = JSON.parse(localStorage.getItem('session') || '{}');
         const token = session.access_token;
         if (!token) return;
 
-        const response = await fetch('/api/corporate/crm/acknowledged', {
+        const params = new URLSearchParams();
+        if (allDatabaseActive) {
+          params.set('allDatabase', 'true');
+        } else {
+          params.set('fromDate', dateRange.from);
+          params.set('toDate', dateRange.to);
+        }
+
+        const response = await fetch(`/api/corporate/crm/acknowledged?${params.toString()}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -78,11 +108,242 @@ export default function CRMDashboard() {
       }
     };
 
-    fetchTotalOnboarded();
     fetchAcknowledged();
-  }, []);
+  }, [dateRange.from, dateRange.to, allDatabaseActive]);
 
-  // --- FETCH CALLS MADE (DIRECTLY ON DATE CHANGE) ---
+  // --- FETCH PIPELINE ---
+  useEffect(() => {
+    const fetchPipeline = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const params = new URLSearchParams();
+        if (allDatabaseActive) {
+          params.set('allDatabase', 'true');
+        } else {
+          params.set('fromDate', dateRange.from);
+          params.set('toDate', dateRange.to);
+        }
+
+        const response = await fetch(`/api/corporate/crm/pipeline?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setPipelineClients(data.data?.pipeline || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching pipeline:', error);
+      }
+    };
+
+    fetchPipeline();
+  }, [dateRange.from, dateRange.to, allDatabaseActive]);
+
+  // --- FETCH REJECTED BY CLIENT ---
+  useEffect(() => {
+    const fetchRejectedByClient = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const params = new URLSearchParams();
+        if (allDatabaseActive) {
+          params.set('allDatabase', 'true');
+        } else {
+          params.set('fromDate', dateRange.from);
+          params.set('toDate', dateRange.to);
+        }
+
+        const response = await fetch(`/api/corporate/crm/rejected-by-client?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setRejectedByClient(data.data?.rejectedByClient || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching rejected by client:', error);
+      }
+    };
+
+    fetchRejectedByClient();
+  }, [dateRange.from, dateRange.to, allDatabaseActive]);
+
+  // --- FETCH SHORTLISTED ---
+  useEffect(() => {
+    const fetchShortlisted = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const params = new URLSearchParams();
+        if (allDatabaseActive) {
+          params.set('allDatabase', 'true');
+        } else {
+          params.set('fromDate', dateRange.from);
+          params.set('toDate', dateRange.to);
+        }
+
+        const response = await fetch(`/api/corporate/crm/shortlisted?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setShortlistedClients(data.data?.shortlisted || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching shortlisted:', error);
+      }
+    };
+
+    fetchShortlisted();
+  }, [dateRange.from, dateRange.to, allDatabaseActive]);
+
+  // --- FETCH GHOSTED ---
+  useEffect(() => {
+    const fetchGhosted = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const params = new URLSearchParams();
+        if (allDatabaseActive) {
+          params.set('allDatabase', 'true');
+        } else {
+          params.set('fromDate', dateRange.from);
+          params.set('toDate', dateRange.to);
+        }
+
+        const response = await fetch(`/api/corporate/crm/ghosted?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setGhostedClients(data.data?.ghosted || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching ghosted:', error);
+      }
+    };
+
+    fetchGhosted();
+  }, [dateRange.from, dateRange.to, allDatabaseActive]);
+
+  // --- FETCH TOTAL INTERVIEWS ---
+  useEffect(() => {
+    const fetchTotalInterviews = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const params = new URLSearchParams();
+        if (allDatabaseActive) {
+          params.set('allDatabase', 'true');
+        } else {
+          params.set('fromDate', dateRange.from);
+          params.set('toDate', dateRange.to);
+        }
+
+        const response = await fetch(`/api/corporate/crm/total-interviews?${params.toString()}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setTotalInterviews(data.data?.totalInterviews || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching total interviews:', error);
+      }
+    };
+
+    fetchTotalInterviews();
+  }, [dateRange.from, dateRange.to, allDatabaseActive]);
+
+  // --- FETCH TOTAL SELECTED ---
+  useEffect(() => {
+    const fetchTotalSelected = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const params = new URLSearchParams();
+        if (allDatabaseActive) {
+          params.set('allDatabase', 'true');
+        } else {
+          params.set('fromDate', dateRange.from);
+          params.set('toDate', dateRange.to);
+        }
+
+        const response = await fetch(`/api/corporate/crm/total-selected?${params.toString()}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setTotalSelected(data.data?.totalSelected || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching total selected:', error);
+      }
+    };
+
+    fetchTotalSelected();
+  }, [dateRange.from, dateRange.to, allDatabaseActive]);
+
+  // --- FETCH TOTAL JOINED ---
+  useEffect(() => {
+    const fetchTotalJoined = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const params = new URLSearchParams();
+        if (allDatabaseActive) {
+          params.set('allDatabase', 'true');
+        } else {
+          params.set('fromDate', dateRange.from);
+          params.set('toDate', dateRange.to);
+        }
+
+        const response = await fetch(`/api/corporate/crm/total-joined?${params.toString()}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setTotalJoined(data.data?.totalJoined || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching total joined:', error);
+      }
+    };
+
+    fetchTotalJoined();
+  }, [dateRange.from, dateRange.to, allDatabaseActive]);
+
+// --- FETCH CALLS MADE (DIRECTLY ON DATE CHANGE) ---
   useEffect(() => {
     const fetchCallsMade = async () => {
       try {
@@ -90,7 +351,15 @@ export default function CRMDashboard() {
         const token = session.access_token;
         if (!token) return;
 
-        const response = await fetch(`/api/corporate/crm/calls-made?fromDate=${dateRange.from}&toDate=${dateRange.to}`, {
+        const params = new URLSearchParams();
+        if (allDatabaseActive) {
+          params.set('allDatabase', 'true');
+        } else {
+          params.set('fromDate', dateRange.from);
+          params.set('toDate', dateRange.to);
+        }
+
+        const response = await fetch(`/api/corporate/crm/calls-made?${params.toString()}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -106,7 +375,108 @@ export default function CRMDashboard() {
     };
 
     fetchCallsMade();
-  }, [dateRange.from, dateRange.to]);
+  }, [dateRange.from, dateRange.to, allDatabaseActive]);
+
+  useEffect(() => {
+    const fetchTotalReqs = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const params = new URLSearchParams();
+        if (allDatabaseActive) {
+          params.set('allDatabase', 'true');
+        } else {
+          params.set('fromDate', dateRange.from);
+          params.set('toDate', dateRange.to);
+        }
+
+        const response = await fetch(`/api/corporate/crm/total-reqs?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setTotalReqs(data.data?.totalReqs || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching total reqs:', error);
+      }
+    };
+
+fetchTotalReqs();
+  }, [dateRange.from, dateRange.to, allDatabaseActive]);
+
+  // --- FETCH TRACKER SHARED ---
+  useEffect(() => {
+    const fetchTrackerShared = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const params = new URLSearchParams();
+        if (allDatabaseActive) {
+          params.set('allDatabase', 'true');
+        } else {
+          params.set('fromDate', dateRange.from);
+          params.set('toDate', dateRange.to);
+        }
+
+        const response = await fetch(`/api/corporate/crm/tracker-shared?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setTrackerShared(data.data?.trackerShared || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching tracker shared:', error);
+      }
+    };
+
+    fetchTrackerShared();
+  }, [dateRange.from, dateRange.to, allDatabaseActive]);
+
+  // --- FETCH REQS WORKED ---
+  useEffect(() => {
+    const fetchReqsWorked = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const params = new URLSearchParams();
+        if (allDatabaseActive) {
+          params.set('allDatabase', 'true');
+        } else {
+          params.set('fromDate', dateRange.from);
+          params.set('toDate', dateRange.to);
+        }
+
+        const response = await fetch(`/api/corporate/crm/reqs-worked?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setReqsWorked(data.data?.reqsWorked || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching reqs worked:', error);
+      }
+    };
+
+    fetchReqsWorked();
+  }, [dateRange.from, dateRange.to, allDatabaseActive]);
 
   // --- FETCH CONVERSATIONS (DIRECTLY ON DATE CHANGE) ---
   useEffect(() => {
@@ -166,18 +536,18 @@ export default function CRMDashboard() {
     { label: "Acknowledged", value: acknowledged, icon: Mail, color: "text-green-600", bg: "bg-green-50" },
     { label: "Active Clients", value: activeClients, icon: Briefcase, color: "text-emerald-600", bg: "bg-emerald-50" },
     { label: "Non-Active Clients", value: nonActiveClients, icon: Clock, color: "text-rose-600", bg: "bg-rose-50" },
-    { label: "Total Reqs", value: "-", icon: FileText, color: "text-purple-600", bg: "bg-purple-50" },
+    { label: "Total Reqs Added", value: totalReqs, icon: FileText, color: "text-purple-600", bg: "bg-purple-50" },
     { label: "Total Package", value: "-", icon: Award, color: "text-orange-600", bg: "bg-orange-50" },
-    { label: "Trackers Shared", value: "-", icon: Share2, color: "text-indigo-600", bg: "bg-indigo-50" },
-    { label: "Reqs Worked", value: "-", icon: Briefcase, color: "text-violet-600", bg: "bg-violet-50" },
-    { label: "Calls Made", value: "-", icon: Phone, color: "text-green-600", bg: "bg-green-50" },
+    { label: "Trackers Shared", value: trackerShared, icon: Share2, color: "text-indigo-600", bg: "bg-indigo-50" },
+    { label: "Reqs Worked", value: reqsWorked, icon: Briefcase, color: "text-violet-600", bg: "bg-violet-50" },
+    { label: "Calls Made", value: callsMade, icon: Phone, color: "text-green-600", bg: "bg-green-50" },
     { label: "Pipeline", value: pipelineClients, icon: TrendingUp, color: "text-cyan-600", bg: "bg-cyan-50" },
     { label: "Rejected By Client", value: rejectedByClient, icon: XCircle, color: "text-red-600", bg: "bg-red-50" },
     { label: "Shortlisted", value: shortlistedClients, icon: CheckCircle, color: "text-lime-600", bg: "bg-lime-50" },
     { label: "Ghosted", value: ghostedClients, icon: MessageSquare, color: "text-slate-600", bg: "bg-slate-50" },
-    { label: "Total Interviews", value: "-", icon: Phone, color: "text-pink-600", bg: "bg-pink-50" },
-    { label: "Total Selected", value: "-", icon: CheckCircle, color: "text-green-600", bg: "bg-green-50" },
-    { label: "Total Joined", value: "-", icon: UserCheck, color: "text-teal-600", bg: "bg-teal-50" },
+    { label: "Total Interviews", value: totalInterviews, icon: Phone, color: "text-pink-600", bg: "bg-pink-50" },
+    { label: "Total Selected", value: totalSelected, icon: CheckCircle, color: "text-green-600", bg: "bg-green-50" },
+    { label: "Total Joined", value: totalJoined, icon: UserCheck, color: "text-teal-600", bg: "bg-teal-50" },
   ];
 
   
