@@ -1,50 +1,266 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   HelpCircle, Plus, Search, Edit, Trash2, FileText, 
-  X, Building2, Briefcase, MessageSquare, AlertCircle, Printer
+  X, Building2, Briefcase, MessageSquare, AlertCircle, Printer, Download
 } from "lucide-react";
 
 export default function FAQManagement() {
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
+  // Load html2canvas and jspdf on mount
+  useEffect(() => {
+    const loadLibs = async () => {
+      if (window.jspdf && window.html2canvas) return;
+      
+      const [{ jsPDF: jspdfModule }, html2canvasModule] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas')
+      ]);
+      
+      window.jspdf = jspdfModule;
+      window.html2canvas = html2canvasModule.default || html2canvasModule;
+    };
+    
+    loadLibs().catch(console.error);
+  }, []);
+
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [savingFaq, setSavingFaq] = useState(false);
   const [pdfFAQ, setPdfFAQ] = useState(null); // State for PDF View
+  const pdfRef = useRef(null);
+
+  const handleDownloadPdf = async () => {
+    const element = document.getElementById('faq-pdf-content');
+    if (!element) {
+      alert('Content not found');
+      return;
+    }
+    
+    // Try html2canvas approach first
+    try {
+      // Dynamic import
+      const [{ jsPDF: jspdfModule }, html2canvasModule] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas')
+      ]);
+      
+      const html2canvas = html2canvasModule.default || html2canvasModule;
+      const { jsPDF } = jspdfModule;
+      
+      // Capture the element as canvas
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        onclone: (clonedDoc) => {
+          const clonedElement = clonedDoc.getElementById('faq-pdf-content');
+          if (!clonedElement) return;
+          
+          clonedElement.style.backgroundColor = '#ffffff';
+          
+          const allElements = clonedElement.querySelectorAll('*');
+          allElements.forEach((el) => {
+            const style = window.getComputedStyle(el);
+            const computedColor = style.color;
+            const computedBg = style.backgroundColor;
+            
+            if (computedColor && computedColor.includes('oklch')) {
+              el.style.color = '#0f172a';
+            }
+            if (computedBg && (computedBg.includes('oklch') || computedBg.includes('slate'))) {
+              el.style.backgroundColor = '';
+            }
+          });
+        }
+      });
+      
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`${pdfFAQ.client_name || 'FAQ'}_${pdfFAQ.job_title || 'Document'}.pdf`);
+      return;
+    } catch (err) {
+      console.warn('html2canvas failed, using fallback:', err.message);
+    }
+    
+    // Fallback: text-based PDF
+    try {
+      const [{ jsPDF }] = await Promise.all([import('jspdf')]);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const margin = 15;
+      let y = margin;
+      
+      // Add logo
+      try {
+        pdf.addImage('/maven-logo.png', 'PNG', margin, y, 60, 20);
+        y += 30;
+      } catch (e) { y += 20; }
+      
+      // Title
+      pdf.setFontSize(18);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(16, 60, 127);
+      pdf.text('FAQ - Frequently Asked Questions', margin, y);
+      y += 15;
+      
+      // Client & Profile Info
+      pdf.setDrawColor(200);
+      pdf.setLineWidth(0.5);
+      pdf.rect(margin, y, pageWidth - 2 * margin, 20);
+      y += 8;
+      
+      pdf.setFontSize(11);
+      pdf.setTextColor(100);
+      pdf.text('Client:', margin + 5, y);
+      pdf.setTextColor(16, 60, 127);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(pdfFAQ.client_name || '', margin + 25, y);
+      
+      pdf.setTextColor(100);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text('Profile:', margin + 85, y);
+      pdf.setTextColor(0);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(pdfFAQ.job_title || '', margin + 105, y);
+      
+      y += 20;
+      
+      // Questions Header
+      pdf.setFontSize(14);
+      pdf.setTextColor(16, 60, 127);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Questions:', margin, y);
+      y += 10;
+      
+      // Questions
+      const questions = pdfFAQ.questions || [];
+      questions.forEach((qa, index) => {
+        pdf.setFontSize(11);
+        pdf.setTextColor(0);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(`Q${index + 1}.`, margin, y);
+        
+        pdf.setFont('helvetica', 'normal');
+        const lines = pdf.splitTextToSize(qa.question || '', pageWidth - 2 * margin - 15);
+        pdf.text(lines, margin + 10, y);
+        y += lines.length * 5 + 3;
+      });
+      
+      // Footer
+      y += 10;
+      pdf.setFontSize(9);
+      pdf.setTextColor(150);
+      pdf.text('Confidential Document - Maven Jobs', pageWidth / 2, y, { align: 'center' });
+      
+      pdf.save(`${pdfFAQ.client_name || 'FAQ'}_${pdfFAQ.job_title || 'Document'}.pdf`);
+    } catch (fallbackErr) {
+      console.error('Fallback also failed:', fallbackErr);
+      window.print();
+    }
+  };
   
   // Form State
   const initialFormState = {
     id: null,
-    client: "",
+    client: "", // client_id
+    client_name: "", // company_name for display
     profile: "",
     qaList: [{ question: "" }] // Removed answer
   };
   const [formData, setFormData] = useState(initialFormState);
 
-  // Mock Dropdown Data
-  const clientsList = ["TechNova Solutions", "Global Finance", "Urban Builders", "Apex Retail", "Stellar Jobs"];
-  const profilesList = ["Frontend Developer", "Backend Developer", "Sales Executive", "HR Manager", "Data Analyst"];
+  // API Data State
+  const [clientsList, setClientsList] = useState([]);
+  const [profilesList, setProfilesList] = useState([]);
 
-  // Mock Table Data
-  const [faqs, setFaqs] = useState([
-    { 
-      id: 1, client: "TechNova Solutions", profile: "Frontend Developer", 
-      qaList: [
-        { question: "Explain Virtual DOM in React." },
-        { question: "What are React Hooks?" }
-      ]
-    },
-    { 
-      id: 2, client: "Global Finance", profile: "Data Analyst", 
-      qaList: [
-        { question: "Difference between LEFT JOIN and INNER JOIN?" },
-        { question: "Explain Normalization." },
-        { question: "What is a Primary Key?" }
-      ]
-    },
-  ]);
+  // Fetch clients from API
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const response = await fetch('/api/corporate/crm/clients-list', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setClientsList(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching clients:', error);
+      }
+    };
+    fetchClients();
+  }, []);
+
+  // Fetch profiles when client changes
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      if (!formData.client) {
+        setProfilesList([]);
+        return;
+      }
+      
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const response = await fetch(`/api/corporate/crm/requirements-by-client?client_id=${formData.client}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setProfilesList(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching profiles:', error);
+      }
+    };
+    
+    fetchProfiles();
+  }, [formData.client]);
+
+  // Fetch FAQs from API
+  const [faqs, setFaqs] = useState([]);
+  const [loadingFaqs, setLoadingFaqs] = useState(true);
+
+  useEffect(() => {
+    const fetchFaqs = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const response = await fetch('/api/corporate/crm/faq', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setFaqs(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching FAQs:', error);
+      } finally {
+        setLoadingFaqs(false);
+      }
+    };
+    fetchFaqs();
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -55,7 +271,14 @@ export default function FAQManagement() {
   // --- Handlers ---
   const handleOpenModal = (faq = null) => {
     if (faq) {
-      setFormData(faq);
+      // Convert API data to form data
+      setFormData({
+        id: faq.faq_id,
+        client: faq.client_id,
+        client_name: faq.client_name,
+        profile: faq.req_id,
+        qaList: faq.questions || []
+      });
       setIsEditing(true);
     } else {
       setFormData(initialFormState);
@@ -84,23 +307,92 @@ export default function FAQManagement() {
     setFormData({ ...formData, qaList: updatedQA });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.client || !formData.profile || formData.qaList[0].question.trim() === "") {
       alert("Please fill in the Client, Profile, and at least one Question.");
       return;
     }
 
-    if (isEditing) {
-      setFaqs(faqs.map(f => f.id === formData.id ? formData : f));
-    } else {
-      setFaqs([{ ...formData, id: Date.now() }, ...faqs]);
+    setSavingFaq(true);
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      if (!token) return;
+
+      let response;
+      if (isEditing) {
+        // Update existing FAQ
+        response = await fetch('/api/corporate/crm/faq', {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            faq_id: formData.id,
+            questions: formData.qaList
+          })
+        });
+      } else {
+        // Create new FAQ
+        response = await fetch('/api/corporate/crm/faq', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            client_id: formData.client,
+            req_id: formData.profile,
+            questions: formData.qaList
+          })
+        });
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        // Refresh FAQs list
+        const faqsResponse = await fetch('/api/corporate/crm/faq', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const faqsData = await faqsResponse.json();
+        if (faqsData.success) {
+          setFaqs(faqsData.data || []);
+        }
+        handleCloseModal();
+      } else {
+        alert('Failed to save FAQ: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error saving FAQ:', error);
+      alert('Error saving FAQ');
+    } finally {
+      setSavingFaq(false);
     }
-    handleCloseModal();
   };
 
-  const handleDelete = (id) => {
-    if(confirm("Are you sure you want to delete this FAQ set?")) {
-        setFaqs(faqs.filter(f => f.id !== id));
+  const handleDelete = async (faq_id) => {
+    if(!confirm("Are you sure you want to delete this FAQ set?")) return;
+    
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      if (!token) return;
+
+      const response = await fetch(`/api/corporate/crm/faq/${faq_id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setFaqs(faqs.filter(f => f.faq_id !== faq_id));
+      } else {
+        alert('Failed to delete FAQ');
+      }
+    } catch (error) {
+      console.error('Error deleting FAQ:', error);
+      alert('Error deleting FAQ');
     }
   };
 
@@ -151,24 +443,24 @@ export default function FAQManagement() {
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                         {faqs
-                          .filter(f => f.client.toLowerCase().includes(searchQuery.toLowerCase()) || f.profile.toLowerCase().includes(searchQuery.toLowerCase()))
+                          .filter(f => (f.client_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (f.job_title || '').toLowerCase().includes(searchQuery.toLowerCase()))
                           .map((faq) => (
-                            <tr key={faq.id} className="hover:bg-slate-50 transition-colors align-middle group">
+                            <tr key={faq.faq_id} className="hover:bg-slate-50 transition-colors align-middle group">
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-2">
                                         <Building2 size={14} className="text-[#103c7f]" />
-                                        <span className="font-black text-[#103c7f] text-sm">{faq.client}</span>
+                                        <span className="font-black text-[#103c7f] text-sm">{faq.client_name}</span>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-2">
                                         <Briefcase size={14} className="text-orange-500" />
-                                        <span className="font-bold text-slate-700">{faq.profile}</span>
+                                        <span className="font-bold text-slate-700">{faq.job_title}</span>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 text-center">
                                     <span className="inline-flex items-center justify-center bg-blue-50 text-blue-700 font-black w-6 h-6 rounded-full border border-blue-100">
-                                        {faq.qaList.length}
+                                        {faq.questions?.length || 0}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4">
@@ -180,7 +472,7 @@ export default function FAQManagement() {
                                             <Edit size={14} />
                                         </button>
                                         <button 
-                                            onClick={() => handleDelete(faq.id)}
+                                            onClick={() => handleDelete(faq.faq_id)}
                                             className="p-1.5 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-md transition-colors" title="Delete FAQ"
                                         >
                                             <Trash2 size={14} />
@@ -232,21 +524,26 @@ export default function FAQManagement() {
                         <div className="flex flex-col gap-1.5">
                             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Select Client</label>
                             <select 
-                                className="bg-white border border-gray-200 text-sm font-bold text-slate-700 rounded-lg px-3 py-2.5 outline-none focus:border-[#103c7f] shadow-sm"
-                                value={formData.client} onChange={(e) => setFormData({...formData, client: e.target.value})}
+                                className="bg-gray-100 border border-gray-200 text-sm font-bold text-slate-700 rounded-lg px-3 py-2.5 outline-none focus:border-[#103c7f] shadow-sm"
+                                value={formData.client} onChange={(e) => {
+                                  const selectedClient = (clientsList || []).find(c => c.client_id === e.target.value);
+                                  setFormData({...formData, client: e.target.value, client_name: selectedClient?.company_name || ''});
+                                }}
+                                disabled={isEditing}
                             >
                                 <option value="" disabled>-- Select Client --</option>
-                                {clientsList.map(c => <option key={c} value={c}>{c}</option>)}
+                                {(clientsList || []).map(c => <option key={c.client_id} value={c.client_id}>{c.company_name}</option>)}
                             </select>
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Select Profile / Role</label>
                             <select 
-                                className="bg-white border border-gray-200 text-sm font-bold text-slate-700 rounded-lg px-3 py-2.5 outline-none focus:border-[#103c7f] shadow-sm"
+                                className="bg-gray-100 border border-gray-200 text-sm font-bold text-slate-700 rounded-lg px-3 py-2.5 outline-none focus:border-[#103c7f] shadow-sm"
                                 value={formData.profile} onChange={(e) => setFormData({...formData, profile: e.target.value})}
+                                disabled={isEditing || !formData.client}
                             >
-                                <option value="" disabled>-- Select Profile --</option>
-                                {profilesList.map(p => <option key={p} value={p}>{p}</option>)}
+                                <option value="" disabled>{!formData.client ? '-- Select Client First --' : '-- Select Profile --'}</option>
+                                {(profilesList || []).map(p => <option key={p.req_id} value={p.req_id}>{p.job_title}</option>)}
                             </select>
                         </div>
                     </div>
@@ -255,7 +552,7 @@ export default function FAQManagement() {
 
                     {/* Question List */}
                     <div className="space-y-4">
-                        {formData.qaList.map((qa, index) => (
+                        {(formData.qaList || []).map((qa, index) => (
                             <div key={index} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative group">
                                 <div className="absolute top-4 right-4">
                                     {formData.qaList.length > 1 && (
@@ -306,9 +603,10 @@ export default function FAQManagement() {
                     </button>
                     <button 
                         onClick={handleSave}
-                        className="px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest bg-[#103c7f] hover:bg-blue-900 text-white shadow-md transition-all"
+                        disabled={savingFaq}
+                        className="px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest bg-[#103c7f] hover:bg-blue-900 text-white shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Save FAQ
+                        {savingFaq ? 'Saving...' : 'Save FAQ'}
                     </button>
                 </div>
 
@@ -328,11 +626,17 @@ export default function FAQManagement() {
                     </h2>
                     <div className="flex gap-3">
                         <button 
+                            onClick={handleDownloadPdf} 
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-md"
+                        >
+                            <Download size={14}/> Download PDF
+                        </button>
+                        {/* <button 
                             onClick={() => window.print()} 
                             className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-md"
                         >
-                            <Printer size={14}/> Save / Print PDF
-                        </button>
+                            <Printer size={14}/> Print
+                        </button> */}
                         <button 
                             onClick={() => setPdfFAQ(null)} 
                             className="p-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-full transition-colors"
@@ -344,7 +648,7 @@ export default function FAQManagement() {
 
                 {/* Printable A4 Area */}
                 <div className="flex-1 overflow-y-auto p-4 md:p-8 print:p-0 bg-gray-200 print:bg-white custom-scrollbar">
-                    <div className="bg-white max-w-[210mm] mx-auto min-h-[297mm] shadow-lg print:shadow-none p-10 md:p-14 border border-gray-200 print:border-none">
+                    <div id="faq-pdf-content" ref={pdfRef} className="bg-white max-w-[210mm] mx-auto min-h-[297mm] shadow-lg print:shadow-none p-10 md:p-14 border border-gray-200 print:border-none">
                         
                         {/* Document Header & Logo */}
                         <div className="flex justify-between items-start border-b-2 border-[#103c7f] pb-6 mb-8">
@@ -364,18 +668,18 @@ export default function FAQManagement() {
                         <div className="bg-slate-50 border border-gray-200 p-5 rounded-xl mb-8 flex flex-col gap-3">
                             <div className="flex items-center">
                                 <span className="w-32 text-xs font-black text-gray-500 uppercase tracking-widest">Client Name:</span>
-                                <span className="text-sm font-black text-[#103c7f]">{pdfFAQ.client}</span>
+                                <span className="text-sm font-black text-[#103c7f]">{pdfFAQ.client_name}</span>
                             </div>
                             <div className="flex items-center">
                                 <span className="w-32 text-xs font-black text-gray-500 uppercase tracking-widest">Profile / Role:</span>
-                                <span className="text-sm font-bold text-slate-700">{pdfFAQ.profile}</span>
+                                <span className="text-sm font-bold text-slate-700">{pdfFAQ.job_title}</span>
                             </div>
                         </div>
 
                         {/* Questions Content */}
                         <div className="space-y-4">
                             <h3 className="text-sm font-black text-indigo-600 uppercase tracking-widest mb-4">Question Bank</h3>
-                            {pdfFAQ.qaList.map((qa, index) => (
+                            {(pdfFAQ.questions || []).map((qa, index) => (
                                 <div key={index} className="break-inside-avoid">
                                     <h3 className="text-sm font-bold text-slate-800 flex items-start gap-2 mb-2 leading-snug">
                                         <span className="text-[#103c7f] font-black shrink-0">Q{index + 1}.</span> {qa.question}
