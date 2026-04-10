@@ -161,8 +161,14 @@ export default function TLTrackerPage() {
     // CRM User Selection State
     const [crmModalOpen, setCrmModalOpen] = useState(false);
     const [crmUsers, setCrmUsers] = useState([]);
-    const [selectedCrmUser, setSelectedCrmUser] = useState(null);
+    const [selectedCrmUser, setSelectedCrmUser] = useState("");
     const [isLoadingCrmUsers, setIsLoadingCrmUsers] = useState(false);
+
+    // Bulk Send State
+    const [selectedRows, setSelectedRows] = useState([]);
+    const [bulkSendModalOpen, setBulkSendModalOpen] = useState(false);
+    // const [selectedCrmUser, setSelectedCrmUser] = useState("");
+    const [isBulkSending, setIsBulkSending] = useState(false);
 
     // Filter State
     const [recruiterFilter, setRecruiterFilter] = useState("");
@@ -172,6 +178,7 @@ export default function TLTrackerPage() {
         from: "",
         to: ""
     });
+    const [filteredData, setFilteredData] = useState([]);
 
     // Fetch data from API
     useEffect(() => {
@@ -280,6 +287,20 @@ export default function TLTrackerPage() {
         loadCrmUsers();
     }, []);
 
+    // Update filtered data when filters change
+    useEffect(() => {
+        const data = trackerData.filter(row => {
+            const matchesRecruiter = !recruiterFilter || row.recruiterName === recruiterFilter;
+            let matchesDate = true;
+            if ((dateRange.from || dateRange.to) && row.sentDate !== '-') {
+                matchesDate = (!dateRange.from || row.sentDate >= dateRange.from) && 
+                             (!dateRange.to || row.sentDate <= dateRange.to);
+            }
+            return matchesRecruiter && matchesDate;
+        });
+        setFilteredData(data);
+    }, [trackerData, recruiterFilter, dateRange]);
+
     // --- HANDLERS ---
     const openCVModal = (candidate, source) => {
         setSelectedCandidate(candidate);
@@ -296,6 +317,66 @@ export default function TLTrackerPage() {
             callResponding: candidate.callResponding || ""
         });
         setModalType('tl_update');
+    };
+
+    // Bulk Send to CRM Handlers
+    const toggleSelectRow = (id) => {
+        setSelectedRows(prev => 
+            prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]
+        );
+    };
+
+    const toggleSelectAll = () => {
+        const selectableRows = filteredData.filter(row => !row.sentToCrm).map(r => r.id);
+        
+        if (selectedRows.length === selectableRows.length && selectableRows.length > 0) {
+            setSelectedRows([]);
+        } else {
+            setSelectedRows(selectableRows);
+        }
+    };
+
+    const handleBulkSendToCrm = async () => {
+        if (!selectedCrmUser) {
+            alert("Please select a CRM user");
+            return;
+        }
+
+        setIsBulkSending(true);
+
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+
+            const response = await fetch('/api/corporate/tl/tracker/bulk-send-to-crm', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    conversation_ids: selectedRows,
+                    sent_to_crm: selectedCrmUser
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || result.error) {
+                throw new Error(result.error || 'Failed to send to CRM');
+            }
+
+            setBulkSendModalOpen(false);
+            setSelectedRows([]);
+            setSelectedCrmUser("");
+            
+            window.location.reload();
+        } catch (error) {
+            console.error("Bulk send error:", error);
+            alert("Failed to send trackers to CRM");
+        } finally {
+            setIsBulkSending(false);
+        }
     };
 
     // Auto Update CV Handler - Calls the Redact CV API
@@ -481,7 +562,7 @@ export default function TLTrackerPage() {
 
     const handleSendToCRM = (candidate) => {
         setSelectedCandidate(candidate);
-        setSelectedCrmUser(null);
+        setSelectedCrmUser("");
         setCrmModalOpen(true);
     };
 
@@ -613,6 +694,16 @@ export default function TLTrackerPage() {
                         )}
                     </div>
                     
+                    {/* Bulk Send to CRM Button */}
+                    {selectedRows.length > 0 && (
+                        <button 
+                            onClick={() => setBulkSendModalOpen(true)}
+                            className="mt-2 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors"
+                        >
+                            <Send size={12} /> Bulk Send to CRM ({selectedRows.length})
+                        </button>
+                    )}
+                    
                 </div>
 
                 {/* Table Wrapper - Compact */}
@@ -626,7 +717,7 @@ export default function TLTrackerPage() {
                                     <div className="flex items-center justify-center gap-1.5 text-blue-200"><User size={12}/> Recruiter (RC) Section</div>
                                 </th>
                                 <th colSpan="2" className="py-1.5 px-3 text-[10px] font-black uppercase tracking-widest bg-amber-900/40 text-center">
-                                    <div className="flex items-center justify-center gap-1.5 text-amber-200"><ShieldCheck size={12}/> Team Lead (TL) Section</div>
+                                    <div className="flex items-center justify-center gap-1.5 text-amber-200 "><ShieldCheck size={12}/> Team Lead (TL) Section</div>
                                 </th>
                             </tr>
                             <tr className="bg-slate-800 text-white">
@@ -643,6 +734,14 @@ export default function TLTrackerPage() {
                                 {/* TL Columns */}
                                 <th className="py-2 px-3 text-[10px] font-black text-amber-300 uppercase tracking-widest border-t border-slate-700 bg-slate-800/80 w-52">TL Evaluation & Updated CV</th>
                                 <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest sticky right-0 bg-slate-900 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)] text-center border-l border-slate-700 border-t border-slate-700 w-32">Actions</th>
+                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest border-t border-slate-700 w-10 text-center bg-slate-800">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={filteredData.filter(r => !r.sentToCrm).length > 0 && selectedRows.length === filteredData.filter(r => !r.sentToCrm).length}
+                                        onChange={toggleSelectAll}
+                                        className="w-4 h-4 cursor-pointer"
+                                    />
+                                </th>
                             </tr>
                         </thead>
 
@@ -661,7 +760,7 @@ export default function TLTrackerPage() {
                                 }
                                 return matchesRecruiter && matchesDate;
                             }).map((row) => (
-                                <tr key={row.id} className="hover:bg-emerald-50/30 transition-colors group">
+                                <tr key={row.id} className={`hover:bg-emerald-50/30 transition-colors group ${selectedRows.includes(row.id) ? 'bg-amber-50/30' : ''}`}>
                                     
                                     {/* 1. RC CV View Button */}
                                     <td className="py-2 px-3 sticky left-0 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] text-center">
@@ -783,6 +882,17 @@ export default function TLTrackerPage() {
                                             </div>
                                         )}
 
+                                    </td>
+
+                                    {/* Checkbox */}
+                                    <td className="py-2 px-2 text-center bg-slate-800">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={selectedRows.includes(row.id)}
+                                            onChange={() => toggleSelectRow(row.id)}
+                                            disabled={!!row.sentToCrm}
+                                            className={`w-4 h-4 cursor-pointer accent-amber-500 ${row.sentToCrm ? 'opacity-30 cursor-not-allowed' : ''}`}
+                                        />
                                     </td>
 
                                 </tr>
@@ -1088,6 +1198,62 @@ export default function TLTrackerPage() {
                             </button>
                         </div>
 
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk Send to CRM Modal */}
+            {bulkSendModalOpen && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4" onClick={() => setBulkSendModalOpen(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                        <div className="bg-amber-600 p-4 flex justify-between items-center text-white shrink-0">
+                            <h3 className="font-black text-sm uppercase tracking-wide flex items-center gap-2">
+                                <Send size={18}/> Bulk Send to CRM
+                            </h3>
+                            <button onClick={() => setBulkSendModalOpen(false)} className="hover:bg-white/20 p-1.5 rounded-full transition bg-white/10">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        
+                        <div className="p-5 bg-slate-50">
+                            <p className="text-sm font-bold text-slate-600 mb-4">
+                                Select CRM user to send <span className="text-amber-600 font-black">{selectedRows.length}</span> tracker(s)
+                            </p>
+                            
+                            <select 
+                                className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 bg-white outline-none focus:ring-2 focus:ring-amber-400 mb-4"
+                                value={selectedCrmUser}
+                                onChange={(e) => setSelectedCrmUser(e.target.value)}
+                            >
+                                <option value="">Select CRM User</option>
+                                {crmUsers.map(user => (
+                                    <option key={user.user_id} value={user.user_id}>{user.name}</option>
+                                ))}
+                            </select>
+
+                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
+                                <p className="text-xs font-bold text-amber-800">
+                                    Are you sure you want to send <span className="font-black text-lg">{selectedRows.length}</span> tracker(s) to CRM?
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="p-4 border-t border-slate-100 bg-white flex justify-end gap-3 shrink-0">
+                            <button onClick={() => setBulkSendModalOpen(false)} className="bg-slate-50 border border-slate-200 text-slate-600 px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-colors shadow-sm">
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleBulkSendToCrm}
+                                disabled={!selectedCrmUser || isBulkSending}
+                                className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest shadow-md transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isBulkSending ? (
+                                    <>Sending...</>
+                                ) : (
+                                    <><CheckCircle2 size={14}/> Confirm Send</>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
