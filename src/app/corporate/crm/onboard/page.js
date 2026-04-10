@@ -56,8 +56,14 @@ export default function OnboardPage() {
   }, []);
 
   // --- LOGIC: Toggle Client Status ---
-  const handleToggleStatus = async (id, currentStatus) => {
+  const handleToggleStatus = async (id, currentStatus, companyName) => {
     const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+    
+    // Show confirmation first
+    if (!confirm(`Are you sure you want to change ${companyName}'s status to "${newStatus}"?`)) {
+      return;
+    }
+    
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const response = await fetch('/api/corporate/crm/client-status', {
@@ -230,7 +236,7 @@ export default function OnboardPage() {
                       {/* --- CLIENT STATUS COLUMN --- */}
                       <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
                         <button 
-                          onClick={() => handleToggleStatus(item.id, item.clientStatus)}
+                          onClick={() => handleToggleStatus(item.id, item.clientStatus, item.company)}
                           className={`px-2 py-1 rounded text-[10px] font-bold cursor-pointer hover:opacity-80 transition-opacity ${
                             item.clientStatus === 'Active' ? 'bg-green-100 text-green-700' :
                             'bg-red-100 text-red-700'

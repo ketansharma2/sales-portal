@@ -97,6 +97,7 @@ export async function GET(request, { params }) {
       gst: client.gst_details || '',
       kycStatus: client.kyc_status || '',
       contractLink: client.contract_link || '',
+      contractExpiryDate: client.expiry_date || '',
       termsCondition: client.tnc || '',
       kycDocLink: client.kyc_doc || '',
       emailScreenshot: client.email_ss || '',
@@ -148,6 +149,7 @@ export async function PUT(request, { params }) {
       gst,
       kycStatus,
       contractLink,
+      contractExpiryDate,
       termsCondition,
       kycDocLink,
       emailScreenshot
@@ -172,6 +174,7 @@ export async function PUT(request, { params }) {
       gst_details: gst,
       kyc_status: kycStatus,
       contract_link: contractLink,
+      expiry_date: contractExpiryDate,
       tnc: termsCondition,
       kyc_doc: kycDocLink,
       email_ss: emailScreenshot

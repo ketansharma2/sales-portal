@@ -43,6 +43,33 @@ export default function CRMDashboard() {
   const [hoveredDiscussion, setHoveredDiscussion] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
+  // --- FETCH ACTIVE & NON-ACTIVE CLIENTS ---
+  useEffect(() => {
+    const fetchClientCounts = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        if (!token) return;
+
+        const response = await fetch('/api/corporate/crm/client-counts', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setActiveClients(data.active || 0);
+          setNonActiveClients(data.nonActive || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching client counts:', error);
+      }
+    };
+
+    fetchClientCounts();
+  }, []);
+
   // --- FETCH TOTAL ONBOARDED CLIENTS ---
   useEffect(() => {
     const fetchTotalOnboarded = async () => {

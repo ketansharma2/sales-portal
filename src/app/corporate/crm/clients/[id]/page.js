@@ -20,6 +20,7 @@ export default function ClientMasterProfile() {
   
   // --- STATE FOR MODALS ---
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSavingClient, setIsSavingClient] = useState(false);
   const [isComplianceModalOpen, setIsComplianceModalOpen] = useState(false);
   const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -124,6 +125,7 @@ export default function ClientMasterProfile() {
     gst: '',
     kycStatus: 'Pending',
     contractLink: '',
+    contractExpiryDate: '',
     termsCondition: '',
     kycDocLink: '',
     emailScreenshot: '',
@@ -541,6 +543,7 @@ const [newConversationData, setNewConversationData] = useState({
   };
 
   const handleSaveFundamentals = async () => {
+    setIsSavingClient(true);
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const response = await fetch(`/api/corporate/crm/clients/${clientId}`, {
@@ -561,6 +564,8 @@ const [newConversationData, setNewConversationData] = useState({
     } catch (error) {
       console.error('Error updating client:', error);
       alert('Error updating client profile');
+    } finally {
+      setIsSavingClient(false);
     }
   };
   const handleSaveContact = async () => {
@@ -955,50 +960,50 @@ const [newConversationData, setNewConversationData] = useState({
               </button>
            </div>
            
-            <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-               {clientData.branches.map((branch) => (
-                 <button
-                   key={branch.branch_id}
-                   onClick={() => setSelectedBranchId(branch.branch_id)}
-                   className={`w-full text-left p-3 rounded-xl border transition-all group relative ${
-                     selectedBranchId === branch.branch_id
-                     ? "bg-white border-[#103c7f] shadow-md ring-1 ring-blue-50"
-                     : "bg-white border-gray-200 hover:border-blue-300 hover:shadow-sm"
-                   }`}
-                 >
-                   {selectedBranchId === branch.branch_id && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#103c7f] rounded-l-xl"></div>}
-                   <div className="flex justify-between items-center pl-1">
-                     <span className={`text-xs font-bold ${selectedBranchId === branch.branch_id ? "text-[#103c7f]" : "text-gray-700"}`}>
-                       {branch.name}
-                     </span>
-                     <div className="flex items-center gap-1">
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingBranch(branch);
-                            setEditBranchData({
-                              name: branch.name,
-                              state: branch.state || '',
-                              city: branch.city || '',
-                              address: branch.full_address || '',
-                              status: branch.status || ''
-                            });
-                            setIsEditBranchModalOpen(true);
-                          }}
-                          className="p-1 text-gray-400 hover:text-[#103c7f] hover:bg-blue-50 rounded transition"
-                          title="Edit Branch"
-                        >
-                          <Edit size={12}/>
-                        </button>
-                        {selectedBranchId === branch.branch_id && <ChevronRight size={14} className="text-[#103c7f]" />}
-                     </div>
-                   </div>
-                   <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-1 pl-1">
-                     <MapPin size={10} /> {branch.state}
-                   </div>
-                 </button>
-               ))}
-            </div>
+             <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+                {clientData.branches.map((branch) => (
+                  <div
+                    key={branch.branch_id}
+                    onClick={() => setSelectedBranchId(branch.branch_id)}
+                    className={`w-full text-left p-3 rounded-xl border transition-all group relative cursor-pointer ${
+                      selectedBranchId === branch.branch_id
+                      ? "bg-white border-[#103c7f] shadow-md ring-1 ring-blue-50"
+                      : "bg-white border-gray-200 hover:border-blue-300 hover:shadow-sm"
+                    }`}
+                  >
+                    {selectedBranchId === branch.branch_id && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#103c7f] rounded-l-xl"></div>}
+                    <div className="flex justify-between items-center pl-1">
+                      <span className={`text-xs font-bold ${selectedBranchId === branch.branch_id ? "text-[#103c7f]" : "text-gray-700"}`}>
+                        {branch.name}
+                      </span>
+                      <div className="flex items-center gap-1">
+                         <button 
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             setEditingBranch(branch);
+                             setEditBranchData({
+                               name: branch.name,
+                               state: branch.state || '',
+                               city: branch.city || '',
+                               address: branch.full_address || '',
+                               status: branch.status || ''
+                             });
+                             setIsEditBranchModalOpen(true);
+                           }}
+                           className="p-1 text-gray-400 hover:text-[#103c7f] hover:bg-blue-50 rounded transition"
+                           title="Edit Branch"
+                         >
+                           <Edit size={12}/>
+                         </button>
+                         {selectedBranchId === branch.branch_id && <ChevronRight size={14} className="text-[#103c7f]" />}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-1 pl-1">
+                      <MapPin size={10} /> {branch.state}
+                    </div>
+                  </div>
+                ))}
+             </div>
         </div>
       </div>
 
@@ -1362,6 +1367,19 @@ const [newConversationData, setNewConversationData] = useState({
                                     />
                                 </div>
                             </div>
+
+                            {/* Contract Expiry Date - IMPORTANT */}
+                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                                <label className="text-[10px] font-bold text-amber-700 uppercase flex items-center gap-1">
+                                    ⚠️ Contract Expiry Date
+                                </label>
+                                <input 
+                                    type="date" 
+                                    value={formData.contractExpiryDate} 
+                                    onChange={(e) => setFormData({...formData, contractExpiryDate: e.target.value})} 
+                                    className="w-full border border-amber-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none bg-white" 
+                                />
+                            </div>
                         </div>
 
                         {/* RIGHT COLUMN: CRM FULFILLMENT (New Fields) */}
@@ -1492,9 +1510,14 @@ const [newConversationData, setNewConversationData] = useState({
 
                 {/* Modal Footer */}
                 <div className="p-5 bg-gray-50 border-t flex justify-end gap-3">
-                    <button onClick={() => setIsEditModalOpen(false)} className="px-5 py-2.5 text-gray-500 font-bold hover:text-gray-700 text-sm">Cancel</button>
-                    <button onClick={handleSaveFundamentals} className="bg-[#103c7f] hover:bg-blue-900 text-white px-8 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-900/20 flex items-center gap-2 transform active:scale-95 transition-all">
-                        <Save size={18}/> Save Changes
+                    <button onClick={() => setIsEditModalOpen(false)} disabled={isSavingClient} className="px-5 py-2.5 text-gray-500 font-bold hover:text-gray-700 text-sm disabled:opacity-50">Cancel</button>
+                    <button onClick={handleSaveFundamentals} disabled={isSavingClient} className="bg-[#103c7f] hover:bg-blue-900 text-white px-8 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-900/20 flex items-center gap-2 transform active:scale-95 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+                        {isSavingClient ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                            <Save size={18}/>
+                        )}
+                        {isSavingClient ? 'Saving...' : 'Save Changes'}
                     </button>
                 </div>
             </div>
@@ -2502,7 +2525,7 @@ const [newConversationData, setNewConversationData] = useState({
                        const requirements = branchDetails[branch.branch_id]?.requirements || [];
 
                        return (
-                          <div key={branch.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                           <div key={branch.branch_id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                              
                              {/* Branch Header */}
                              <div className="bg-gray-100/80 px-4 py-2.5 border-b border-gray-200 flex justify-between items-center">
