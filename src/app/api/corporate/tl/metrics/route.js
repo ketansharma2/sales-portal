@@ -159,6 +159,23 @@ export async function GET(request) {
       console.error('Fetch JD match error:', jdMatchError);
     }
 
+    // 8. Delayed Pipeline CV: sent_to_crm is null AND sent_date < today - 2 days (no date filter)
+    const today = new Date();
+    const twoDaysAgo = new Date(today);
+    twoDaysAgo.setDate(today.getDate() - 2);
+    const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
+
+    const { count: delayedPipelineCv, error: delayedError } = await supabaseServer
+      .from('candidates_conversation')
+      .select('conversation_id', { count: 'exact' })
+      .eq('sent_to_tl', currentUserId)
+      .is('sent_to_crm', null)
+      .lt('sent_date', twoDaysAgoStr);
+
+    if (delayedError) {
+      console.error('Fetch delayed pipeline CV error:', delayedError);
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -168,7 +185,8 @@ export async function GET(request) {
         notResponding: notResponding || 0,
         joining: joining,
         totalTrackersReceived: totalTrackersReceived || 0,
-        jdMatchCount: jdMatchCount || 0
+        jdMatchCount: jdMatchCount || 0,
+        delayedPipelineCv: delayedPipelineCv || 0
       }
     })
 

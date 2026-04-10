@@ -164,12 +164,22 @@ export default function TLTrackerPage() {
     const [selectedCrmUser, setSelectedCrmUser] = useState(null);
     const [isLoadingCrmUsers, setIsLoadingCrmUsers] = useState(false);
 
+    // Filter State
+    const [recruiterFilter, setRecruiterFilter] = useState("");
+    const [loggedInUser, setLoggedInUser] = useState(null);
+    const [dateRange, setDateRange] = useState({
+        from: new Date().toISOString().split('T')[0],
+        to: new Date().toISOString().split('T')[0]
+    });
+
     // Fetch data from API
     useEffect(() => {
         const fetchTrackerData = async () => {
             try {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
                 const token = session.access_token;
+                const userData = session.user || null;
+                setLoggedInUser(userData);
                 
                 const response = await fetch('/api/corporate/tl/tracker', {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -536,6 +546,34 @@ export default function TLTrackerPage() {
                                 className="w-full pl-8 pr-3 py-1.5 text-xs font-bold border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                             />
                         </div>
+                        <select 
+                            className="w-full sm:w-48 py-1.5 text-xs font-bold border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 bg-white cursor-pointer"
+                            value={recruiterFilter}
+                            onChange={(e) => setRecruiterFilter(e.target.value)}
+                        >
+                            <option value="">All Recruiters</option>
+                            {[...new Set([
+                                ...trackerData.map(item => item.recruiterName).filter(Boolean),
+                                ...(loggedInUser?.role?.includes('RC') ? [loggedInUser.name] : [])
+                            ])].map((name) => (
+                                <option key={name} value={name}>{name}</option>
+                            ))}
+                        </select>
+                        <div className="flex items-center gap-2">
+                            <input 
+                                type="date" 
+                                className="w-full sm:w-32 py-1.5 text-xs font-bold border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                value={dateRange.from}
+                                onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+                            />
+                            <span className="text-xs font-bold text-slate-400">to</span>
+                            <input 
+                                type="date" 
+                                className="w-full sm:w-32 py-1.5 text-xs font-bold border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                value={dateRange.to}
+                                onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+                            />
+                        </div>
                     </div>
                     
                 </div>
@@ -572,7 +610,14 @@ export default function TLTrackerPage() {
                         </thead>
 
                         <tbody className="divide-y divide-slate-100 bg-white">
-                            {trackerData.map((row) => (
+                            {trackerData.filter(row => {
+                                const matchesRecruiter = !recruiterFilter || row.recruiterName === recruiterFilter;
+                                const rowDate = new Date(row.sentDate.split('-').reverse().join('-'));
+                                const fromDate = dateRange.from ? new Date(dateRange.from) : null;
+                                const toDate = dateRange.to ? new Date(dateRange.to) : null;
+                                const matchesDate = (!fromDate || rowDate >= fromDate) && (!toDate || rowDate <= toDate);
+                                return matchesRecruiter && matchesDate;
+                            }).map((row) => (
                                 <tr key={row.id} className="hover:bg-emerald-50/30 transition-colors group">
                                     
                                     {/* 1. RC CV View Button */}

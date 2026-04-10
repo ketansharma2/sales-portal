@@ -26,7 +26,8 @@ export default function TLWorkbenchReport() {
             notResponding: 0,
             joining: 0,
             totalTrackersReceived: 0,
-            jdMatchCount: 0
+            jdMatchCount: 0,
+            delayedPipelineCv: 0
         });
 
         // Team Metrics State
@@ -418,7 +419,7 @@ export default function TLWorkbenchReport() {
                 <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <Award size={14} className="text-[#103c7f]"/> TL Level Metrics
                 </h2>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div className="grid grid-cols-6 gap-3">
                     
                     {/* TL Card 1: Tracker Sent to CRM */}
                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-blue-100 flex items-center gap-3 relative overflow-hidden group hover:border-blue-300 transition-colors">
@@ -485,6 +486,19 @@ export default function TLWorkbenchReport() {
                                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Accuracy %</p>
                                 <p className="text-2xl font-black text-amber-700 leading-none mt-1">{accuracy}<span className="text-sm ml-0.5">%</span></p>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* TL Card 6: Delayed Pipeline CV */}
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-orange-100 flex items-center gap-3 relative overflow-hidden group hover:border-orange-300 transition-colors">
+                        <div className="absolute top-0 right-0 w-12 h-12 bg-orange-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                        <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                            <Clock size={20} />
+                        </div>
+                        <div className="z-10">
+                            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Delayed Pipeline CV</p>
+                            {/* <p className="text-[6px] font-bold text-orange-400 uppercase tracking-wider mt-0.5">Not sent to crm (more than 2 days)</p> */}
+                            <p className="text-2xl font-black text-orange-700 leading-none mt-1">{tlMetrics.delayedPipelineCv}</p>
                         </div>
                     </div>
 
