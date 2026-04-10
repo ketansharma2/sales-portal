@@ -70,6 +70,10 @@ export default function Header() {
       roleLabel = "Sales Manager";
       pageSubtitle = "TEAM MANAGEMENT";
       break;
+    case "revenue":
+      roleLabel = "Revenue";
+      pageSubtitle = "REVENUE SYSTEM";
+      break;
     case "fse":
       roleLabel = "Field Executive";
       pageSubtitle = "DAILY WORK REPORT";
@@ -118,7 +122,7 @@ export default function Header() {
     email: user.email || "user@mavenjobs.com",
     phone: "+91 98765 43210",
     empId: "MJ-2024-045",
-    manager: "Diwakar", // Ideally comes from DB
+    manager: "Diwakar", 
     location: currentSector ? `${currentSector.charAt(0).toUpperCase() + currentSector.slice(1)} Region` : "Head Office",
     joiningDate: "12 Aug, 2024"
   };
