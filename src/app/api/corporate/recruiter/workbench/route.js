@@ -28,9 +28,8 @@ export async function GET(request) {
       }, { status: 500 })
     }
 
-    // Get unique req_ids, client_ids, and tl_ids
+    // Get unique req_ids and tl_ids
     const reqIds = [...new Set(workbenchData?.map(item => item.req_id).filter(Boolean))] || []
-    const clientIds = [...new Set(workbenchData?.map(item => item.client_id).filter(Boolean))] || []
     const tlIds = [...new Set(workbenchData?.map(item => item.sent_to_tl).filter(Boolean))] || []
 
     // Fetch requirements
@@ -38,13 +37,27 @@ export async function GET(request) {
     if (reqIds.length > 0) {
       const { data: requirements } = await supabaseServer
         .from('corporate_crm_reqs')
-        .select('req_id, job_title, experience, package, openings, location, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers, contact_details')
+        .select('req_id, branch_id, job_title, experience, package, openings, location, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers, contact_details')
         .in('req_id', reqIds)
       
       reqsData = requirements || []
     }
 
-    // Fetch clients
+    // Fetch branch to client mapping
+    const branchIds = [...new Set(reqsData.map(r => r.branch_id).filter(Boolean))] || []
+    let branchesData = []
+    if (branchIds.length > 0) {
+      const { data: branches } = await supabaseServer
+        .from('corporate_crm_branch')
+        .select('branch_id, client_id')
+        .in('branch_id', branchIds)
+      
+      branchesData = branches || []
+    }
+    const branchesMap = new Map(branchesData.map(b => [b.branch_id, b.client_id]))
+
+    // Fetch client names
+    const clientIds = [...new Set(branchesData.map(b => b.client_id).filter(Boolean))] || []
     let clientsData = []
     if (clientIds.length > 0) {
       const { data: clients } = await supabaseServer
@@ -54,6 +67,7 @@ export async function GET(request) {
       
       clientsData = clients || []
     }
+    const clientsMap = new Map(clientsData.map(c => [c.client_id, c.company_name]))
 
     // Fetch TL users
     let usersData = []
@@ -87,13 +101,13 @@ export async function GET(request) {
 
     // Create lookup maps
     const reqsMap = new Map(reqsData.map(r => [r.req_id, r]))
-    const clientsMap = new Map(clientsData.map(c => [c.client_id, c]))
     const usersMap = new Map(usersData.map(u => [u.user_id, u]))
 
     // Transform data to match the format expected by the UI
     const transformedData = workbenchData?.map(item => {
       const req = reqsMap.get(item.req_id)
-      const client = clientsMap.get(item.client_id)
+      const branchClientId = req?.branch_id ? branchesMap.get(req.branch_id) : null
+      const clientName = branchClientId ? clientsMap.get(branchClientId) || 'Unknown Client' : 'Unknown Client'
       const tl = usersMap.get(item.sent_to_tl)
       const totalSti = stiSumMap.get(item.workbench_id) || 0
 
@@ -101,9 +115,8 @@ export async function GET(request) {
         id: item.workbench_id,
         date: item.date,
         status: item.status || 'Pending',
-        client_id: item.client_id,
-        client_name: client?.company_name || 'Unknown Client',
         req_id: item.req_id,
+        client_name: clientName,
         job_title: req?.job_title || '',
         experience: req?.experience || '',
         package: item.package || req?.package || '',

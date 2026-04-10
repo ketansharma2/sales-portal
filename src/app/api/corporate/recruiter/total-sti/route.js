@@ -19,11 +19,11 @@ export async function GET(request) {
     const fromDate = searchParams.get('fromDate')
     const toDate = searchParams.get('toDate')
 
-    // Build query to get all advance_sti values for the user within date range
+    // Build query to get all advance_sti values from corporate_workbench_sti
     let query = supabaseServer
-      .from('corporate_workbench')
+      .from('corporate_workbench_sti')
       .select('advance_sti')
-      .eq('sent_to_rc', currentUserId)
+      .eq('user_id', currentUserId)
 
     // Add date range filter if provided
     if (fromDate && toDate) {

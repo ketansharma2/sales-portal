@@ -367,6 +367,7 @@ export default function RecruiterWorkbenchReport() {
                         <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-10">
                             <tr>
                                 <th className="p-3 border-r border-blue-800 min-w-[100px]"><div className="flex items-center gap-1.5"><Calendar size={12}/> Date</div></th>
+                                <th className="p-3 border-r border-blue-800 min-w-[120px]"><div className="flex items-center gap-1.5"><Building2 size={12}/> Client</div></th>
                                 <th className="p-3 border-r border-blue-800 min-w-[140px]"><div className="flex items-center gap-1.5"><Briefcase size={12}/> Profile</div></th>
                                 <th className="p-3 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><IndianRupee size={12}/> Pkg / Req</div></th>
                                 <th className="p-3 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><FileText size={12}/> JD</div></th>
@@ -397,6 +398,9 @@ export default function RecruiterWorkbenchReport() {
                                             
                                             {/* Date */}
                                             <td className="p-3 border-r border-gray-200 font-bold text-gray-600 bg-gray-50">{row.date}</td>
+                                            
+                                            {/* Client */}
+                                            <td className="p-3 border-r border-gray-200 font-bold text-[#103c7f]">{row.client_name || '-'}</td>
                                             
                                             {/* Profile */}
                                             <td className="p-3 border-r border-gray-200 font-black text-[#103c7f]">{row.job_title}</td>
@@ -455,7 +459,7 @@ export default function RecruiterWorkbenchReport() {
                                 })
                             ) : (
                                 <tr>
-                                    <td colSpan="12" className="p-12 text-center bg-white">
+                                    <td colSpan="13" className="p-12 text-center bg-white">
                                         <Calendar size={40} className="text-gray-300 mx-auto mb-3" />
                                         <h4 className="text-lg font-black text-gray-500 uppercase tracking-widest">No Work Logged</h4>
                                         <p className="text-sm font-bold text-gray-400 mt-1">No activities were recorded for the selected date range.</p>

@@ -50,7 +50,7 @@ export async function GET(request) {
     if (reqIds.length > 0) {
       const { data: requirements, error: reqError } = await supabaseServer
         .from('corporate_crm_reqs')
-        .select('req_id, job_title, package, location, experience, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers, contact_details, jd_link')
+        .select('req_id, branch_id, job_title, package, location, experience, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers, contact_details, jd_link')
         .in('req_id', reqIds)
       
       if (reqError) {
@@ -59,6 +59,32 @@ export async function GET(request) {
       reqsData = requirements || []
       console.log('reqIds:', reqIds, 'reqsData:', reqsData)
     }
+
+    // Fetch branch to client mapping
+    const branchIds = [...new Set(reqsData.map(r => r.branch_id).filter(Boolean))] || []
+    let branchesData = []
+    if (branchIds.length > 0) {
+      const { data: branches } = await supabaseServer
+        .from('corporate_crm_branch')
+        .select('branch_id, client_id')
+        .in('branch_id', branchIds)
+      
+      branchesData = branches || []
+    }
+    const branchesMap = new Map(branchesData.map(b => [b.branch_id, b.client_id]))
+
+    // Fetch client names
+    const clientIds = [...new Set(branchesData.map(b => b.client_id).filter(Boolean))] || []
+    let clientsData = []
+    if (clientIds.length > 0) {
+      const { data: clients } = await supabaseServer
+        .from('corporate_crm_clients')
+        .select('client_id, company_name')
+        .in('client_id', clientIds)
+      
+      clientsData = clients || []
+    }
+    const clientsMap = new Map(clientsData.map(c => [c.client_id, c.company_name]))
 
     // Fetch TL users for names
     let usersData = []
@@ -101,6 +127,7 @@ export async function GET(request) {
       const req = reqsMap.get(item.req_id)
       const tl = usersMap.get(item.sent_to_tl)
       const totalSti = stiSumMap.get(item.workbench_id) || 0
+      const clientName = req?.branch_id ? clientsMap.get(branchesMap.get(req.branch_id)) || '' : ''
       
       console.log('item.req_id:', item.req_id, 'req:', req)
 
@@ -166,6 +193,7 @@ export async function GET(request) {
         workbench_id: item.workbench_id,
         date: item.date,
         req_id: item.req_id,
+        client_name: clientName,
         job_title: req?.job_title || '',
         package: req?.package || item.package || '',
         requirement: item.req || 0,
