@@ -172,6 +172,7 @@ export default function TLTrackerPage() {
 
     // Filter State
     const [recruiterFilter, setRecruiterFilter] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
     const [loggedInUser, setLoggedInUser] = useState(null);
     const [recruitersList, setRecruitersList] = useState([]);
     const [dateRange, setDateRange] = useState({
@@ -296,10 +297,15 @@ export default function TLTrackerPage() {
                 matchesDate = (!dateRange.from || row.sentDate >= dateRange.from) && 
                              (!dateRange.to || row.sentDate <= dateRange.to);
             }
-            return matchesRecruiter && matchesDate;
+            const matchesSearch = !searchQuery || 
+                row.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                row.profile?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                row.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                row.mobile?.includes(searchQuery);
+            return matchesRecruiter && matchesDate && matchesSearch;
         });
         setFilteredData(data);
-    }, [trackerData, recruiterFilter, dateRange]);
+    }, [trackerData, recruiterFilter, dateRange, searchQuery]);
 
     // --- HANDLERS ---
     const openCVModal = (candidate, source) => {
@@ -650,8 +656,10 @@ export default function TLTrackerPage() {
                             <Search size={14} className="absolute left-3 top-2 text-slate-400" />
                             <input 
                                 type="text" 
-                                placeholder="Search by Candidate, Profile..." 
+                                placeholder="Search by Candidate, Profile , email, mobile . . ." 
                                 className="w-full pl-8 pr-3 py-1.5 text-xs font-bold border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
                         <select 
@@ -746,20 +754,7 @@ export default function TLTrackerPage() {
                         </thead>
 
                         <tbody className="divide-y divide-slate-100 bg-white">
-                            {trackerData.filter(row => {
-                                const matchesRecruiter = !recruiterFilter || row.recruiterName === recruiterFilter;
-                                
-                                let matchesDate = true;
-                                if ((dateRange.from || dateRange.to) && row.sentDate !== '-') {
-                                    const rowDateStr = row.sentDate;
-                                    const fromDateStr = dateRange.from;
-                                    const toDateStr = dateRange.to;
-                                    
-                                    matchesDate = (!fromDateStr || rowDateStr >= fromDateStr) && 
-                                                 (!toDateStr || rowDateStr <= toDateStr);
-                                }
-                                return matchesRecruiter && matchesDate;
-                            }).map((row) => (
+                            {filteredData.map((row) => (
                                 <tr key={row.id} className={`hover:bg-emerald-50/30 transition-colors group ${selectedRows.includes(row.id) ? 'bg-amber-50/30' : ''}`}>
                                     
                                     {/* 1. RC CV View Button */}
