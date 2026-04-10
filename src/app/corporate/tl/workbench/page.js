@@ -80,6 +80,7 @@ export default function TLWorkbenchPage() {
                     const transformedAssignments = data.data.map(item => ({
                         id: item.id,
                         date: item.date,
+                        client_name: item.client_name || '',
                         profile: item.job_title,
                         package_salary: item.package || '',
                         requirement: item.requirement?.toString() || '',
@@ -308,6 +309,7 @@ export default function TLWorkbenchPage() {
                             <tr>
                                 <th className="p-3 border-r border-blue-800 w-10 text-center">#</th>
                                 <th className="p-3 border-r border-blue-800 w-28"><div className="flex items-center gap-1.5"><Calendar size={12}/> Date</div></th>
+                                <th className="p-3 border-r border-blue-800 w-28"><div className="flex items-center gap-1.5"><Briefcase size={12}/> Client</div></th>
                                 <th className="p-3 border-r border-blue-800 min-w-[140px]"><div className="flex items-center gap-1.5"><Briefcase size={12}/> Profile</div></th>
                                 <th className="p-3 border-r border-blue-800 text-center w-24"><div className="flex items-center justify-center gap-1.5"><IndianRupee size={12}/> Package</div></th>
                                 <th className="p-3 border-r border-blue-800 text-center w-20"><div className="flex items-center justify-center gap-1.5"><Target size={12}/> Req.</div></th>
@@ -325,7 +327,7 @@ export default function TLWorkbenchPage() {
                         <tbody className="text-xs text-gray-800 font-medium divide-y divide-gray-200 bg-gray-50">
                             {loadingAssignments ? (
                                 <tr>
-                                    <td colSpan="9" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest bg-white">
+                                    <td colSpan="10" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest bg-white">
                                         Loading assignments...
                                     </td>
                                 </tr>
@@ -341,6 +343,10 @@ export default function TLWorkbenchPage() {
                                             
                                             <td className="p-2 border-r border-gray-200 font-mono text-gray-600">
                                                 {item.date}
+                                            </td>
+                                            
+                                            <td className="p-2 border-r border-gray-200 font-bold text-[#103c7f]">
+                                                {item.client_name || '-'}
                                             </td>
                                             
                                             <td className="p-2 border-r border-gray-200 font-black text-[#103c7f]">
@@ -440,7 +446,7 @@ export default function TLWorkbenchPage() {
                                     )
                                 })) : (
                                 <tr>
-                                    <td colSpan="9" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest bg-white">
+                                    <td colSpan="10" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest bg-white">
                                         No workbench assignments found
                                     </td>
                                 </tr>

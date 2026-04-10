@@ -35,21 +35,45 @@ export async function GET(request) {
     }
 
     // Fetch related data separately
-    const clientIds = [...new Set(workbenchData.map(item => item.client_id).filter(Boolean))]
     const reqIds = [...new Set(workbenchData.map(item => item.req_id).filter(Boolean))]
     const recruiterIds = [...new Set(workbenchData.map(item => item.sent_to_rc).filter(Boolean))]
 
-    // Fetch clients
-    const { data: clientsData } = await supabaseServer
-      .from('corporate_crm_clients')
-      .select('client_id, company_name')
-      .in('client_id', clientIds)
+    // Fetch requirements with branch_id
+    let reqsData = []
+    if (reqIds.length > 0) {
+      const { data: requirements } = await supabaseServer
+        .from('corporate_crm_reqs')
+        .select('req_id, branch_id, job_title, experience, package, openings, location, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers, contact_details')
+        .in('req_id', reqIds)
+      
+      reqsData = requirements || []
+    }
 
-    // Fetch requirements
-    const { data: reqsData } = await supabaseServer
-      .from('corporate_crm_reqs')
-      .select('req_id, job_title, experience, package, openings, location, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers, contact_details')
-      .in('req_id', reqIds)
+    // Fetch branches to get client_id
+    const branchIds = [...new Set(reqsData.map(r => r.branch_id).filter(Boolean))] || []
+    let branchesData = []
+    if (branchIds.length > 0) {
+      const { data: branches } = await supabaseServer
+        .from('corporate_crm_branch')
+        .select('branch_id, client_id')
+        .in('branch_id', branchIds)
+      
+      branchesData = branches || []
+    }
+    const branchesMap = new Map(branchesData.map(b => [b.branch_id, b.client_id]))
+
+    // Fetch clients
+    const clientIds = [...new Set(branchesData.map(b => b.client_id).filter(Boolean))] || []
+    let clientsData = []
+    if (clientIds.length > 0) {
+      const { data: clients } = await supabaseServer
+        .from('corporate_crm_clients')
+        .select('client_id, company_name')
+        .in('client_id', clientIds)
+      
+      clientsData = clients || []
+    }
+    const clientsMap = new Map(clientsData.map(c => [c.client_id, c.company_name]))
 
     // Fetch recruiters
     const { data: recruitersData } = await supabaseServer
@@ -151,22 +175,23 @@ export async function GET(request) {
     const totalCvMap = new Map(countsResults.map(r => [r.workbench_id, r.totalCv]));
 
     // Create lookup maps
-    const clientsMap = new Map(clientsData?.map(c => [c.client_id, c]) || [])
-    const reqsMap = new Map(reqsData?.map(r => [r.req_id, r]) || [])
+    const reqsMap = new Map(reqsData.map(r => [r.req_id, r]))
     const recruitersMap = new Map(recruitersData?.map(r => [r.user_id, r]) || [])
 
     // Transform data for UI
     const transformedData = workbenchData.map(item => {
-      const client = clientsMap.get(item.client_id)
       const req = reqsMap.get(item.req_id)
       const recruiter = recruitersMap.get(item.sent_to_rc)
+      
+      // Get client through branch path
+      const branchClientId = req?.branch_id ? branchesMap.get(req.branch_id) : null
+      const clientName = branchClientId ? clientsMap.get(branchClientId) || 'Unknown Client' : 'Unknown Client'
 
       return {
         id: item.workbench_id,
         date: item.date,
-        client_id: item.client_id,
-        client_name: client?.company_name || 'Unknown Client',
         req_id: item.req_id,
+        client_name: clientName,
         job_title: req?.job_title || 'Unknown Requirement',
         experience: req?.experience || '',
         package: item.package || req?.package || '',

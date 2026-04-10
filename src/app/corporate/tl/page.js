@@ -599,6 +599,7 @@ export default function TLWorkbenchReport() {
                             <tr>
                                 <th className="p-3 border-r border-blue-800 w-10 text-center">#</th>
                                 <th className="p-3 border-r border-blue-800 min-w-[100px]"><div className="flex items-center gap-1.5"><Calendar size={12}/> Date</div></th>
+                                <th className="p-3 border-r border-blue-800 min-w-[120px]"><div className="flex items-center gap-1.5"><Users size={12}/> Client</div></th>
                                 <th className="p-3 border-r border-blue-800 min-w-[160px]"><div className="flex items-center gap-1.5 text-yellow-300"><Users size={12}/> Recruiter & Slot</div></th>
                                 
                                 {/* Profile & JD Column */}
@@ -628,6 +629,9 @@ export default function TLWorkbenchReport() {
                                             
                                             {/* Date */}
                                             <td className="p-3 border-r border-gray-200 font-bold text-gray-600 bg-gray-50">{row.date}</td>
+                                            
+                                            {/* Client */}
+                                            <td className="p-3 border-r border-gray-200 font-bold text-[#103c7f]">{row.client_name || '-'}</td>
                                             
                                             {/* Recruiter & Slot Combined Column */}
                                             <td className="p-2 border-r border-gray-200">
@@ -688,7 +692,7 @@ export default function TLWorkbenchReport() {
                                 })
                             ) : (
                                 <tr>
-                                    <td colSpan="12" className="p-12 text-center bg-white">
+                                    <td colSpan="13" className="p-12 text-center bg-white">
                                         <Calendar size={40} className="text-gray-300 mx-auto mb-3" />
                                         <h4 className="text-lg font-black text-gray-500 uppercase tracking-widest">No Work Logged</h4>
                                         <p className="text-sm font-bold text-gray-400 mt-1">No activities found for the selected filters.</p>

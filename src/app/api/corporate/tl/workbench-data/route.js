@@ -89,7 +89,7 @@ export async function GET(request) {
     if (reqIds.length > 0) {
       const { data: requirements, error: reqError } = await supabaseServer
         .from('corporate_crm_reqs')
-        .select('req_id, job_title, package, location, experience, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers, contact_details, jd_link')
+        .select('req_id, branch_id, job_title, package, location, experience, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers, contact_details, jd_link')
         .in('req_id', reqIds)
       
       if (reqError) {
@@ -97,6 +97,32 @@ export async function GET(request) {
       }
       reqsData = requirements || []
     }
+
+    // Fetch branches to get client_id
+    const branchIds = [...new Set(reqsData.map(r => r.branch_id).filter(Boolean))] || []
+    let branchesData = []
+    if (branchIds.length > 0) {
+      const { data: branches } = await supabaseServer
+        .from('corporate_crm_branch')
+        .select('branch_id, client_id')
+        .in('branch_id', branchIds)
+      
+      branchesData = branches || []
+    }
+    const branchesMap = new Map(branchesData.map(b => [b.branch_id, b.client_id]))
+
+    // Fetch clients
+    const clientIds = [...new Set(branchesData.map(b => b.client_id).filter(Boolean))] || []
+    let clientsData = []
+    if (clientIds.length > 0) {
+      const { data: clients } = await supabaseServer
+        .from('corporate_crm_clients')
+        .select('client_id, company_name')
+        .in('client_id', clientIds)
+      
+      clientsData = clients || []
+    }
+    const clientsMap = new Map(clientsData.map(c => [c.client_id, c.company_name]))
 
     // Fetch RC users for names
     let usersData = []
@@ -137,6 +163,10 @@ export async function GET(request) {
       const req = reqsMap.get(item.req_id)
       const rcName = usersMap.get(item.sent_to_rc) || 'Unknown RC'
       const totalSti = stiSumMap.get(item.workbench_id) || 0
+      
+      // Get client through branch path
+      const branchClientId = req?.branch_id ? branchesMap.get(req.branch_id) : null
+      const clientName = branchClientId ? clientsMap.get(branchClientId) || '' : ''
 
       // Fetch conversation stats for this req_id, user_id and date
       let conversationStats = { conversion: 0, asset: 0, tracker_sent: 0, cv_sourced: 0, cv_naukri: 0, cv_indeed: 0, cv_other: 0 }
@@ -199,6 +229,7 @@ export async function GET(request) {
         workbench_id: item.workbench_id,
         date: item.date,
         req_id: item.req_id,
+        client_name: clientName,
         job_title: req?.job_title || '',
         package: req?.package || item.package || '',
         requirement: item.req || 0,
