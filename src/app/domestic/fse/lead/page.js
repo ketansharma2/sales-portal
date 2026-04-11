@@ -26,7 +26,7 @@ export default function LeadsMasterPage() {
   const [totalLeads, setTotalLeads] = useState(0);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [nonFieldDays, setNonFieldDays] = useState([]);
-
+  const [openModal, setOpenModal] = useState(false);
   // Edit Interaction Modal State
   const [isEditInteractionModalOpen, setIsEditInteractionModalOpen] = useState(false);
   const [editingInteraction, setEditingInteraction] = useState(null);
@@ -290,18 +290,42 @@ export default function LeadsMasterPage() {
     }
   };
 
-  const handleSendToManager = async (lead) => {
-    const confirmed = confirm(`Send "${lead.company_name}" to manager?`);
-    if (!confirmed) return;
+  // const handleSendToManager = async (lead) => {
+  //   console.log("data:",lead);
+  //   const confirmed = confirm(`Send "${lead.company_name}" to manager?`);
+  //   if (!confirmed) return;
 
-    const updateData = {
-      client_id: lead.client_id,
-      sent_to_sm: true,
-      lock_date: new Date().toISOString().split('T')[0]
-    };
+  //   const updateData = {
+  //     client_id: lead.client_id,
+  //     sent_to_sm: true,
+  //     lock_date: new Date().toISOString().split('T')[0]
+  //   };
 
-    await saveLead(updateData);
+  //   await saveLead(updateData);
+  // };
+
+  const handleSendToManager = (lead) => {
+  console.log("data:", lead);
+
+  // instead of confirm()
+  setSelectedLead(lead);
+  setOpenModal(true);
+};
+
+const handleConfirmSend = async () => {
+  if (!selectedLead) return;
+
+  const updateData = {
+    client_id: selectedLead.client_id,
+    sent_to_sm: true,
+    lock_date: new Date().toISOString().split("T")[0],
   };
+
+  await saveLead(updateData);
+
+  setOpenModal(false);
+  setSelectedLead(null);
+};
   // 👇 ADD THIS FUNCTION (Missing)
   const handleSaveLeave = async (date, reason, remarks) => { // <--- Added remarks here
     try {
@@ -831,6 +855,76 @@ export default function LeadsMasterPage() {
       statusList={dropdowns.statusList}
     />
   )}
+
+
+  {openModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+  
+  <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden">
+    
+    {/* Header */}
+    <div className="bg-blue-900 text-white px-6 py-4 flex justify-between items-center">
+      <div className="font-semibold">
+        SEND TO TEAM LEAD
+      </div>
+      <button onClick={() => setOpenModal(false)}>✕</button>
+    </div>
+
+    {/* Body */}
+    <div className="p-6 text-center">
+      <p className="text-gray-600 mb-4">
+        You are about to send this client to: 
+      </p>
+
+      <div className="border border-green-400 rounded-xl p-4 flex items-center gap-4 justify-center">
+        <div className="bg-green-200 rounded-full w-12 h-12 flex items-center justify-center">
+          👤
+        </div>
+
+        <div className="text-left">
+          <p className="font-semibold">
+            MANAGER
+          </p>
+          <p className="text-sm text-gray-500">
+            {selectedLead?.email || "No email"}
+          </p>
+        </div>
+      </div>
+
+      {/* ✅ Textarea Added */}
+      <div className="mt-5 text-left">
+        <label className="block text-sm font-medium text-gray-600 mb-1">
+         Write Term and Condition  <span className="text-red-500">*</span>
+        </label>
+        <textarea
+          placeholder="Write a message for team lead..."
+          className="w-full border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          rows={3}
+        />
+      </div>
+
+     
+    </div>
+
+    {/* Footer */}
+    <div className="flex justify-center gap-4 p-4">
+      <button
+        onClick={() => setOpenModal(false)}
+        className="px-5 py-2 rounded-lg border text-gray-600"
+      >
+        CANCEL
+      </button>
+
+      <button
+        onClick={handleConfirmSend}
+        className="px-5 py-2 rounded-lg bg-green-600 text-white"
+      >
+        CONFIRM SEND
+      </button>
+    </div>
+  </div>
+</div>
+)}
 
     </div>
   );
