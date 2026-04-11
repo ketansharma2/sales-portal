@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { 
     Calendar, Building2, Briefcase, IndianRupee, Target, Clock, 
     FileText, Send, TrendingUp, Database, UserCheck, MessageSquare, 
-    LayoutDashboard, Search, Eye, X , User, File, Download, FileText as FileTextIcon, Loader2
+    LayoutDashboard, Search, Eye, X , User, File, Download, FileText as FileTextIcon, Loader2, CheckCircle2, RotateCw, Phone
 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import Image from 'next/image';
@@ -19,6 +19,11 @@ export default function RecruiterWorkbenchReport() {
     const [totalCvs, setTotalCvs] = useState(0);
     const [totalSti, setTotalSti] = useState(0);
     const [trackerSent, setTrackerSent] = useState(0);
+    const [newTrackerSent, setNewTrackerSent] = useState(0);
+    const [oldTrackerSent, setOldTrackerSent] = useState(0);
+    const [totalCalls, setTotalCalls] = useState(0);
+    const [newCalls, setNewCalls] = useState(0);
+    const [followUpCalls, setFollowUpCalls] = useState(0);
     const [totalAssets, setTotalAssets] = useState(0);
     const [conversions, setConversions] = useState(0);
     const [accuracy, setAccuracy] = useState(0);
@@ -138,6 +143,11 @@ export default function RecruiterWorkbenchReport() {
                 if (result.success) {
                     console.log('Candidate stats result:', result);
                     setTrackerSent(result.trackerSent);
+                    setNewTrackerSent(result.newTrackerSent || 0);
+                    setOldTrackerSent(result.oldTrackerSent || 0);
+                    setTotalCalls(result.totalCalls || 0);
+                    setNewCalls(result.newCalls || 0);
+                    setFollowUpCalls(result.followUpCalls || 0);
                     setTotalAssets(result.totalAssets);
                     setConversions(result.conversions);
                     setAccuracy(result.accuracy);
@@ -209,10 +219,15 @@ export default function RecruiterWorkbenchReport() {
             total_conversion: conversions,
             total_asset: totalAssets,
             total_trackers: trackerSent,
+            new_tracker_sent: newTrackerSent,
+            old_tracker_sent: oldTrackerSent,
+            total_calls: totalCalls,
+            new_calls: newCalls,
+            follow_up_calls: followUpCalls,
             accuracy: accuracy,
             jd_match_count: jdMatchCount
         };
-    }, [totalCvs, totalSti, conversions, totalAssets, trackerSent, accuracy, jdMatchCount]);
+    }, [totalCvs, totalSti, conversions, totalAssets, trackerSent, newTrackerSent, oldTrackerSent, totalCalls, newCalls, followUpCalls, accuracy, jdMatchCount]);
 
     return (
         <div className="min-h-screen bg-gray-50 font-['Calibri'] p-2 md:p-3">
@@ -265,8 +280,8 @@ export default function RecruiterWorkbenchReport() {
                 </div>
             </div>
 
-            {/* --- TOP KPI SUMMARY CARDS (Now 6 Cards) --- */}
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
+            {/* --- TOP KPI SUMMARY CARDS (Now 5 Cards) --- */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
                 
                 {/* 1. Total CVs */}
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-blue-100 flex items-center gap-3 relative overflow-hidden group">
@@ -316,19 +331,7 @@ export default function RecruiterWorkbenchReport() {
                     </div>
                 </div>
 
-                {/* 5. Trackers Sent */}
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex items-center gap-3 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-12 h-12 bg-gray-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
-                    <div className="w-10 h-10 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center shrink-0 z-10">
-                        <UserCheck size={20} />
-                    </div>
-                    <div className="z-10">
-                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Trackers Sent</p>
-                        <p className="text-2xl font-black text-gray-800 leading-none mt-1">{kpiTotals.total_trackers}</p>
-                    </div>
-                </div>
-
-                {/* 6. Accuracy */}
+                {/* 5. Accuracy */}
                 <div 
                     className="bg-white p-4 rounded-2xl shadow-sm border border-cyan-100 flex items-center gap-3 relative overflow-hidden group cursor-pointer hover:shadow-md transition-shadow"
                     onClick={() => setAccuracyModalOpen(true)}
@@ -340,6 +343,83 @@ export default function RecruiterWorkbenchReport() {
                     <div className="z-10">
                         <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Accuracy</p>
                         <p className="text-2xl font-black text-cyan-700 leading-none mt-1">{kpiTotals.accuracy}%</p>
+                    </div>
+                </div>
+
+            </div>
+
+            {/* --- SECOND ROW - NEW CARDS --- */}
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
+                
+                {/* Total Tracker Sent */}
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100 flex items-center gap-3 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-12 h-12 bg-indigo-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                    <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                        <Send size={20} />
+                    </div>
+                    <div className="z-10">
+                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Total Tracker Sent</p>
+                        <p className="text-2xl font-black text-gray-800 leading-none mt-1">{kpiTotals.total_trackers}</p>
+                    </div>
+                </div>
+
+                {/* Trackers Sent (New CV) */}
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 flex items-center gap-3 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-12 h-12 bg-emerald-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                    <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                        <FileText size={20} />
+                    </div>
+                    <div className="z-10">
+                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Trackers Sent (New CV)</p>
+                        <p className="text-2xl font-black text-gray-800 leading-none mt-1">{kpiTotals.new_tracker_sent}</p>
+                    </div>
+                </div>
+
+                {/* Trackers Sent (Old CV) */}
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-amber-100 flex items-center gap-3 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-12 h-12 bg-amber-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                    <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                        <FileText size={20} />
+                    </div>
+                    <div className="z-10">
+                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Trackers Sent (Old CV)</p>
+                        <p className="text-2xl font-black text-gray-800 leading-none mt-1">{kpiTotals.old_tracker_sent}</p>
+                    </div>
+                </div>
+
+                {/* Total Calls */}
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-3 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-12 h-12 bg-slate-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                    <div className="w-10 h-10 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                        <Phone size={20} />
+                    </div>
+                    <div className="z-10">
+                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Total Calls</p>
+                        <p className="text-2xl font-black text-gray-800 leading-none mt-1">{kpiTotals.total_calls}</p>
+                    </div>
+                </div>
+
+                {/* New Calls */}
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-rose-100 flex items-center gap-3 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-12 h-12 bg-rose-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                    <div className="w-10 h-10 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                        <Phone size={20} />
+                    </div>
+                    <div className="z-10">
+                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">New Calls</p>
+                        <p className="text-2xl font-black text-gray-800 leading-none mt-1">{kpiTotals.new_calls}</p>
+                    </div>
+                </div>
+
+                {/* FollowUp Calls */}
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-violet-100 flex items-center gap-3 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-12 h-12 bg-violet-50 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>
+                    <div className="w-10 h-10 bg-violet-100 text-violet-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                        <RotateCw size={20} />
+                    </div>
+                    <div className="z-10">
+                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">FollowUp Calls</p>
+                        <p className="text-2xl font-black text-gray-800 leading-none mt-1">{kpiTotals.follow_up_calls}</p>
                     </div>
                 </div>
 

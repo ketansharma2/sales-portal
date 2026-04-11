@@ -19,28 +19,132 @@ export async function GET(request) {
     const fromDate = searchParams.get('fromDate')
     const toDate = searchParams.get('toDate')
 
-    // Build base query for candidates_conversation
-    let query = supabaseServer
+    // Build base query for TRACKER SENT - only count conversations that are actually SENT to TL
+    let trackerQuery = supabaseServer
       .from('candidates_conversation')
-      .select('candidate_status', { count: 'exact', head: true })
+      .select('*')
+      .eq('user_id', currentUserId)
+      .not('sent_to_tl', 'is', null)
+
+    if (fromDate && toDate) {
+      trackerQuery = trackerQuery.gte('calling_date', fromDate).lte('calling_date', toDate)
+    }
+
+    const { data: conversations, error: convError } = await trackerQuery
+
+    if (convError) {
+      console.error('Fetch conversations error:', convError)
+    }
+
+    // Filter: only include records where sent_date matches calling_date (for tracker sent)
+    const filteredConversations = (conversations || []).filter(conv => {
+      if (!conv.calling_date || !conv.sent_date) return false
+      const callingDateStr = conv.calling_date.split('T')[0]
+      const sentDateStr = conv.sent_date.split('T')[0]
+      return callingDateStr === sentDateStr
+    })
+
+    // Build separate query for CALLS - no sent_to_tl filter, no calling_date === sent_date filter
+    let callsQuery = supabaseServer
+      .from('candidates_conversation')
+      .select('*')
       .eq('user_id', currentUserId)
 
-    // Add date range filter if provided
     if (fromDate && toDate) {
-      query = query.gte('calling_date', fromDate).lte('calling_date', toDate)
+      callsQuery = callsQuery.gte('calling_date', fromDate).lte('calling_date', toDate)
     }
 
-    // Get all rows for this date range (no status filter for tracker sent count)
-    const { count: trackerSent, error: trackerError } = await query
+    const { data: allConversations, error: allConvError } = await callsQuery
 
-    if (trackerError) {
-      console.error('Fetch tracker sent error:', trackerError)
+    if (allConvError) {
+      console.error('Fetch all conversations error:', allConvError)
     }
 
-    // Get count for Asset status
+    // Separate trackers into new and old based on calling_date vs portal_date
+
+    // Separate trackers into new and old based on calling_date vs portal_date
+    let newTrackerCount = 0
+    let oldTrackerCount = 0
+    let portalDateMap = new Map()
+
+    if (filteredConversations && filteredConversations.length > 0) {
+      // Get all parsing_ids
+      const parsingIds = [...new Set(filteredConversations.map(c => c.parsing_id).filter(Boolean))]
+      
+      if (parsingIds.length > 0) {
+        // Fetch cv_parsing records to get portal_date
+        const { data: cvData } = await supabaseServer
+          .from('cv_parsing')
+          .select('id, portal_date')
+          .in('id', parsingIds)
+        
+        if (cvData) {
+          // Create a map of parsing_id -> portal_date
+          portalDateMap = new Map(cvData.map(c => [c.id, c.portal_date]))
+          
+          // Count new and old trackers
+          filteredConversations.forEach(conv => {
+            if (conv.parsing_id && conv.calling_date) {
+              const portalDate = portalDateMap.get(conv.parsing_id)
+              if (portalDate) {
+                // Compare dates (format: YYYY-MM-DD)
+                const callingDateStr = conv.calling_date.split('T')[0]
+                const portalDateStr = portalDate.split('T')[0]
+                if (callingDateStr === portalDateStr) {
+                  newTrackerCount++
+                } else {
+                  oldTrackerCount++
+                }
+              }
+            }
+          })
+        }
+      }
+    }
+
+    const trackerSent = newTrackerCount + oldTrackerCount
+
+    // Calculate New Calls and FollowUp Calls
+    // New Call = first call (oldest created_at) for each candidate - regardless of portal_date
+    // FollowUp Calls = all subsequent calls for the same candidate
+    let newCalls = 0
+    let followUpCalls = 0
+
+    if (allConversations && allConversations.length > 0) {
+      // Group conversations by parsing_id
+      const convByParsingId = {}
+      allConversations.forEach(conv => {
+        if (conv.parsing_id) {
+          if (!convByParsingId[conv.parsing_id]) {
+            convByParsingId[conv.parsing_id] = []
+          }
+          convByParsingId[conv.parsing_id].push(conv)
+        }
+      })
+
+      // For each candidate, find new calls and followup calls
+      Object.values(convByParsingId).forEach(convs => {
+        // Sort by created_at to get oldest first
+        const sortedConvs = convs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+        
+        sortedConvs.forEach((conv, index) => {
+          if (index === 0) {
+            // First call for this candidate = New Call
+            newCalls++
+          } else {
+            // Subsequent calls = FollowUp Calls
+            followUpCalls++
+          }
+        })
+      })
+    }
+
+    const totalCalls = newCalls + followUpCalls
+
+    // Get count for Asset status - no sent_to_tl filter
     let assetQuery = supabaseServer
       .from('candidates_conversation')
-      .select('candidate_status', { count: 'exact', head: true })
+      .select('calling_date, sent_date')
       .eq('user_id', currentUserId)
       .eq('candidate_status', 'Asset')
 
@@ -48,16 +152,19 @@ export async function GET(request) {
       assetQuery = assetQuery.gte('calling_date', fromDate).lte('calling_date', toDate)
     }
 
-    const { count: totalAssets, error: assetError } = await assetQuery
+    const { data: assetData } = await assetQuery
+    
+    const totalAssets = (assetData || []).filter(conv => {
+      if (!conv.calling_date || !conv.sent_date) return false
+      const callingDateStr = conv.calling_date.split('T')[0]
+      const sentDateStr = conv.sent_date.split('T')[0]
+      return callingDateStr === sentDateStr
+    }).length
 
-    if (assetError) {
-      console.error('Fetch total assets error:', assetError)
-    }
-
-    // Get count for Conversion status
+    // Get count for Conversion status - no sent_to_tl filter
     let conversionQuery = supabaseServer
       .from('candidates_conversation')
-      .select('candidate_status', { count: 'exact', head: true })
+      .select('calling_date, sent_date')
       .eq('user_id', currentUserId)
       .eq('candidate_status', 'Conversion')
 
@@ -65,34 +172,42 @@ export async function GET(request) {
       conversionQuery = conversionQuery.gte('calling_date', fromDate).lte('calling_date', toDate)
     }
 
-    const { count: conversions, error: conversionError } = await conversionQuery
+    const { data: conversionData } = await conversionQuery
+    
+    const conversions = (conversionData || []).filter(conv => {
+      if (!conv.calling_date || !conv.sent_date) return false
+      const callingDateStr = conv.calling_date.split('T')[0]
+      const sentDateStr = conv.sent_date.split('T')[0]
+      return callingDateStr === sentDateStr
+    }).length
 
-    if (conversionError) {
-      console.error('Fetch conversions error:', conversionError)
-    }
-
-    // Get count for JD Match status
+    // Get count for JD Match status - only count conversations sent to TL
     let jdMatchQuery = supabaseServer
       .from('candidates_conversation')
-      .select('cv_status', { count: 'exact', head: true })
+      .select('calling_date, sent_date')
       .eq('user_id', currentUserId)
       .eq('cv_status', 'JD Match')
+      .not('sent_to_tl', 'is', null)
 
     if (fromDate && toDate) {
       jdMatchQuery = jdMatchQuery.gte('calling_date', fromDate).lte('calling_date', toDate)
     }
 
-    const { count: jdMatchCount, error: jdMatchError } = await jdMatchQuery
-
-    if (jdMatchError) {
-      console.error('Fetch JD Match error:', jdMatchError)
-    }
+    const { data: jdMatchData } = await jdMatchQuery
+    
+    const jdMatchCount = (jdMatchData || []).filter(conv => {
+      if (!conv.calling_date || !conv.sent_date) return false
+      const callingDateStr = conv.calling_date.split('T')[0]
+      const sentDateStr = conv.sent_date.split('T')[0]
+      return callingDateStr === sentDateStr
+    }).length
 
     // Fetch detailed data for the table
     let detailsQuery = supabaseServer
       .from('candidates_conversation')
-      .select('conversation_id, calling_date, cv_status, req_id, parsing_id')
+      .select('conversation_id, calling_date, sent_date, cv_status, req_id, parsing_id')
       .eq('user_id', currentUserId)
+      .not('sent_to_tl', 'is', null)
 
     if (fromDate && toDate) {
       detailsQuery = detailsQuery.gte('calling_date', fromDate).lte('calling_date', toDate)
@@ -104,9 +219,17 @@ export async function GET(request) {
       console.error('Fetch details error:', detailsError)
     }
 
+    // Filter: only include records where sent_date matches calling_date
+    const filteredConversationData = (conversationData || []).filter(conv => {
+      if (!conv.calling_date || !conv.sent_date) return false
+      const callingDateStr = conv.calling_date.split('T')[0]
+      const sentDateStr = conv.sent_date.split('T')[0]
+      return callingDateStr === sentDateStr
+    })
+
     // Get parsing IDs and req IDs
-    const parsingIds = [...new Set(conversationData?.map(c => c.parsing_id).filter(Boolean) || [])]
-    const reqIds = [...new Set(conversationData?.map(c => c.req_id).filter(Boolean) || [])]
+    const parsingIds = [...new Set(filteredConversationData.map(c => c.parsing_id).filter(Boolean) || [])]
+    const reqIds = [...new Set(filteredConversationData.map(c => c.req_id).filter(Boolean) || [])]
 
     // Fetch candidate names from cv_parsing
     let cvParsingMap = new Map()
@@ -133,7 +256,7 @@ export async function GET(request) {
     }
 
     // Transform detailed data
-    const trackerDetails = conversationData?.map((item, index) => {
+    const trackerDetails = filteredConversationData.map((item, index) => {
       const cvData = cvParsingMap.get(item.parsing_id)
       const reqData = reqsMap.get(item.req_id)
       return {
@@ -144,13 +267,18 @@ export async function GET(request) {
         cvUrl: cvData?.cv_url || '',
         cvStatus: item.cv_status || '-'
       }
-    }) || []
+    })
 
     const accuracy = trackerSent > 0 ? Math.round((jdMatchCount / trackerSent) * 100) : 0
 
     return NextResponse.json({ 
       success: true, 
       trackerSent: trackerSent || 0,
+      newTrackerSent: newTrackerCount || 0,
+      oldTrackerSent: oldTrackerCount || 0,
+      totalCalls: totalCalls || 0,
+      newCalls: newCalls || 0,
+      followUpCalls: followUpCalls || 0,
       totalAssets: totalAssets || 0,
       conversions: conversions || 0,
       accuracy: accuracy,
