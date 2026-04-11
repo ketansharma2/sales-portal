@@ -55,18 +55,60 @@ export async function GET(request) {
       }
     }
 
-    // If there are conversations with req_id, fetch the job titles
+    // If there are conversations with req_id, fetch the job titles and company names
     let reqsMap = new Map()
+    let reqToCompanyMap = new Map()
     if (data && data.length > 0) {
       const reqIds = [...new Set(data.map(item => item.req_id).filter(Boolean))]
       if (reqIds.length > 0) {
+        // Fetch requirements with branch info
         const { data: requirements } = await supabaseServer
           .from('corporate_crm_reqs')
-          .select('req_id, job_title')
+          .select('req_id, job_title, branch_id')
           .in('req_id', reqIds)
         
         if (requirements) {
+          console.log('Requirements:', requirements)
           reqsMap = new Map(requirements.map(r => [r.req_id, r.job_title]))
+          
+          // Get unique branch_ids
+          const branchIds = [...new Set(requirements.map(r => r.branch_id).filter(Boolean))]
+          console.log('Branch IDs:', branchIds)
+          if (branchIds.length > 0) {
+            // Fetch branches to get client_id
+            const { data: branches } = await supabaseServer
+              .from('corporate_crm_branch')
+              .select('branch_id, client_id')
+              .in('branch_id', branchIds)
+            
+            console.log('Branches:', branches)
+            if (branches) {
+              const branchMap = new Map(branches.map(b => [b.branch_id, b.client_id]))
+              const clientIds = [...new Set(branches.map(b => b.client_id).filter(Boolean))]
+              console.log('Client IDs:', clientIds)
+              
+              if (clientIds.length > 0) {
+                // Fetch clients to get company_name
+                const { data: clients } = await supabaseServer
+                  .from('corporate_crm_clients')
+                  .select('client_id, company_name')
+                  .in('client_id', clientIds)
+                
+                console.log('Clients:', clients)
+                if (clients) {
+                  const clientMap = new Map(clients.map(c => [c.client_id, c.company_name]))
+                  // Map company names directly to req_ids
+                  requirements.forEach(r => {
+                    const clientId = branchMap.get(r.branch_id)
+                    if (clientId) {
+                      reqToCompanyMap.set(r.req_id, clientMap.get(clientId) || null)
+                    }
+                  })
+                  console.log('Req to Company Map:', reqToCompanyMap)
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -87,11 +129,12 @@ export async function GET(request) {
       }
     }
 
-    // Add job_title and tl_name to the response
+    // Add job_title, company_name and tl_name to the response
     const enrichedData = data?.map(item => ({
       ...item,
       rc_name: userNamesMap.get(item.user_id) || item.user_id || null,
       job_title: reqsMap.get(item.req_id) || null,
+      company_name: item.req_id ? (reqToCompanyMap.get(item.req_id) || null) : null,
       tl_name: tlNamesMap.get(item.sent_to_tl) || null
     })) || []
 

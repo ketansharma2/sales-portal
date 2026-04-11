@@ -134,6 +134,7 @@ export default function CandidateHistoryPage() {
     // Workbench data for profile/slot dropdown
     const [workbenchOptions, setWorkbenchOptions] = useState([]);
     const [isLoadingWorkbench, setIsLoadingWorkbench] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState(null);
 
     // Fetch workbench data on mount
     useEffect(() => {
@@ -149,11 +150,11 @@ export default function CandidateHistoryPage() {
                 });
                 const result = await response.json();
                 if (result.success) {
-                    // Transform data for dropdown options - show job_title and slot if available
+                    // Transform data for dropdown options - show job_title, slot and company_name
                     const options = result.data.map(item => ({
                         value: item.req_id,
                         label: item.job_title && item.slot 
-                            ? `${item.job_title} • ${item.slot}` 
+                            ? `${item.job_title} • ${item.slot}${item.company_name ? ` (${item.company_name})` : ''}` 
                             : item.job_title || 'Unknown Profile'
                     }));
                     setWorkbenchOptions(options);
@@ -190,6 +191,7 @@ export default function CandidateHistoryPage() {
                         id: item.conversation_id,
                         req_id: item.req_id,
                         profile: item.job_title || '-',
+                        company_name: item.company_name || null,
                         slot: item.slot || '-',
                         applyDate: item.apply_date || (item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : getToday()),
                         callingDate: item.calling_date || (item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : getToday()),
@@ -200,7 +202,8 @@ export default function CandidateHistoryPage() {
                         feedback: item.remarks || '',
                         isTracker: !!item.sent_to_tl,
                         tl_name: item.tl_name || '',
-                        rc_name: item.rc_name || '-'
+                        rc_name: item.rc_name || '-',
+                        rc_id: item.user_id || null
                     }));
                     setFollowups(transformed);
                 }
@@ -227,6 +230,7 @@ export default function CandidateHistoryPage() {
                 const userData = await userResponse.json();
                 
                 if (userData.user_id) {
+                    setCurrentUserId(userData.user_id);
                     // Get TL details
                     const tlResponse = await fetch(`/api/corporate/recruiter/get-tl-details?user_id=${userData.user_id}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
@@ -259,6 +263,9 @@ export default function CandidateHistoryPage() {
             alert("Please fill all mandatory fields marked with *");
             return;
         }
+
+        console.log('Saving formData:', formData);
+        console.log('Slot being saved:', formData.slot);
 
         setIsSavingFollowup(true);
         try {
@@ -390,6 +397,7 @@ export default function CandidateHistoryPage() {
                             id: item.conversation_id,
                             req_id: item.req_id,
                             profile: item.job_title || '-',
+                            company_name: item.company_name ,
                             slot: item.slot || '-',
                             applyDate: item.apply_date || (item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : getToday()),
                             callingDate: item.calling_date || (item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : getToday()),
@@ -400,7 +408,8 @@ export default function CandidateHistoryPage() {
                             feedback: item.remarks || '',
                             isTracker: !!item.sent_to_tl,
                             tl_name: item.tl_name || '',
-                            rc_name: item.rc_name || '-'
+                            rc_name: item.rc_name || '-',
+                            rc_id: item.user_id || null
                         }));
                         setFollowups(transformed);
                     }
@@ -475,7 +484,7 @@ export default function CandidateHistoryPage() {
                             <tr className="border-b-2 border-slate-100">
                                 <th className="py-3 px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-10">#</th>
                                 <th className="py-3 px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest w-24">RC Name</th>
-                                <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Assigned Profile & Slot</th>
+                                <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Assigned Client/Profile & Slot</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Dates</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Relevant Exp</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Curr CTC/Exp CTC</th>
@@ -497,7 +506,12 @@ export default function CandidateHistoryPage() {
                                     
                                     {/* Display Profile & Slot */}
                                     <td className="py-3 px-4">
-                                        <p className="text-xs font-black text-slate-800 whitespace-normal min-w-[150px]">{row.profile}</p>
+                                        <div className="flex items-center">
+                                            <p className="text-xs font-black text-slate-800 whitespace-normal min-w-[150px]">{row.profile}</p>
+                                            {row.company_name && row.company_name !== '-' && (
+                                                <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">{row.company_name}</span>
+                                            )}
+                                        </div>
                                         {row.slot && row.slot !== '-' && (
                                             <p className="text-[11px] font-bold text-blue-600 mt-0.5">{row.slot}</p>
                                         )}
@@ -541,33 +555,38 @@ export default function CandidateHistoryPage() {
                                         })()}
                                     </td>
 
-                                    {/* Action Buttons (Edit, Delete, Send) */}
+                                    {/* Action Buttons (Edit, Delete, Send) - Only show for own conversations */}
                                     <td className="py-3 px-4 text-center border-l border-slate-200">
-                                        <div className="flex items-center justify-center gap-1.5">
-                                            <button 
-    onClick={() => handleEditOpen(row)}
-    className="w-7 h-7 rounded bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 flex items-center justify-center transition-colors"
-    title="Edit Followup"
->
-    <Edit size={12} />
-</button>
-                                            <button 
-                                                onClick={() => handleSendToTL(row.id)}
-                                                disabled={row.isTracker}
-                                                className="w-7 h-7 rounded bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                title={row.isTracker ? "Already Sent" : "Send to TL"}
-                                            >
-                                                <Send size={12} className={row.isTracker ? "" : "ml-0.5"} />
-                                            </button>
-                                            <button 
-                                                onClick={() => handleDelete(row.id)}
-                                                disabled={isDeleting || row.isTracker}
-                                                className={`w-7 h-7 rounded flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${row.isTracker ? 'bg-slate-50 text-slate-300 border border-slate-200' : 'bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100'}`}
-                                                title={row.isTracker ? "Cannot delete - already sent to TL" : "Delete Followup"}
-                                            >
-                                                <Trash2 size={13} />
-                                            </button>
-                                        </div>
+                                        {row.rc_id === currentUserId ? (
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                <button 
+                                                    onClick={() => handleEditOpen(row)}
+                                                    disabled={row.isTracker}
+                                                    className={`w-7 h-7 rounded border flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${row.isTracker ? 'bg-slate-50 text-slate-300 border-slate-200' : 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100'}`}
+                                                    title={row.isTracker ? "Cannot edit - already sent to TL" : "Edit Followup"}
+                                                >
+                                                    <Edit size={12} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleSendToTL(row.id)}
+                                                    disabled={row.isTracker}
+                                                    className="w-7 h-7 rounded bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    title={row.isTracker ? "Already Sent" : "Send to TL"}
+                                                >
+                                                    <Send size={12} className={row.isTracker ? "" : "ml-0.5"} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDelete(row.id)}
+                                                    disabled={isDeleting || row.isTracker}
+                                                    className={`w-7 h-7 rounded flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${row.isTracker ? 'bg-slate-50 text-slate-300 border border-slate-200' : 'bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100'}`}
+                                                    title={row.isTracker ? "Cannot delete - already sent to TL" : "Delete Followup"}
+                                                >
+                                                    <Trash2 size={13} />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <span className="text-[9px] font-bold text-slate-400 italic">Other's</span>
+                                        )}
                                     </td>
 
                                     {/* Tracker Status Column */}
@@ -624,30 +643,37 @@ export default function CandidateHistoryPage() {
                                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">
                                      Select Assigned Profile & Slot <span className="text-red-500">*</span>
                                  </label>
-                                 <select 
-                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer"
-                                     value={formData.req_id} 
-                                     onChange={(e) => {
-                                         const selectedOption = workbenchOptions.find(opt => opt.value === e.target.value);
-                                         if (selectedOption) {
-                                             // Split the label to get profile and slot
-                                             const labelParts = selectedOption.label.split(' • ');
-                                             setFormData({
-                                                 ...formData,
-                                                 req_id: e.target.value,
-                                                 profile: labelParts[0] || '',
-                                                 slot: labelParts[1] || ''
-                                             });
-                                         } else {
-                                             setFormData({
-                                                 ...formData,
-                                                 req_id: "",
-                                                 profile: "",
-                                                 slot: ""
-                                             });
-                                         }
-                                     }}
-                                 >
+                                  <select 
+                                      className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer"
+                                      value={formData.req_id} 
+                                      onChange={(e) => {
+                                          const selectedOption = workbenchOptions.find(opt => opt.value === e.target.value);
+                                          if (selectedOption) {
+                                              // Split the label - format: "Profile • Slot (Company Name)" or "Profile • Slot"
+                                              const label = selectedOption.label;
+                                              console.log('Selected label:', label);
+                                              const slotPart = label.split(' • ')[1] || '';
+                                              console.log('Slot part before:', slotPart);
+                                              // Remove company name from slot - get text before first '('
+                                              const firstParenIndex = slotPart.indexOf('(');
+                                              const slot = firstParenIndex > -1 ? slotPart.substring(0, firstParenIndex).trim() : slotPart.trim();
+                                              console.log('Slot after clean:', slot);
+                                              setFormData({
+                                                  ...formData,
+                                                  req_id: e.target.value,
+                                                  profile: label.split(' • ')[0] || '',
+                                                  slot: slot
+                                              });
+                                          } else {
+                                              setFormData({
+                                                  ...formData,
+                                                  req_id: "",
+                                                  profile: "",
+                                                  slot: ""
+                                              });
+                                          }
+                                      }}
+                                  >
                                      <option value="">-- Choose Profile & Slot --</option>
                                      {isLoadingWorkbench ? (
                                          <option value="" disabled>Loading...</option>
