@@ -1,3 +1,0 @@
-$content = Get-Content 'D:\sales host\src\app\admin\morning-report\page.js' -Raw
-$newContent = $content -replace '(\{row\.tracker_sent_by_tl \|\| 0\}\r?\n                                                                </td>\r?\n                                                                <td className="p-2\.5 border-r border-gray-200 text-center font-black text-indigo-600 bg-indigo-50/30 align-middle">\r?\n                                                                    -)', '$1{row.tracker_shared_to_client || 0}'
-Set-Content -Path 'D:\sales host\src\app\admin\morning-report\page.js' -Value $newContent
