@@ -3,8 +3,134 @@ import { useState, useMemo ,useEffect} from "react";
 import { 
     Building2, History, Calendar, X, FileText, 
     MapPin, GraduationCap, Eye, Mail, CheckCircle2, 
-    Clock, Users, UserCheck, AlertCircle, Briefcase, XCircle
+    Clock, Users, UserCheck, AlertCircle, Briefcase, XCircle, Loader2, File
 } from "lucide-react";
+import jsPDF from "jspdf";
+
+// CV Preview Component - Handles PDF, Images, and Word documents
+function CVPreview({ url, name }) {
+    const [blobUrl, setBlobUrl] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [fileType, setFileType] = useState(null);
+
+    useEffect(() => {
+        const fetchFileAsBlob = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch file: ${response.status}`);
+                }
+                
+                const blob = await response.blob();
+                setFileType(blob.type);
+                
+                // For images, convert to PDF first
+                if (blob.type.startsWith('image/')) {
+                    const img = new Image();
+                    const imgUrl = URL.createObjectURL(blob);
+                    
+                    await new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = reject;
+                        img.src = imgUrl;
+                    });
+                    
+                    const orientation = img.width > img.height ? 'landscape' : 'portrait';
+                    const pdf = new jsPDF({
+                        orientation: orientation,
+                        unit: 'px',
+                        format: [img.width, img.height]
+                    });
+                    
+                    pdf.addImage(imgUrl, 'JPEG', 0, 0, img.width, img.height);
+                    const pdfBlob = pdf.output('blob');
+                    const pdfUrl = URL.createObjectURL(pdfBlob);
+                    setBlobUrl(pdfUrl);
+                } else {
+                    const fileBlobUrl = URL.createObjectURL(blob);
+                    setBlobUrl(fileBlobUrl);
+                }
+                
+                setLoading(false);
+            } catch (err) {
+                console.error('Error fetching file:', err);
+                setError(err.message);
+                setLoading(false);
+            }
+        };
+
+        if (url) {
+            fetchFileAsBlob();
+        }
+
+        return () => {
+            if (blobUrl) {
+                URL.revokeObjectURL(blobUrl);
+            }
+        };
+    }, [url]);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center w-full h-full">
+                <Loader2 size={32} className="animate-spin text-blue-500" />
+                <span className="ml-3 text-sm font-bold text-slate-500">Loading...</span>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="text-center text-slate-500 p-4">
+                <File size={48} className="mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-black uppercase tracking-widest mb-1">Error Loading File</p>
+                <p className="text-xs font-bold">{error}</p>
+                <button
+                    onClick={() => window.open(url, '_blank')}
+                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg text-xs font-bold hover:bg-blue-600"
+                >
+                    Open in New Tab
+                </button>
+            </div>
+        );
+    }
+
+    const isWord = fileType === 'application/msword' || 
+                   fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+    if (isWord) {
+        return (
+            <div className="flex flex-col items-center justify-center w-full h-full bg-slate-50 rounded-lg p-4">
+                <FileText size={64} className="text-blue-500 mb-4" />
+                <p className="text-sm font-bold text-slate-700 mb-2">Word Document</p>
+                <p className="text-xs text-slate-500 mb-4 text-center">
+                    Preview not available for Word documents.<br/>Please download to view.
+                </p>
+                <a 
+                    href={url} 
+                    download={name + '_CV.docx'}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"
+                >
+                    Download CV
+                </a>
+            </div>
+        );
+    }
+
+    // PDF and converted images display in iframe with native PDF viewer
+    return (
+        <iframe
+            src={blobUrl}
+            className="w-full h-full border-0 rounded-lg"
+            title={`CV Preview: ${name}`}
+        />
+    );
+}
 
 export default function EmailHistoryPage() {
     // --- STATE ---
@@ -18,8 +144,6 @@ export default function EmailHistoryPage() {
     
     // PDF Preview State
     const [cvViewer, setCvViewer] = useState({ isOpen: false });
-    const [cvBlob, setCvBlob] = useState(null);
-    const [isLoadingCV, setIsLoadingCV] = useState(false);
     
     // --- FETCH CLIENTS FOR DROPDOWN ---
     useEffect(() => {
@@ -117,31 +241,9 @@ export default function EmailHistoryPage() {
     };
     
     // --- FETCH PDF PREVIEW ---
-    const fetchPdfPreview = async (candidate) => {
+    const fetchPdfPreview = (candidate) => {
         setSelectedCandidate(candidate);
         setCvViewer({ isOpen: true });
-        
-        if (candidate.cv_url) {
-            setIsLoadingCV(true);
-            try {
-                const response = await fetch(candidate.cv_url);
-                
-                if (response.ok) {
-                    const blob = await response.blob();
-                    setCvBlob(blob);
-                } else {
-                    console.error('Failed to fetch CV:', response.status);
-                    setCvBlob(null);
-                }
-            } catch (error) {
-                console.error('Error fetching CV:', error);
-                setCvBlob(null);
-            } finally {
-                setIsLoadingCV(false);
-            }
-        } else {
-            setCvBlob(null);
-        }
     };
 
     // --- EXTRACT UNIQUE COMPANIES FOR FILTER ---
@@ -326,15 +428,10 @@ export default function EmailHistoryPage() {
                                             {row.cv_url ? (
                                                 <button 
                                                     onClick={() => fetchPdfPreview(row)}
-                                                    disabled={isLoadingCV}
-                                                    className="flex flex-col items-center justify-center gap-1 text-indigo-600 hover:text-indigo-800 transition-colors disabled:opacity-50"
+                                                    className="flex flex-col items-center justify-center gap-1 text-indigo-600 hover:text-indigo-800 transition-colors"
                                                     title="Preview CV"
                                                 >
-                                                    {isLoadingCV ? (
-                                                        <div className="w-4 h-4 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin"></div>
-                                                    ) : (
-                                                        <FileText size={16} className="text-red-500"/>
-                                                    )}
+                                                    <FileText size={16} className="text-red-500"/>
                                                     <span className="text-[9px] font-black uppercase tracking-widest">Preview</span>
                                                 </button>
                                             ) : (
@@ -445,23 +542,10 @@ export default function EmailHistoryPage() {
                             <button onClick={() => setCvViewer({isOpen: false})} className="text-white/70 hover:text-white transition-colors bg-black/20 p-1.5 rounded-full"><X size={20} /></button>
                         </div>
                         <div className="flex-1 bg-slate-200 flex items-center justify-center p-8">
-                            {isLoadingCV ? (
-                                <div className="text-center text-slate-500">
-                                    <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
-                                    <p className="text-lg font-black uppercase tracking-widest mb-1">Loading CV...</p>
-                                </div>
-                            ) : cvBlob ? (
-                                <iframe 
-                                    src={URL.createObjectURL(cvBlob)}
-                                    className="w-full h-full rounded-lg border border-slate-300"
-                                    title="CV Viewer"
-                                />
-                            ) : (
-                                <div className="text-center text-slate-500">
-                                    <FileText size={48} className="mx-auto mb-4 opacity-50" />
-                                    <p className="text-lg font-black uppercase tracking-widest mb-1">No CV Available</p>
-                                </div>
-                            )}
+                            <CVPreview 
+                                url={selectedCandidate.cv_url}
+                                name={selectedCandidate.name}
+                            />
                         </div>
                     </div>
                 </div>

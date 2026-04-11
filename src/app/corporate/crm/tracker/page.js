@@ -3,8 +3,134 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
     Building2, Mail, History, Calendar, CheckCircle2, 
-    X, Send, FileText, Briefcase, MapPin, GraduationCap, Edit3, Loader2
+    X, Send, FileText, Briefcase, MapPin, GraduationCap, Edit3, Loader2, File
 } from "lucide-react";
+import jsPDF from "jspdf";
+
+// CV Preview Component - Handles PDF, Images, and Word documents
+function CVPreview({ url, name }) {
+    const [blobUrl, setBlobUrl] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [fileType, setFileType] = useState(null);
+
+    useEffect(() => {
+        const fetchFileAsBlob = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch file: ${response.status}`);
+                }
+                
+                const blob = await response.blob();
+                setFileType(blob.type);
+                
+                // For images, convert to PDF first
+                if (blob.type.startsWith('image/')) {
+                    const img = new Image();
+                    const imgUrl = URL.createObjectURL(blob);
+                    
+                    await new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = reject;
+                        img.src = imgUrl;
+                    });
+                    
+                    const orientation = img.width > img.height ? 'landscape' : 'portrait';
+                    const pdf = new jsPDF({
+                        orientation: orientation,
+                        unit: 'px',
+                        format: [img.width, img.height]
+                    });
+                    
+                    pdf.addImage(imgUrl, 'JPEG', 0, 0, img.width, img.height);
+                    const pdfBlob = pdf.output('blob');
+                    const pdfUrl = URL.createObjectURL(pdfBlob);
+                    setBlobUrl(pdfUrl);
+                } else {
+                    const fileBlobUrl = URL.createObjectURL(blob);
+                    setBlobUrl(fileBlobUrl);
+                }
+                
+                setLoading(false);
+            } catch (err) {
+                console.error('Error fetching file:', err);
+                setError(err.message);
+                setLoading(false);
+            }
+        };
+
+        if (url) {
+            fetchFileAsBlob();
+        }
+
+        return () => {
+            if (blobUrl) {
+                URL.revokeObjectURL(blobUrl);
+            }
+        };
+    }, [url]);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center w-full h-full">
+                <Loader2 size={32} className="animate-spin text-blue-500" />
+                <span className="ml-3 text-sm font-bold text-slate-500">Loading...</span>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="text-center text-slate-500 p-4">
+                <File size={48} className="mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-black uppercase tracking-widest mb-1">Error Loading File</p>
+                <p className="text-xs font-bold">{error}</p>
+                <button
+                    onClick={() => window.open(url, '_blank')}
+                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg text-xs font-bold hover:bg-blue-600"
+                >
+                    Open in New Tab
+                </button>
+            </div>
+        );
+    }
+
+    const isWord = fileType === 'application/msword' || 
+                   fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+    if (isWord) {
+        return (
+            <div className="flex flex-col items-center justify-center w-full h-full bg-slate-50 rounded-lg p-4">
+                <FileText size={64} className="text-blue-500 mb-4" />
+                <p className="text-sm font-bold text-slate-700 mb-2">Word Document</p>
+                <p className="text-xs text-slate-500 mb-4 text-center">
+                    Preview not available for Word documents.<br/>Please download to view.
+                </p>
+                <a 
+                    href={url} 
+                    download={name + '_CV.docx'}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"
+                >
+                    Download CV
+                </a>
+            </div>
+        );
+    }
+
+    // PDF and converted images display in iframe with native PDF viewer
+    return (
+        <iframe
+            src={blobUrl}
+            className="w-full h-full border-0 rounded-lg"
+            title={`CV Preview: ${name}`}
+        />
+    );
+}
 
 export default function CRMClientTrackerPage() {
     const router = useRouter();
@@ -25,8 +151,6 @@ export default function CRMClientTrackerPage() {
 
     // CV Viewer State
     const [cvViewer, setCvViewer] = useState({ isOpen: false, source: null });
-    const [cvBlob, setCvBlob] = useState(null);
-    const [isLoadingCV, setIsLoadingCV] = useState(false);
     const [isSendingDraft, setIsSendingDraft] = useState(false);
 
     // Fetch CRM Tracker Data from API
@@ -58,6 +182,7 @@ export default function CRMClientTrackerPage() {
                         cCTC: item.curr_ctc || '-',
                         eCTC: item.exp_ctc || '-',
                         tlCvName: item.redacted_cv_url || '',
+                        rcCvName: item.cv_url || '',
                         tlEvaluation: item.cv_status ? `${item.cv_status}${item.tl_remarks ? ' - ' + item.tl_remarks : ''}` : '-',
                         crmFeedback: "",
                     }));
@@ -96,34 +221,13 @@ export default function CRMClientTrackerPage() {
         fetchClients();
     }, []);
 
-    // --- HANDLERS ---
-    // Open CV Modal - Fetch from AWS as blob
-    const openCVModal = async (candidate) => {
+    // Open CV Modal
+    const openCVModal = (candidate, cvType = 'tl') => {
         setSelectedCandidate(candidate);
-        setCvViewer({ isOpen: true, source: 'tl' });
-        
-        if (candidate.tlCvName) {
-            setIsLoadingCV(true);
-            try {
-                const response = await fetch(candidate.tlCvName);
-                
-                if (response.ok) {
-                    const blob = await response.blob();
-                    setCvBlob(blob);
-                } else {
-                    console.error('Failed to fetch CV:', response.status);
-                    setCvBlob(null);
-                }
-            } catch (error) {
-                console.error('Error fetching CV:', error);
-                setCvBlob(null);
-            } finally {
-                setIsLoadingCV(false);
-            }
-        } else {
-            setCvBlob(null);
-        }
+        setCvViewer({ isOpen: true, source: cvType });
     };
+
+    const openRcCvModal = (candidate) => openCVModal(candidate, 'rc');
 
     const toggleRowSelection = (id) => {
         setSelectedRowIds(prev => 
@@ -757,6 +861,7 @@ export default function CRMClientTrackerPage() {
                         <thead className="sticky top-0 z-10">
                             <tr className="bg-slate-800 text-white">
                                 <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600">TL & Date</th>
+                                <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600 text-center">RC CV</th>
                                 <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600">Candidate Name</th>
                                 <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600">Profile</th>
                                 <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600">Location</th>
@@ -795,6 +900,17 @@ export default function CRMClientTrackerPage() {
                                             <p className="text-[9px] font-bold text-slate-500 flex items-center gap-1 uppercase tracking-widest mt-0.5">
                                                 <Calendar size={9} className="text-indigo-400"/> {row.trackerShareDate}
                                             </p>
+                                        </td>
+
+                                        {/* RC CV */}
+                                        <td className="py-2 px-3 text-center">
+                                            <button 
+                                                onClick={() => openRcCvModal(row)}
+                                                className="w-7 h-7 rounded-full bg-amber-100 text-amber-600 hover:bg-amber-200 hover:text-amber-700 flex items-center justify-center mx-auto transition-colors shadow-xs"
+                                                title="View Raw CV"
+                                            >
+                                                <FileText size={12} />
+                                            </button>
                                         </td>
 
                                         {/* Candidate Name */}
@@ -1038,29 +1154,15 @@ export default function CRMClientTrackerPage() {
                     <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[90vh] border-4 border-slate-700">
                         <div className="bg-indigo-800 text-white p-4 flex justify-between items-center shrink-0">
                             <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                                <FileText size={18}/> Redacted CV : {selectedCandidate.name}
+                                <FileText size={18}/> {cvViewer.source === 'rc' ? 'Raw CV' : 'Redacted CV'} : {selectedCandidate.name}
                             </h2>
                             <button onClick={() => setCvViewer({isOpen: false, source: null})} className="text-white/70 hover:text-white transition-colors bg-black/20 p-1.5 rounded-full"><X size={20} /></button>
                         </div>
                         <div className="flex-1 bg-slate-200 flex items-center justify-center p-8">
-                            {isLoadingCV ? (
-                                <div className="text-center text-slate-500">
-                                    <Loader2 className="animate-spin mx-auto mb-4" size={48} />
-                                    <p className="text-lg font-black uppercase tracking-widest mb-1">Loading CV...</p>
-                                </div>
-                            ) : cvBlob ? (
-                                <iframe 
-                                    src={URL.createObjectURL(cvBlob)}
-                                    className="w-full h-full rounded-lg border border-slate-300"
-                                    title="CV Viewer"
-                                />
-                            ) : (
-                                <div className="text-center text-slate-500">
-                                    <FileText size={48} className="mx-auto mb-4 opacity-50" />
-                                    <p className="text-lg font-black uppercase tracking-widest mb-1">No CV Available</p>
-                                    <p className="text-xs font-bold">File: {selectedCandidate.tlCvName || 'N/A'}</p>
-                                </div>
-                            )}
+                            <CVPreview 
+                                url={cvViewer.source === 'rc' ? selectedCandidate.rcCvName : selectedCandidate.tlCvName}
+                                name={selectedCandidate.name}
+                            />
                         </div>
                     </div>
                 </div>

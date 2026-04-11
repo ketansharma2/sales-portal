@@ -75,7 +75,7 @@ export async function GET(request) {
     if (parsingIds.length > 0) {
       const { data: cvParsingData } = await supabaseServer
         .from('cv_parsing')
-        .select('id, name, location, qualification, experience, redacted_cv_url')
+        .select('id, name, location, qualification, experience, redacted_cv_url, cv_url')
         .in('id', parsingIds)
       
       if (cvParsingData) {
@@ -108,7 +108,8 @@ export async function GET(request) {
         candidate_location: cvData?.location || '-',
         candidate_qualification: cvData?.qualification || '-',
         candidate_experience: cvData?.experience !== undefined && cvData?.experience !== null ? cvData.experience : '-',
-        redacted_cv_url: cvData?.redacted_cv_url || ''
+        redacted_cv_url: cvData?.redacted_cv_url || '',
+        cv_url: cvData?.cv_url || ''
       }
     })
 
