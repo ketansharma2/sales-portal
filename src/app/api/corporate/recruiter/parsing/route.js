@@ -48,10 +48,52 @@ export async function GET(request) {
       index === self.findIndex((t) => t.id === item.id)
     )
 
-    const processedData = uniqueData.map(item => ({
-      ...item,
-      is_shared: item.other_users && item.other_users.includes(userId) && item.user_id !== userId
-    }))
+    // Get all candidate IDs for fetching latest status
+    const candidateIds = uniqueData.map(item => item.id)
+    console.log('Candidate IDs for status fetch:', candidateIds.length)
+
+    // Fetch latest status from candidates_conversation
+    let latestStatusMap = new Map()
+    if (candidateIds.length > 0) {
+      const { data: conversations, error: convError } = await supabaseServer
+        .from('candidates_conversation')
+        .select(`
+          parsing_id,
+          candidate_status,
+          calling_date,
+          created_at,
+          user_id,
+          users!inner(name)
+        `)
+        .in('parsing_id', candidateIds)
+        .order('created_at', { ascending: false })
+
+      console.log('Conversations fetched:', conversations?.length || 0, 'Error:', convError)
+      
+      if (!convError && conversations) {
+        // For each candidate, get the latest conversation
+        conversations.forEach(conv => {
+          if (!latestStatusMap.has(conv.parsing_id)) {
+            latestStatusMap.set(conv.parsing_id, {
+              latest_status: conv.candidate_status || '-',
+              latest_user: conv.users?.name || conv.user_id || '-',
+              latest_date: conv.calling_date || '-'
+            })
+          }
+        })
+      }
+    }
+
+    const processedData = uniqueData.map(item => {
+      const statusInfo = latestStatusMap.get(item.id) || { latest_status: '-', latest_user: '-', latest_date: '-' }
+      return {
+        ...item,
+        is_shared: item.other_users && item.other_users.includes(userId) && item.user_id !== userId,
+        latest_status: statusInfo.latest_status,
+        latest_user: statusInfo.latest_user,
+        latest_date: statusInfo.latest_date
+      }
+    })
 
     return NextResponse.json({
       success: true,

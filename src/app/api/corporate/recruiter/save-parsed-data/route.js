@@ -43,6 +43,9 @@ export async function POST(request) {
     }
 
     if (existingRecord) {
+      // Check if it's the same user
+      const isSameUser = existingRecord.user_id === userId;
+      
       // Fetch conversation history for this candidate (ordered by created_at descending)
       const { data: conversations, error: convError } = await supabaseServer
         .from('candidates_conversation')
@@ -67,6 +70,31 @@ export async function POST(request) {
 
       const userName = existingRecord.users?.name || existingRecord.user_id
       
+      // If same user, return a specific error code
+      if (isSameUser) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Already exists by same user',
+            details: 'This candidate is already in your database',
+            existing_candidate: {
+              id: existingRecord.id,
+              name: existingRecord.name,
+              email: existingRecord.email,
+              mobile: existingRecord.mobile,
+              location: existingRecord.location,
+              qualification: existingRecord.qualification,
+              experience: existingRecord.experience,
+              portal: existingRecord.portal,
+              portal_date: existingRecord.portal_date,
+              cv_url: existingRecord.cv_url
+            }
+          },
+          { status: 200 }
+        )
+      }
+      
+      // Different user - return the full duplicate info for modal
       return NextResponse.json(
         {
           success: false,

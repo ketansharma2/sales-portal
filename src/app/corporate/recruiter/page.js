@@ -275,7 +275,7 @@ export default function RecruiterWorkbenchReport() {
                         <FileText size={20} />
                     </div>
                     <div className="z-10">
-                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Total CVs</p>
+                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Total CVs PARSED (NEW)</p>
                         <p className="text-2xl font-black text-gray-800 leading-none mt-1">{kpiTotals.total_cvs}</p>
                     </div>
                 </div>

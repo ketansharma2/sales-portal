@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import jsPDF from "jspdf";
@@ -178,6 +178,25 @@ export default function CVParsingPage() {
 
     // --- PARSED DATA ---
     const [parsedData, setParsedData] = useState([]);
+    const [statusFilter, setStatusFilter] = useState("");
+
+    // Fixed status options
+    const statusOptions = [
+        "Shortlisted",
+        "Conversion",
+        "Asset",
+        "Not Picked",
+        "Not Interested",
+        "Interview",
+        "Not In Service",
+        "Other"
+    ];
+
+    // Filter data based on status
+    const filteredParsedData = useMemo(() => {
+        if (!statusFilter) return parsedData;
+        return parsedData.filter(row => row.latest_status === statusFilter);
+    }, [parsedData, statusFilter]);
 
     // Fetch CV parsing data on component mount
     useEffect(() => {
@@ -227,7 +246,10 @@ export default function CVParsingPage() {
                     allCompanies: item.company_names_all || "NA",
                     status: item.status || "Pending",
                     cvUrl: item.cv_url || null,
-                    is_shared: item.is_shared || false
+                    is_shared: item.is_shared || false,
+                    latest_status: item.latest_status || '-',
+                    latest_user: item.latest_user || '-',
+                    latest_date: item.latest_date || '-'
                 }));
                 setParsedData(transformedData);
             }
@@ -445,6 +467,10 @@ export default function CVParsingPage() {
                 setDuplicateData(result);
                 setDuplicateModalOpen(true);
                 // Keep selectedFile as is - user can try again with different data
+            } else if (result.success === false && result.error === 'Already exists by same user') {
+                // Same user already has this candidate - show alert
+                alert("This candidate already exists in your database!");
+                setSelectedFile(null);
             } else if (response.status === 409) {
                 const duplicateMessage = result.existing_user_name
                     ? `Data already exists! User: ${result.existing_user_name}`
@@ -596,9 +622,22 @@ export default function CVParsingPage() {
                             <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                                 <CheckCircle2 size={16} className="text-emerald-500"/> Parsed Candidates Queue
                             </h3>
-                            <span className="bg-white border border-slate-200 text-slate-600 text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm">
-                                Total Parsed: {parsedData.length}
-                            </span>
+                            <div className="flex items-center gap-3">
+                                {/* Status Filter */}
+                                <select 
+                                    className="text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                >
+                                    <option value="">All Status</option>
+                                    {statusOptions.map(status => (
+                                        <option key={status} value={status}>{status}</option>
+                                    ))}
+                                </select>
+                                <span className="bg-white border border-slate-200 text-slate-600 text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm">
+                                    Total: {filteredParsedData.length} / {parsedData.length}
+                                </span>
+                            </div>
                         </div>
 
                         {/* Wrapper div for both Vertical and Horizontal scrolling */}
@@ -609,6 +648,7 @@ export default function CVParsingPage() {
                                 <thead className="sticky top-0 z-20">
                                     <tr className="bg-white border-b-2 border-slate-100">
                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest sticky left-0 bg-white z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] w-16 text-center">CV</th>
+                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Latest Status</th>
                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Portal Info</th>
                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Candidate Details</th>
                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Location / Gender</th>
@@ -621,7 +661,7 @@ export default function CVParsingPage() {
                                 </thead>
 
                                 <tbody className="divide-y divide-slate-100 bg-white">
-                                    {parsedData.map((row) => (
+                                    {filteredParsedData.map((row) => (
                                         <tr
                                             key={row.id}
                                             onClick={() => navigateToHistory(row.id)} // Clicking ROW redirects to new page
@@ -647,6 +687,15 @@ export default function CVParsingPage() {
                                                 >
                                                     <File size={14} />
                                                 </button>
+                                            </td>
+
+                                            {/* 2. Latest Candidate Status */}
+                                            <td className="py-3 px-4">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-bold text-indigo-600 uppercase">{row.latest_status || '-'}</span>
+                                                    <span className="text-[9px] font-medium text-slate-500 mt-0.5">{row.latest_user || '-'}</span>
+                                                    <span className="text-[8px] font-medium text-slate-400 mt-0.5">{row.latest_date || '-'}</span>
+                                                </div>
                                             </td>
 
                                             {/* 2 & 3. Portal & Portal Date */}
