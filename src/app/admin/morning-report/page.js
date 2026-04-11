@@ -32,34 +32,11 @@ export default function MorningReportPage() {
     // --- DELIVERY WORKBENCH REPORT STATES & MOCK DATA ---
     const [cvModalData, setCvModalData] = useState(null);
     const [jdModalData, setJdModalData] = useState(null);
+    const [wbFromDate, setWbFromDate] = useState("2026-04-09");
+    const [wbToDate, setWbToDate] = useState("2026-04-09");
+    const [wbLoading, setWbLoading] = useState(false);
 
-    const [reportData, setReportData] = useState([
-        { 
-            id: 1, date: "2026-03-02", tlName: "Vikram Singh", recruiter: "Pooja", client: "Frankfin", profile: "Telecouncellor", package: "30k", requirement: "350", jdText: "Looking for excellent communication skills in Hindi & English. Minimum 6 months of BPO experience required.", slot: "09:30 AM - 01:00 PM",
-            cv_naukri: 45, cv_indeed: 20, cv_other: 5, advance_sti: 15, conversion: 2, asset: 5, tracker_sent: 2, tracker_shared: 1, notes: "Good response today. Focused mostly on Naukri database.",
-            tlRemark: "Asked Pooja to focus only on immediate joiners."
-        },
-        { 
-            id: 2, date: "2026-03-02", tlName: "Neha Gupta", recruiter: "Sneha", client: "Urban Money", profile: "Telesales Executive", package: "21k", requirement: "30", jdText: "Outbound sales for financial products. Target-oriented role.", slot: "Full Day (10-6)",
-            cv_naukri: 10, cv_indeed: 30, cv_other: 2, advance_sti: 8, conversion: 1, asset: 3, tracker_sent: 1, tracker_shared: 1, notes: "Indeed is giving better regional candidates for this profile.",
-            tlRemark: "Good progress. Maintain the momentum."
-        },
-        { 
-            id: 3, date: "2026-03-02", tlName: "Amit Desai", recruiter: "Khushi Chawla", client: "Steel Craft Export", profile: "Senior Merchandiser", package: "70k", requirement: "2", jdText: "", slot: "02:00 PM - 06:00 PM",
-            cv_naukri: 5, cv_indeed: 2, cv_other: 1, advance_sti: 1, conversion: 0, asset: 1, tracker_sent: 0, tracker_shared: 0, notes: "Very niche profile. Hard to find relevant experience.",
-            tlRemark: "Try boolean search on Naukri tomorrow."
-        },
-        { 
-            id: 4, date: "2026-03-03", tlName: "Vikram Singh", recruiter: "Amit Kumar", client: "MKS", profile: "AutoCAD Draftsman", package: "40k", requirement: "2", jdText: "Must be proficient in AutoCAD 2D/3D. Knowledge of architectural drawings is a must.", slot: "09:30 AM - 01:00 PM",
-            cv_naukri: 15, cv_indeed: 5, cv_other: 0, advance_sti: 4, conversion: 1, asset: 2, tracker_sent: 1, tracker_shared: 0, notes: "Profiles sent to you. Waiting for client feedback.",
-            tlRemark: ""
-        },
-        { 
-            id: 5, date: "2026-03-02", tlName: "Neha Gupta", recruiter: "Pooja", client: "TechCorp Solutions", profile: "Java Developer", package: "12LPA", requirement: "5", jdText: "Spring Boot, Microservices, REST APIs. 3-5 years of hardcore development experience.", slot: "Full Day (10-6)",
-            cv_naukri: 25, cv_indeed: 15, cv_other: 0, advance_sti: 5, conversion: 0, asset: 2, tracker_sent: 1, tracker_shared: 1, notes: "Notice period issues with max candidates.",
-            tlRemark: ""
-        }
-    ]);
+    const [reportData, setReportData] = useState([]);
 
     // --- LOAD FROM LOCALSTORAGE ON MOUNT ---
     useEffect(() => {
@@ -376,6 +353,32 @@ export default function MorningReportPage() {
 
         fetchCorporateCrmData();
     }, []);
+
+    // --- FETCH CORPORATE WORKBENCH DATA ---
+    useEffect(() => {
+        const fetchWorkbenchData = async () => {
+            setWbLoading(true);
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                if (!token) return;
+
+                const response = await fetch(`/api/admin/morning-report/corporate/workbench?from_date=${wbFromDate}&to_date=${wbToDate}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    setReportData(data.data || []);
+                }
+            } catch (error) {
+                console.error('Error fetching workbench data:', error);
+            } finally {
+                setWbLoading(false);
+            }
+        };
+
+        fetchWorkbenchData();
+    }, [wbFromDate, wbToDate]);
 
     // --- FETCH JOB POSTING DATA ---
 
@@ -792,9 +795,25 @@ export default function MorningReportPage() {
                                             <h3 className="text-sm font-black text-[#103c7f] uppercase tracking-widest">
                                                 Corporate Workbench
                                             </h3>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <label className="text-[9px] font-bold text-slate-500 uppercase">From:</label>
+                                            <input 
+                                                type="date" 
+                                                value={wbFromDate} 
+                                                onChange={(e) => setWbFromDate(e.target.value)}
+                                                className="text-xs font-bold text-slate-700 bg-white border border-slate-300 rounded px-2 py-1.5 outline-none focus:border-indigo-500"
+                                            />
+                                            <label className="text-[9px] font-bold text-slate-500 uppercase">To:</label>
+                                            <input 
+                                                type="date" 
+                                                value={wbToDate} 
+                                                onChange={(e) => setWbToDate(e.target.value)}
+                                                className="text-xs font-bold text-slate-700 bg-white border border-slate-300 rounded px-2 py-1.5 outline-none focus:border-indigo-500"
+                                            />
                                         </div>                                       
                                     </div>
-                                {/* <div className="overflow-x-auto custom-scrollbar">
+                                <div className="overflow-x-auto custom-scrollbar">
                                         <table className="w-full text-left border-collapse min-w-[1250px] text-xs">
                                             <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-10">
                                                 <tr>
@@ -807,8 +826,10 @@ export default function MorningReportPage() {
                                                     <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> Adv STI</div></th>
                                                     <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><TrendingUp size={12}/> Conv.</div></th>
                                                     <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Database size={12}/> Asset</div></th>
-                                                    <th className="p-2.5 border-r border-blue-800 text-center bg-gray-700/50"><div className="flex items-center justify-center gap-1.5"><UserCheck size={12}/> T. Rcvd</div></th>
-                                                    <th className="p-2.5 border-r border-blue-800 text-center bg-indigo-700/50"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> T. Shared</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 text-center bg-gray-700/50"><div className="flex items-center justify-center gap-1.5"><UserCheck size={12}/> T. Sent BY RC</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 text-center bg-indigo-600/50"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> T.Sent By TL</div></th>
+
+                                                    <th className="p-2.5 border-r border-blue-800 text-center bg-indigo-700/50"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> T. Shared To Client</div></th>
                                                     <th className="p-2.5 border-r border-blue-800 min-w-[160px]"><div className="flex items-center gap-1.5"><MessageSquare size={12}/> RC Notes</div></th>
                                                     <th className="p-2.5 min-w-[160px] bg-[#0d316a] text-yellow-300"><div className="flex items-center gap-1.5"><Settings size={12}/> TL Remarks</div></th>
                                                 </tr>
@@ -816,9 +837,8 @@ export default function MorningReportPage() {
                                         <tbody className="font-medium divide-y divide-gray-200">
                                                 {reportData && reportData.length > 0 ? (
                                                     reportData.map((row, index) => {
-                                                        const totalRowCv = (row.cv_naukri || 0) + (row.cv_indeed || 0) + (row.cv_other || 0);
                                                         return (
-                                                            <tr key={row.id} className="hover:bg-indigo-50/50 transition">
+                                                            <tr key={row.workbench_id} className="hover:bg-indigo-50/50 transition">
                                                                 
                                                                 <td className="p-2.5 border-r border-gray-200 text-center text-gray-400 font-bold bg-gray-50 align-middle">{index + 1}</td>
                                                                 
@@ -831,29 +851,22 @@ export default function MorningReportPage() {
                                                                 
                                                                 <td className="p-2.5 border-r border-gray-200 align-middle text-center">
                                                                     <div className="flex flex-col items-center justify-center gap-1.5 w-full h-full">
-                                                                        <span className="text-[9px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded shadow-sm w-max max-w-full truncate" title={row.crmName}>
-                                                                            CRM: {row.crmName || "N/A"}
+                                                                        <span className="text-[9px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded shadow-sm w-max max-w-full truncate" title={row.Crm_name}>
+                                                                            CRM: {row.Crm_name || "N/A"}
                                                                         </span>
-                                                                        <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded shadow-sm w-max max-w-full truncate" title={row.tlName}>
-                                                                            TL: {row.tlName}
+                                                                        <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded shadow-sm w-max max-w-full truncate" title={row.TL_name}>
+                                                                            TL: {row.TL_name || "N/A"}
                                                                         </span>
-                                                                        <span className="text-[9px] font-black text-blue-800 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded uppercase tracking-wider w-max max-w-full truncate" title={row.recruiter}>
-                                                                            RC: {row.recruiter}
+                                                                        <span className="text-[9px] font-black text-blue-800 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded uppercase tracking-wider w-max max-w-full truncate" title={row.RC_name}>
+                                                                            RC: {row.RC_name || "N/A"}
                                                                         </span>
                                                                     </div>
                                                                 </td>
                                                                 
                                                                 <td className="p-2.5 border-r border-gray-200 align-middle text-center">
                                                                     <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
-                                                                        <span className="font-black text-[#103c7f] text-[11px] uppercase tracking-wide w-full break-words leading-tight" title={row.client}>{row.client}</span>
-                                                                        <span className="font-bold text-gray-600 leading-tight w-full break-words">{row.profile}</span>
-                                                                        {row.jdText ? (
-                                                                            <button onClick={() => setJdModalData(row)} className="mt-1 text-blue-600 hover:text-white hover:bg-blue-600 font-black text-[8px] uppercase tracking-widest bg-blue-50 px-2 py-1 rounded transition-colors border border-blue-200 w-max">
-                                                                                View JD
-                                                                            </button>
-                                                                        ) : (
-                                                                            <span className="mt-1 text-gray-400 text-[8px] italic uppercase tracking-widest w-max">No JD</span>
-                                                                        )}
+                                                                        <span className="font-black text-[#103c7f] text-[11px] uppercase tracking-wide w-full break-words leading-tight" title={row.company_name}>{row.company_name}</span>
+                                                                        <span className="font-bold text-gray-600 leading-tight w-full break-words">{row.job_title}</span>
                                                                     </div>
                                                                 </td>
                                                                 
@@ -861,29 +874,47 @@ export default function MorningReportPage() {
                                                                     <div className="flex items-center justify-center gap-1.5"><span className="text-green-700 font-bold">{row.package}</span><span className="text-gray-300">|</span><span className="text-gray-800 font-black">{row.requirement}</span></div>
                                                                 </td>
                                                                 
-                                                                <td className="p-2 border-r border-gray-200 text-center bg-blue-50/50 hover:bg-blue-100 transition cursor-pointer align-middle" onClick={() => setCvModalData(row)}>
-                                                                    <div className="flex items-center justify-center gap-1"><span className="font-black text-blue-700 text-sm">{totalRowCv}</span><Eye size={12} className="text-blue-400" /></div>
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-blue-700 bg-blue-50/20 align-middle">
+                                                                    {row.cv_sourced || 0}
                                                                 </td>
                                                                 
-                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-purple-700 bg-purple-50/20 align-middle">{row.advance_sti}</td>
-                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-green-700 bg-green-50/20 align-middle">{row.conversion}</td>
-                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-orange-600 bg-orange-50/20 align-middle">{row.asset}</td>
-                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-gray-800 bg-gray-50 align-middle">{row.tracker_sent || 0}</td>
-                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-indigo-700 bg-indigo-50/40 align-middle">{row.tracker_shared || 0}</td>
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-purple-700 bg-purple-50/20 align-middle">
+                                                                    {row.advance_sti || 0}
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-green-700 bg-green-50/20 align-middle">
+                                                                    {row.conversion || 0}
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-orange-600 bg-orange-50/20 align-middle">
+                                                                    {row.asset || 0}
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-gray-700 bg-gray-50/50 align-middle">
+                                                                    {row.tracker_sent_by_rc || 0}
+                                                                </td>
+                                                                
+                                                                    <td className="p-2.5 border-r border-gray-200 text-center font-black text-indigo-700 bg-indigo-50/20 align-middle">
+                                                                    {row.tracker_sent_by_tl || 0}
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-indigo-600 bg-indigo-50/30 align-middle">
+                                                                    {row.tracker_shared_to_client || 0}
+                                                                </td>
                                                                 
                                                                 <td className="p-2.5 border-r border-gray-300 align-middle text-center w-48 bg-yellow-50/30">
-                                                                    <div className="text-[10px] text-gray-600 italic whitespace-normal break-words" title={row.notes}>{row.notes ? `"${row.notes}"` : <span className="text-gray-400 not-italic">No notes</span>}</div>
+                                                                    <div className="text-[10px] text-gray-600 italic whitespace-normal break-words" title={row.rc_remarks}>{row.rc_remarks ? `"${row.rc_remarks}"` : <span className="text-gray-400 not-italic">No notes</span>}</div>
                                                                 </td>
                                                                 
                                                                 <td className="p-2.5 align-middle text-center w-48 bg-blue-50/20">
-                                                                    <div className="text-[10px] font-bold text-[#103c7f] whitespace-normal break-words" title={row.tlRemark}>{row.tlRemark ? row.tlRemark : <span className="text-gray-400 font-normal italic">No remark added</span>}</div>
+                                                                    <div className="text-[10px] font-bold text-[#103c7f] whitespace-normal break-words" title={row.tl_remarks}>{row.tl_remarks ? row.tl_remarks : <span className="text-gray-400 font-normal italic">No remark added</span>}</div>
                                                                 </td>
                                                             </tr>
                                                         )
                                                     })
                                                 ) : (
                                                     <tr>
-                                                        <td colSpan="13" className="p-12 text-center bg-white align-middle">
+                                                        <td colSpan="16" className="p-12 text-center bg-white align-middle">
                                                             <Calendar size={40} className="text-indigo-200 mx-auto mb-3" />
                                                             <h4 className="text-lg font-black text-indigo-400 uppercase tracking-widest">No Corporate Data</h4>
                                                             <p className="text-sm font-bold text-gray-400 mt-1">No activities found for the corporate delivery team.</p>
@@ -901,41 +932,21 @@ export default function MorningReportPage() {
                                                             <div className="flex flex-col gap-1 items-center justify-center">
                                                                 <span className="text-[10px] font-bold text-slate-500 uppercase">Unique</span>
                                                                 <div className="flex gap-2 text-sm font-black text-[#103c7f]">
-                                                                    <span>{new Set(reportData.map(r => r.client)).size} Clients</span>
+                                                                    <span>{new Set(reportData.map(r => r.company_name)).size} Clients</span>
                                                                     <span>|</span>
-                                                                    <span>{new Set(reportData.map(r => r.profile)).size} Profiles</span>
+                                                                    <span>{new Set(reportData.map(r => r.job_title)).size} Profiles</span>
                                                                 </div>
                                                             </div>
                                                         </td>
                                                         <td className="p-3 border-r border-slate-300 text-center align-middle bg-slate-200/50">
                                                             <span className="text-sm font-black text-slate-500">-</span>
                                                         </td>
-                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-blue-100/50">
-                                                            <span className="text-lg font-black text-blue-800">
-                                                                {reportData.reduce((acc, curr) => acc + (curr.cv_naukri || 0) + (curr.cv_indeed || 0) + (curr.cv_other || 0), 0)}
-                                                            </span>
-                                                        </td>
-                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-purple-100/50">
-                                                            <span className="text-lg font-black text-purple-800">{reportData.reduce((acc, curr) => acc + (curr.advance_sti || 0), 0)}</span>
-                                                        </td>
-                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-green-100/50">
-                                                            <span className="text-lg font-black text-green-800">{reportData.reduce((acc, curr) => acc + (curr.conversion || 0), 0)}</span>
-                                                        </td>
-                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-orange-100/50">
-                                                            <span className="text-lg font-black text-orange-800">{reportData.reduce((acc, curr) => acc + (curr.asset || 0), 0)}</span>
-                                                        </td>
-                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-gray-200">
-                                                            <span className="text-lg font-black text-gray-800">{reportData.reduce((acc, curr) => acc + (curr.tracker_sent || 0), 0)}</span>
-                                                        </td>
-                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-indigo-100/50">
-                                                            <span className="text-lg font-black text-indigo-800">{reportData.reduce((acc, curr) => acc + (curr.tracker_shared || 0), 0)}</span>
-                                                        </td>
-                                                        <td colSpan="2" className="bg-slate-100"></td>
+                                                        <td colSpan="11" className="bg-slate-100"></td>
                                                     </tr>
                                                 </tfoot>
                                             )}
                                         </table>
-                                    </div>   */}           
+                                    </div>
                                    {/* --- CORPORATE CLIENT HANDLING KPI CARDS & TABLE --- */}
                                     <div className="p-4 bg-indigo-50/20 border-t border-indigo-100">
                                         <h4 className="text-[11px] font-black text-indigo-800 uppercase tracking-widest mb-3 flex items-center gap-1.5">
@@ -1083,17 +1094,26 @@ export default function MorningReportPage() {
                                                     <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><TrendingUp size={12}/> Conv.</div></th>
                                                     <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Database size={12}/> Asset</div></th>
                                                     <th className="p-2.5 border-r border-blue-800 text-center bg-gray-700/50"><div className="flex items-center justify-center gap-1.5"><UserCheck size={12}/> T. Rcvd</div></th>
+                                                    <th className="p-2.5 border-r border-blue-800 text-center bg-indigo-600/50"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> T.Sent By TL</div></th>
                                                     <th className="p-2.5 border-r border-blue-800 text-center bg-indigo-700/50"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> T. Shared</div></th>
                                                     <th className="p-2.5 border-r border-blue-800 min-w-[160px]"><div className="flex items-center gap-1.5"><MessageSquare size={12}/> RC Notes</div></th>
                                                     <th className="p-2.5 min-w-[160px] bg-[#0d316a] text-yellow-300"><div className="flex items-center gap-1.5"><Settings size={12}/> TL Remarks</div></th>
                                                 </tr>
                                             </thead>
-                                          <tbody className="font-medium divide-y divide-gray-200">
-                                                {reportData && reportData.length > 0 ? (
+                                        <tbody className="font-medium divide-y divide-gray-200">
+                                                {wbLoading ? (
+                                                    <tr>
+                                                        <td colSpan="13" className="p-12 text-center bg-white align-middle">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                                                <span className="text-sm font-bold text-indigo-600">Loading...</span>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ) : reportData && reportData.length > 0 ? (
                                                     reportData.map((row, index) => {
-                                                        const totalRowCv = (row.cv_naukri || 0) + (row.cv_indeed || 0) + (row.cv_other || 0);
                                                         return (
-                                                            <tr key={row.id} className="hover:bg-indigo-50/50 transition">
+                                                            <tr key={row.workbench_id} className="hover:bg-indigo-50/50 transition">
                                                                 
                                                                 <td className="p-2.5 border-r border-gray-200 text-center text-gray-400 font-bold bg-gray-50 align-middle">{index + 1}</td>
                                                                 
@@ -1106,29 +1126,22 @@ export default function MorningReportPage() {
                                                                 
                                                                 <td className="p-2.5 border-r border-gray-200 align-middle text-center">
                                                                     <div className="flex flex-col items-center justify-center gap-1.5 w-full h-full">
-                                                                        <span className="text-[9px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded shadow-sm w-max max-w-full truncate" title={row.crmName}>
-                                                                            CRM: {row.crmName || "N/A"}
+                                                                        <span className="text-[9px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded shadow-sm w-max max-w-full truncate" title={row.Crm_name}>
+                                                                            CRM: {row.Crm_name || "N/A"}
                                                                         </span>
-                                                                        <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded shadow-sm w-max max-w-full truncate" title={row.tlName}>
-                                                                            TL: {row.tlName}
+                                                                        <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded shadow-sm w-max max-w-full truncate" title={row.TL_name}>
+                                                                            TL: {row.TL_name || "N/A"}
                                                                         </span>
-                                                                        <span className="text-[9px] font-black text-blue-800 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded uppercase tracking-wider w-max max-w-full truncate" title={row.recruiter}>
-                                                                            RC: {row.recruiter}
+                                                                        <span className="text-[9px] font-black text-blue-800 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded uppercase tracking-wider w-max max-w-full truncate" title={row.RC_name}>
+                                                                            RC: {row.RC_name || "N/A"}
                                                                         </span>
                                                                     </div>
                                                                 </td>
                                                                 
                                                                 <td className="p-2.5 border-r border-gray-200 align-middle text-center">
                                                                     <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
-                                                                        <span className="font-black text-[#103c7f] text-[11px] uppercase tracking-wide w-full break-words leading-tight" title={row.client}>{row.client}</span>
-                                                                        <span className="font-bold text-gray-600 leading-tight w-full break-words">{row.profile}</span>
-                                                                        {row.jdText ? (
-                                                                            <button onClick={() => setJdModalData(row)} className="mt-1 text-blue-600 hover:text-white hover:bg-blue-600 font-black text-[8px] uppercase tracking-widest bg-blue-50 px-2 py-1 rounded transition-colors border border-blue-200 w-max">
-                                                                                View JD
-                                                                            </button>
-                                                                        ) : (
-                                                                            <span className="mt-1 text-gray-400 text-[8px] italic uppercase tracking-widest w-max">No JD</span>
-                                                                        )}
+                                                                        <span className="font-black text-[#103c7f] text-[11px] uppercase tracking-wide w-full break-words leading-tight" title={row.company_name}>{row.company_name}</span>
+                                                                        <span className="font-bold text-gray-600 leading-tight w-full break-words">{row.job_title}</span>
                                                                     </div>
                                                                 </td>
                                                                 
@@ -1136,29 +1149,47 @@ export default function MorningReportPage() {
                                                                     <div className="flex items-center justify-center gap-1.5"><span className="text-green-700 font-bold">{row.package}</span><span className="text-gray-300">|</span><span className="text-gray-800 font-black">{row.requirement}</span></div>
                                                                 </td>
                                                                 
-                                                                <td className="p-2 border-r border-gray-200 text-center bg-blue-50/50 hover:bg-blue-100 transition cursor-pointer align-middle" onClick={() => setCvModalData(row)}>
-                                                                    <div className="flex items-center justify-center gap-1"><span className="font-black text-blue-700 text-sm">{totalRowCv}</span><Eye size={12} className="text-blue-400" /></div>
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-blue-700 bg-blue-50/20 align-middle">
+                                                                    {row.cv_sourced || 0}
                                                                 </td>
                                                                 
-                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-purple-700 bg-purple-50/20 align-middle">{row.advance_sti}</td>
-                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-green-700 bg-green-50/20 align-middle">{row.conversion}</td>
-                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-orange-600 bg-orange-50/20 align-middle">{row.asset}</td>
-                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-gray-800 bg-gray-50 align-middle">{row.tracker_sent || 0}</td>
-                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-indigo-700 bg-indigo-50/40 align-middle">{row.tracker_shared || 0}</td>
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-purple-700 bg-purple-50/20 align-middle">
+                                                                    {row.advance_sti || 0}
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-green-700 bg-green-50/20 align-middle">
+                                                                    {row.conversion || 0}
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-orange-600 bg-orange-50/20 align-middle">
+                                                                    {row.asset || 0}
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-gray-700 bg-gray-50/50 align-middle">
+                                                                    {row.tracker_sent_by_rc || 0}
+                                                                </td>
+                                                                
+<td className="p-2.5 border-r border-gray-200 text-center font-black text-indigo-700 bg-indigo-50/20 align-middle">
+                                                                    {row.tracker_sent_by_tl || 0}
+                                                                </td>
+                                                                
+                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-indigo-600 bg-indigo-50/30 align-middle">
+                                                                    {row.tracker_shared_to_client || 0}
+                                                                </td>
                                                                 
                                                                 <td className="p-2.5 border-r border-gray-300 align-middle text-center w-48 bg-yellow-50/30">
-                                                                    <div className="text-[10px] text-gray-600 italic whitespace-normal break-words" title={row.notes}>{row.notes ? `"${row.notes}"` : <span className="text-gray-400 not-italic">No notes</span>}</div>
+                                                                    <div className="text-[10px] text-gray-600 italic whitespace-normal break-words" title={row.rc_remarks}>{row.rc_remarks ? `"${row.rc_remarks}"` : <span className="text-gray-400 not-italic">No notes</span>}</div>
                                                                 </td>
                                                                 
                                                                 <td className="p-2.5 align-middle text-center w-48 bg-blue-50/20">
-                                                                    <div className="text-[10px] font-bold text-[#103c7f] whitespace-normal break-words" title={row.tlRemark}>{row.tlRemark ? row.tlRemark : <span className="text-gray-400 font-normal italic">No remark added</span>}</div>
+                                                                    <div className="text-[10px] font-bold text-[#103c7f] whitespace-normal break-words" title={row.tl_remarks}>{row.tl_remarks ? row.tl_remarks : <span className="text-gray-400 font-normal italic">No remark added</span>}</div>
                                                                 </td>
                                                             </tr>
                                                         )
                                                     })
                                                 ) : (
                                                     <tr>
-                                                        <td colSpan="13" className="p-12 text-center bg-white align-middle">
+                                                        <td colSpan="16" className="p-12 text-center bg-white align-middle">
                                                             <Calendar size={40} className="text-indigo-200 mx-auto mb-3" />
                                                             <h4 className="text-lg font-black text-indigo-400 uppercase tracking-widest">No Corporate Data</h4>
                                                             <p className="text-sm font-bold text-gray-400 mt-1">No activities found for the corporate delivery team.</p>
@@ -1176,36 +1207,16 @@ export default function MorningReportPage() {
                                                             <div className="flex flex-col gap-1 items-center justify-center">
                                                                 <span className="text-[10px] font-bold text-slate-500 uppercase">Unique</span>
                                                                 <div className="flex gap-2 text-sm font-black text-[#103c7f]">
-                                                                    <span>{new Set(reportData.map(r => r.client)).size} Clients</span>
+                                                                    <span>{new Set(reportData.map(r => r.company_name)).size} Clients</span>
                                                                     <span>|</span>
-                                                                    <span>{new Set(reportData.map(r => r.profile)).size} Profiles</span>
+                                                                    <span>{new Set(reportData.map(r => r.job_title)).size} Profiles</span>
                                                                 </div>
                                                             </div>
                                                         </td>
                                                         <td className="p-3 border-r border-slate-300 text-center align-middle bg-slate-200/50">
                                                             <span className="text-sm font-black text-slate-500">-</span>
                                                         </td>
-                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-blue-100/50">
-                                                            <span className="text-lg font-black text-blue-800">
-                                                                {reportData.reduce((acc, curr) => acc + (curr.cv_naukri || 0) + (curr.cv_indeed || 0) + (curr.cv_other || 0), 0)}
-                                                            </span>
-                                                        </td>
-                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-purple-100/50">
-                                                            <span className="text-lg font-black text-purple-800">{reportData.reduce((acc, curr) => acc + (curr.advance_sti || 0), 0)}</span>
-                                                        </td>
-                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-green-100/50">
-                                                            <span className="text-lg font-black text-green-800">{reportData.reduce((acc, curr) => acc + (curr.conversion || 0), 0)}</span>
-                                                        </td>
-                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-orange-100/50">
-                                                            <span className="text-lg font-black text-orange-800">{reportData.reduce((acc, curr) => acc + (curr.asset || 0), 0)}</span>
-                                                        </td>
-                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-gray-200">
-                                                            <span className="text-lg font-black text-gray-800">{reportData.reduce((acc, curr) => acc + (curr.tracker_sent || 0), 0)}</span>
-                                                        </td>
-                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-indigo-100/50">
-                                                            <span className="text-lg font-black text-indigo-800">{reportData.reduce((acc, curr) => acc + (curr.tracker_shared || 0), 0)}</span>
-                                                        </td>
-                                                        <td colSpan="2" className="bg-slate-100"></td>
+                                                        <td colSpan="11" className="bg-slate-100"></td>
                                                     </tr>
                                                 </tfoot>
                                             )}
@@ -1679,3 +1690,8 @@ export default function MorningReportPage() {
          </div>
      );
  }
+
+
+
+
+
