@@ -1997,7 +1997,7 @@ const [newConversationData, setNewConversationData] = useState({
 
                         <div><label className={labelClass}>Location</label><input type="text" className={inputClass} value={jdFormData.location || ""} onChange={(e)=>setJdFormData({...jdFormData, location: e.target.value})}/></div>
                         <div><label className="text-[10px] font-bold text-gray-500 uppercase">Experience</label><input type="text" placeholder="e.g. 2-4 Yrs" className={inputClass} value={newReqData.experience} onChange={(e) => setNewReqData({...newReqData, experience: e.target.value})}/></div>
-                        <div><label className="text-[10px] font-bold text-gray-500 uppercase">Package (LPA)</label><input type="text" placeholder="e.g. 12 LPA" className={inputClass} value={newReqData.package} onChange={(e) => setNewReqData({...newReqData, package: e.target.value})}/></div>
+                        <div><label className="text-[10px] font-bold text-gray-500 uppercase">Package (LPA)</label><input type="number" placeholder="e.g. 12" className={inputClass} value={newReqData.package} onChange={(e) => setNewReqData({...newReqData, package: e.target.value})}/></div>
                         <div><label className={labelClass}>Employment Type</label><input type="text" placeholder="e.g. Full Time" className={inputClass} value={jdFormData.employment_type || ""} onChange={(e)=>setJdFormData({...jdFormData, employment_type: e.target.value})}/></div>
                         
                         <div><label className={labelClass}>Working Days</label><input type="text" placeholder="e.g. 5 Days" className={inputClass} value={jdFormData.working_days || ""} onChange={(e)=>setJdFormData({...jdFormData, working_days: e.target.value})}/></div>

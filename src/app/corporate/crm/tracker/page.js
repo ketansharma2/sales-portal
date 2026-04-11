@@ -1,6 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect ,useMemo } from "react";
+import { useRouter  } from "next/navigation";
 import { 
     Building2, Mail, History, Calendar, CheckCircle2, 
     X, Send, FileText, Briefcase, MapPin, GraduationCap, Edit3, Loader2, File
@@ -153,6 +153,81 @@ export default function CRMClientTrackerPage() {
     const [cvViewer, setCvViewer] = useState({ isOpen: false, source: null });
     const [isSendingDraft, setIsSendingDraft] = useState(false);
 
+    // Filter States
+    const [selectedTL, setSelectedTL] = useState("");
+    const [dateRange, setDateRange] = useState({ start: "", end: "" });
+    const [tlUsers, setTlUsers] = useState([]);
+
+    // Fetch TL users for dropdown
+    useEffect(() => {
+        const fetchTlUsers = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                const response = await fetch('/api/corporate/crm/tl-users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                if (result.success && result.data) {
+                    setTlUsers(result.data);
+                }
+            } catch (error) {
+                console.error('Error fetching TL users:', error);
+            }
+        };
+        
+        fetchTlUsers();
+    }, []);
+
+    // Filter data based on TL and date range
+    const filteredCrmData = useMemo(() => {
+        return crmData.filter(row => {
+            // TL Filter
+            if (selectedTL && row.tlName !== selectedTL) return false;
+            
+            // Date Range Filter (based on trackerShareDate column - Column 1)
+            if (dateRange.start || dateRange.end) {
+                const rowDate = row.trackerShareDate;
+                if (!rowDate || rowDate === '-') return false;
+                
+                // Parse date - handle formats: "04-Apr-2026" or "04 APR 2026" or "04-apr-2026"
+                let dateStr = '';
+                
+                // Replace spaces with hyphens and handle both cases
+                const normalizedDate = rowDate.replace(/\s+/g, '-').toLowerCase();
+                const parts = normalizedDate.split('-');
+                
+                if (parts.length === 3) {
+                    const day = parts[0].padStart(2, '0');
+                    const monthStr = parts[1];
+                    const year = parts[2];
+                    
+                    // Handle month names
+                    const monthMap = {
+                        'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 
+                        'may': '05', 'jun': '06', 'jul': '07', 'aug': '08', 
+                        'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+                    };
+                    const monthNum = monthMap[monthStr];
+                    
+                    if (monthNum) {
+                        dateStr = `${year}-${monthNum}-${day}`;
+                    }
+                }
+                
+                if (!dateStr) return false;
+                
+                // Compare dates (YYYY-MM-DD format)
+                if (dateRange.start && dateStr < dateRange.start) return false;
+                if (dateRange.end && dateStr > dateRange.end) return false;
+            }
+            
+            return true;
+        });
+    }, [crmData, selectedTL, dateRange]);
+
     // Fetch CRM Tracker Data from API
     useEffect(() => {
         const fetchCrmTrackerData = async () => {
@@ -236,10 +311,10 @@ export default function CRMClientTrackerPage() {
     };
 
     const toggleAllSelection = () => {
-        if (selectedRowIds.length === crmData.length) {
+        if (selectedRowIds.length === filteredCrmData.length) {
             setSelectedRowIds([]);
         } else {
-            setSelectedRowIds(crmData.map(row => row.id));
+            setSelectedRowIds(filteredCrmData.map(row => row.id));
         }
     };
 
@@ -835,8 +910,63 @@ export default function CRMClientTrackerPage() {
                     </p>
                 </div>
 
-                {/* Right Side: Bulk Actions (Appears when rows are selected) */}
-                <div>
+                {/* Right Side: Filters + Bulk Actions */}
+                <div className="flex flex-wrap items-center gap-3">
+                    
+                    {/* Row Count Badge */}
+                    <div className="bg-sky-200 text-black px-4 p-1 rounded-4xl border-[0.5px] border-sky-300 flex justify-center items-center mt-3 py-2 ">
+                        <span className="text-[10px] font-black uppercase tracking-widest">Rows: {filteredCrmData.length}</span>
+                    </div>
+                    
+                    {/* Filter Section */}
+                    <div className="flex flex-wrap items-center gap-2 bg-white border border-slate-200 px-3 py-2 rounded-lg shadow-sm">
+                        {/* TL Filter */}
+                        <div className="flex items-center gap-2">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">TL:</label>
+                            <select 
+                                className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer max-w-[150px]"
+                                value={selectedTL}
+                                onChange={(e) => setSelectedTL(e.target.value)}
+                            >
+                                <option value="">All TLs</option>
+                                {tlUsers.map(tl => (
+                                    <option key={tl.user_id} value={tl.name}>{tl.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Date Range Filter */}
+                        <div className="flex items-center gap-2">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">From:</label>
+                            <input 
+                                type="date" 
+                                className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                                value={dateRange.start}
+                                onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">To:</label>
+                            <input 
+                                type="date" 
+                                className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                                value={dateRange.end}
+                                onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                            />
+                        </div>
+
+                        {/* Clear Filters */}
+                        {(selectedTL || dateRange.start || dateRange.end) && (
+                            <button 
+                                onClick={() => { setSelectedTL(""); setDateRange({ start: "", end: "" }); }}
+                                className="text-[10px] font-bold text-red-600 hover:text-red-800 uppercase tracking-widest"
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Bulk Actions (Appears when rows are selected) */}
                     {selectedRowIds.length > 0 && (
                         <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-3 animate-in fade-in zoom-in-95">
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">
@@ -879,7 +1009,7 @@ export default function CRMClientTrackerPage() {
                                             <input 
                                                 type="checkbox" 
                                                 className="cursor-pointer accent-indigo-500 w-3 h-3"
-                                                checked={selectedRowIds.length === crmData.length && crmData.length > 0}
+                                                checked={selectedRowIds.length === filteredCrmData.length && filteredCrmData.length > 0}
                                                 readOnly
                                             />
                                             <span className="text-[8px] text-slate-300">Select All</span>
@@ -889,7 +1019,7 @@ export default function CRMClientTrackerPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50 bg-white">
-                            {crmData.map((row) => {
+                            {filteredCrmData.map((row) => {
                                 const isSelected = selectedRowIds.includes(row.id);
                                 return (
                                     <tr key={row.id} className={`transition-colors group ${isSelected ? 'bg-indigo-50/50' : 'hover:bg-slate-50/50'}`}>
