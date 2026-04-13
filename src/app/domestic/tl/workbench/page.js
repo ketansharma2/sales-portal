@@ -46,7 +46,7 @@ export default function TLWorkbenchPage() {
         const fetchRcUsers = async () => {
             try {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/corporate/tl/rc-users', {
+                const response = await fetch('/api/domestic/tl/rc-users', {
                     headers: {
                         'Authorization': `Bearer ${session.access_token}`
                     }
@@ -69,7 +69,7 @@ export default function TLWorkbenchPage() {
         const fetchWorkbenchAssignments = async () => {
             try {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/corporate/tl/workbench', {
+                const response = await fetch('/api/domestic/tl/workbench', {
                     headers: {
                         'Authorization': `Bearer ${session.access_token}`
                     }
@@ -154,7 +154,7 @@ export default function TLWorkbenchPage() {
                 return;
             }
 
-            const response = await fetch('/api/corporate/tl/workbench/assign', {
+            const response = await fetch('/api/domestic/tl/workbench/assign', {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`,
@@ -231,7 +231,7 @@ export default function TLWorkbenchPage() {
         try {
             const session = JSON.parse(localStorage.getItem('session') || '{}');
             
-            const response = await fetch('/api/corporate/tl/workbench/remark', {
+            const response = await fetch('/api/domestic/tl/workbench/remark', {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`,

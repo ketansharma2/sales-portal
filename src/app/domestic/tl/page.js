@@ -83,7 +83,7 @@ export default function TLWorkbenchReport() {
                 
                 if (!token) return;
                 
-                const response = await fetch('/api/corporate/tl/rc-users', {
+                const response = await fetch('/api/domestic/tl/rc-users', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
@@ -95,7 +95,7 @@ export default function TLWorkbenchReport() {
                     // After getting recruiters, fetch latest CV date
                     const userIds = result.data.map(r => r.user_id).join(',');
                     if (userIds) {
-                        const dateResponse = await fetch(`/api/corporate/tl/latest-cv-date?userIds=${userIds}`, {
+                        const dateResponse = await fetch(`/api/domestic/tl/latest-cv-date?userIds=${userIds}`, {
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
                         const dateResult = await dateResponse.json();
@@ -139,7 +139,7 @@ export default function TLWorkbenchReport() {
                 
                 if (!token) return;
                 
-                const response = await fetch(`/api/corporate/tl/metrics?fromDate=${fromDate}&toDate=${toDate}`, {
+                const response = await fetch(`/api/domestic/tl/metrics?fromDate=${fromDate}&toDate=${toDate}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
@@ -167,7 +167,7 @@ export default function TLWorkbenchReport() {
                 
                 if (!token) return;
                 
-                let url = `/api/corporate/tl/team-metrics?fromDate=${fromDate}&toDate=${toDate}`;
+                let url = `/api/domestic/tl/team-metrics?fromDate=${fromDate}&toDate=${toDate}`;
                 if (selectedRecruiter && selectedRecruiter !== "All") {
                     url += `&recruiter_id=${selectedRecruiter}`;
                 }
@@ -202,7 +202,7 @@ export default function TLWorkbenchReport() {
                 
                 if (!token) return;
                 
-                let url = `/api/corporate/tl/team-sti?fromDate=${fromDate}&toDate=${toDate}`;
+                let url = `/api/domestic/tl/team-sti?fromDate=${fromDate}&toDate=${toDate}`;
                 if (selectedRecruiter && selectedRecruiter !== "All") {
                     url += `&recruiter_id=${selectedRecruiter}`;
                 }
@@ -238,7 +238,7 @@ export default function TLWorkbenchReport() {
                 
                 if (!token) return;
                 
-                let url = `/api/corporate/tl/workbench-data?fromDate=${fromDate}&toDate=${toDate}`;
+                let url = `/api/domestic/tl/workbench-data?fromDate=${fromDate}&toDate=${toDate}`;
                 if (selectedRecruiter && selectedRecruiter !== "All") {
                     url += `&recruiter_id=${selectedRecruiter}`;
                 }
@@ -271,7 +271,7 @@ export default function TLWorkbenchReport() {
                     
                     if (!token) return;
                     
-                    const response = await fetch(`/api/corporate/tl/rejected-cv?fromDate=${fromDate}&toDate=${toDate}`, {
+                    const response = await fetch(`/api/domestic/tl/rejected-cv?fromDate=${fromDate}&toDate=${toDate}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     
@@ -302,7 +302,7 @@ export default function TLWorkbenchReport() {
                     
                     if (!token) return;
                     
-                    const response = await fetch(`/api/corporate/tl/joining?fromDate=${fromDate}&toDate=${toDate}`, {
+                    const response = await fetch(`/api/domestic/tl/joining?fromDate=${fromDate}&toDate=${toDate}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     

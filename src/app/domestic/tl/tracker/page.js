@@ -190,7 +190,7 @@ export default function TLTrackerPage() {
                 const userData = session.user || null;
                 setLoggedInUser(userData);
                 
-                const response = await fetch('/api/corporate/tl/tracker', {
+                const response = await fetch('/api/domestic/tl/tracker', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
@@ -245,7 +245,7 @@ export default function TLTrackerPage() {
                 
                 if (!token) return;
                 
-                const response = await fetch('/api/corporate/tl/rc-users', {
+                const response = await fetch('/api/domestic/tl/rc-users', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
@@ -270,7 +270,7 @@ export default function TLTrackerPage() {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
                 const token = session.access_token;
                 
-                const response = await fetch('/api/corporate/tl/crm-users', {
+                const response = await fetch('/api/domestic/tl/crm-users', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
@@ -354,7 +354,7 @@ export default function TLTrackerPage() {
             const session = JSON.parse(localStorage.getItem('session') || '{}');
             const token = session.access_token;
 
-            const response = await fetch('/api/corporate/tl/tracker/bulk-send-to-crm', {
+            const response = await fetch('/api/domestic/tl/tracker/bulk-send-to-crm', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -520,7 +520,7 @@ export default function TLTrackerPage() {
                 call_respond: tlForm.callResponding
             });
             
-            const response = await fetch('/api/corporate/tl/tracker', {
+            const response = await fetch('/api/domestic/tl/tracker', {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -591,7 +591,7 @@ export default function TLTrackerPage() {
             const session = JSON.parse(localStorage.getItem('session') || '{}');
             const token = session.access_token;
             
-            const response = await fetch('/api/corporate/tl/tracker', {
+            const response = await fetch('/api/domestic/tl/tracker', {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
