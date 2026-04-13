@@ -1,101 +1,334 @@
-"use client";
-import { useState } from "react";
-import { 
-    Search, Calendar, Building2, Briefcase, IndianRupee, 
-    Target, Clock, TableProperties, Activity, CheckCircle2, 
-    FileText, TrendingUp, Send, UserCheck, X, Database
+    "use client";
+import { useState, useEffect ,useRef} from "react";
+import {
+    ClipboardList, Calendar, Users, Briefcase, IndianRupee,
+    Target, Search, Activity, X, BarChart2, FileText, Send,
+    UserCheck, TrendingUp, Database, MessageSquarePlus, Clock, Eye, Download, Edit
 } from "lucide-react";
 
 export default function RecruiterWorkbenchPage() {
     
     // --- STATE ---
     const [searchTerm, setSearchTerm] = useState("");
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedTask, setSelectedTask] = useState(null);
+    const [assignments, setAssignments] = useState([]);
+    const [loadingAssignments, setLoadingAssignments] = useState(true);
+    
+    // View Work Modal State
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [selectedWork, setSelectedWork] = useState(null);
 
-    // Form State for Work Done
-    const initialForm = {
-        advance_sti: "",
-        cv_naukri: "",
-        cv_indeed: "",
-        cv_other: "",
-        today_conversion: "",
-        today_asset: "",
-        tracker_sent: "",
-        notes: "" // Added Notes state
+    // JD View Modal State (PDF Style)
+    const [isJdViewModalOpen, setIsJdViewModalOpen] = useState(false);
+    const [currentJdView, setCurrentJdView] = useState(null);
+
+    // Add Remark Modal State
+    const [isRemarkModalOpen, setIsRemarkModalOpen] = useState(false);
+    const [selectedRemarkTask, setSelectedRemarkTask] = useState(null);
+    const [remarkForm, setRemarkForm] = useState({ remark: "" });
+
+    const today = () => {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     };
-    const [formData, setFormData] = useState(initialForm);
+    
+    // Advance STI Modal State
+    const [isStiModalOpen, setIsStiModalOpen] = useState(false);
+    const [selectedStiTask, setSelectedStiTask] = useState(null);
+    const [stiForm, setStiForm] = useState({ date: today(), advanceSti: "" });
+    const [isStiSaving, setIsStiSaving] = useState(false);
+    const [stiHistory, setStiHistory] = useState([]);
 
-    // --- MOCK DATA: Tasks assigned to the logged-in Recruiter (e.g., "Pooja") ---
-    const [myTasks, setMyTasks] = useState([
-        { id: 1, date: "2026-03-02", client: "Frankfin", profile: "Telecouncellor", package: "30k", requirement: "350", slot: "09:30 AM - 01:00 PM", status: "Pending", lastLog: null },
-        { id: 2, date: "2026-03-03", client: "Global Logistics", profile: "HR Manager", package: "8LPA", requirement: "1", slot: "Urgent (Immediate)", status: "Updated", lastLog: { totalCv: 15, sti: 2 } },
-        { id: 3, date: "2026-03-04", client: "TechCorp Solutions", profile: "Java Developer", package: "12LPA", requirement: "5", slot: "Full Day (10-6)", status: "Pending", lastLog: null },
-        { id: 4, date: "2026-03-04", client: "MKS", profile: "AutoCAD", package: "40k", requirement: "2", slot: "02:00 PM - 06:00 PM", status: "Pending", lastLog: null }
-    ]);
+    // Slots List
+    const slotsList = [
+        "10:00 - 11:30",
+        "12:00 - 01:30",
+        "02:00 - 03:30",
+        "Other"
+    ];
+
+    // Fetch workbench assignments on component mount
+    useEffect(() => {
+        const fetchWorkbenchAssignments = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const response = await fetch('/api/domestic/recruiter/workbench', {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    // Transform workbench data to match assignments format
+                    const transformedAssignments = data.data.map(item => ({
+                        id: item.id,
+                        date: item.date,
+                        status: item.status || 'Pending',
+                        profile: item.job_title,
+                        package_salary: item.package || '',
+                        requirement: item.requirement?.toString() || '',
+                        client_name: item.client_name || '',
+                        // Use API fields for remark data
+                        advance_sti: item.advance_sti || '',
+                        sti_date: item.sti_date || '',
+                        rc_remarks: item.rc_remarks || '',
+                        jd: {
+                            title: item.job_title,
+                            summary: item.job_summary || '',
+                            skills: item.req_skills || '',
+                            location: item.location || '',
+                            experience: item.experience || '',
+                            employment_type: item.employment_type || '',
+                            working_days: item.working_days || '',
+                            timings: item.timings || '',
+                            package_salary: item.package || '',
+                            tool_requirement: item.tool_requirement || '',
+                            rnr: item.rnr || '',
+                            preferred_qual: item.preferred_qual || '',
+                            company_offers: item.company_offers || '',
+                            contact_details: item.contact_details || ''
+                        },
+                        tl_name: item.tl_name || '',
+                        tl_email: item.tl_email || '',
+                        slot: item.slot || '',
+                        isFinalAssigned: !!item.sent_to_rc,
+                        recruiterRemarks: [],
+                        progress: { cv_naukri: 0, cv_indeed: 0, cv_other: 0, totalCv: 0, advance_sti: item.advance_sti || 0, today_conversion: 0, today_asset: 0, tracker_sent: 0, notes: '' }
+                    }));
+                    
+                    // Sort by date descending
+                    transformedAssignments.sort((a, b) => {
+                        const dateA = new Date(a.date);
+                        const dateB = new Date(b.date);
+                        return dateB - dateA;
+                    });
+                    
+                    setAssignments(transformedAssignments);
+                }
+            } catch (error) {
+                console.error('Failed to fetch workbench assignments:', error);
+            } finally {
+                setLoadingAssignments(false);
+            }
+        };
+        fetchWorkbenchAssignments();
+    }, []);
+
+    // Dynamically load html2canvas and jspdf from npm packages (avoiding SSR issues)
+    useEffect(() => {
+        const loadLibs = async () => {
+            if (window.jspdf && window.html2canvas) return;
+            
+            // Dynamic import to avoid SSR
+            const [{ jsPDF: jspdfModule }, html2canvasModule] = await Promise.all([
+                import('jspdf'),
+                import('html2canvas')
+            ]);
+            
+            // Assign to window for global access
+            window.jspdf = jspdfModule;
+            window.html2canvas = html2canvasModule.default || html2canvasModule;
+        };
+        
+        loadLibs().catch(console.error);
+    }, []);
 
     // --- HANDLERS ---
-    const handleOpenModal = (task) => {
-        setSelectedTask(task);
-        // Reset form for fresh entry
-        setFormData(initialForm);
-        setIsModalOpen(true);
+    
+    // Modals
+    const handleViewWork = (item) => {
+        setSelectedWork(item);
+        setIsViewModalOpen(true);
     };
 
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-        setSelectedTask(null);
+    const handleOpenRemarkModal = (item) => {
+        setSelectedRemarkTask(item);
+        
+        // If status is 'Done', pre-fill with existing data
+        if (item.status === 'Done' && item.rc_remarks) {
+            setRemarkForm({ 
+                remark: item.rc_remarks || ""
+            });
+        } else {
+            setRemarkForm({ remark: "" });
+        }
+        setIsRemarkModalOpen(true);
     };
 
-    const handleSaveWork = () => {
-        // Calculate total CVs parsed
-        const totalCv = (parseInt(formData.cv_naukri) || 0) + (parseInt(formData.cv_indeed) || 0) + (parseInt(formData.cv_other) || 0);
+    const handleCloseRemarkModal = () => {
+        setIsRemarkModalOpen(false);
+        setSelectedRemarkTask(null);
+    };
 
-        const updatedTasks = myTasks.map(task => {
-            if (task.id === selectedTask.id) {
-                return {
-                    ...task,
-                    status: "Updated",
-                    lastLog: {
-                        totalCv: totalCv,
-                        sti: parseInt(formData.advance_sti) || 0,
-                        trackerSent: formData.tracker_sent,
-                        notes: formData.notes // Save Notes Data
-                    }
-                };
+    const handleOpenStiModal = async (item) => {
+        setSelectedStiTask(item);
+        setStiForm({ date: today(), advanceSti: "" });
+        setIsStiModalOpen(true);
+        
+        // Fetch STI history
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            const response = await fetch(`/api/domestic/recruiter/advance-sti?workbench_id=${item.id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const result = await response.json();
+            if (result.success) {
+                setStiHistory(result.data || []);
             }
-            return task;
-        });
+        } catch (error) {
+            console.error('Error fetching STI history:', error);
+            setStiHistory([]);
+        }
+    };
 
-        setMyTasks(updatedTasks);
-        handleCloseModal();
-        alert("Daily Progress Logged Successfully!");
+    const handleCloseStiModal = () => {
+        setIsStiModalOpen(false);
+        setSelectedStiTask(null);
+        setStiForm({ date: today(), advanceSti: "" });
+        setStiHistory([]);
+    };
+
+    const handleSaveSti = async () => {
+        if(!stiForm.advanceSti) {
+            alert("Please fill Advance STI.");
+            return;
+        }
+        
+        setIsStiSaving(true);
+        
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            
+            const response = await fetch('/api/domestic/recruiter/advance-sti', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    id: selectedStiTask.id,
+                    advance_sti: stiForm.advanceSti,
+                    date: stiForm.date
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                alert(result.error || 'Failed to save STI');
+                setIsStiSaving(false);
+                return;
+            }
+            
+            setAssignments(prev => prev.map(a => {
+                if (a.id === selectedStiTask.id) {
+                    return { 
+                        ...a, 
+                        advance_sti: stiForm.advanceSti,
+                        sti_date: stiForm.date
+                    };
+                }
+                return a;
+            }));
+            
+            handleCloseStiModal();
+            setIsStiSaving(false);
+            alert("Advance STI saved successfully!");
+            
+        } catch (error) {
+            console.error('Error saving STI:', error);
+            alert('Failed to save STI');
+            setIsStiSaving(false);
+        }
+    };
+
+    const handleSaveRemark = async () => {
+        if(!remarkForm.remark) {
+            alert("Please fill Remark.");
+            return;
+        }
+        
+        // Call API to update rc_remarks
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            
+            const response = await fetch('/api/domestic/recruiter/remarks', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    id: selectedRemarkTask.id,
+                    rc_remarks: remarkForm.remark
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                alert(result.error || 'Failed to save remark');
+                return;
+            }
+            
+            // Update local state
+            setAssignments(prev => prev.map(a => {
+                if (a.id === selectedRemarkTask.id) {
+                    return { 
+                        ...a, 
+                        rc_remarks: remarkForm.remark,
+                        status: 'Done',
+                        recruiterRemarks: [...(a.recruiterRemarks || []), { text: remarkForm.remark }] 
+                    };
+                }
+                return a;
+            }));
+            
+            handleCloseRemarkModal();
+            alert("Remark saved successfully!");
+            
+        } catch (error) {
+            console.error('Error saving remark:', error);
+            alert('Failed to save remark');
+        }
+    };
+
+    const handleSubmitReport = (item) => {
+        if(!item.progress || (item.progress.totalCv === 0 && item.progress.advance_sti === 0 && item.progress.today_conversion === 0 && item.progress.today_asset === 0)) {
+            alert("Please log some progress before submitting a report.");
+            return;
+        }
+        alert(`Report submitted successfully for ${item.profile}!`);
     };
 
     // Filter Logic
-    const filteredTasks = myTasks.filter(item => 
-        item.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.profile.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredData = assignments.filter(item => 
+        item.profile.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.tl_name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
-        <div className="min-h-screen bg-gray-50 font-['Calibri'] p-4 md:p-6">
+        <div className="min-h-screen bg-gray-50 font-['Calibri'] p-4 md:p-6 relative">
             
             {/* HEADER & SEARCH */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+            <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
                     <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
-                        <TableProperties size={24}/> My Workbench
+                        <ClipboardList size={24}/> Recruiter Workbench
                     </h1>
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">
-                        View assigned requirements & log daily work
+                        View assigned requirements & track your progress
                     </p>
                 </div>
-                
                 <div className="relative">
                     <input 
                         type="text" 
-                        placeholder="Search client, profile..." 
+                        placeholder="Search profile, TL..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs font-bold w-72 outline-none focus:border-[#103c7f] transition shadow-sm"
@@ -106,85 +339,158 @@ export default function RecruiterWorkbenchPage() {
                 </div>
             </div>
 
-            {/* --- TASK TABLE --- */}
+            {/* --- WORKBENCH SPREADSHEET TABLE --- */}
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto custom-scrollbar min-h-[60vh]">
-                    <table className="w-full text-left border-collapse min-w-[1000px]">
+                <div className="overflow-x-auto custom-scrollbar min-h-[50vh]">
+                    <table className="w-full text-left border-collapse min-w-[900px]">
                         
                         <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-10 shadow-sm">
                             <tr>
-                                <th className="p-4 border-r border-blue-800 w-10 text-center">#</th>
-                                <th className="p-4 border-r border-blue-800"><div className="flex items-center gap-1.5"><Calendar size={12}/> Date</div></th>
-                                <th className="p-4 border-r border-blue-800 min-w-[150px]"><div className="flex items-center gap-1.5"><Building2 size={12}/> Client</div></th>
-                                <th className="p-4 border-r border-blue-800 min-w-[150px]"><div className="flex items-center gap-1.5"><Briefcase size={12}/> Profile</div></th>
-                                <th className="p-4 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><IndianRupee size={12}/> Pkg</div></th>
-                                <th className="p-4 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Target size={12}/> Req.</div></th>
-                                <th className="p-4 border-r border-blue-800 bg-[#0d316a] text-yellow-300"><div className="flex items-center gap-1.5"><Clock size={12}/> Slot Timing</div></th>
-                                <th className="p-4 border-r border-blue-800 text-center">Status</th>
-                                <th className="p-4 text-center bg-[#0d316a] w-36 sticky right-0 z-20">Action</th>
+                                <th className="p-3 border-r border-blue-800 w-10 text-center">#</th>
+                                <th className="p-3 border-r border-blue-800 w-28"><div className="flex items-center gap-1.5"><Calendar size={12}/> Date</div></th>
+                                <th className="p-3 border-r border-blue-800 w-28"><div className="flex items-center gap-1.5"><Briefcase size={12}/> Client</div></th>
+                                <th className="p-3 border-r border-blue-800 min-w-[140px]"><div className="flex items-center gap-1.5"><Briefcase size={12}/> Profile</div></th>
+                                <th className="p-3 border-r border-blue-800 text-center w-24"><div className="flex items-center justify-center gap-1.5"><IndianRupee size={12}/> Package</div></th>
+                                <th className="p-3 border-r border-blue-800 text-center w-20"><div className="flex items-center justify-center gap-1.5"><Target size={12}/> Req.</div></th>
+                                <th className="p-3 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><FileText size={12}/> JD</div></th>
+                                <th className="p-3 border-r border-blue-800 min-w-[150px]"><div className="flex items-center gap-1.5"><Users size={12}/> Assigned By (TL)</div></th>
+                                <th className="p-3 border-r border-blue-800 min-w-[120px]"><div className="flex items-center gap-1.5"><Clock size={12}/> Slot</div></th>
+                                <th className="p-3 border-r border-blue-800 text-center w-24"><div className="flex items-center justify-center gap-1.5"><Activity size={12}/> Status</div></th>
+                                
+                                {/* Action Column */}
+                                <th className="p-3 bg-[#0d316a] text-center w-32 sticky right-0 z-20">Actions</th>
                             </tr>
                         </thead>
                         
                         <tbody className="text-xs text-gray-800 font-medium divide-y divide-gray-200 bg-gray-50">
-                            {filteredTasks.length > 0 ? (
-                                filteredTasks.map((item, index) => (
-                                <tr key={item.id} className="hover:bg-blue-50/30 bg-white transition group">
-                                    
-                                    <td className="p-3 border-r border-gray-200 text-center text-gray-400 font-bold">
-                                        {index + 1}
-                                    </td>
-                                    
-                                    <td className="p-3 border-r border-gray-200 font-mono text-gray-600">
-                                        {item.date}
-                                    </td>
-                                    
-                                    <td className="p-3 border-r border-gray-200 font-black text-[#103c7f]">
-                                        {item.client}
-                                    </td>
-                                    
-                                    <td className="p-3 border-r border-gray-200 font-bold text-gray-700">
-                                        {item.profile}
-                                    </td>
-                                    
-                                    <td className="p-3 border-r border-gray-200 text-center font-bold text-green-700 bg-green-50/20">
-                                        {item.package}
-                                    </td>
-                                    
-                                    <td className="p-3 border-r border-gray-200 text-center font-black text-[13px] text-gray-800">
-                                        {item.requirement}
-                                    </td>
-                                    
-                                    <td className="p-3 border-r border-gray-200 font-bold text-purple-700 bg-purple-50/30">
-                                        {item.slot}
-                                    </td>
-
-                                    <td className="p-3 border-r border-gray-200 text-center">
-                                        {item.status === 'Updated' ? (
-                                            <span className="bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1">
-                                                <CheckCircle2 size={10}/> Logged
-                                            </span>
-                                        ) : (
-                                            <span className="bg-orange-50 text-orange-600 border border-orange-200 px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest">
-                                                Pending
-                                            </span>
-                                        )}
-                                    </td>
-
-                                    {/* Action Column */}
-                                    <td className="p-3 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)]">
-                                        <button 
-                                            onClick={() => handleOpenModal(item)}
-                                            className="bg-[#103c7f] text-white px-3 py-1.5 rounded font-bold text-[10px] uppercase tracking-wider hover:bg-blue-900 transition shadow-sm mx-auto flex items-center gap-1.5"
-                                        >
-                                            <Activity size={12}/> Update Work
-                                        </button>
-                                    </td>
-
-                                </tr>
-                            ))) : (
+                            {loadingAssignments ? (
                                 <tr>
-                                    <td colSpan="9" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest bg-white">
-                                        No tasks assigned yet
+                                    <td colSpan="10" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest bg-white">
+                                        Loading assignments...
+                                    </td>
+                                </tr>
+                            ) : filteredData.length > 0 ? (
+                                filteredData.map((item, index) => {
+                                    
+                                    return (
+                                        <tr key={item.id} className="transition group hover:bg-blue-50/30 bg-white">
+                                            
+                                            <td className="p-2 border-r border-gray-200 text-center text-gray-400 font-bold">
+                                                {index + 1}
+                                            </td>
+                                            
+                                            <td className="p-2 border-r border-gray-200 font-mono text-gray-600">
+                                                {item.date}
+                                            </td>
+                                            
+                                            <td className="p-2 border-r border-gray-200 font-bold text-[#103c7f]">
+                                                {item.client_name || '-'}
+                                            </td>
+                                            
+                                            <td className="p-2 border-r border-gray-200 font-black text-[#103c7f]">
+                                                {item.profile}
+                                            </td>
+                                            
+                                            <td className="p-2 border-r border-gray-200 text-center font-bold text-green-700 bg-green-50/20">
+                                                {item.package_salary}
+                                            </td>
+                                            
+                                            <td className="p-2 border-r border-gray-200 text-center font-black text-[13px] text-gray-800">
+                                                {item.requirement}
+                                            </td>
+
+                                            {/* JD View */}
+                                            <td className="p-2 border-r border-gray-200 text-center align-middle">
+                                                <button 
+                                                    onClick={() => { setCurrentJdView(item.jd); setIsJdViewModalOpen(true); }}
+                                                    disabled={!item.jd}
+                                                    className={`p-1.5 mx-auto flex items-center justify-center rounded transition ${item.jd ? 'text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200' : 'text-gray-400 bg-gray-50 cursor-not-allowed'}`}
+                                                    title={item.jd ? "View Attached JD" : "No JD Attached"}
+                                                >
+                                                    <Eye size={14} />
+                                                </button>
+                                            </td>
+                                            
+                                            {/* TL Name */}
+                                            <td className="p-2 border-r border-gray-200 font-bold text-[#103c7f]">
+                                                {item.tl_name}
+                                            </td>
+                                            
+                                            {/* Slot */}
+                                            <td className="p-2 border-r border-gray-200 font-bold text-purple-700">
+                                                {item.slot || '-'}
+                                            </td>
+
+                                            {/* Status */}
+                                            <td className="p-2 border-r border-gray-200 text-center">
+                                                {item.status === 'Done' ? (
+                                                    <span className="px-2 py-1 rounded text-[9px] font-black uppercase border bg-green-50 text-green-700 border-green-200">
+                                                        Done
+                                                    </span>
+                                                ) : (
+                                                    <span className="px-2 py-1 rounded text-[9px] font-black uppercase border bg-orange-50 text-orange-700 border-orange-200">
+                                                        {item.status || 'Pending'}
+                                                    </span>
+                                                )}
+                                            </td>
+
+                                            {/* --- ACTION COLUMN --- */}
+                                            <td className="p-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)]">
+                                                <div className="flex justify-center items-center gap-1.5">
+                                                    {/* Submit Report Button */}
+                                                    <button
+                                                        onClick={() => handleSubmitReport(item)}
+                                                        className="hidden px-2.5 py-1.5 rounded font-bold text-[10px] flex items-center gap-1 uppercase tracking-wider bg-green-100 text-green-700 border border-green-200 hover:bg-green-200 transition"
+                                                        title="Submit Report"
+                                                    >
+                                                        <Send size={12}/> Submit
+                                                    </button>
+
+                                                    {/* View Work Button */}
+                                                    <button
+                                                        onClick={() => handleViewWork(item)}
+                                                        className="p-1.5 bg-purple-50 text-purple-600 border border-purple-200 rounded hover:bg-purple-100 transition"
+                                                        title="View Work Progress"
+                                                    >
+                                                        <Activity size={14}/>
+                                                    </button>
+
+                                                    {/* Add/Edit Remark Button */}
+                                                    {item.status === 'Done' ? (
+                                                        <button
+                                                            onClick={() => handleOpenRemarkModal(item)}
+                                                            className="p-1.5 bg-yellow-50 text-yellow-600 border border-yellow-200 rounded hover:bg-yellow-100 transition"
+                                                            title="Edit Remark"
+                                                        >
+                                                            <Edit size={14}/>
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleOpenRemarkModal(item)}
+                                                            className="p-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition"
+                                                            title="Add Remark"
+                                                        >
+                                                            <MessageSquarePlus size={14}/>
+                                                        </button>
+                                                    )}
+
+                                                    {/* Advance STI Button */}
+                                                    <button
+                                                        onClick={() => handleOpenStiModal(item)}
+                                                        className="px-2 py-1 bg-green-50 text-green-600 border border-green-200 rounded hover:bg-green-100 transition text-[10px] font-bold"
+                                                        title="Advance STI"
+                                                    >
+                                                        STI
+                                                    </button>
+                                                </div>
+                                            </td>
+
+                                        </tr>
+                                    )
+                                })) : (
+                                <tr>
+                                    <td colSpan="10" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest bg-white">
+                                        No workbench assignments found
                                     </td>
                                 </tr>
                             )}
@@ -193,154 +499,392 @@ export default function RecruiterWorkbenchPage() {
                 </div>
             </div>
 
-            {/* --- LOG PROGRESS MODAL --- */}
-            {isModalOpen && selectedTask && (
+            {/* --- ADD REMARK MODAL --- */}
+            {isRemarkModalOpen && selectedRemarkTask && (
                 <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200">
-                        
-                        {/* Modal Header */}
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="bg-[#103c7f] p-4 flex justify-between items-center text-white shrink-0">
                             <h3 className="font-black text-md uppercase tracking-wide flex items-center gap-2">
-                                <Activity size={18}/> Log Daily Progress
+                                {selectedRemarkTask?.status === 'Done' ? <Edit size={18}/> : <MessageSquarePlus size={18}/>} {selectedRemarkTask?.status === 'Done' ? 'Edit Remark' : 'Add Remark'}
                             </h3>
-                            <button onClick={handleCloseModal} className="hover:bg-white/20 p-1.5 rounded-full transition bg-white/10">
+                            <button onClick={handleCloseRemarkModal} className="hover:bg-white/20 p-1.5 rounded-full transition bg-white/10">
                                 <X size={20} />
                             </button>
                         </div>
+                        <div className="p-6 bg-gray-50">
+                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-5">
+                                <p className="text-xs font-bold text-gray-600">Profile: <span className="text-[#103c7f]">{selectedRemarkTask.profile}</span></p>
+                                <p className="text-xs font-bold text-gray-600">TL: <span className="text-[#103c7f]">{selectedRemarkTask.tl_name || "Not Assigned"}</span></p>
+                            </div>
+                            <div className="mb-2">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Remark / Feedback</label>
+                                <textarea rows="4" placeholder="Enter your remarks here..." className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:border-[#103c7f] outline-none resize-none shadow-sm bg-white" value={remarkForm.remark} onChange={(e) => setRemarkForm({...remarkForm, remark: e.target.value})}></textarea>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-gray-100 bg-white flex justify-end gap-3">
+                            <button onClick={handleCloseRemarkModal} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition shadow-sm">Cancel</button>
+                            <button onClick={handleSaveRemark} className="bg-[#103c7f] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-blue-900 transition">Save Remark</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-                        {/* Modal Body */}
+            {/* --- VIEW WORK MODAL (RECRUITER SIDE) --- */}
+            {isViewModalOpen && selectedWork && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="bg-[#103c7f] p-4 flex justify-between items-center text-white shrink-0">
+                            <h3 className="font-black text-md uppercase tracking-wide flex items-center gap-2"><BarChart2 size={18}/> Work Progress Summary</h3>
+                            <button onClick={() => setIsViewModalOpen(false)} className="hover:bg-white/20 p-1.5 rounded-full transition bg-white/10"><X size={20} /></button>
+                        </div>
                         <div className="p-6 bg-gray-50 max-h-[75vh] overflow-y-auto custom-scrollbar">
                             
-                            {/* Task Summary Banner */}
-                            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-6 flex justify-between items-center shadow-sm">
+                            <div className="bg-white p-4 rounded-xl border border-gray-200 mb-5 shadow-sm flex justify-between items-center">
                                 <div>
-                                    <h4 className="text-lg font-black text-[#103c7f]">{selectedTask.profile}</h4>
-                                    <p className="text-xs font-bold text-gray-600 mt-0.5 flex items-center gap-1">
-                                        <Building2 size={12}/> {selectedTask.client} | Req: {selectedTask.requirement}
+                                    <h4 className="text-lg font-black text-[#103c7f]">{selectedWork.profile}</h4>
+                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1 mt-0.5">
+                                        <Target size={12}/> Req: {selectedWork.requirement}
                                     </p>
                                 </div>
                                 <div className="text-right">
-                                    <span className="bg-white text-purple-700 border border-purple-200 px-3 py-1 rounded text-[10px] font-black uppercase shadow-sm">
-                                        <Clock size={10} className="inline mr-1"/> {selectedTask.slot}
-                                    </span>
+                                    <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-lg text-[10px] font-black border border-purple-200 block mb-1">TL: {selectedWork.tl_name}</span>
+                                    <span className="text-[10px] text-gray-400 font-bold block">{selectedWork.slot}</span>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-5">
+                            {selectedWork.progress ? (
+                                <>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+                                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 col-span-2">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <span className="text-[10px] font-black text-blue-800 uppercase flex items-center gap-1.5"><FileText size={14}/> Total CVs Parsed</span>
+                                                <span className="text-2xl font-black text-blue-700 leading-none">{selectedWork.progress.totalCv}</span>
+                                            </div>
+                                            <div className="flex justify-between text-[10px] font-bold text-gray-500 bg-white p-2 rounded border border-blue-50">
+                                                <span>Naukri: <span className="text-gray-800">{selectedWork.progress.cv_naukri}</span></span>
+                                                <span>Indeed: <span className="text-gray-800">{selectedWork.progress.cv_indeed}</span></span>
+                                                <span>Other: <span className="text-gray-800">{selectedWork.progress.cv_other}</span></span>
+                                            </div>
+                                        </div>
+                                        <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 flex flex-col justify-center items-center text-center">
+                                            <Send size={16} className="text-purple-500 mb-1"/>
+                                            <p className="text-[10px] font-black text-gray-500 uppercase mb-0.5">Advance STI</p>
+                                            <p className="text-xl font-black text-purple-700">{selectedWork.progress.advance_sti}</p>
+                                        </div>
+                                        <div className="bg-gray-100 border border-gray-200 rounded-xl p-4 flex flex-col justify-center items-center text-center">
+                                            <UserCheck size={16} className="text-gray-500 mb-1"/>
+                                            <p className="text-[10px] font-black text-gray-500 uppercase mb-0.5">Tracker Sent</p>
+                                            <p className="text-xl font-black text-gray-700">{selectedWork.progress.tracker_sent}</p>
+                                        </div>
+                                        <div className="bg-green-50 border border-green-100 rounded-xl p-4 col-span-2 flex justify-between items-center">
+                                            <div className="text-left"><p className="text-[11px] font-black text-green-700 uppercase flex items-center gap-1.5 mb-0.5"><TrendingUp size={14}/> Today Conversion</p></div>
+                                            <p className="text-3xl font-black text-green-700">{selectedWork.progress.today_conversion}</p>
+                                        </div>
+                                        <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 col-span-2 flex justify-between items-center">
+                                            <div className="text-left"><p className="text-[11px] font-black text-orange-700 uppercase flex items-center gap-1.5 mb-0.5"><Database size={14}/> Today Asset</p></div>
+                                            <p className="text-3xl font-black text-orange-600">{selectedWork.progress.today_asset}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        {selectedWork.progress.notes && (
+                                            <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                                                <h5 className="text-[10px] font-black text-gray-500 uppercase mb-2 flex items-center gap-1.5"><FileText size={12}/> Your Daily Note</h5>
+                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-yellow-400 pl-3 py-1 bg-yellow-50/30">"{selectedWork.progress.notes}"</p>
+                                            </div>
+                                        )}
+                                        {selectedWork.recruiterRemarks && selectedWork.recruiterRemarks.length > 0 && (
+                                            <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 shadow-sm">
+                                                <h5 className="text-[10px] font-black text-[#103c7f] uppercase mb-3 flex items-center gap-1.5 border-b border-blue-100 pb-2"><MessageSquarePlus size={12}/> Your Remarks History</h5>
+                                                <div className="space-y-3 pl-1">
+                                                    {selectedWork.recruiterRemarks.map((rem, i) => (
+                                                        <div key={i} className="relative pl-4 border-l-2 border-blue-400">
+                                                            <div className="absolute w-2 h-2 bg-blue-500 rounded-full -left-[5px] top-1.5 border border-white"></div>
+                                                            <p className="text-xs font-medium text-gray-800">{rem.text}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="p-10 text-center bg-white rounded-xl border border-dashed border-gray-300">
+                                    <p className="text-sm font-bold text-gray-500">No progress logged yet.</p>
+                                </div>
+                            )}
+
+                        </div>
+                        <div className="p-4 border-t border-gray-100 bg-white text-right">
+                            <button onClick={() => setIsViewModalOpen(false)} className="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-200 transition shadow-sm">Close View</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* --- VIEW JD DETAILS MODAL (DOCUMENT PREVIEW) --- */}
+            {isJdViewModalOpen && currentJdView && (
+                <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-xl flex justify-center items-center z-[10000] p-0 md:p-4 print:static print:block print:bg-white print:p-0 print:z-auto">
+                    
+                    <div className="bg-transparent w-full max-w-[800px] h-full md:h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 relative shadow-2xl rounded-2xl print:block print:h-auto print:max-w-full print:shadow-none print:rounded-none print:overflow-visible">
+                        
+                        {/* Header (Hidden in Print) */}
+                        <div className="bg-[#103c7f] text-white p-4 flex justify-between items-center shrink-0 border-b border-blue-900 print:hidden">
+                            <div className="flex items-center gap-3">
+                                <FileText size={20} />
+                                <h3 className="font-bold text-lg uppercase tracking-wide">Document Preview</h3>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={async () => {
+                                    const element = document.getElementById('pdf-content');
+                                    if (!element) {
+                                        alert('Content not found');
+                                        return;
+                                    }
+                                    
+                                    // Try html2canvas approach first
+                                    try {
+                                        // Dynamic import
+                                        const [{ jsPDF: jspdfModule }, html2canvasModule] = await Promise.all([
+                                            import('jspdf'),
+                                            import('html2canvas')
+                                        ]);
+                                        
+                                        const html2canvas = html2canvasModule.default || html2canvasModule;
+                                        const { jsPDF } = jspdfModule;
+                                        
+                                        // Capture the element as canvas
+                                        const canvas = await html2canvas(element, {
+                                            scale: 2,
+                                            useCORS: true,
+                                            allowTaint: true,
+                                            backgroundColor: '#ffffff'
+                                        });
+                                        
+                                        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                                        
+                                        // Create PDF
+                                        const pdf = new jsPDF('p', 'mm', 'a4');
+                                        const pageWidth = pdf.internal.pageSize.getWidth();
+                                        const imgWidth = pageWidth;
+                                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                                        
+                                        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+                                        pdf.save(`${currentJdView?.title || 'job-description'}.pdf`);
+                                        return;
+                                    } catch (err) {
+                                        console.warn('html2canvas failed, using fallback:', err.message);
+                                    }
+                                    
+                                    // Fallback: text-based PDF
+                                    try {
+                                        const [{ jsPDF }] = await Promise.all([import('jspdf')]);
+                                        const pdf = new jsPDF('p', 'mm', 'a4');
+                                        const pageWidth = pdf.internal.pageSize.getWidth();
+                                        const margin = 15;
+                                        let y = margin;
+                                        
+                                        // Add logo
+                                        try {
+                                            pdf.addImage('/maven-logo.png', 'PNG', margin, y, 60, 20);
+                                            y += 35; // Increased gap between logo and border
+                                        } catch (e) { y += 20; }
+                                        
+                                        // Border with more internal padding
+                                        const borderMargin = 20; // Increased border margin
+                                        pdf.setDrawColor(0);
+                                        pdf.setLineWidth(0.5);
+                                        pdf.rect(borderMargin, y - 5, pageWidth - 2 * borderMargin, 230);
+                                        
+                                        // Add top padding inside border
+                                        y += 10;
+                                        
+                                        const contentLeft = borderMargin + 10; // More padding inside border
+                                        const contentRight = pageWidth - borderMargin - 10;
+                                        
+                                        // Helper
+                                        const addField = (label, value) => {
+                                            if (!value) return;
+                                            pdf.setFontSize(11);
+                                            pdf.setFont('helvetica', 'bold');
+                                            pdf.text(label, contentLeft, y);
+                                            pdf.setFont('helvetica', 'normal');
+                                            const lines = pdf.splitTextToSize(value.toString(), pageWidth - 2 * margin - pdf.getTextWidth(label));
+                                            pdf.text(lines, contentLeft + pdf.getTextWidth(label), y);
+                                            y += lines.length * 5 + 3;
+                                        };
+                                        
+                                        addField('JOB TITLE: ', currentJdView?.title);
+                                        addField('LOCATION: ', currentJdView?.location);
+                                        addField('EXPERIENCE: ', currentJdView?.experience);
+                                        addField('EMPLOYMENT TYPE: ', currentJdView?.employment_type);
+                                        addField('WORKING DAYS: ', currentJdView?.working_days);
+                                        addField('TIMINGS: ', currentJdView?.timings);
+                                        addField('PACKAGE: ', currentJdView?.package_salary);
+                                        addField('TOOL REQUIREMENT: ', currentJdView?.tool_requirement);
+                                        
+                                        y += 5;
+                                        
+                                        if (currentJdView?.summary) {
+                                            pdf.setFontSize(12);
+                                            pdf.setFont('helvetica', 'bold');
+                                            pdf.text('Job Summary:', contentLeft, y);
+                                            y += 6;
+                                            pdf.setFontSize(10);
+                                            const lines = pdf.splitTextToSize(currentJdView.summary, pageWidth - 2 * margin - 10);
+                                            pdf.text(lines, contentLeft + 2, y);
+                                            y += lines.length * 4 + 8;
+                                        }
+                                        
+                                        if (currentJdView?.skills) {
+                                            pdf.setFontSize(12);
+                                            pdf.setFont('helvetica', 'bold');
+                                            pdf.text('Required Skills:', contentLeft, y);
+                                            y += 6;
+                                            pdf.setFontSize(10);
+                                            const lines = pdf.splitTextToSize(currentJdView.skills, pageWidth - 2 * margin - 10);
+                                            pdf.text(lines, contentLeft + 2, y);
+                                        }
+                                        
+                                        pdf.save(`${currentJdView?.title || 'job-description'}.pdf`);
+                                    } catch (fallbackErr) {
+                                        console.error('Fallback also failed:', fallbackErr);
+                                        alert('PDF generation failed. Using browser print instead.');
+                                        window.print();
+                                    }
+                                }} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider">
+                                    <Download size={16}/> Save as PDF
+                                </button>
+                                <button onClick={() => setIsJdViewModalOpen(false)} className="hover:bg-white/20 p-2 rounded-full transition">
+                                    <X size={20}/>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* --- PDF CONTENT --- */}
+                        <div className="flex-1 min-h-0 overflow-y-auto bg-gray-200 p-4 md:p-8 block print:block print:overflow-visible print:bg-white print:p-0 custom-scrollbar">
+                            <div className="bg-white w-full max-w-[210mm] min-h-[297mm] h-max mx-auto p-[10mm] md:p-[15mm] shadow-xl text-black font-['Calibri'] relative print:w-full print:max-w-none print:shadow-none print:m-0 print:border-none" id="pdf-content">
                                 
-                                {/* 1. CVs Parsed Breakdown (Full Width) */}
-                                <div className="col-span-2 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                                    <h5 className="text-xs font-black text-gray-800 uppercase mb-3 flex items-center gap-1.5 border-b border-gray-100 pb-2">
-                                        <FileText size={14} className="text-blue-600"/> Today's CV Sourcing (Parsed)
-                                    </h5>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <div>
-                                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">From Naukri</label>
-                                            <input 
-                                                type="number" min="0" placeholder="0"
-                                                className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold focus:border-[#103c7f] outline-none"
-                                                value={formData.cv_naukri} onChange={(e) => setFormData({...formData, cv_naukri: e.target.value})}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">From Indeed</label>
-                                            <input 
-                                                type="number" min="0" placeholder="0"
-                                                className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold focus:border-[#103c7f] outline-none"
-                                                value={formData.cv_indeed} onChange={(e) => setFormData({...formData, cv_indeed: e.target.value})}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Other Portals</label>
-                                            <input 
-                                                type="number" min="0" placeholder="0"
-                                                className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold focus:border-[#103c7f] outline-none"
-                                                value={formData.cv_other} onChange={(e) => setFormData({...formData, cv_other: e.target.value})}
-                                            />
-                                        </div>
+                                {/* 1. Header Logo */}
+                                <div className="mb-10">
+                                    <img src="/maven-logo.png" alt="Maven Jobs" style={{ width: '220px', height: '70px', objectFit: 'contain' }} />
+                                </div>
+
+                                {/* 2. Bordered Container */}
+                                <div className="border border-black p-8 min-h-[850px] relative print:border-none print:p-0">
+                                    
+                                    {/* Key Value Pairs */}
+                                    <div className="space-y-4 mb-10 text-[15px] leading-relaxed">
+                                        {currentJdView.title && <p><span className="font-bold">JOB TITLE : </span> {currentJdView.title}</p>}
+                                        {currentJdView.location && <p><span className="font-bold">LOCATION : </span> {currentJdView.location}</p>}
+                                        {currentJdView.experience && <p><span className="font-bold">EXPERIENCE : </span> {currentJdView.experience}</p>}
+                                        {currentJdView.employment_type && <p><span className="font-bold">EMPLOYMENT TYPE : </span> {currentJdView.employment_type}</p>}
+                                        {currentJdView.working_days && <p><span className="font-bold">WORKING DAYS : </span> {currentJdView.working_days}</p>}
+                                        {currentJdView.timings && <p><span className="font-bold">TIMINGS : </span> {currentJdView.timings}</p>}
+                                        {currentJdView.package_salary && <p><span className="font-bold">PACKAGE : </span> {currentJdView.package_salary}</p>}
+                                        {currentJdView.tool_requirement && <p><span className="font-bold">TOOL REQUIREMENT : </span> {currentJdView.tool_requirement}</p>}
                                     </div>
-                                    <div className="mt-3 bg-gray-50 p-2 rounded text-right text-xs font-bold text-gray-600">
-                                        Total CVs Parsed Today: <span className="text-[#103c7f] font-black ml-1 text-sm">{(parseInt(formData.cv_naukri) || 0) + (parseInt(formData.cv_indeed) || 0) + (parseInt(formData.cv_other) || 0)}</span>
+
+                                    {/* Sections */}
+                                    <div className="space-y-8 text-[15px]">
+                                        {currentJdView.summary && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Job Summary :</h4><p className="leading-relaxed text-justify text-gray-800">{currentJdView.summary}</p></div>
+                                        )}
+                                        
+                                        {currentJdView.rnr && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Role & Responsibilities :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {currentJdView.rnr.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {currentJdView.skills && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Required Skills :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {currentJdView.skills.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {currentJdView.preferred_qual && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Preferred Qualifications :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {currentJdView.preferred_qual.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {currentJdView.company_offers && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">What Company Offer :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {currentJdView.company_offers.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {currentJdView.contact_details && (
+                                            <div className="mt-12 pt-6 border-t border-black/20">
+                                                <h4 className="font-bold mb-3 uppercase text-[16px]">Contact Us To Apply :</h4>
+                                                <div className="whitespace-pre-line leading-loose text-gray-900 font-medium">{currentJdView.contact_details}</div>
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
 
-                                {/* 2. Advance STI */}
-                                <div className="col-span-2 md:col-span-1 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                                    <label className="text-[10px] font-black text-gray-800 uppercase flex items-center gap-1.5 mb-2">
-                                        <Send size={14} className="text-purple-600"/> Advance STI (Sent to Interview)
-                                    </label>
-                                    <input 
-                                        type="number" min="0" placeholder="Count of candidates"
-                                        className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-bold focus:border-purple-500 outline-none"
-                                        value={formData.advance_sti} onChange={(e) => setFormData({...formData, advance_sti: e.target.value})}
-                                    />
                                 </div>
-
-                                {/* 3. Today Conversion */}
-                                <div className="col-span-2 md:col-span-1 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                                    <label className="text-[10px] font-black text-gray-800 uppercase flex items-center gap-1.5 mb-2">
-                                        <TrendingUp size={14} className="text-green-600"/> Today's Conversion
-                                    </label>
-                                    <input 
-                                        type="number" min="0" placeholder="Count of successful conversions"
-                                        className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-bold focus:border-green-500 outline-none"
-                                        value={formData.today_conversion} onChange={(e) => setFormData({...formData, today_conversion: e.target.value})}
-                                    />
-                                </div>
-
-                                {/* 4. Today Asset */}
-                                <div className="col-span-2 md:col-span-1 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                                    <label className="text-[10px] font-black text-gray-800 uppercase flex items-center gap-1.5 mb-2">
-                                        <Database size={14} className="text-orange-500"/> Today's Asset
-                                    </label>
-                                    <input 
-                                        type="number" min="0" placeholder="Total candidate assets built"
-                                        className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-bold focus:border-orange-500 outline-none"
-                                        value={formData.today_asset} onChange={(e) => setFormData({...formData, today_asset: e.target.value})}
-                                    />
-                                </div>
-
-                                {/* 5. Tracker Sent to TL */}
-                                <div className="col-span-2 md:col-span-1 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                                    <label className="text-[10px] font-black text-gray-800 uppercase flex items-center gap-1.5 mb-2">
-                                        <UserCheck size={14} className="text-[#103c7f]"/> Trackers Sent to TL
-                                    </label>
-                                    <input 
-                                        type="number" min="0" placeholder="Count of trackers sent"
-                                        className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none"
-                                        value={formData.tracker_sent} 
-                                        onChange={(e) => setFormData({...formData, tracker_sent: e.target.value})}
-                                    />
-                                </div>
-
-                                {/* 6. Notes / Remarks */}
-                                <div className="col-span-2 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                                    <label className="text-[10px] font-black text-gray-800 uppercase flex items-center gap-1.5 mb-2">
-                                        <FileText size={14} className="text-gray-500"/> Additional Notes / Remarks
-                                    </label>
-                                    <textarea 
-                                        rows="3"
-                                        placeholder="Any special remarks, issues, or details about today's work..."
-                                        className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:border-[#103c7f] outline-none resize-none"
-                                        value={formData.notes} 
-                                        onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                                    ></textarea>
-                                </div>
-
                             </div>
-
                         </div>
 
-                        {/* Modal Footer */}
+                    </div>
+                </div>
+            )}
+
+            {/* --- ADVANCE STI MODAL --- */}
+            {isStiModalOpen && selectedStiTask && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="bg-[#103c7f] p-4 flex justify-between items-center text-white shrink-0">
+                            <h3 className="font-black text-md uppercase tracking-wide flex items-center gap-2">
+                                <IndianRupee size={18}/> Advance STI
+                            </h3>
+                            <button onClick={handleCloseStiModal} className="hover:bg-white/20 p-1.5 rounded-full transition bg-white/10">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 bg-gray-50">
+                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-5">
+                                <p className="text-xs font-bold text-gray-600">Profile: <span className="text-[#103c7f]">{selectedStiTask.profile}</span></p>
+                            </div>
+                            <div className="mb-2">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Date</label>
+                                <input type="date" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none shadow-sm bg-white" value={stiForm.date} onChange={(e) => setStiForm({...stiForm, date: e.target.value})}/>
+                            </div>
+                            <div className="mb-2">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Advance STI</label>
+                                <input type="text" placeholder="Enter advance STI..." className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-bold focus:border-[#103c7f] outline-none shadow-sm bg-white" value={stiForm.advanceSti} onChange={(e) => setStiForm({...stiForm, advanceSti: e.target.value})}/>
+                            </div>
+                            
+                            {/* STI History */}
+                            {stiHistory.length > 0 && (
+                                <div className="mt-4">
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-2"> STI History</label>
+                                    <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-200 max-h-40 overflow-y-auto">
+                                        {stiHistory.map((item) => (
+                                            <div key={item.id} className="p-2 flex justify-between items-center">
+                                                <span className="text-xs font-bold text-gray-600">{item.date}</span>
+                                                <span className="text-xs font-bold text-green-600">{item.advance_sti}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                         <div className="p-4 border-t border-gray-100 bg-white flex justify-end gap-3">
-                            <button onClick={handleCloseModal} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition">
-                                Cancel
-                            </button>
-                            <button onClick={handleSaveWork} className="bg-[#103c7f] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-blue-900 transition flex items-center gap-2">
-                                <CheckCircle2 size={16}/> Submit Work Report
+                            <button onClick={handleCloseStiModal} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition shadow-sm">Cancel</button>
+                            <button onClick={handleSaveSti} disabled={isStiSaving} className="bg-[#103c7f] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-blue-900 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                                {isStiSaving ? 'Saving...' : 'Save STI'}
                             </button>
                         </div>
-
                     </div>
                 </div>
             )}

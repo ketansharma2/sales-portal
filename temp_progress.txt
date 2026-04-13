@@ -1,3 +1,0 @@
-// This is a placeholder to mark progress
-// The file edit is too complex due to multiple similar sections
-// I need to manually update line 897-898 to show tracker_sent_by_tl
