@@ -5,10 +5,10 @@ import {
   BarChart2, Percent, Eye, User, CheckCircle
 } from "lucide-react";
 
-export default function RCCorporateTargetPage() {
+export default function RCDomesticTargetPage() {
   
   // --- STATES ---
-  // My Targets State (Assigned by Corporate TL)
+  // My Targets State (Assigned by Domestic TL)
   const [myTargetMonth, setMyTargetMonth] = useState("April");
 
   // View Modal States
@@ -21,22 +21,22 @@ export default function RCCorporateTargetPage() {
   // --- MOCK DATA: TL ASSIGNED TARGETS TO RC ---
   const myTargetsData = [
       { 
-        id: 101, year: "2026", month: "April", workingDays: "22", sector: "Corporate", assignedBy: "Karan Mehta (TL)", assignedRole: "Team Leader",
-        guideline: "Focus purely on Senior Leadership and CXO level roles.", 
-        kpi_metric: "CXO Level Interviews", frequency: "Daily", 
-        target: 44, achieved: 18 
+        id: 101, year: "2026", month: "April", workingDays: "24", sector: "Domestic", assignedBy: "Rahul Verma (TL)", assignedRole: "Team Leader",
+        guideline: "Focus on sourcing L1 support and domestic voice profiles from portals.", 
+        kpi_metric: "Bulk Submissions", frequency: "Daily", 
+        target: 120, achieved: 85 
       },
       { 
-        id: 102, year: "2026", month: "April", workingDays: "22", sector: "Corporate", assignedBy: "Karan Mehta (TL)", assignedRole: "Team Leader",
-        guideline: "Ensure high-quality niche profile submissions for enterprise accounts.", 
-        kpi_metric: "Niche Submissions", frequency: "Daily", 
-        target: 80, achieved: 65 
+        id: 102, year: "2026", month: "April", workingDays: "24", sector: "Domestic", assignedBy: "Rahul Verma (TL)", assignedRole: "Team Leader",
+        guideline: "Coordinate and line up candidates for weekend walk-in drives.", 
+        kpi_metric: "Walk-in Interviews", frequency: "Daily", 
+        target: 30, achieved: 22 
       },
       { 
-        id: 103, year: "2026", month: "March", workingDays: "21", sector: "Corporate", assignedBy: "Karan Mehta (TL)", assignedRole: "Team Leader",
-        guideline: "Increase the ratio of submissions to offer rollouts.", 
-        kpi_metric: "Offer Rollouts", frequency: "Monthly", 
-        target: 20, achieved: 12 
+        id: 103, year: "2026", month: "March", workingDays: "22", sector: "Domestic", assignedBy: "Rahul Verma (TL)", assignedRole: "Team Leader",
+        guideline: "Maintain daily calling volume to build active candidate pipeline.", 
+        kpi_metric: "Sourcing Calls", frequency: "Daily", 
+        target: 1500, achieved: 1650 
       }
   ];
 
@@ -53,7 +53,7 @@ export default function RCCorporateTargetPage() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4">
              <div>
                 <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
-                    <CheckCircle size={24} className="text-indigo-600"/> Corporate Targets (RC)
+                    <CheckCircle size={24} className="text-emerald-500"/> Domestic Targets (RC)
                 </h1>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Delivery targets assigned to you by your Team Leader</p>
              </div>
@@ -68,10 +68,10 @@ export default function RCCorporateTargetPage() {
           </div>
 
           {/* TABLE SECTION FOR MY TARGETS */}
-          <div className="bg-white border-2 border-indigo-100 rounded-xl overflow-hidden shadow-sm flex flex-col h-[calc(100vh-200px)] min-h-[400px]">
+          <div className="bg-white border-2 border-emerald-100 rounded-xl overflow-hidden shadow-sm flex flex-col h-[calc(100vh-200px)] min-h-[400px]">
              <div className="overflow-x-auto overflow-y-auto custom-scrollbar flex-1">
                 <table className="w-full text-left border-collapse min-w-[1000px]">
-                   <thead className="text-white text-[10px] uppercase font-bold sticky top-0 z-10 shadow-sm tracking-widest bg-indigo-800">
+                   <thead className="text-white text-[10px] uppercase font-bold sticky top-0 z-10 shadow-sm tracking-widest bg-emerald-700">
                       <tr>
                          <th className="p-3 border-r border-white/10 w-24 text-center">Period</th>
                          <th className="p-3 border-r border-white/10 w-24 text-center">Work Days</th>
@@ -93,7 +93,7 @@ export default function RCCorporateTargetPage() {
                           else if(percentage >= 50) percColor = "text-amber-600 bg-amber-50 border-amber-200";
 
                           return (
-                          <tr key={item.id || idx} className="hover:bg-indigo-50/30 transition group">
+                          <tr key={item.id || idx} className="hover:bg-emerald-50/30 transition group">
                              
                              <td className="p-3 border-r border-gray-100 text-center align-middle">
                                 <div className="flex flex-col items-center gap-1">
@@ -103,33 +103,33 @@ export default function RCCorporateTargetPage() {
                              </td>
 
                              <td className="p-3 border-r border-gray-100 text-center align-middle">
-                                 <span className="font-black text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-100 text-[11px]">
-                                     {item.workingDays} <span className="text-[9px] text-indigo-500 uppercase">Days</span>
+                                 <span className="font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100 text-[11px]">
+                                     {item.workingDays} <span className="text-[9px] text-emerald-500 uppercase">Days</span>
                                  </span>
                              </td>
 
                              <td className="p-3 border-r border-gray-100 align-middle">
                                  <div className="flex flex-col gap-1">
-                                     <span className="font-black text-gray-900 flex items-center gap-1.5"><User size={12} className="text-indigo-500"/> {item.assignedBy}</span>
+                                     <span className="font-black text-gray-900 flex items-center gap-1.5"><User size={12} className="text-emerald-500"/> {item.assignedBy}</span>
                                      <span className="font-bold text-gray-400 text-[9px] uppercase tracking-wider flex items-center gap-1"><Briefcase size={10}/>{item.assignedRole}</span>
                                  </div>
                              </td>
                              
                              <td className="p-3 border-r border-gray-100 align-middle"><p className="text-[11px] text-gray-600 leading-relaxed">{item.guideline}</p></td>
-                             <td className="p-3 border-r border-gray-100 align-middle"><span className="font-bold text-indigo-700 flex items-center gap-1.5"><BarChart2 size={12}/>{item.kpi_metric}</span></td>
+                             <td className="p-3 border-r border-gray-100 align-middle"><span className="font-bold text-emerald-700 flex items-center gap-1.5"><BarChart2 size={12}/>{item.kpi_metric}</span></td>
                              
                              <td className="p-3 border-r border-gray-100 text-center align-middle">
                                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${item.frequency === 'Daily' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-purple-50 text-purple-600 border-purple-200'}`}>{item.frequency}</span>
                              </td>
                              
                              <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.target.toLocaleString('en-IN')}</span></td>
-                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-indigo-700">{item.achieved.toLocaleString('en-IN')}</span></td>
+                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-emerald-700">{item.achieved.toLocaleString('en-IN')}</span></td>
                              
                              <td className="p-3 border-r border-gray-100 text-center align-middle">
                                  <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
                              </td>
                              
-                             <td className="p-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)] align-middle group-hover:bg-indigo-50 transition-colors">
+                             <td className="p-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)] align-middle group-hover:bg-emerald-50 transition-colors">
                                 <div className="flex flex-row items-center gap-2 w-full px-1 justify-center">
                                     <button onClick={() => {
                                          setViewData({ role: item.assignedRole, assignedTo: item.assignedBy, kpi_metric: item.kpi_metric });
@@ -161,10 +161,10 @@ export default function RCCorporateTargetPage() {
                     <button onClick={() => setIsViewModalOpen(false)} className="hover:bg-white/20 p-1 rounded-full transition-colors"><X size={18}/></button>
                 </div>
                 <div className="p-5 flex flex-col items-center justify-center text-center">
-                    <User size={40} className="text-indigo-200 mb-3" />
+                    <User size={40} className="text-emerald-200 mb-3" />
                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Assigned By</p>
                     <h4 className="text-base font-black text-gray-800">{viewData.assignedTo}</h4>
-                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">{viewData.role}</p>
+                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">{viewData.role}</p>
                     <div className="w-full bg-gray-100 h-px my-4"></div>
                     <p className="text-xs text-gray-600">Daily update logs for your <b>{viewData.kpi_metric}</b> will be displayed here.</p>
                 </div>

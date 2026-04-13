@@ -5,10 +5,10 @@ import {
   BarChart2, Percent, Eye, User, CheckCircle
 } from "lucide-react";
 
-export default function RCCorporateTargetPage() {
+export default function LeadgenCorporateTargetPage() {
   
   // --- STATES ---
-  // My Targets State (Assigned by Corporate TL)
+  // My Targets State (Assigned by Corporate SM)
   const [myTargetMonth, setMyTargetMonth] = useState("April");
 
   // View Modal States
@@ -18,25 +18,25 @@ export default function RCCorporateTargetPage() {
   // --- OPTIONS & LOGIC ---
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   
-  // --- MOCK DATA: TL ASSIGNED TARGETS TO RC ---
+  // --- MOCK DATA: SM ASSIGNED TARGETS TO LEADGEN ---
   const myTargetsData = [
       { 
-        id: 101, year: "2026", month: "April", workingDays: "22", sector: "Corporate", assignedBy: "Karan Mehta (TL)", assignedRole: "Team Leader",
-        guideline: "Focus purely on Senior Leadership and CXO level roles.", 
-        kpi_metric: "CXO Level Interviews", frequency: "Daily", 
-        target: 44, achieved: 18 
+        id: 101, year: "2026", month: "April", workingDays: "22", sector: "Corporate", assignedBy: "Siddharth Rao (SM)", assignedRole: "Sales Manager",
+        guideline: "Targeted LinkedIn Navigator outreach for SaaS product companies.", 
+        kpi_metric: "LinkedIn Outreach", frequency: "Daily", 
+        target: 1100, achieved: 450 
       },
       { 
-        id: 102, year: "2026", month: "April", workingDays: "22", sector: "Corporate", assignedBy: "Karan Mehta (TL)", assignedRole: "Team Leader",
-        guideline: "Ensure high-quality niche profile submissions for enterprise accounts.", 
-        kpi_metric: "Niche Submissions", frequency: "Daily", 
-        target: 80, achieved: 65 
+        id: 102, year: "2026", month: "April", workingDays: "22", sector: "Corporate", assignedBy: "Siddharth Rao (SM)", assignedRole: "Sales Manager",
+        guideline: "Focus on converting cold leads to warm B2B meetings.", 
+        kpi_metric: "Qualified B2B Leads", frequency: "Monthly", 
+        target: 40, achieved: 12 
       },
       { 
-        id: 103, year: "2026", month: "March", workingDays: "21", sector: "Corporate", assignedBy: "Karan Mehta (TL)", assignedRole: "Team Leader",
-        guideline: "Increase the ratio of submissions to offer rollouts.", 
-        kpi_metric: "Offer Rollouts", frequency: "Monthly", 
-        target: 20, achieved: 12 
+        id: 103, year: "2026", month: "March", workingDays: "21", sector: "Corporate", assignedBy: "Siddharth Rao (SM)", assignedRole: "Sales Manager",
+        guideline: "Initial pipeline building via cold calling enterprise databases.", 
+        kpi_metric: "Cold Calls", frequency: "Daily", 
+        target: 2100, achieved: 2150 
       }
   ];
 
@@ -47,15 +47,15 @@ export default function RCCorporateTargetPage() {
     <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-6 pb-20">
       
       {/* ========================================== */}
-      {/* 1. MY TARGETS (Assigned by TL) SECTION     */}
+      {/* 1. MY TARGETS (Assigned by SM) SECTION     */}
       {/* ========================================== */}
       <div className="mb-10">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4">
              <div>
                 <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
-                    <CheckCircle size={24} className="text-indigo-600"/> Corporate Targets (RC)
+                    <CheckCircle size={24} className="text-indigo-600"/> Corporate Targets (Lead Gen)
                 </h1>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Delivery targets assigned to you by your Team Leader</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Enterprise targets assigned to you by your Manager</p>
              </div>
              
              {/* Month Filter for My Targets */}

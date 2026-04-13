@@ -7,12 +7,25 @@ import {
 
 export default function HODDashboard() {
   const [dateRange, setDateRange] = useState({ start: "2026-04-01", end: "2026-04-30" });
+  
+  // ✅ TAB STATE: "domestic" or "corporate"
+  const [activeTab, setActiveTab] = useState("domestic");
 
   // Helper function to format numbers
   const formatValue = (value, type) => {
       if (type === 'currency') return `₹ ${(value / 100000).toFixed(1)}L`; // Converts to Lakhs
       if (type === 'percent') return `${value}%`;
       return value.toLocaleString('en-IN');
+  };
+  // --- HOD's OWN TARGETS ---
+  const HOD_DATA = {
+      roleName: "Head of Department (HOD)",
+      icon: Target,
+      kpis: [
+          { metric: "Total Dept Revenue", target: 50000000, achieved: 32000000, type: "currency" },
+          { metric: "Overall Profit Margin", target: 45, achieved: 42, type: "percent" },
+          { metric: "New Strategic Alliances", target: 5, achieved: 3, type: "number" }
+      ]
   };
 
   // --- NEW UNIFIED DATA STRUCTURE (Grouped by Role) ---
@@ -54,6 +67,8 @@ export default function HODDashboard() {
         { metric: "Qualified Leads", target: 300, achieved: 210, type: "number" }
       ],
       corporate: [
+        { metric: "LinkedIn Outreach", target: 500, achieved: 450, type: "number" },
+        { metric: "B2B Meetings Setup", target: 50, achieved: 32, type: "number" },
         { metric: "LinkedIn Outreach", target: 500, achieved: 450, type: "number" },
         { metric: "B2B Meetings Setup", target: 50, achieved: 32, type: "number" }
       ]
@@ -110,7 +125,7 @@ export default function HODDashboard() {
       const isGreen = theme === 'green';
 
       return (
-          <div className="space-y-4">
+          <div className="space-y-5">
               {kpiList.map((kpi, idx) => {
                   const percentage = kpi.target > 0 ? Math.min(Math.round((kpi.achieved / kpi.target) * 100), 100) : 0;
                   
@@ -122,13 +137,13 @@ export default function HODDashboard() {
                   return (
                       <div key={idx} className="flex flex-col">
                           <div className="flex justify-between items-end mb-1.5">
-                              <span className="text-[11px] font-bold text-gray-700">{kpi.metric}</span>
+                              <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">{kpi.metric}</span>
                               <div className="flex items-center gap-2">
                                   <span className="text-[10px] font-black text-gray-500">{formatValue(kpi.achieved, kpi.type)} / {formatValue(kpi.target, kpi.type)}</span>
-                                  <span className={`px-1.5 py-0.5 rounded border border-white text-[9px] font-black ${bgLight} ${textColor}`}>{percentage}%</span>
+                                  <span className={`px-1.5 py-0.5 rounded border border-white shadow-sm text-[10px] font-black ${bgLight} ${textColor}`}>{percentage}%</span>
                               </div>
                           </div>
-                          <div className={`w-full h-1.5 rounded-full overflow-hidden ${isGreen ? 'bg-green-100' : 'bg-blue-100'}`}>
+                          <div className={`w-full h-2 rounded-full overflow-hidden ${isGreen ? 'bg-green-100' : 'bg-blue-100'}`}>
                               <div className={`h-full ${barColor} rounded-full transition-all duration-1000`} style={{ width: `${percentage}%` }}></div>
                           </div>
                       </div>
@@ -138,14 +153,18 @@ export default function HODDashboard() {
       );
   };
 
+  const isGreenTab = activeTab === "domestic";
+
   return (
     <div className="min-h-screen bg-[#f8fafc] w-full font-['Calibri'] p-4 md:p-6 pb-20">
       
-      {/* --- HEADER & DATE FILTER --- */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 shrink-0">
+      {/* --- HEADER, TABS & FILTER ROW --- */}
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-6 shrink-0">
+        
+        {/* Title */}
         <div>
-           <h1 className="text-2xl font-black text-[#103c7f] tracking-tight uppercase italic leading-none flex items-center gap-3">
-              <BarChart2 size={24} className="text-blue-500" /> Target vs Achievement
+           <h1 className="text-3xl font-black text-[#103c7f] tracking-tight uppercase italic leading-none flex items-center gap-3">
+              <BarChart2 size={28} className="text-blue-500" /> Target vs Achievement
            </h1>
            <p className="text-gray-400 font-bold uppercase text-[10px] tracking-[0.2em] mt-1.5 flex items-center gap-2">
               <span className="w-2 h-2 bg-[#a1db40] rounded-full animate-pulse shadow-[0_0_5px_#a1db40]"></span> 
@@ -153,55 +172,112 @@ export default function HODDashboard() {
            </p>
         </div>
 
-        {/* Global Date Filter */}
-        <div className="flex items-center bg-white py-2 px-3 rounded-xl border border-gray-200 shadow-sm z-10 w-full md:w-auto shrink-0">
-           <div className="flex items-center gap-2 flex-1 md:flex-none justify-center">
-             <Calendar size={14} className="text-gray-400"/>
-             <input type="date" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} className="bg-transparent text-xs font-bold text-[#103c7f] outline-none cursor-pointer" />
-             <span className="text-gray-300 font-bold mx-1">-</span>
-             <input type="date" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} className="bg-transparent text-xs font-bold text-[#103c7f] outline-none cursor-pointer" />
-           </div>
+        {/* Right Controls Container */}
+        <div className="flex flex-col md:flex-row items-center gap-4 w-full xl:w-auto">
+            
+            {/* Tab Switcher */}
+            <div className="flex bg-gray-200/50 p-1.5 rounded-2xl w-full md:w-auto border border-gray-200 shadow-inner">
+                <button 
+                    onClick={() => setActiveTab("domestic")}
+                    className={`flex-1 md:flex-none flex items-center justify-center gap-2 py-2 px-5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                        activeTab === "domestic" 
+                            ? "bg-white text-green-700 shadow-sm border border-green-100" 
+                            : "text-gray-500 hover:text-gray-800"
+                    }`}
+                >
+                    <Home size={14} className={activeTab === "domestic" ? "text-green-500" : ""} /> Domestic
+                </button>
+                <button 
+                    onClick={() => setActiveTab("corporate")}
+                    className={`flex-1 md:flex-none flex items-center justify-center gap-2 py-2 px-5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                        activeTab === "corporate" 
+                            ? "bg-white text-blue-700 shadow-sm border border-blue-100" 
+                            : "text-gray-500 hover:text-gray-800"
+                    }`}
+                >
+                    <Building2 size={14} className={activeTab === "corporate" ? "text-blue-500" : ""} /> Corporate
+                </button>
+            </div>
+
+            {/* Global Date Filter (Auto-update on change) */}
+            <div className="flex items-center bg-white py-[9px] px-4 rounded-xl border border-gray-200 shadow-sm z-10 w-full md:w-auto shrink-0">
+               <div className="flex items-center gap-2 flex-1 md:flex-none justify-center">
+                 <Calendar size={16} className="text-gray-400"/>
+                 <input 
+                    type="date" 
+                    value={dateRange.start} 
+                    onChange={e => setDateRange({...dateRange, start: e.target.value})} 
+                    className="bg-transparent text-xs font-bold text-[#103c7f] outline-none cursor-pointer" 
+                 />
+                 <span className="text-gray-300 font-bold mx-1">-</span>
+                 <input 
+                    type="date" 
+                    value={dateRange.end} 
+                    onChange={e => setDateRange({...dateRange, end: e.target.value})} 
+                    className="bg-transparent text-xs font-bold text-[#103c7f] outline-none cursor-pointer" 
+                 />
+               </div>
+            </div>
+
         </div>
       </div>
 
-      {/* --- ROLE CARDS (Side-by-Side Sector Comparison) --- */}
-      <div className="space-y-6">
-          {ROLE_DATA.map((role, rIndex) => (
-              <div key={rIndex} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
-                  
-                  {/* Common Role Header */}
-                  <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex items-center gap-3">
-                      <div className="p-1.5 rounded-lg bg-white shadow-sm border border-gray-200 text-gray-700">
-                          <role.icon size={16} />
-                      </div>
-                      <h2 className="text-sm font-black text-gray-800 uppercase tracking-widest">{role.roleName}</h2>
-                  </div>
-
-                  {/* Split Body (Domestic | Corporate) */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-gray-100">
-                      
-                      {/* Left Side: DOMESTIC */}
-                      <div className="p-5">
-                          <div className="flex items-center gap-2 mb-4 pb-2 border-b border-green-50">
-                              <Home size={14} className="text-green-500" />
-                              <h3 className="text-xs font-black text-green-700 uppercase tracking-widest">Domestic Sector</h3>
-                          </div>
-                          {renderKPIs(role.domestic, 'green')}
-                      </div>
-
-                      {/* Right Side: CORPORATE */}
-                      <div className="p-5 bg-blue-50/10">
-                          <div className="flex items-center gap-2 mb-4 pb-2 border-b border-blue-50">
-                              <Building2 size={14} className="text-blue-500" />
-                              <h3 className="text-xs font-black text-blue-700 uppercase tracking-widest">Corporate Sector</h3>
-                          </div>
-                          {renderKPIs(role.corporate, 'blue')}
-                      </div>
-
-                  </div>
-
+     {/* --- SECTOR HEADER BANNER --- */}
+      <div className={`rounded-xl p-2 mb-6 flex items-center justify-between border-l-4 shadow-sm ${
+          isGreenTab ? "bg-[#effae8] border-green-500" : "bg-[#eff6ff] border-blue-500"
+      }`}>
+          <div className="flex items-center gap-3">
+              <div className={`p-2.5 rounded-lg bg-white shadow-sm ${isGreenTab ? "text-green-600" : "text-blue-600"}`}>
+                  {isGreenTab ? <Home size={24} /> : <Building2 size={24} />}
               </div>
-          ))}
+              <div>
+                  <h2 className={`text-lg font-black uppercase tracking-tight leading-tight ${isGreenTab ? "text-green-800" : "text-[#103c7f]"}`}>
+                      {isGreenTab ? "Domestic" : "Corporate"}
+                  </h2>
+                  <p className="text-[11px] font-bold text-gray-500 mt-0.5">Individual KPI targets vs achievements</p>
+              </div>
+          </div>
+      </div>
+
+    {/* --- CARDS GRID --- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          
+          {/* 1. HOD'S OWN TARGET CARD (Always visible, same styling as others) */}
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-md shadow-gray-200/50 overflow-hidden flex flex-col hover:shadow-lg transition-shadow">
+              <div className={`px-6 py-5 border-b border-gray-100 flex items-center justify-between ${isGreenTab ? "bg-green-50/30" : "bg-blue-50/30"}`}>
+                  <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg bg-white shadow-sm border border-gray-100 ${isGreenTab ? "text-green-600" : "text-blue-600"}`}>
+                          <HOD_DATA.icon size={18} />
+                      </div>
+                      <h3 className="text-base font-black text-gray-800 uppercase tracking-tight">{HOD_DATA.roleName}</h3>
+                  </div>
+                  <span className="bg-yellow-50 text-yellow-600 border border-yellow-200 text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest">My Targets</span>
+              </div>
+              <div className="p-6 flex-1">
+                  {renderKPIs(HOD_DATA.kpis, isGreenTab ? 'green' : 'blue')}
+              </div>
+          </div>
+
+          {/* 2. TEAM ROLE CARDS (Filtered by Active Tab) */}
+          {ROLE_DATA.map((role, index) => {
+              const currentKPIs = role[activeTab];
+              
+              if (!currentKPIs || currentKPIs.length === 0) return null;
+
+              return (
+                  <div key={index} className="bg-white rounded-3xl border border-gray-100 shadow-md shadow-gray-200/50 overflow-hidden flex flex-col hover:shadow-lg transition-shadow">
+                      <div className={`px-6 py-5 border-b border-gray-100 flex items-center gap-3 ${isGreenTab ? "bg-green-50/30" : "bg-blue-50/30"}`}>
+                          <div className={`p-2 rounded-lg bg-white shadow-sm border border-gray-100 ${isGreenTab ? "text-green-600" : "text-blue-600"}`}>
+                              <role.icon size={18} />
+                          </div>
+                          <h3 className="text-base font-black text-gray-800 uppercase tracking-tight">{role.roleName}</h3>
+                      </div>
+                      <div className="p-6 flex-1">
+                          {renderKPIs(currentKPIs, isGreenTab ? 'green' : 'blue')}
+                      </div>
+                  </div>
+              );
+          })}
       </div>
 
     </div>

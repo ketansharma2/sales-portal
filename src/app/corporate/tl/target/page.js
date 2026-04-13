@@ -6,13 +6,13 @@ import {
   Edit, Eye, User, CheckCircle
 } from "lucide-react";
 
-export default function SMCorporateTargetPage() {
+export default function TLCorporateTargetPage() {
   
   // --- STATES ---
   const [loading, setLoading] = useState(true);
   const [teamTargets, setTeamTargets] = useState([]);
   
-  // My Targets State (Assigned by HOD)
+  // My Targets State (Assigned by CRM)
   const [myTargetMonth, setMyTargetMonth] = useState("April");
 
   // Team Filter States
@@ -27,9 +27,9 @@ export default function SMCorporateTargetPage() {
     year: new Date().getFullYear().toString(),
     month: "",
     workingDays: "",
-    department: "Sales",
-    sector: "Corporate", // Locked to Corporate
-    role: "",
+    department: "Delivery", // Locked to Delivery
+    sector: "Corporate",    // Locked to Corporate
+    role: "Recruiter (RC)", // Only RC is available
     assignedTo: "",
     targetList: [{ guideline: "", kpi_metric: "", frequency: "Monthly", target: "" }]
   });
@@ -40,47 +40,46 @@ export default function SMCorporateTargetPage() {
   // --- OPTIONS & LOGIC ---
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   
-  // Specific to Corporate Sector
-  const teamRoles = ["Key Account Exec. (KAE)", "B2B Lead Generation"];
+  // ✅ Specific to TL Sector (Only RC now)
+  const teamRoles = ["Recruiter (RC)"];
   const teamEmployees = {
-      "Key Account Exec. (KAE)": ["Siddharth Rao", "Kavya Menon", "Aman Trivedi"],
-      "B2B Lead Generation": ["Meera Kapoor", "Varun Bhatia"]
+      "Recruiter (RC)": ["Pooja Das", "Rohit Agarwal", "Sneha Joshi", "Vikash Kumar"]
   };
 
   const kpiMetrics = [
-      "Enterprise Signups", "CXO Meetings", "High-Value Deals", 
-      "LinkedIn Outreach", "Qualified B2B Leads", "Corporate Revenue"
+      "Niche Submissions", "CXO Level Interviews", "Offer Rollouts", 
+      "Final Joinings", "Sourcing Calls", "Candidate Pipelines"
   ];
 
-  // --- MOCK DATA: HOD ASSIGNED TARGETS TO CORPORATE SM ---
+  // --- MOCK DATA: CRM ASSIGNED TARGETS TO TL ---
   const myTargetsData = [
       { 
-        id: 101, year: "2026", month: "April", workingDays: "22", sector: "Corporate", assignedBy: "Rajesh Kumar (HOD)", assignedRole: "Head of Department",
-        guideline: "Focus on closing Top 50 enterprise client accounts.", 
-        kpi_metric: "Enterprise Signups", frequency: "Monthly", 
-        target: 10, achieved: 4 
+        id: 101, year: "2026", month: "April", workingDays: "22", sector: "Corporate", assignedBy: "Aarti Desai (CRM)", assignedRole: "Account Manager",
+        guideline: "Ensure team hits 100% of their niche profile submission targets.", 
+        kpi_metric: "Team Revenue Target", frequency: "Monthly", 
+        target: 5000000, achieved: 3200000 
       },
       { 
-        id: 102, year: "2026", month: "April", workingDays: "22", sector: "Corporate", assignedBy: "Rajesh Kumar (HOD)", assignedRole: "Head of Department",
-        guideline: "Maximize revenue generation from existing B2B partnerships.", 
-        kpi_metric: "Corporate Revenue", frequency: "Monthly", 
-        target: 15000000, achieved: 6500000 
+        id: 102, year: "2026", month: "April", workingDays: "22", sector: "Corporate", assignedBy: "Aarti Desai (CRM)", assignedRole: "Account Manager",
+        guideline: "Maintain strict control over candidate backouts before joining.", 
+        kpi_metric: "Final Joinings (Team)", frequency: "Monthly", 
+        target: 40, achieved: 28 
       }
   ];
 
-  // --- MOCK DATA: TEAM TARGETS ASSIGNED BY CORP SM ---
+  // --- MOCK DATA: TEAM TARGETS ASSIGNED BY TL (Only to RCs) ---
   const dummyTeamTargets = [
     {
-      id: 1, year: "2026", month: "April", workingDays: "22", department: "Sales", sector: "Corporate", role: "Key Account Exec. (KAE)", assignedTo: "Siddharth Rao",
-      guideline: "Secure physical meetings with IT Directors and CXOs.",
-      kpi_metric: "CXO Meetings", frequency: "Daily",
+      id: 1, year: "2026", month: "April", workingDays: "22", department: "Delivery", sector: "Corporate", role: "Recruiter (RC)", assignedTo: "Pooja Das",
+      guideline: "Focus purely on Senior Leadership and CXO level roles.",
+      kpi_metric: "CXO Level Interviews", frequency: "Daily",
       target: 44, achieved: 18
     },
     {
-      id: 2, year: "2026", month: "April", workingDays: "22", department: "Sales", sector: "Corporate", role: "B2B Lead Generation", assignedTo: "Meera Kapoor",
-      guideline: "Targeted LinkedIn Navigator outreach for SaaS companies.",
-      kpi_metric: "LinkedIn Outreach", frequency: "Daily",
-      target: 1100, achieved: 450
+      id: 2, year: "2026", month: "April", workingDays: "22", department: "Delivery", sector: "Corporate", role: "Recruiter (RC)", assignedTo: "Rohit Agarwal",
+      guideline: "Increase the ratio of submissions to offer rollouts.",
+      kpi_metric: "Offer Rollouts", frequency: "Monthly",
+      target: 20, achieved: 12
     }
   ];
 
@@ -99,7 +98,7 @@ export default function SMCorporateTargetPage() {
         setEditId(item.id);
         setForm({
             year: item.year, month: item.month, workingDays: item.workingDays || "", 
-            department: "Sales", sector: "Corporate", role: item.role, assignedTo: item.assignedTo || "",
+            department: "Delivery", sector: "Corporate", role: "Recruiter (RC)", assignedTo: item.assignedTo || "",
             targetList: [{ 
                 guideline: item.guideline, kpi_metric: item.kpi_metric, 
                 frequency: item.frequency, target: item.target.toString() 
@@ -109,8 +108,8 @@ export default function SMCorporateTargetPage() {
         setEditId(null);
         setForm({
             year: new Date().getFullYear().toString(), month: "", workingDays: "", 
-            department: "Sales", sector: "Corporate", role: "", assignedTo: "",
-            targetList: [{ guideline: "", kpi_metric: "", frequency: "Monthly", target: "" }]
+            department: "Delivery", sector: "Corporate", role: "Recruiter (RC)", assignedTo: "",
+            targetList: [{ guideline: "", kpi_metric: "Niche Submissions", frequency: "Daily", target: "" }]
         });
     }
     setIsModalOpen(true);
@@ -118,16 +117,8 @@ export default function SMCorporateTargetPage() {
 
   const handleRoleChange = (e) => {
       const selectedRole = e.target.value;
-      let autoKPIs = [];
-
-      if (selectedRole === "Key Account Exec. (KAE)") {
-          autoKPIs = [{ guideline: "", kpi_metric: "CXO Meetings", frequency: "Daily", target: "" }];
-      } else if (selectedRole === "B2B Lead Generation") {
-          autoKPIs = [{ guideline: "", kpi_metric: "LinkedIn Outreach", frequency: "Daily", target: "" }];
-      } else {
-          autoKPIs = [{ guideline: "", kpi_metric: "", frequency: "Monthly", target: "" }];
-      }
-
+      // Now only RC exists, so we just set defaults for RC
+      const autoKPIs = [{ guideline: "", kpi_metric: "Niche Submissions", frequency: "Daily", target: "" }];
       setForm({ ...form, role: selectedRole, assignedTo: "", targetList: autoKPIs }); 
   };
 
@@ -172,7 +163,7 @@ export default function SMCorporateTargetPage() {
             return {
                 id: Date.now() + idx,
                 year: form.year, month: form.month, workingDays: form.workingDays, 
-                department: "Sales", sector: "Corporate", role: form.role, assignedTo: form.assignedTo,
+                department: "Delivery", sector: "Corporate", role: form.role, assignedTo: form.assignedTo,
                 guideline: t.guideline, kpi_metric: t.kpi_metric, frequency: t.frequency,
                 target: parseInt(t.target) || 0, achieved: 0
             };
@@ -198,24 +189,19 @@ export default function SMCorporateTargetPage() {
     return matchMonth && matchRole && matchName;
   });
 
-  const formatValue = (value) => {
-      if(value >= 100000) return `₹ ${(value / 100000).toFixed(1)}L`;
-      return value.toLocaleString('en-IN');
-  }
-
   return (
     <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-6 pb-20">
       
       {/* ========================================== */}
-      {/* 1. MY TARGETS (Assigned by HOD) SECTION    */}
+      {/* 1. MY TARGETS (Assigned by CRM) SECTION    */}
       {/* ========================================== */}
       <div className="mb-10">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4">
              <div>
                 <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
-                    <CheckCircle size={24} className="text-blue-500"/> Corporate Targets (SM)
+                    <CheckCircle size={24} className="text-indigo-600"/> Corporate Targets (TL)
                 </h1>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Enterprise targets assigned to you by HOD</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Delivery targets assigned to you by CRM</p>
              </div>
              
              {/* Month Filter for My Targets */}
@@ -228,10 +214,10 @@ export default function SMCorporateTargetPage() {
           </div>
 
           {/* TABLE SECTION FOR MY TARGETS */}
-          <div className="bg-white border-2 border-blue-100 rounded-xl overflow-hidden shadow-sm flex flex-col">
+          <div className="bg-white border-2 border-indigo-100 rounded-xl overflow-hidden shadow-sm flex flex-col">
              <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse min-w-[1000px]">
-                   <thead className="text-white text-[10px] uppercase font-bold sticky top-0 z-10 shadow-sm tracking-widest bg-blue-800">
+                   <thead className="text-white text-[10px] uppercase font-bold sticky top-0 z-10 shadow-sm tracking-widest bg-indigo-800">
                       <tr>
                          <th className="p-3 border-r border-white/10 w-24 text-center">Period</th>
                          <th className="p-3 border-r border-white/10 w-24 text-center">Work Days</th>
@@ -253,7 +239,7 @@ export default function SMCorporateTargetPage() {
                           else if(percentage >= 50) percColor = "text-amber-600 bg-amber-50 border-amber-200";
 
                           return (
-                          <tr key={item.id || idx} className="hover:bg-blue-50/30 transition group">
+                          <tr key={item.id || idx} className="hover:bg-indigo-50/30 transition group">
                              
                              <td className="p-3 border-r border-gray-100 text-center align-middle">
                                 <div className="flex flex-col items-center gap-1">
@@ -263,14 +249,14 @@ export default function SMCorporateTargetPage() {
                              </td>
 
                              <td className="p-3 border-r border-gray-100 text-center align-middle">
-                                 <span className="font-black text-[#103c7f] bg-blue-50 px-2 py-1 rounded border border-blue-100 text-[11px]">
-                                     {item.workingDays} <span className="text-[9px] text-blue-500 uppercase">Days</span>
+                                 <span className="font-black text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-100 text-[11px]">
+                                     {item.workingDays} <span className="text-[9px] text-indigo-500 uppercase">Days</span>
                                  </span>
                              </td>
 
                              <td className="p-3 border-r border-gray-100 align-middle">
                                  <div className="flex flex-col gap-1">
-                                     <span className="font-black text-gray-900 flex items-center gap-1.5"><User size={12} className="text-blue-500"/> {item.assignedBy}</span>
+                                     <span className="font-black text-gray-900 flex items-center gap-1.5"><User size={12} className="text-indigo-500"/> {item.assignedBy}</span>
                                      <span className="font-bold text-gray-400 text-[9px] uppercase tracking-wider flex items-center gap-1"><Briefcase size={10}/>{item.assignedRole}</span>
                                  </div>
                              </td>
@@ -283,13 +269,13 @@ export default function SMCorporateTargetPage() {
                              </td>
                              
                              <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.target.toLocaleString('en-IN')}</span></td>
-                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-[#103c7f]">{item.achieved.toLocaleString('en-IN')}</span></td>
+                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-indigo-700">{item.achieved.toLocaleString('en-IN')}</span></td>
                              
                              <td className="p-3 border-r border-gray-100 text-center align-middle">
                                  <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
                              </td>
                              
-                             <td className="p-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)] align-middle group-hover:bg-blue-50 transition-colors">
+                             <td className="p-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)] align-middle group-hover:bg-indigo-50 transition-colors">
                                 <div className="flex flex-row items-center gap-2 w-full px-1 justify-center">
                                     <button onClick={() => {
                                          setViewData({ role: item.assignedRole, assignedTo: item.assignedBy, kpi_metric: item.kpi_metric });
@@ -313,19 +299,19 @@ export default function SMCorporateTargetPage() {
       <hr className="border-gray-200 mb-8" />
 
       {/* ========================================== */}
-      {/* 2. TEAM ASSIGNMENT SECTION (KAE / B2B) */}
+      {/* 2. TEAM ASSIGNMENT SECTION (RC Only) */}
       {/* ========================================== */}
       
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
          <div>
             <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
-                <Target size={24} className="text-blue-500"/> Team Targets
+                <Target size={24} className="text-indigo-600"/> Team Targets
             </h1>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Assign enterprise targets to Corporate Executives</p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Assign delivery targets to Recruiters</p>
          </div>
          <button 
             onClick={() => handleOpenModal()} 
-            className="bg-blue-700 hover:bg-blue-800 text-white px-5 py-2.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-colors flex items-center gap-2 shadow-md"
+            className="bg-indigo-700 hover:bg-indigo-800 text-white px-5 py-2.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-colors flex items-center gap-2 shadow-md"
          >
             <Plus size={14}/> Assign New Target
          </button>
@@ -342,15 +328,15 @@ export default function SMCorporateTargetPage() {
         </div>
         <div className="w-48 shrink-0">
             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Role</label>
-            <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-3 rounded-lg text-xs font-bold outline-none cursor-pointer">
-                <option value="All">All Roles</option>
-                {teamRoles.map((r) => <option key={r} value={r}>{r}</option>)}
+            <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-3 rounded-lg text-xs font-bold outline-none cursor-pointer" disabled>
+                {/* Only RC is available */}
+                <option value="Recruiter (RC)">Recruiter (RC)</option>
             </select>
         </div>
         <div className="w-48 shrink-0">
             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Employee Name</label>
             <select value={filterName} onChange={(e) => setFilterName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-3 rounded-lg text-xs font-bold outline-none cursor-pointer">
-                <option value="All">All Team Members</option>
+                <option value="All">All Recruiters</option>
                 {teamRoles
                     .flatMap(role => teamEmployees[role] || [])
                     .filter((value, index, self) => self.indexOf(value) === index)
@@ -395,7 +381,7 @@ export default function SMCorporateTargetPage() {
                          else if(percentage >= 50) percColor = "text-amber-600 bg-amber-50 border-amber-200";
 
                          return (
-                         <tr key={item.id} className="hover:bg-blue-50/30 transition group">
+                         <tr key={item.id} className="hover:bg-indigo-50/30 transition group">
                             
                             <td className="p-3 border-r border-gray-100 text-center align-middle">
                                <div className="flex flex-col items-center gap-1">
@@ -405,14 +391,14 @@ export default function SMCorporateTargetPage() {
                             </td>
                             
                             <td className="p-3 border-r border-gray-100 text-center align-middle">
-                                <span className="font-black text-[#103c7f] bg-blue-50 px-2 py-1 rounded border border-blue-100 text-[11px]">
-                                    {item.workingDays} <span className="text-[9px] text-blue-500 uppercase">Days</span>
+                                <span className="font-black text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-100 text-[11px]">
+                                    {item.workingDays} <span className="text-[9px] text-indigo-500 uppercase">Days</span>
                                 </span>
                             </td>
 
                             <td className="p-3 border-r border-gray-100 align-middle">
                                 <div className="flex flex-col gap-1">
-                                    <span className="font-black text-gray-900 flex items-center gap-1.5"><User size={12} className="text-blue-500"/> {item.assignedTo}</span>
+                                    <span className="font-black text-gray-900 flex items-center gap-1.5"><User size={12} className="text-indigo-500"/> {item.assignedTo}</span>
                                     <span className="font-bold text-gray-400 text-[9px] uppercase tracking-wider flex items-center gap-1"><Briefcase size={10}/>{item.role}</span>
                                 </div>
                             </td>
@@ -422,15 +408,15 @@ export default function SMCorporateTargetPage() {
                                 <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${item.frequency === 'Daily' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-purple-50 text-purple-600 border-purple-200'}`}>{item.frequency}</span>
                             </td>
                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.target.toLocaleString('en-IN')}</span></td>
-                            <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-[#103c7f]">{item.achieved.toLocaleString('en-IN')}</span></td>
+                            <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-indigo-700">{item.achieved.toLocaleString('en-IN')}</span></td>
                             <td className="p-3 border-r border-gray-100 text-center align-middle">
                                 <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
                             </td>
                             
                             {/* ACTION COLUMN */}
-                            <td className="p-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)] align-middle group-hover:bg-blue-50 transition-colors">
+                            <td className="p-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)] align-middle group-hover:bg-indigo-50 transition-colors">
                                <div className="flex flex-row items-center gap-2 w-full px-1 justify-center">
-                                   <button onClick={() => handleOpenModal(item)} className="flex-1 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 px-1 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-1 min-w-[50px]">
+                                   <button onClick={() => handleOpenModal(item)} className="flex-1 bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 px-1 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-1 min-w-[50px]">
                                        <Edit size={10} /> Edit
                                    </button>
                                    <button onClick={() => {
@@ -459,7 +445,7 @@ export default function SMCorporateTargetPage() {
                 <div className="p-4 flex justify-between items-center text-white bg-[#103c7f]">
                     <h3 className="font-bold uppercase tracking-widest text-sm flex items-center gap-2">
                         {editId ? <Edit size={16}/> : <Target size={16}/>} 
-                        {editId ? "Edit Team Target" : "Assign Corporate Target to Team"}
+                        {editId ? "Edit Team Target" : "Assign Corporate Target to Recruiter"}
                     </h3>
                     <button onClick={() => setIsModalOpen(false)} className="hover:bg-white/20 p-1 rounded-full transition-colors"><X size={18}/></button>
                 </div>
@@ -486,10 +472,10 @@ export default function SMCorporateTargetPage() {
                             </div>
                             
                             <div>
-                                <label className="text-[10px] font-bold text-blue-600 uppercase">Role</label>
-                                <select value={form.role} onChange={handleRoleChange} className="w-full border border-blue-200 p-2 rounded-lg text-sm outline-none bg-blue-50 focus:border-blue-500">
-                                    <option value="">- Select Role -</option>
-                                    {teamRoles.map(r => <option key={r} value={r}>{r}</option>)}
+                                <label className="text-[10px] font-bold text-indigo-600 uppercase">Role</label>
+                                <select value={form.role} onChange={handleRoleChange} className="w-full border border-indigo-200 p-2 rounded-lg text-sm outline-none bg-indigo-50 focus:border-indigo-500" disabled>
+                                    {/* ✅ Only RC is available */}
+                                    <option value="Recruiter (RC)">Recruiter (RC)</option>
                                 </select>
                             </div>
                             
@@ -510,7 +496,7 @@ export default function SMCorporateTargetPage() {
 
                     <div className="space-y-4 mb-4">
                         {form.targetList.map((t, index) => (
-                            <div key={index} className="border border-blue-100 rounded-xl p-4 bg-white shadow-sm relative group">
+                            <div key={index} className="border border-indigo-100 rounded-xl p-4 bg-white shadow-sm relative group">
                                 
                                 {!editId && form.targetList.length > 1 && (
                                     <button onClick={() => removeTargetRow(index)} className="absolute top-3 right-3 text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Remove this KPI">
@@ -521,27 +507,27 @@ export default function SMCorporateTargetPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
                                     <div>
                                         <label className="text-[10px] font-bold text-gray-500 uppercase">KPI Metric</label>
-                                        <select value={t.kpi_metric} onChange={e => handleTargetChange(index, 'kpi_metric', e.target.value)} className="w-full border border-gray-200 p-2 rounded-lg text-sm outline-none focus:border-blue-500 bg-gray-50">
+                                        <select value={t.kpi_metric} onChange={e => handleTargetChange(index, 'kpi_metric', e.target.value)} className="w-full border border-gray-200 p-2 rounded-lg text-sm outline-none focus:border-indigo-500 bg-gray-50">
                                             <option value="">- Select Metric -</option>
                                             {kpiMetrics.map(k => <option key={k} value={k}>{k}</option>)}
                                         </select>
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-bold text-gray-500 uppercase">Frequency</label>
-                                        <select value={t.frequency} onChange={e => handleTargetChange(index, 'frequency', e.target.value)} className="w-full border border-gray-200 p-2 rounded-lg text-sm outline-none focus:border-blue-500 bg-gray-50">
+                                        <select value={t.frequency} onChange={e => handleTargetChange(index, 'frequency', e.target.value)} className="w-full border border-gray-200 p-2 rounded-lg text-sm outline-none focus:border-indigo-500 bg-gray-50">
                                             <option value="Daily">Daily</option>
                                             <option value="Monthly">Monthly</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold text-blue-600 uppercase">Target Number</label>
-                                        <input type="number" placeholder="E.g. 50" value={t.target} onChange={e => handleTargetChange(index, 'target', e.target.value)} className="w-full border border-blue-200 p-2 rounded-lg text-sm font-black outline-none focus:border-blue-600 bg-blue-50 text-[#103c7f]"/>
+                                        <label className="text-[10px] font-bold text-indigo-600 uppercase">Target Number</label>
+                                        <input type="number" placeholder="E.g. 50" value={t.target} onChange={e => handleTargetChange(index, 'target', e.target.value)} className="w-full border border-indigo-200 p-2 rounded-lg text-sm font-black outline-none focus:border-indigo-600 bg-indigo-50 text-[#103c7f]"/>
                                     </div>
                                 </div>
                                 
                                 <div>
                                     <label className="text-[10px] font-bold text-gray-500 uppercase">Guideline / Instructions</label>
-                                    <textarea rows="2" placeholder="Write specific instructions for this KPI..." value={t.guideline} onChange={e => handleTargetChange(index, 'guideline', e.target.value)} className="w-full border border-gray-200 p-2 rounded-lg text-sm outline-none focus:border-blue-500 bg-gray-50 resize-none"></textarea>
+                                    <textarea rows="2" placeholder="Write specific instructions for this KPI..." value={t.guideline} onChange={e => handleTargetChange(index, 'guideline', e.target.value)} className="w-full border border-gray-200 p-2 rounded-lg text-sm outline-none focus:border-indigo-500 bg-gray-50 resize-none"></textarea>
                                 </div>
                             </div>
                         ))}
@@ -549,14 +535,14 @@ export default function SMCorporateTargetPage() {
 
                     {!editId && (
                         <div className="flex justify-center mb-6">
-                            <button onClick={addTargetRow} className="bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-colors flex items-center gap-2 shadow-sm">
+                            <button onClick={addTargetRow} className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-colors flex items-center gap-2 shadow-sm">
                                 <Plus size={14}/> Add Another KPI
                             </button>
                         </div>
                     )}
 
                     <div className="pt-4 border-t border-gray-100 mt-auto">
-                        <button onClick={handleSaveTarget} className="w-full bg-blue-700 hover:bg-blue-800 py-3 rounded-xl font-black uppercase tracking-widest text-white shadow-md flex items-center justify-center gap-2 transition-colors text-xs">
+                        <button onClick={handleSaveTarget} className="w-full bg-indigo-700 hover:bg-indigo-800 py-3 rounded-xl font-black uppercase tracking-widest text-white shadow-md flex items-center justify-center gap-2 transition-colors text-xs">
                             <Save size={16}/> {editId ? "Update Target" : `Save & Assign Target`}
                         </button>
                     </div>

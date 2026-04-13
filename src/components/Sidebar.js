@@ -107,6 +107,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       
       // Page 2: Execution (Search, Table, Calling Form)
       { name: "My Leads", href: `${roleBaseHref}/leads`, icon: <Phone size={20} /> },
+      { name: "My Targets", href: `${roleBaseHref}/target`, icon: <Target size={20} /> },
     ];
   }
 

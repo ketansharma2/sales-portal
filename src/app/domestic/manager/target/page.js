@@ -1,986 +1,610 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { 
-  Target, Edit2, Save, BarChart3, Plus, X, 
-  MapPin, Phone, Users, MessageSquare, Briefcase,
-  Calendar, History, TrendingUp, Filter, Search
+  Filter, Calendar, Briefcase, Plus, X, Save, 
+  Target, BarChart2, Calculator, Percent, Trash2,
+  Edit, Eye, User, ChevronDown, CheckCircle
 } from "lucide-react";
 
-export default function DomesticManagerTargetPage() {
+export default function SMDomesticTargetPage() {
   
-  // --- STATE ---
-  const [activeTab, setActiveTab] = useState("current"); // 'history' | 'current' | 'projection'
-  const [currentDate] = useState(new Date().toISOString().slice(0, 7)); // e.g. "2026-02"
+  // --- STATES ---
+  const [loading, setLoading] = useState(true);
+  const [teamTargets, setTeamTargets] = useState([]);
   
-  // Modal State
-  const [isTargetModalOpen, setIsTargetModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("create"); // 'create' | 'edit'
+  // My Targets State (Assigned by HOD)
+  const [myTargetMonth, setMyTargetMonth] = useState("April");
 
-  // Filters
-  const [historyFilter, setHistoryFilter] = useState({ month: "", member: "" });
-  const [filteredHistoryData, setFilteredHistoryData] = useState([]);
-  const [projectionMonth, setProjectionMonth] = useState(
-    new Date().toISOString().slice(0, 7) // Current month YYYY-MM
-  );
+  // Team Filter States
+  const [filterMonth, setFilterMonth] = useState("All");
+  const [filterRole, setFilterRole] = useState("All");
+  const [filterName, setFilterName] = useState("All");
 
-  // Form State
-  const [targetForm, setTargetForm] = useState({
-    memberId: "", month: "", 
-    visits: "", onboards: "", calls: "", leads: "", ctcGeneration: "", remarks: "",
-    targetId: "", workingDays: "24"
+  // Modal States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editId, setEditId] = useState(null); 
+  const [form, setForm] = useState({
+    year: new Date().getFullYear().toString(),
+    month: "",
+    workingDays: "",
+    department: "Sales",
+    sector: "Domestic",
+    role: "",
+    assignedTo: "",
+    targetList: [{ guideline: "", kpi_metric: "", frequency: "Monthly", target: "" }]
   });
   
-  // Separate data for each tab
-  const [historyData, setHistoryData] = useState([]);
-  const [currentData, setCurrentData] = useState([]);
-  const [projectionData, setProjectionData] = useState([]); // For member targets
-  const [hodProjectionData, setHodProjectionData] = useState([]); // For HOD assigned targets
-  const [filteredProjectionData, setFilteredProjectionData] = useState([]); // For member targets filtered
-  const [filteredHodProjectionData, setFilteredHodProjectionData] = useState([]); // For HOD targets filtered
-  const [loading, setLoading] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewData, setViewData] = useState(null);
 
-  // Team members for each tab
-  const [historyMembers, setHistoryMembers] = useState([]);
-  const [currentMembers, setCurrentMembers] = useState([]);
-  const [projectionMembers, setProjectionMembers] = useState([]);
+  // --- OPTIONS & LOGIC ---
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  
+  const teamRoles = ["Field Sales Exec. (FSE)", "Lead Generation"];
+  const teamEmployees = {
+      "Field Sales Exec. (FSE)": ["Amit Singh", "Priya Verma", "Suraj Sharma"],
+      "Lead Generation": ["Neha Sharma", "Ravi Kumar"]
+  };
 
-  // --- FETCH TEAM MEMBERS (FSEs and Leadgens) ---
-  const fetchTeamMembers = async () => {
-    try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/manager/team-members', {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
-      const result = await response.json();
-      
-      if (result.success && result.data) {
-        const members = result.data.map(m => ({
-          id: m.user_id,
-          name: m.name,
-          role: m.role.includes('FSE') ? 'FSE' : 'LeadGen'
-        }));
-        setCurrentMembers(members);
-        setProjectionMembers(members);
-        setHistoryMembers(members);
-        return members;
+  const kpiMetrics = [
+      "New Client Acquisition", "Branch Visits", "Meetings Booked", 
+      "Cold Calls", "Qualified Leads", "Revenue Generated"
+  ];
+
+  const myTargetsData = [
+      { 
+        id: 101, year: "2026", month: "April", workingDays: "22", sector: "Domestic", assignedBy: "Rajesh Kumar (HOD)", assignedRole: "Head of Department",
+        guideline: "Focus on maximizing CTC generation across domestic clients.", 
+        kpi_metric: "CTC Generation", frequency: "Monthly", 
+        target: 6000000, achieved: 2200000
+      },
+      { 
+        id: 102, year: "2026", month: "April", workingDays: "24", sector: "Domestic", assignedBy: "Rajesh Kumar (HOD)", assignedRole: "Head of Department",
+        guideline: "Expand branch reach in tier 2 and tier 3 domestic cities.", 
+        kpi_metric: "New Client Acquisition", frequency: "Monthly", 
+        target: 15, achieved: 9 
+      },
+      { 
+        id: 103, year: "2026", month: "March", workingDays: "21", sector: "Domestic", assignedBy: "Rajesh Kumar (HOD)", assignedRole: "Head of Department",
+        guideline: "Target high-value tech startups for domestic placements.", 
+        kpi_metric: "CTC Generation", frequency: "Monthly", 
+        target: 5000000, achieved: 5200000 
+      },
+      { 
+        id: 104, year: "2026", month: "March", workingDays: "21", sector: "Domestic", assignedBy: "Rajesh Kumar (HOD)", assignedRole: "Head of Department",
+        guideline: "Build initial pipeline for Q1.", 
+        kpi_metric: "New Client Acquisition", frequency: "Monthly", 
+        target: 12, achieved: 14 
       }
-      return [];
-    } catch (error) {
-      console.error('Error fetching team members:', error);
-      return [];
-    }
-  };
+  ];
 
-  // --- FETCH TARGETS FOR CURRENT TAB ---
-  const fetchCurrentTargets = async () => {
-    try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/manager/current-targets', {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
-      const result = await response.json();
-      
-      if (result.success && result.data) {
-        return result.data;
-      }
-      return null;
-    } catch (error) {
-      console.error('Error fetching current targets:', error);
-      return null;
+  // --- MOCK DATA: TEAM TARGETS ASSIGNED BY SM ---
+  const dummyTeamTargets = [
+    {
+      id: 1, year: "2026", month: "April", workingDays: "24", department: "Sales", sector: "Domestic", role: "Field Sales Exec. (FSE)", assignedTo: "Amit Singh",
+      guideline: "Increase daily market visits for local finance firms.",
+      kpi_metric: "Branch Visits", frequency: "Daily",
+      target: 120, achieved: 85,
+      calculation: "(1 FSE × 5 Visits/Day) × 24 Days"
+    },
+    {
+      id: 2, year: "2026", month: "April", workingDays: "24", department: "Sales", sector: "Domestic", role: "Lead Generation", assignedTo: "Neha Sharma",
+      guideline: "Aggressive cold calling to B2B domestic clients.",
+      kpi_metric: "Cold Calls", frequency: "Daily",
+      target: 2400, achieved: 1800,
+      calculation: "(1 LeadGen × 100 Calls/Day) × 24 Days"
     }
-  };
+  ];
 
-  // --- FETCH TARGETS FOR HISTORY TAB ---
-  const fetchHistoryTargets = async (month = null) => {
-    try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const monthParam = month ? `${month}-01` : '';
-      const url = monthParam 
-        ? `/api/domestic/manager/history-targets?month=${monthParam.substring(0, 7)}` 
-        : '/api/domestic/manager/history-targets';
-      
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
-      const result = await response.json();
-      
-      if (result.success && result.data) {
-        return result.data;
-      }
-      return null;
-    } catch (error) {
-      console.error('Error fetching history targets:', error);
-      return null;
-    }
-  };
-
-  // --- FETCH TARGETS FOR PROJECTION TAB ---
-  const fetchProjectionTargets = async (month = null) => {
-    try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const monthParam = month || '';
-      
-      // Fetch both HOD targets and Member targets in parallel
-      const [hodResponse, memberResponse] = await Promise.all([
-        fetch(`/api/domestic/manager/hod-targets${monthParam ? `?month=${monthParam}` : ''}`, {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        }),
-        fetch(`/api/domestic/manager/member-targets${monthParam ? `?month=${monthParam}` : ''}`, {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        })
-      ]);
-      
-      const hodResult = await hodResponse.json();
-      const memberResult = await memberResponse.json();
-      
-      return {
-        hodTargets: hodResult.success && hodResult.data ? hodResult.data.targets : [],
-        memberTargets: memberResult.success && memberResult.data ? memberResult.data.targets || memberResult.data : []
-      };
-    } catch (error) {
-      console.error('Error fetching projection targets:', error);
-      return { hodTargets: [], memberTargets: [] };
-    }
-  };
-
-  // --- LOAD DATA FROM API ---
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      
-      // Fetch team members
-      await fetchTeamMembers();
-      
-      if (activeTab === 'history') {
-        const targetData = await fetchHistoryTargets(null);
-        if (targetData && targetData.targets && targetData.targets.length > 0) {
-          const transformedData = targetData.targets.map((target, idx) => ({
-            id: idx + 1,
-            memberId: target.user_id,
-            name: target.name || 'Unknown',
-            role: target.role || 'FSE',
-            month: target.month || currentDate,
-            visits: target.visits || 0,
-            onboards: target.onboards || 0,
-            calls: target.calls || 0,
-            leads: target.leads || 0,
-            achievedVisits: target.achieved_visits || 0,
-            achievedOnboards: target.achieved_onboards || 0,
-            achievedCalls: target.achieved_calls || 0,
-            achievedLeads: target.achieved_leads || 0,
-            remarks: target.remarks || ''
-          }));
-          setHistoryData(transformedData);
-        } else {
-          setHistoryData([]);
-        }
-      } else if (activeTab === 'current') {
-        const targetData = await fetchCurrentTargets();
-        if (targetData && targetData.targets && targetData.targets.length > 0) {
-          const transformedData = targetData.targets.map((target, idx) => ({
-            id: idx + 1,
-            memberId: target.user_id,
-            name: target.name || 'Unknown',
-            role: target.role || 'FSE',
-            month: target.month ? target.month.substring(0, 7) : currentDate,
-            visits: target.visits || 0,
-            onboards: target.onboards || 0,
-            calls: target.calls || 0,
-            leads: target.leads || 0,
-            achievedVisits: target.achieved_visits || 0,
-            achievedOnboards: target.achieved_onboards || 0,
-            achievedCalls: target.achieved_calls || 0,
-            achievedLeads: target.achieved_leads || 0,
-            remarks: target.remarks || ''
-          }));
-          setCurrentData(transformedData);
-        } else {
-          setCurrentData([]);
-        }
-      } else if (activeTab === 'projection') {
-        // Fetch both HOD targets and member targets
-        const targetData = await fetchProjectionTargets(null);
-        
-        // Transform HOD targets
-        if (targetData.hodTargets && targetData.hodTargets.length > 0) {
-          const hodTransformedData = targetData.hodTargets.map((target, idx) => ({
-            id: target.id || idx + 1,
-            month: target.month || projectionMonth,
-            workingDays: target.workingDays || 0,
-            fseCount: target.fseCount || 0,
-            callersCount: target.callersCount || 0,
-            visitsPerFse: target.visitsPerFse || 0,
-            onboardPerFse: target.onboardPerFse || 0,
-            callsPerCaller: target.callsPerCaller || 0,
-            leadsPerCaller: target.leadsPerCaller || 0,
-            totalVisits: target.totalVisits || 0,
-            totalOnboards: target.totalOnboards || 0,
-            totalCalls: target.totalCalls || 0,
-            totalLeads: target.totalLeads || 0,
-            ctcGeneration: target.ctcGeneration || 0,
-            remarks: target.remarks || ''
-          }));
-          setHodProjectionData(hodTransformedData);
-        } else {
-          setHodProjectionData([]);
-        }
-        
-        // Transform member targets
-        if (targetData.memberTargets && targetData.memberTargets.length > 0) {
-          const memberTransformedData = targetData.memberTargets.map((target, idx) => ({
-            id: target.id || idx + 1,
-            targetId: target.id,
-            month: target.month || projectionMonth,
-            fseId: target.fseId,
-            memberId: target.fseId,
-            name: target.fseName || 'Unknown',
-            role: target.fseRole || 'FSE',
-            visits: target.monthlyVisits || 0,
-            onboards: target.monthlyOnboards || 0,
-            calls: target.monthlyCalls || 0,
-            leads: target.monthlyLeads || 0,
-            ctcGeneration: target.ctcGeneration || 0,
-            workingDays: target.workingDays || 0,
-            remarks: target.remarks || ''
-          }));
-          setProjectionData(memberTransformedData);
-        } else {
-          setProjectionData([]);
-        }
-      }
-      
+    const timer = setTimeout(() => {
+      setTeamTargets(dummyTeamTargets);
       setLoading(false);
-    };
-    
-    loadData();
-  }, [activeTab, currentDate, refreshKey]);
-
-  // --- REFETCH PROJECTION DATA WHEN MONTH CHANGES ---
-  useEffect(() => {
-    if (activeTab !== 'projection') return;
-    
-    const fetchProjectionData = async () => {
-      setLoading(true);
-      const targetData = await fetchProjectionTargets(projectionMonth || null);
-      
-      // Transform HOD targets
-      if (targetData.hodTargets && targetData.hodTargets.length > 0) {
-        const hodTransformedData = targetData.hodTargets.map((target, idx) => ({
-          id: target.id || idx + 1,
-          month: target.month || projectionMonth,
-          workingDays: target.workingDays || 0,
-          fseCount: target.fseCount || 0,
-          callersCount: target.callersCount || 0,
-          visitsPerFse: target.visitsPerFse || 0,
-          onboardPerFse: target.onboardPerFse || 0,
-          callsPerCaller: target.callsPerCaller || 0,
-          leadsPerCaller: target.leadsPerCaller || 0,
-          totalVisits: target.totalVisits || 0,
-          totalOnboards: target.totalOnboards || 0,
-          totalCalls: target.totalCalls || 0,
-          totalLeads: target.totalLeads || 0,
-          ctcGeneration: target.ctcGeneration || 0,
-          remarks: target.remarks || ''
-        }));
-        setHodProjectionData(hodTransformedData);
-      } else {
-        setHodProjectionData([]);
-      }
-      
-      // Transform member targets
-      if (targetData.memberTargets && targetData.memberTargets.length > 0) {
-        const memberTransformedData = targetData.memberTargets.map((target, idx) => ({
-          id: target.id || idx + 1,
-          targetId: target.id,
-          month: target.month || projectionMonth,
-          fseId: target.fseId,
-          memberId: target.fseId,
-          name: target.fseName || 'Unknown',
-          role: target.fseRole || 'FSE',
-          visits: target.monthlyVisits || 0,
-          onboards: target.monthlyOnboards || 0,
-          calls: target.monthlyCalls || 0,
-          leads: target.monthlyLeads || 0,
-          ctcGeneration: target.ctcGeneration || 0,
-          workingDays: target.workingDays || 0,
-          remarks: target.remarks || ''
-        }));
-        setProjectionData(memberTransformedData);
-      } else {
-        setProjectionData([]);
-      }
-      
-      setLoading(false);
-    };
-    
-    fetchProjectionData();
-  }, [projectionMonth, activeTab]);
-
-  // --- FRONTEND FILTERING ---
-  useEffect(() => {
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    
-    if (activeTab === 'history' && historyData.length > 0) {
-      const filtered = historyData.filter(item => {
-        const monthMatch = !historyFilter.month || item.month === historyFilter.month;
-        const memberMatch = !historyFilter.member || String(item.memberId) === String(historyFilter.member);
-        const isPastMonth = item.month < currentMonth;
-        return monthMatch && memberMatch && isPastMonth;
-      });
-      setFilteredHistoryData(filtered);
-    } else if (activeTab === 'history') {
-      setFilteredHistoryData(historyData.filter(item => item.month < new Date().toISOString().slice(0, 7)));
-    } else {
-      setFilteredHistoryData([]);
-    }
-    
-    if (activeTab === 'projection') {
-      // Filter HOD targets
-      if (hodProjectionData.length > 0) {
-        const hodFiltered = hodProjectionData.filter(item => {
-          const monthMatch = !projectionMonth || item.month === projectionMonth;
-          return monthMatch;
-        });
-        setFilteredHodProjectionData(hodFiltered);
-      } else {
-        setFilteredHodProjectionData([]);
-      }
-      
-      // Filter member targets
-      if (projectionData.length > 0) {
-        const memberFiltered = projectionData.filter(item => {
-          const monthMatch = !projectionMonth || item.month === projectionMonth;
-          return monthMatch;
-        });
-        setFilteredProjectionData(memberFiltered);
-      } else {
-        setFilteredProjectionData([]);
-      }
-    } else {
-      setFilteredHodProjectionData([]);
-      setFilteredProjectionData([]);
-    }
-  }, [historyFilter, historyData, activeTab, projectionMonth, projectionData, hodProjectionData]);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // --- HANDLERS ---
-  const openModal = (mode, data = null) => {
-    setModalMode(mode);
-    
-    if (mode === 'edit' && data) {
-      setTargetForm({
-        memberId: data.memberId,
-        targetId: data.targetId || data.id || '',
-        month: activeTab === 'projection' ? projectionMonth : currentDate,
-        visits: data.workingDays ? Math.round(data.visits / data.workingDays) : data.visits || '',
-        onboards: data.onboards || '',
-        calls: data.calls || '',
-        leads: data.leads || '',
-        ctcGeneration: data.ctcGeneration || '',
-        workingDays: data.workingDays || '24',
-        remarks: data.remarks || ""
-      });
+
+  const handleOpenModal = (item = null) => {
+    if (item && item.id) {
+        setEditId(item.id);
+        setForm({
+            year: item.year, month: item.month, workingDays: item.workingDays || "", 
+            department: "Sales", sector: "Domestic", role: item.role, assignedTo: item.assignedTo || "",
+            targetList: [{ 
+                guideline: item.guideline, kpi_metric: item.kpi_metric, 
+                frequency: item.frequency, target: item.target.toString() 
+            }]
+        });
     } else {
-      setTargetForm({
-        memberId: "", 
-        targetId: "",
-        month: activeTab === 'projection' ? projectionMonth : currentDate,
-        visits: "", onboards: "", calls: "", leads: "", ctcGeneration: "", 
-        workingDays: "24",
-        remarks: ""
-      });
+        setEditId(null);
+        setForm({
+            year: new Date().getFullYear().toString(), month: "", workingDays: "", 
+            department: "Sales", sector: "Domestic", role: "", assignedTo: "",
+            targetList: [{ guideline: "", kpi_metric: "", frequency: "Monthly", target: "" }]
+        });
     }
-    setIsTargetModalOpen(true);
+    setIsModalOpen(true);
   };
 
-  const handleMemberSelect = (e) => {
-    const selectedId = e.target.value;
-    const member = getMembersList().find(m => String(m.id) === selectedId);
-    
-    // Auto-set fields based on role
-    if (member?.role === 'FSE') {
-      setTargetForm({
-        ...targetForm,
-        memberId: selectedId,
-        visits: targetForm.visits || '',
-        onboards: targetForm.onboards || '',
-        calls: '0',
-        leads: '0',
-        remarks: targetForm.remarks
-      });
-    } else if (member?.role === 'LeadGen') {
-      setTargetForm({
-        ...targetForm,
-        memberId: selectedId,
-        visits: '0',
-        onboards: '0',
-        calls: targetForm.calls || '',
-        leads: targetForm.leads || '',
-        remarks: targetForm.remarks
-      });
+  const handleRoleChange = (e) => {
+      const selectedRole = e.target.value;
+      let autoKPIs = [];
+
+      if (selectedRole === "Field Sales Exec. (FSE)") {
+          autoKPIs = [{ guideline: "", kpi_metric: "Branch Visits", frequency: "Daily", target: "" }];
+      } else if (selectedRole === "Lead Generation") {
+          autoKPIs = [{ guideline: "", kpi_metric: "Cold Calls", frequency: "Daily", target: "" }];
+      } else {
+          autoKPIs = [{ guideline: "", kpi_metric: "", frequency: "Monthly", target: "" }];
+      }
+
+      setForm({ ...form, role: selectedRole, assignedTo: "", targetList: autoKPIs }); 
+  };
+
+  const handleTargetChange = (index, field, value) => {
+      const newList = [...form.targetList];
+      newList[index][field] = value;
+      setForm({ ...form, targetList: newList });
+  };
+
+  const addTargetRow = () => {
+      setForm({ ...form, targetList: [...form.targetList, { guideline: "", kpi_metric: "", frequency: "Monthly", target: "" }] });
+  };
+
+  const removeTargetRow = (index) => {
+      const newList = form.targetList.filter((_, i) => i !== index);
+      setForm({ ...form, targetList: newList });
+  };
+
+  const handleSaveTarget = () => {
+    if(!form.month || !form.role || !form.workingDays || !form.assignedTo) {
+        alert("Please fill all details including Employee Name.");
+        return;
+    }
+
+    if (editId) {
+        const t = form.targetList[0];
+        let mockCalc = t.frequency === "Daily" 
+            ? `(1 ${form.role.split(' ')[0]} × Y ${t.kpi_metric}/Day) × ${form.workingDays} Days` 
+            : `(1 ${form.role.split(' ')[0]} × Y ${t.kpi_metric}/Month)`;
+
+        const updatedTargets = teamTargets.map(item => {
+            if (item.id === editId) {
+                return {
+                    ...item,
+                    year: form.year, month: form.month, workingDays: form.workingDays, 
+                    role: form.role, assignedTo: form.assignedTo,
+                    guideline: t.guideline, kpi_metric: t.kpi_metric, frequency: t.frequency,
+                    target: parseInt(t.target) || 0,
+                    calculation: mockCalc
+                };
+            }
+            return item;
+        });
+        setTeamTargets(updatedTargets);
     } else {
-      setTargetForm({ ...targetForm, memberId: selectedId });
+        const newEntries = form.targetList.map((t, idx) => {
+            let mockCalc = t.frequency === "Daily" 
+                ? `(1 ${form.role.split(' ')[0]} × Y ${t.kpi_metric}/Day) × ${form.workingDays} Days` 
+                : `(1 ${form.role.split(' ')[0]} × Y ${t.kpi_metric}/Month)`;
+
+            return {
+                id: Date.now() + idx,
+                year: form.year, month: form.month, workingDays: form.workingDays, 
+                department: "Sales", sector: "Domestic", role: form.role, assignedTo: form.assignedTo,
+                guideline: t.guideline, kpi_metric: t.kpi_metric, frequency: t.frequency,
+                target: parseInt(t.target) || 0, achieved: 0,
+                calculation: mockCalc
+            };
+        });
+        setTeamTargets([...newEntries, ...teamTargets]);
     }
-  };
-
-  const handleFormChange = (e) => {
-    const value = e.target.value;
-    setTargetForm({ ...targetForm, [e.target.name]: value });
-  };
-
-  const handleSetTarget = async (e) => {
-    e.preventDefault();
-    if(!targetForm.memberId) return alert("Please select a team member");
     
-    try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const monthValue = targetForm.month || projectionMonth;
-      
-      // Build request body for new API
-      const targetPayload = {
-        month: monthValue,
-        fseId: targetForm.memberId,
-        monthlyVisits: (parseInt(targetForm.visits) || 0) * (parseInt(targetForm.workingDays) || 24),
-        monthlyOnboards: parseInt(targetForm.onboards) || 0,
-        monthlyCalls: parseInt(targetForm.calls) || 0,
-        monthlyLeads: parseInt(targetForm.leads) || 0,
-        ctcGeneration: parseInt(targetForm.ctcGeneration) || 0,
-        workingDays: parseInt(targetForm.workingDays) || 24,
-        remarks: targetForm.remarks || ''
-      };
-      
-      const isEdit = modalMode === 'edit';
-      
-      let response;
-      if (isEdit) {
-        response = await fetch('/api/domestic/manager/member-targets', {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            targetId: targetForm.targetId,
-            ...targetPayload
-          })
-        });
-      } else {
-        response = await fetch('/api/domestic/manager/member-targets', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(targetPayload)
-        });
-      }
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        const member = currentMembers.find(m => String(m.id) === String(targetForm.memberId));
-        alert(`${isEdit ? 'Target Updated' : 'Target Saved'} Successfully!\nMember: ${member?.name || targetForm.memberId}\nMonth: ${targetForm.month}`);
-        setIsTargetModalOpen(false);
-        setRefreshKey(prev => prev + 1);
-      } else if (result.existingTargetId) {
-        // Target already exists - switch to edit mode
-        const member = currentMembers.find(m => String(m.id) === String(targetForm.memberId));
-        alert(`${result.error}\n\nClick OK to edit the existing target.`);
-        setTargetForm({
-          ...targetForm,
-          targetId: result.existingTargetId
-        });
-        setModalMode('edit');
-      } else {
-        alert(`Error: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('Error saving target:', error);
-      alert("Failed to save target. Please try again.");
-    }
+    setIsModalOpen(false);
+    setEditId(null);
   };
 
-  const getProgressColor = (achieved, target) => {
-    if(!target) return "bg-gray-200";
-    const percent = (achieved / target) * 100;
-    if (percent > 70) return "bg-green-500";
-    if (percent >= 50) return "bg-yellow-500";
-    return "bg-red-500";
+  const handleClearFilters = () => {
+    setFilterMonth("All"); setFilterRole("All"); setFilterName("All");
   };
 
-  const getMembersList = () => {
-    if (activeTab === 'history') return historyMembers;
-    if (activeTab === 'current') return currentMembers;
-    return projectionMembers;
-  };
+  // Filters
+  const filteredMyTargets = myTargetsData.filter(t => t.month === myTargetMonth);
+  
+  const filteredTeamTargets = teamTargets.filter(item => {
+    const matchMonth = filterMonth === "All" || item.month === filterMonth;
+    const matchRole = filterRole === "All" || item.role === filterRole;
+    const matchName = filterName === "All" || item.assignedTo === filterName; 
+    return matchMonth && matchRole && matchName;
+  });
+
+  const formatValue = (value) => {
+      if(value >= 100000) return `₹ ${(value / 100000).toFixed(1)}L`;
+      return value.toLocaleString('en-IN');
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 font-['Calibri'] p-6 pt-2 pb-12">
+    <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-6 pb-20">
       
-      {/* --- TOP HEADER --- */}
-      <div className="flex flex-col md:flex-row justify-between items-start mb-4">
+     {/* ========================================== */}
+      {/* 1. MY TARGETS (Assigned by HOD) SECTION    */}
+      {/* ========================================== */}
+      <div className="mb-10">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4">
+             <div>
+                <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
+                    <CheckCircle size={24} className="text-emerald-500"/> My Targets (SM)
+                </h1>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Targets assigned to you by the HOD</p>
+             </div>
+             
+             {/* Month Filter for My Targets */}
+             <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-gray-200 shadow-sm">
+                 <Calendar size={14} className="text-gray-400"/>
+                 <select value={myTargetMonth} onChange={(e) => setMyTargetMonth(e.target.value)} className="bg-transparent text-xs font-bold text-[#103c7f] outline-none cursor-pointer pr-4">
+                     {months.map(m => <option key={m} value={m}>{m}</option>)}
+                 </select>
+             </div>
+          </div>
+
+          {/* TABLE SECTION FOR MY TARGETS */}
+          <div className="bg-white border-2 border-emerald-100 rounded-xl overflow-hidden shadow-sm flex flex-col">
+             <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
+                <table className="w-full text-left border-collapse min-w-[1100px]">
+                   <thead className="text-white text-[10px] uppercase font-bold sticky top-0 z-10 shadow-sm tracking-widest bg-emerald-700">
+                      <tr>
+                         <th className="p-3 border-r border-white/10 w-24 text-center">Period</th>
+                         <th className="p-3 border-r border-white/10 w-24 text-center">Work Days</th>
+                         <th className="p-3 border-r border-white/10 w-56">Assigned By</th>
+                         <th className="p-3 border-r border-white/10 min-w-[200px]">Guideline</th>
+                         <th className="p-3 border-r border-white/10 w-40">KPI Metric</th>
+                         <th className="p-3 border-r border-white/10 text-center w-24">Freq.</th>
+                         <th className="p-3 border-r border-white/10 text-center bg-black/10 w-24">Target</th>
+                         <th className="p-3 border-r border-white/10 text-center bg-black/10 w-24">Achieved</th>
+                         <th className="p-3 border-r border-white/10 text-center bg-black/20 w-24">%</th>
+                         <th className="p-3 text-center bg-black/10 sticky right-0 z-20 w-20 shadow-[-4px_0px_5px_rgba(0,0,0,0.1)]">Action</th>
+                      </tr>
+                   </thead>
+                   <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
+                      {filteredMyTargets.length > 0 ? filteredMyTargets.map((item, idx) => {
+                          const percentage = item.target > 0 ? Math.min(Math.round((item.achieved / item.target) * 100), 100) : 0;
+                          let percColor = "text-red-600 bg-red-50 border-red-200";
+                          if(percentage >= 100) percColor = "text-emerald-700 bg-emerald-50 border-emerald-200";
+                          else if(percentage >= 50) percColor = "text-amber-600 bg-amber-50 border-amber-200";
+
+                          return (
+                          <tr key={item.id || idx} className="hover:bg-gray-50/80 transition group">
+                             
+                             <td className="p-3 border-r border-gray-100 text-center align-middle">
+                                <div className="flex flex-col items-center gap-1">
+                                   <span className="font-black text-gray-800">{item.month}</span>
+                                   <span className="text-[9px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{item.year}</span>
+                                </div>
+                             </td>
+
+                             <td className="p-3 border-r border-gray-100 text-center align-middle">
+                                 <span className="font-black text-[#103c7f] bg-blue-50 px-2 py-1 rounded border border-blue-100 text-[11px]">
+                                     {item.workingDays} <span className="text-[9px] text-blue-500 uppercase">Days</span>
+                                 </span>
+                             </td>
+
+                             <td className="p-3 border-r border-gray-100 align-middle">
+                                 <div className="flex flex-col gap-1">
+                                     <span className="font-black text-gray-900 flex items-center gap-1.5"><User size={12} className="text-emerald-500"/> {item.assignedBy}</span>
+                                     <span className="font-bold text-gray-400 text-[9px] uppercase tracking-wider flex items-center gap-1"><Briefcase size={10}/>{item.assignedRole}</span>
+                                 </div>
+                             </td>
+                             
+                             <td className="p-3 border-r border-gray-100 align-middle"><p className="text-[11px] text-gray-600 leading-relaxed">{item.guideline}</p></td>
+                             <td className="p-3 border-r border-gray-100 align-middle"><span className="font-bold text-indigo-700 flex items-center gap-1.5"><BarChart2 size={12}/>{item.kpi_metric}</span></td>
+                             
+                             <td className="p-3 border-r border-gray-100 text-center align-middle">
+                                 <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${item.frequency === 'Daily' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-purple-50 text-purple-600 border-purple-200'}`}>{item.frequency}</span>
+                             </td>
+                             
+                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.target.toLocaleString('en-IN')}</span></td>
+                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-[#103c7f]">{item.achieved.toLocaleString('en-IN')}</span></td>
+                             
+                             <td className="p-3 border-r border-gray-100 text-center align-middle">
+                                 <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
+                             </td>
+
+                             
+                             <td className="p-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)] align-middle group-hover:bg-gray-50 transition-colors">
+                                <div className="flex flex-row items-center gap-2 w-full px-1 justify-center">
+                                    <button onClick={() => {
+                                         setViewData({ role: item.assignedRole, assignedTo: item.assignedBy, kpi_metric: item.kpi_metric });
+                                         setIsViewModalOpen(true);
+                                    }} className="w-full bg-white border border-gray-200 text-gray-700 hover:bg-gray-800 hover:text-white px-1 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-1">
+                                        <Eye size={10} /> View
+                                    </button>
+                                </div>
+                             </td>
+                             
+                          </tr>
+                      )}) : (
+                          <tr><td colSpan="11" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest">No targets assigned for {myTargetMonth}</td></tr>
+                      )}
+                   </tbody>
+                </table>
+             </div>
+          </div>
+      </div>
+
+      <hr className="border-gray-200 mb-8" />
+
+      {/* ========================================== */}
+      {/* 2. TEAM ASSIGNMENT SECTION (FSE / Leadgen) */}
+      {/* ========================================== */}
+      
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
          <div>
-             <h1 className="text-3xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
-                <Target size={32} /> Team Target Distribution
-                {activeTab === 'current' && (
-                    <span className="text-lg font-black text-[#103c7f] bg-blue-100 px-3 py-1 rounded-lg ml-2">
-                        {new Date().toLocaleString('en-US', { month: 'short', year: 'numeric' })}
-                    </span>
-                )}
-             </h1>
-             <p className="text-gray-500 text-sm font-bold mt-1">
-               {activeTab === 'history' ? 'Review Past Performance' : activeTab === 'current' ? 'Live Month Tracking' : 'Plan Future Targets'}
-             </p>
+            <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
+                <Target size={24} className="text-emerald-500"/> Team Targets
+            </h1>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Assign targets to FSE & Lead Generation</p>
+         </div>
+         <button 
+            onClick={() => handleOpenModal()} 
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-colors flex items-center gap-2 shadow-md"
+         >
+            <Plus size={14}/> Assign New Target
+         </button>
+      </div>
+
+      {/* FILTERS SECTION */}
+      <div className="p-4 rounded-xl border shadow-sm mb-6 flex flex-wrap items-end gap-4 bg-white border-gray-200">
+        <div className="w-36 shrink-0">
+            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Month</label>
+            <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-3 rounded-lg text-xs font-bold outline-none cursor-pointer">
+                <option value="All">All Months</option>
+                {months.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+        </div>
+        <div className="w-48 shrink-0">
+            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Role</label>
+            <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-3 rounded-lg text-xs font-bold outline-none cursor-pointer">
+                <option value="All">All Roles</option>
+                {teamRoles.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+        </div>
+        <div className="w-48 shrink-0">
+            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Employee Name</label>
+            <select value={filterName} onChange={(e) => setFilterName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-3 rounded-lg text-xs font-bold outline-none cursor-pointer">
+                <option value="All">All Team Members</option>
+                {teamRoles
+                    .flatMap(role => teamEmployees[role] || [])
+                    .filter((value, index, self) => self.indexOf(value) === index)
+                    .map((emp) => <option key={emp} value={emp}>{emp}</option>)
+                }
+            </select>
+        </div>
+
+        {(filterMonth !== "All" || filterRole !== "All" || filterName !== "All") && (
+            <button onClick={handleClearFilters} className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent h-[34px]">
+              Clear
+            </button>
+        )}
+      </div>
+
+      {/* TABLE SECTION */}
+      <div className="bg-white border-2 border-gray-100 rounded-xl overflow-hidden shadow-sm flex flex-col h-[calc(100vh-450px)] min-h-[300px]">
+         <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
+            <table className="w-full text-left border-collapse min-w-[1100px]">
+               <thead className="text-white text-[10px] uppercase font-bold sticky top-0 z-10 shadow-sm tracking-widest bg-[#103c7f]">
+                  <tr>
+                     <th className="p-3 border-r border-white/10 w-24 text-center">Period</th>
+                     <th className="p-3 border-r border-white/10 w-24 text-center">Work Days</th>
+                     <th className="p-3 border-r border-white/10 w-56">Assigned To</th>
+                     <th className="p-3 border-r border-white/10 min-w-[200px]">Guideline</th>
+                     <th className="p-3 border-r border-white/10 w-40">KPI Metric</th>
+                     <th className="p-3 border-r border-white/10 text-center w-24">Freq.</th>
+                     <th className="p-3 border-r border-white/10 text-center bg-black/10 w-24">Target</th>
+                     <th className="p-3 border-r border-white/10 text-center bg-black/10 w-24">Achieved</th>
+                     <th className="p-3 border-r border-white/10 text-center bg-black/20 w-24">%</th>
+                     <th className="p-3 text-center bg-black/10 sticky right-0 z-20 w-32 shadow-[-4px_0px_5px_rgba(0,0,0,0.1)]">Action</th>
+                  </tr>
+               </thead>
+               <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
+                  {loading ? (
+                     <tr><td colSpan="10" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest">Loading Targets...</td></tr>
+                  ) : filteredTeamTargets.length > 0 ? (
+                     filteredTeamTargets.map((item) => {
+                         const percentage = item.target > 0 ? Math.round((item.achieved / item.target) * 100) : 0;
+                         let percColor = "text-red-600 bg-red-50 border-red-200";
+                         if(percentage >= 100) percColor = "text-emerald-700 bg-emerald-50 border-emerald-200";
+                         else if(percentage >= 50) percColor = "text-amber-600 bg-amber-50 border-amber-200";
+
+                         return (
+                         <tr key={item.id} className="hover:bg-gray-50/80 transition group">
+                            
+                            <td className="p-3 border-r border-gray-100 text-center align-middle">
+                               <div className="flex flex-col items-center gap-1">
+                                  <span className="font-black text-gray-800">{item.month}</span>
+                                  <span className="text-[9px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{item.year}</span>
+                               </div>
+                            </td>
+                            
+                            <td className="p-3 border-r border-gray-100 text-center align-middle">
+                                <span className="font-black text-[#103c7f] bg-blue-50 px-2 py-1 rounded border border-blue-100 text-[11px]">
+                                    {item.workingDays} <span className="text-[9px] text-blue-500 uppercase">Days</span>
+                                </span>
+                            </td>
+
+                            <td className="p-3 border-r border-gray-100 align-middle">
+                                <div className="flex flex-col gap-1">
+                                    <span className="font-black text-gray-900 flex items-center gap-1.5"><User size={12} className="text-emerald-500"/> {item.assignedTo}</span>
+                                    <span className="font-bold text-gray-400 text-[9px] uppercase tracking-wider flex items-center gap-1"><Briefcase size={10}/>{item.role}</span>
+                                </div>
+                            </td>
+                            <td className="p-3 border-r border-gray-100 align-middle"><p className="text-[11px] text-gray-600 leading-relaxed">{item.guideline}</p></td>
+                            <td className="p-3 border-r border-gray-100 align-middle"><span className="font-bold text-indigo-700 flex items-center gap-1.5"><BarChart2 size={12}/>{item.kpi_metric}</span></td>
+                            <td className="p-3 border-r border-gray-100 text-center align-middle">
+                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${item.frequency === 'Daily' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-purple-50 text-purple-600 border-purple-200'}`}>{item.frequency}</span>
+                            </td>
+                            <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.target.toLocaleString('en-IN')}</span></td>
+                            <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-[#103c7f]">{item.achieved.toLocaleString('en-IN')}</span></td>
+                            <td className="p-3 border-r border-gray-100 text-center align-middle">
+                                <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
+                            </td>
+                            
+                            {/* ACTION COLUMN */}
+                            <td className="p-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)] align-middle group-hover:bg-gray-50 transition-colors">
+                               <div className="flex flex-row items-center gap-2 w-full px-1 justify-center">
+                                   <button onClick={() => handleOpenModal(item)} className="flex-1 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-1 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-1 min-w-[50px]">
+                                       <Edit size={10} /> Edit
+                                   </button>
+                                   <button onClick={() => {
+                                        setViewData({ role: item.role, assignedTo: item.assignedTo, kpi_metric: item.kpi_metric });
+                                        setIsViewModalOpen(true);
+                                   }} className="flex-1 bg-white border border-gray-200 text-gray-700 hover:bg-gray-800 hover:text-white px-1 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-1 min-w-[50px]">
+                                       <Eye size={10} /> View
+                                   </button>
+                               </div>
+                            </td>
+                         </tr>
+                     )})
+                  ) : (
+                      <tr><td colSpan="10" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest">No team targets found matching filters</td></tr>
+                  )}
+               </tbody>
+            </table>
          </div>
       </div>
 
-      {/* --- TABS NAVIGATION --- */}
-      <div className="flex p-1 bg-white rounded-xl shadow-sm border border-gray-200 w-fit mb-8">
-          <button 
-            onClick={() => setActiveTab('history')}
-            className={`px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'history' ? 'bg-slate-700 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
-          >
-            <History size={16}/> History
-          </button>
-          <button 
-            onClick={() => setActiveTab('current')}
-            className={`px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'current' ? 'bg-[#103c7f] text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
-          >
-            <BarChart3 size={16}/> Current Month
-          </button>
-          <button 
-            onClick={() => setActiveTab('projection')}
-            className={`px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'projection' ? 'bg-purple-700 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
-          >
-            <TrendingUp size={16}/> Projection
-          </button>
-      </div>
-
-      {/* --- LOADING --- */}
-      {loading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-12 h-12 border-4 border-[#103c7f] border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-[#103c7f] font-bold">Loading...</span>
-          </div>
-        </div>
-      )}
-
-      {!loading && (
-      <>
-      {/* =========================================================================================
-                                   TAB 1: HISTORY (TABLE VIEW)
-         ========================================================================================= */}
-      {activeTab === 'history' && (
-        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-            
-            {/* Filter Bar */}
-            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-wrap gap-4 items-center">
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
-                    <Filter size={14} className="text-gray-400"/>
-                    <input type="month" className="bg-transparent text-sm font-bold text-gray-700 outline-none" onChange={(e)=> setHistoryFilter({...historyFilter, month: e.target.value})}/>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
-                    <Search size={14} className="text-gray-400"/>
-                    <select 
-                      className="bg-transparent text-sm font-bold text-gray-700 outline-none w-48"
-                      value={historyFilter.member}
-                      onChange={(e)=> setHistoryFilter({...historyFilter, member: e.target.value})}
-                    >
-                      <option value="">All Members</option>
-                      {historyMembers.map(mbr => (
-                        <option key={String(mbr.id)} value={String(mbr.id)}>
-                          {mbr.name} ({mbr.role})
-                        </option>
-                      ))}
-                    </select>
-                </div>
-            </div>
-
-            {/* History Table */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <table className="w-full text-left border-collapse">
-                    <thead className="bg-gray-100 text-[10px] font-black text-gray-500 uppercase tracking-widest border-b border-gray-200">
-                        <tr>
-                            <th className="px-6 py-4">Month</th>
-                            <th className="px-6 py-4">Member</th>
-                            <th className="px-6 py-4">Role</th>
-                            <th className="px-4 py-4 text-center">Visits Target</th>
-                            <th className="px-4 py-4 text-center">Onboards Target</th>
-                            <th className="px-4 py-4 text-center">Calls Target</th>
-                            <th className="px-4 py-4 text-center">Leads Target</th>
-                            <th className="px-4 py-4 text-center">Achievement %</th>
-                            <th className="px-6 py-4">Remarks</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 text-sm">
-                        {filteredHistoryData.map((row, idx) => (
-                            <tr key={row.id || `history-${idx}`} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 font-bold text-gray-500">{row.month ? new Date(row.month + '-01').toLocaleString('en-US', { month: 'short', year: 'numeric' }) : row.month}</td>
-                                <td className="px-6 py-4 font-bold text-[#103c7f]">{row.name}</td>
-                                <td className="px-6 py-4">
-                                    <span className={`text-[10px] px-2 py-1 rounded font-bold ${row.role === 'FSE' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>{row.role}</span>
-                                </td>
-                                <td className="px-4 py-4 text-center text-xs text-gray-600">
-                                    <div>{row.achievedVisits || 0}/{row.visits}</div>
-                                </td>
-                                <td className="px-4 py-4 text-center text-xs text-gray-600">
-                                    <div>{row.achievedOnboards || 0}/{row.onboards}</div>
-                                </td>
-                                <td className="px-4 py-4 text-center text-xs text-gray-600">
-                                    <div>{row.achievedCalls || 0}/{row.calls}</div>
-                                </td>
-                                <td className="px-4 py-4 text-center text-xs text-gray-600">
-                                    <div>{row.achievedLeads || 0}/{row.leads || 0}</div>
-                                </td>
-                                <td className="px-4 py-4 text-center">
-                                    {(() => {
-                                        const criteria = [];
-                                        // For FSE: visits and onboards
-                                        if (row.role === 'FSE') {
-                                            if ((row.visits || 0) > 0) criteria.push(((row.achievedVisits || 0) / row.visits) * 100);
-                                            if ((row.onboards || 0) > 0) criteria.push(((row.achievedOnboards || 0) / row.onboards) * 100);
-                                        } else {
-                                            // For LeadGen: calls and leads
-                                            if ((row.calls || 0) > 0) criteria.push(((row.achievedCalls || 0) / row.calls) * 100);
-                                            if ((row.leads || 0) > 0) criteria.push(((row.achievedLeads || 0) / row.leads) * 100);
-                                        }
-                                        const achievement = criteria.length > 0 ? Math.round(criteria.reduce((a, b) => a + b, 0) / criteria.length) : 0;
-                                        return (
-                                            <span className={`text-xs font-bold px-2 py-1 rounded ${achievement > 70 ? 'bg-green-100 text-green-700' : achievement >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
-                                                {achievement}%
-                                            </span>
-                                        );
-                                    })()}
-                                </td>
-                                <td className="px-6 py-4 text-xs italic text-gray-500">{row.remarks}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-      )}
-
-      {/* =========================================================================================
-                                   TAB 2: CURRENT MONTH (CARDS VIEW)
-         ========================================================================================= */}
-      {activeTab === 'current' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-            
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {currentData.length === 0 ? (
-                    <div className="col-span-3 text-center py-12 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50">
-                        <p className="text-gray-400 font-bold">No team members found or no targets set for this month.</p>
-                    </div>
-                ) : currentData.map((row, idx) => (
-                    <div key={row.id || `current-${idx}`} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow relative">
-                        <div className="p-5 border-b border-gray-100 bg-blue-50/30 flex justify-between items-start">
-                            <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-lg text-gray-800">{row.name}</h3>
-                                <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${row.role === 'FSE' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>{row.role}</span>
-                            </div>
-                        </div>
-                        <div className="p-5 space-y-5">
-                            {row.role === 'FSE' && (
-                                <>
-                                    <div>
-                                        <h4 className="text-[10px] font-black text-[#103c7f] uppercase mb-2 flex items-center gap-1"><MapPin size={12}/> Monthly Visits</h4>
-                                        <div className="flex justify-between text-xs mb-1 font-bold text-gray-700">
-                                            <span>{row.achievedVisits || 0} Achieved</span>
-                                            <span>Target: {row.visits}</span>
-                                        </div>
-                                        <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                                            <div className={`h-full rounded-full ${getProgressColor(row.achievedVisits, row.visits)}`} style={{width: `${row.visits > 0 ? ((row.achievedVisits || 0)/row.visits)*100 : 0}%`}}></div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-[10px] font-black text-[#103c7f] uppercase mb-2 flex items-center gap-1"><Briefcase size={12}/> Monthly Onboards</h4>
-                                        <div className="flex justify-between text-xs mb-1 font-bold text-gray-700">
-                                            <span>{row.achievedOnboards || 0} Achieved</span>
-                                            <span>Target: {row.onboards}</span>
-                                        </div>
-                                        <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                                            <div className={`h-full rounded-full ${getProgressColor(row.achievedOnboards, row.onboards)}`} style={{width: `${row.onboards > 0 ? ((row.achievedOnboards || 0)/row.onboards)*100 : 0}%`}}></div>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                            {row.role === 'LeadGen' && (
-                                <>
-                                    <div>
-                                        <h4 className="text-[10px] font-black text-red-600 uppercase mb-2 flex items-center gap-1"><Phone size={12}/> Monthly Calls</h4>
-                                        <div className="flex justify-between text-xs mb-1 font-bold text-gray-700">
-                                            <span>{row.achievedCalls || 0} Achieved</span>
-                                            <span>Target: {row.calls}</span>
-                                        </div>
-                                        <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                                            <div className={`h-full rounded-full ${getProgressColor(row.achievedCalls, row.calls)}`} style={{width: `${row.calls > 0 ? ((row.achievedCalls || 0)/row.calls)*100 : 0}%`}}></div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-[10px] font-black text-red-600 uppercase mb-2 flex items-center gap-1"><Users size={12}/> Monthly Leads</h4>
-                                        <div className="flex justify-between text-xs mb-1 font-bold text-gray-700">
-                                            <span>{row.achievedLeads || 0} Achieved</span>
-                                            <span>Target: {row.leads || 0}</span>
-                                        </div>
-                                        <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                                            <div className={`h-full rounded-full ${getProgressColor(row.achievedLeads, row.leads)}`} style={{width: `${(row.leads || 0) > 0 ? ((row.achievedLeads || 0)/(row.leads || 0))*100 : 0}%`}}></div>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                            {row.remarks && (
-                                <div className="bg-yellow-50 p-3 rounded-lg flex gap-2 items-start border border-yellow-100">
-                                    <MessageSquare size={14} className="text-yellow-600 mt-0.5"/>
-                                    <p className="text-xs text-gray-600 italic">"{row.remarks}"</p>
-                                </div>
-                            )}
-                            
-                            {/* Overall Achievement */}
-                            {(() => {
-                                const criteria = [];
-                                // For FSE: visits and onboards
-                                if (row.role === 'FSE') {
-                                    if ((row.visits || 0) > 0) criteria.push(((row.achievedVisits || 0) / row.visits) * 100);
-                                    if ((row.onboards || 0) > 0) criteria.push(((row.achievedOnboards || 0) / row.onboards) * 100);
-                                } else {
-                                    // For LeadGen: calls and leads
-                                    if ((row.calls || 0) > 0) criteria.push(((row.achievedCalls || 0) / row.calls) * 100);
-                                    if ((row.leads || 0) > 0) criteria.push(((row.achievedLeads || 0) / row.leads) * 100);
-                                }
-                                const achievement = criteria.length > 0 ? Math.round(criteria.reduce((a, b) => a + b, 0) / criteria.length) : 0;
-                                return (
-                                    <div className={`mt-3 pt-3 border-t ${achievement > 70 ? 'bg-green-50 border-green-200' : achievement >= 50 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'} p-3 rounded-lg text-center`}>
-                                        <span className="text-xs font-bold uppercase">Overall Achievement</span>
-                                        <span className={`block text-2xl font-black ${achievement > 70 ? 'text-green-700' : achievement >= 50 ? 'text-yellow-700' : 'text-red-700'}`}>{achievement}%</span>
-                                    </div>
-                                );
-                            })()}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-      )}
-
-      {/* =========================================================================================
-                                   TAB 3: PROJECTION (PLANNING VIEW)
-         ========================================================================================= */}
-      {activeTab === 'projection' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-            
-            {/* Control Bar - Moved to top */}
-            <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-purple-100 shadow-sm">
-                <div className="flex items-center gap-3">
-                    <div className="bg-purple-100 text-purple-700 p-2 rounded-lg"><Calendar size={20}/></div>
-                    <div>
-                        <h3 className="font-bold text-gray-800 text-sm">Planning For:</h3>
-                        <input type="month" value={projectionMonth} onChange={(e) => setProjectionMonth(e.target.value)} className="font-black text-purple-700 text-lg bg-transparent outline-none cursor-pointer"/>
-                    </div>
-                </div>
-                <button onClick={() => openModal('create')} className="bg-purple-700 hover:bg-purple-800 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg transition flex items-center gap-2 uppercase tracking-wide">
-                    <Plus size={18}/> Set Target For Member
-                </button>
-            </div>
-
-            {/* HOD Assigned Targets Section */}
-            {filteredHodProjectionData.length > 0 && filteredHodProjectionData[0] && (
-            <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-200 text-gray-800">
-                <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-lg font-black uppercase tracking-wide flex items-center gap-2 text-purple-700">
-                        <Target size={20}/> HOD Assigned Targets - {projectionMonth ? new Date(projectionMonth + '-01').toLocaleString('en-US', { month: 'short', year: 'numeric' }) : 'Select Month'}
-                    </h3>
-                    <div className="flex gap-2">
-                        <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">{filteredHodProjectionData[0].fseCount || 0} FSE</span>
-                        <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">{filteredHodProjectionData[0].callersCount || 0} Leadgen</span>
-                        <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-bold">{filteredHodProjectionData[0].workingDays || 0} Working Days</span>
-                    </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
-                        <span className="block text-xs font-bold text-purple-600 uppercase">Visits / FSE / Month</span>
-                        <span className="block text-3xl font-black text-purple-700">{filteredHodProjectionData[0].visitsPerFse || 0}</span>
-                        <div className="mt-1 flex justify-between items-center"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalVisits || 0}</span></div>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
-                        <span className="block text-xs font-bold text-purple-600 uppercase">Onboards / FSE / Month</span>
-                        <span className="block text-3xl font-black text-purple-700">{filteredHodProjectionData[0].onboardPerFse || 0}</span>
-                        <div className="mt-1 flex justify-between items-center"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalOnboards || 0}</span></div>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
-                        <span className="block text-xs font-bold text-purple-600 uppercase">Calls / Leadgen / Month</span>
-                        <span className="block text-3xl font-black text-purple-700">{filteredHodProjectionData[0].callsPerCaller || 0}</span>
-                        <div className="mt-1 flex justify-between items-center"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalCalls || 0}</span></div>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-center">
-                        <span className="block text-xs font-bold text-purple-600 uppercase">Leads / Leadgen / Month</span>
-                        <span className="block text-3xl font-black text-purple-700">{filteredHodProjectionData[0].leadsPerCaller || 0}</span>
-                        <div className="mt-1 flex justify-between items-center"><span className="inline-block text-xs font-bold bg-purple-800 text-white px-2 py-0.5 rounded">Total: {filteredHodProjectionData[0].totalLeads || 0}</span></div>
-                    </div>
-                    <div className="bg-green-50 p-4 rounded-xl border border-green-200 text-center">
-                        <span className="block text-xs font-bold text-green-600 uppercase">CTC Generation</span>
-                        <span className="block text-3xl font-black text-green-700">{filteredHodProjectionData[0].ctcGeneration || 0}</span>
-                    </div>
-                </div>
+      {/* --- ADD/EDIT TARGET MODAL --- */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 duration-200">
                 
-                {/* Remarks */}
-                <div className="mt-2 pt-2 border-t border-purple-200">
-                    <span className="text-xs font-bold text-purple-600 uppercase">Remarks: </span>
-                    <span className="text-sm text-gray-700 font-bold">{filteredHodProjectionData[0].remarks || '-'}</span>
+                <div className="p-4 flex justify-between items-center text-white bg-[#103c7f]">
+                    <h3 className="font-bold uppercase tracking-widest text-sm flex items-center gap-2">
+                        {editId ? <Edit size={16}/> : <Target size={16}/>} 
+                        {editId ? "Edit Team Target" : "Assign Target to Team"}
+                    </h3>
+                    <button onClick={() => setIsModalOpen(false)} className="hover:bg-white/20 p-1 rounded-full transition-colors"><X size={18}/></button>
                 </div>
-            </div>
-            )}
 
-            {/* Show message if no HOD targets */}
-            {filteredHodProjectionData.length === 0 && (
-                <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200 text-center">
-                    <p className="text-purple-600 font-bold text-sm">No HOD assigned targets for {projectionMonth ? new Date(projectionMonth + '-01').toLocaleString('en-US', { month: 'short', year: 'numeric' }) : 'this month'}</p>
-                </div>
-            )}
-
-            {/* Member Targets Section Header */}
-            <div className="flex justify-between items-center mt-6 mb-4">
-                <h3 className="text-lg font-black uppercase tracking-wide flex items-center gap-2 text-[#103c7f]">
-                    <Users size={20}/> Member Targets - {projectionMonth ? new Date(projectionMonth + '-01').toLocaleString('en-US', { month: 'short', year: 'numeric' }) : 'Select Month'}
-                </h3>
-            </div>
-
-            {/* Projection Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredProjectionData.length === 0 ? (
-                    <div className="col-span-3 text-center py-12 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50">
-                        <p className="text-gray-400 font-bold">No targets set for {projectionMonth} yet.</p>
-                        <button onClick={() => openModal('create')} className="mt-2 text-purple-600 font-bold hover:underline">Set First Target</button>
-                    </div>
-                ) : filteredProjectionData.map((row, idx) => (
-                    <div key={row.id || `projection-${idx}`} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 relative hover:border-purple-200 transition-colors">
-                        <div className="flex justify-between items-start mb-4">
+                <div className="p-5 max-h-[80vh] overflow-y-auto custom-scrollbar flex flex-col">
+                    
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-5">
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Target Scope</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                             <div>
-                                <h3 className="font-bold text-lg text-gray-800 flex items-center">{row.name} <span className={`ml-2 text-[10px] px-2 py-0.5 rounded font-bold align-middle ${row.role === 'FSE' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>{row.role}</span></h3>
+                                <label className="text-[10px] font-bold text-gray-500 uppercase">Year</label>
+                                <input type="text" value={form.year} onChange={e => setForm({...form, year: e.target.value})} className="w-full border border-gray-200 p-2 rounded-lg text-sm outline-none bg-white font-bold"/>
                             </div>
-                            <button onClick={() => openModal('edit', row)} className="bg-purple-50 text-purple-700 p-2 rounded-lg hover:bg-purple-100 transition"><Edit2 size={16}/></button>
+                            <div>
+                                <label className="text-[10px] font-bold text-gray-500 uppercase">Month</label>
+                                <select value={form.month} onChange={e => setForm({...form, month: e.target.value})} className="w-full border border-gray-200 p-2 rounded-lg text-sm outline-none bg-white">
+                                    <option value="">- Select -</option>
+                                    {months.map(m => <option key={m} value={m}>{m}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-gray-500 uppercase">Working Days</label>
+                                <input type="number" placeholder="e.g. 24" value={form.workingDays} onChange={e => setForm({...form, workingDays: e.target.value})} className="w-full border border-gray-200 p-2 rounded-lg text-sm outline-none bg-white"/>
+                            </div>
+                            
+                            <div>
+                                <label className="text-[10px] font-bold text-blue-600 uppercase">Role</label>
+                                <select value={form.role} onChange={handleRoleChange} className="w-full border border-blue-200 p-2 rounded-lg text-sm outline-none bg-blue-50 focus:border-blue-500">
+                                    <option value="">- Select Role -</option>
+                                    {teamRoles.map(r => <option key={r} value={r}>{r}</option>)}
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label className="text-[10px] font-bold text-purple-600 uppercase">Employee Name</label>
+                                <select 
+                                    value={form.assignedTo} 
+                                    onChange={e => setForm({...form, assignedTo: e.target.value})} 
+                                    disabled={!form.role} 
+                                    className="w-full border border-purple-200 p-2 rounded-lg text-sm outline-none bg-purple-50 focus:border-purple-500 disabled:opacity-50"
+                                >
+                                    <option value="">- Select Name -</option>
+                                    {form.role && teamEmployees[form.role]?.map(emp => <option key={emp} value={emp}>{emp}</option>)}
+                                </select>
+                            </div>
                         </div>
-
-                        <div className="space-y-3">
-                            {row.role === 'FSE' ? (
-                                <>
-                                    <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 text-center">
-                                        <span className="block text-[10px] font-bold text-blue-400 uppercase">Monthly Visits</span>
-                                        <span className="block text-xl font-black text-blue-800">{row.visits || 0}</span>
-                                        <span className="inline-block text-[10px] font-bold bg-blue-800 text-white px-2 py-0.5 rounded mt-1 ml-auto">Per Day: {row.workingDays ? Math.round((row.visits || 0) / row.workingDays) : 0}</span>
-                                    </div>
-                                    <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 text-center">
-                                        <span className="block text-[10px] font-bold text-blue-400 uppercase">Monthly Onboards</span>
-                                        <span className="block text-xl font-black text-blue-800">{row.onboards || 0}</span>
-                                    </div>
-                                    <div className="bg-green-50 p-3 rounded-xl border border-green-100 text-center">
-                                        <span className="block text-[10px] font-bold text-green-400 uppercase">CTC Generation</span>
-                                        <span className="block text-xl font-black text-green-800">{row.ctcGeneration || 0}</span>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="bg-orange-50 p-3 rounded-xl border border-orange-100 text-center">
-                                        <span className="block text-[10px] font-bold text-orange-400 uppercase">Monthly Calls</span>
-                                        <span className="block text-xl font-black text-orange-800">{row.calls || 0}</span>
-                                    </div>
-                                    <div className="bg-orange-50 p-3 rounded-xl border border-orange-100 text-center">
-                                        <span className="block text-[10px] font-bold text-orange-400 uppercase">Monthly Leads</span>
-                                        <span className="block text-xl font-black text-orange-800">{row.leads || 0}</span>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-
-                        {row.remarks && (
-                            <p className="text-xs text-gray-500 italic border-t pt-3 mt-3">"{row.remarks}"</p>
-                        )}
                     </div>
-                ))}
+
+                    <div className="space-y-4 mb-4">
+                        {form.targetList.map((t, index) => (
+                            <div key={index} className="border border-blue-100 rounded-xl p-4 bg-white shadow-sm relative group">
+                                
+                                {!editId && form.targetList.length > 1 && (
+                                    <button onClick={() => removeTargetRow(index)} className="absolute top-3 right-3 text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Remove this KPI">
+                                        <Trash2 size={14} />
+                                    </button>
+                                )}
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase">KPI Metric</label>
+                                        <select value={t.kpi_metric} onChange={e => handleTargetChange(index, 'kpi_metric', e.target.value)} className="w-full border border-gray-200 p-2 rounded-lg text-sm outline-none focus:border-blue-500 bg-gray-50">
+                                            <option value="">- Select Metric -</option>
+                                            {kpiMetrics.map(k => <option key={k} value={k}>{k}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase">Frequency</label>
+                                        <select value={t.frequency} onChange={e => handleTargetChange(index, 'frequency', e.target.value)} className="w-full border border-gray-200 p-2 rounded-lg text-sm outline-none focus:border-blue-500 bg-gray-50">
+                                            <option value="Daily">Daily</option>
+                                            <option value="Monthly">Monthly</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-blue-600 uppercase">Target Number</label>
+                                        <input type="number" placeholder="E.g. 50" value={t.target} onChange={e => handleTargetChange(index, 'target', e.target.value)} className="w-full border border-blue-200 p-2 rounded-lg text-sm font-black outline-none focus:border-blue-600 bg-blue-50 text-[#103c7f]"/>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase">Guideline / Instructions</label>
+                                    <textarea rows="2" placeholder="Write specific instructions for this KPI..." value={t.guideline} onChange={e => handleTargetChange(index, 'guideline', e.target.value)} className="w-full border border-gray-200 p-2 rounded-lg text-sm outline-none focus:border-blue-500 bg-gray-50 resize-none"></textarea>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {!editId && (
+                        <div className="flex justify-center mb-6">
+                            <button onClick={addTargetRow} className="bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-colors flex items-center gap-2 shadow-sm">
+                                <Plus size={14}/> Add Another KPI
+                            </button>
+                        </div>
+                    )}
+
+                    <div className="pt-4 border-t border-gray-100 mt-auto">
+                        <button onClick={handleSaveTarget} className="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl font-black uppercase tracking-widest text-white shadow-md flex items-center justify-center gap-2 transition-colors text-xs">
+                            <Save size={16}/> {editId ? "Update Target" : `Save & Assign Target`}
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
       )}
-      </>
-      )}
 
-      {/* --- SHARED MODAL (Create/Edit Targets) --- */}
-      {isTargetModalOpen && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 border-4 border-white">
-                <div className={`${activeTab === 'projection' ? 'bg-purple-700' : 'bg-[#103c7f]'} p-5 flex justify-between items-center text-white shrink-0`}>
-                    <h3 className="font-bold text-lg uppercase flex items-center gap-2">
-                        <Target size={20} /> {modalMode === 'create' ? `Set New Target - ${projectionMonth ? new Date(projectionMonth + '-01').toLocaleString('en-US', { month: 'short', year: 'numeric' }) : 'Select Month'}` : 'Update Target'}
+      {/* --- VIEW TARGET MODAL --- */}
+      {isViewModalOpen && viewData && (
+        <div className="fixed inset-0 bg-[#103c7f]/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="p-4 flex justify-between items-center text-white bg-[#103c7f]">
+                    <h3 className="font-bold uppercase tracking-widest text-sm flex items-center gap-2">
+                        <Eye size={16}/> View Details
                     </h3>
-                    <button onClick={() => setIsTargetModalOpen(false)} className="hover:bg-white/20 p-1.5 rounded-full transition"><X size={20}/></button>
+                    <button onClick={() => setIsViewModalOpen(false)} className="hover:bg-white/20 p-1 rounded-full transition-colors"><X size={18}/></button>
                 </div>
-                
-                <form className="p-6 flex flex-col gap-5 overflow-y-auto max-h-[80vh]">
-                    {/* Member Selection */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block ml-1">Select Team Member</label>
-                            <select 
-                                name="memberId" 
-                                value={targetForm.memberId || ''} 
-                                onChange={handleMemberSelect} 
-                                disabled={modalMode === 'edit'}
-                                className="w-full border border-gray-300 rounded-xl p-3 text-sm font-bold text-gray-700 outline-none focus:border-purple-500 bg-gray-50 disabled:opacity-60"
-                            >
-                                <option value="">-- Choose Member --</option>
-                                {getMembersList().map(mbr => (
-                                    <option key={String(mbr.id)} value={String(mbr.id)}>
-                                      {mbr.name} ({mbr.role})
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-[10px] font-black text-purple-600 uppercase mb-1 block ml-1">Working Days</label>
-                            <input 
-                              type="number" 
-                              name="workingDays" 
-                              className="w-full border border-purple-200 rounded-xl p-3 text-sm font-bold text-purple-700 outline-none focus:border-purple-500"
-                              value={targetForm.workingDays || '24'}
-                              onChange={handleFormChange}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Target Inputs */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-400 uppercase block">Visits/Day</label>
-                            <input type="number" name="visits" className="w-full border p-2 rounded-lg font-bold" value={targetForm.visits || ''} onChange={handleFormChange} disabled={getMembersList().find(m => String(m.id) === String(targetForm.memberId))?.role === 'LeadGen'}/>
-                        </div>
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-400 uppercase block">Monthly Onboards</label>
-                            <input type="number" name="onboards" className="w-full border p-2 rounded-lg font-bold" value={targetForm.onboards || ''} onChange={handleFormChange} disabled={getMembersList().find(m => String(m.id) === String(targetForm.memberId))?.role === 'LeadGen'}/>
-                        </div>
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-400 uppercase block">Monthly Calls</label>
-                            <input type="number" name="calls" className="w-full border p-2 rounded-lg font-bold" value={targetForm.calls || ''} onChange={handleFormChange} disabled={getMembersList().find(m => String(m.id) === String(targetForm.memberId))?.role === 'FSE'}/>
-                        </div>
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-400 uppercase block">Monthly Leads</label>
-                            <input type="number" name="leads" className="w-full border p-2 rounded-lg font-bold" value={targetForm.leads || ''} onChange={handleFormChange} disabled={getMembersList().find(m => String(m.id) === String(targetForm.memberId))?.role === 'FSE'}/>
-                        </div>
-                        <div className="col-span-2">
-                            <label className="text-[10px] font-bold text-gray-400 uppercase block">CTC Generation</label>
-                            <input type="number" name="ctcGeneration" className="w-full border p-2 rounded-lg font-bold" value={targetForm.ctcGeneration || ''} onChange={handleFormChange}/>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="text-[10px] font-bold text-gray-400 uppercase block">Remarks</label>
-                        <textarea name="remarks" className="w-full border p-2 rounded-lg font-medium text-sm h-16 resize-none" value={targetForm.remarks} onChange={handleFormChange}></textarea>
-                    </div>
-
-                    <button onClick={handleSetTarget} className={`mt-2 text-white font-bold py-3.5 rounded-xl shadow-lg uppercase tracking-wide text-sm ${activeTab === 'projection' ? 'bg-purple-700 hover:bg-purple-800' : 'bg-[#103c7f] hover:bg-blue-900'}`}>
-                        Save Target
-                    </button>
-                </form>
+                <div className="p-5 flex flex-col items-center justify-center text-center">
+                    <User size={40} className="text-gray-300 mb-3" />
+                    <h4 className="text-base font-black text-gray-800">{viewData.assignedTo}</h4>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{viewData.role}</p>
+                    <div className="w-full bg-gray-100 h-px my-4"></div>
+                    <p className="text-xs text-gray-600">Detailed logs for <b>{viewData.kpi_metric}</b> will be available once the employee submits their daily updates.</p>
+                </div>
             </div>
         </div>
       )}
