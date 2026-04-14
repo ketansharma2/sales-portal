@@ -41,6 +41,7 @@ export default function OnboardPage() {
               phone: client.phone || 'N/A'
             },
             remarks: client.remarks || 'No remarks',
+            clientStatus: client.client_status || 'Inactive',
             isAcknowledged: client.status === 'Done' // Set to true if status is 'Done'
           }));
           setOnboardingList(formattedClients);
@@ -78,6 +79,36 @@ export default function OnboardPage() {
       }
     } catch (error) {
       console.error('Error acknowledging client:', error);
+    }
+  };
+
+  // --- LOGIC: Toggle Client Status ---
+  const handleToggleStatus = async (id, currentStatus, companyName) => {
+    const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+    
+    if (!confirm(`Are you sure you want to change ${companyName}'s status to "${newStatus}"?`)) {
+      return;
+    }
+    
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/crm/client-status', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ client_id: id, client_status: newStatus })
+      });
+
+      if (response.ok) {
+        const updatedList = onboardingList.map((item) =>
+          item.id === id ? { ...item, clientStatus: newStatus } : item
+        );
+        setOnboardingList(updatedList);
+      }
+    } catch (error) {
+      console.error('Error toggling client status:', error);
     }
   };
 
@@ -153,6 +184,7 @@ export default function OnboardPage() {
                   <th className="px-5 py-3 whitespace-nowrap">Location & State</th>
                   <th className="px-5 py-3 whitespace-nowrap w-64">Contact Person</th>
                   <th className="px-5 py-3 whitespace-nowrap">Remarks</th>
+                  <th className="px-5 py-3 whitespace-nowrap">Client Status</th>
                   <th className="px-5 py-3 whitespace-nowrap text-center">Status</th>
                 </tr>
               </thead>
@@ -160,7 +192,7 @@ export default function OnboardPage() {
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-8 text-center">
+                    <td colSpan="8" className="px-6 py-8 text-center">
                       <div className="flex flex-col items-center justify-center text-gray-400">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#103c7f] mb-2"></div>
                         <p className="text-sm font-bold">Loading clients...</p>
@@ -202,6 +234,18 @@ export default function OnboardPage() {
                         </div>
                       </td>
 
+                      {/* --- CLIENT STATUS COLUMN --- */}
+                      <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
+                        <button 
+                          onClick={() => handleToggleStatus(item.id, item.clientStatus, item.company)}
+                          className={`px-2 py-1 rounded text-[10px] font-bold cursor-pointer hover:opacity-80 transition-opacity ${
+                            item.clientStatus === 'Active' ? 'bg-green-100 text-green-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>
+                          {item.clientStatus}
+                        </button>
+                      </td>
+
                       {/* --- ACTION COLUMN --- */}
                       <td className="px-5 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
                          {item.isAcknowledged ? (
@@ -223,7 +267,7 @@ export default function OnboardPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="px-6 py-8 text-center">
+                    <td colSpan="8" className="px-6 py-8 text-center">
                         <div className="flex flex-col items-center justify-center text-gray-400">
                             <Search size={32} className="opacity-20 mb-2"/>
                             <p className="text-sm font-bold">No records found matching "{searchQuery}"</p>

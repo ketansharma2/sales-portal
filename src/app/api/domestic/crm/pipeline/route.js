@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server'
 
 export async function GET(request) {
   try {
-    // Authentication
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -20,34 +19,38 @@ export async function GET(request) {
     const allDatabase = searchParams.get('allDatabase')
 
     let query = supabaseServer
-      .from('domestic_crm_clients')
-      .select('*', { count: 'exact', head: true })
+      .from('domestic_crm_interview')
+      .select('email_draft_id')
       .eq('user_id', user.id)
+      .eq('interview_status', 'Pipeline')
 
     if (allDatabase !== 'true' && fromDate && toDate) {
-      query = query.gte('onboarding_date', fromDate)
-      query = query.lte('onboarding_date', toDate)
+      query = query.gte('date', fromDate)
+      query = query.lte('date', toDate)
     }
 
-    const { count, error: countError } = await query
+    const { data, error: fetchError } = await query
 
-    if (countError) {
-      console.error('Count onboarded clients error:', countError)
+    if (fetchError) {
+      console.error('Count pipeline error:', fetchError)
       return NextResponse.json({
-        error: 'Failed to count clients',
-        details: countError.message
+        error: 'Failed to count pipeline',
+        details: fetchError.message
       }, { status: 500 })
     }
+
+    const uniqueEmails = new Set(data.map(row => row.email_draft_id).filter(Boolean))
+    const count = uniqueEmails.size
 
     return NextResponse.json({
       success: true,
       data: {
-        totalOnboarded: count || 0
+        pipeline: count || 0
       }
     })
 
   } catch (error) {
-    console.error('CRM onboarded API error:', error)
+    console.error('CRM pipeline API error:', error)
     return NextResponse.json({
       error: 'Internal server error',
       details: error.message
