@@ -1111,7 +1111,7 @@ export default function CRMClientTrackerPage() {
                                                 />
 
                                                 <button 
-                                                    onClick={() => router.push(`/corporate/crm/tracker/history/${row.id}`)}
+                                                    onClick={() => router.push(`/domestic/crm/tracker/history/${row.id}`)}
                                                     className="w-full py-1 px-2 rounded-lg bg-white text-indigo-600 border border-indigo-300 hover:bg-indigo-50 flex items-center justify-center gap-1 font-black text-[8px] uppercase tracking-widest transition-all shadow-xs"
                                                 >
                                                     <History size={10}/> History

@@ -14,7 +14,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { email_draft_id, interview_status, client_remark, date, req_id, candidate_name, candidate_email, candidate_phone } = body;
+    const { email_draft_id, interview_status, client_remark, date } = body;
 
     if (!email_draft_id || !interview_status) {
       return NextResponse.json(
@@ -31,10 +31,6 @@ export async function POST(request) {
         client_remark: client_remark || "",
         date: date || new Date().toISOString().split('T')[0],
         user_id: user.id,
-        req_id: req_id || null,
-        candidate_name: candidate_name || null,
-        candidate_email: candidate_email || null,
-        candidate_phone: candidate_phone || null,
       })
       .select()
       .single();

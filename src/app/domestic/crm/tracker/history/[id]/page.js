@@ -35,7 +35,7 @@ export default function TrackerHistoryPage() {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
                 const token = session.access_token;
                 
-                const response = await fetch(`/api/corporate/crm/emails/history/${params.id}`, {
+                const response = await fetch(`/api/domestic/crm/emails/history/${params.id}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
@@ -82,7 +82,7 @@ export default function TrackerHistoryPage() {
             // Update each row with its journey data from the API
             const updatedHistory = await Promise.all(
                 emailHistoryData.map(async (row) => {
-                    const response = await fetch(`/api/corporate/crm/interview-journey?email_draft_id=${row.id}`, {
+                    const response = await fetch(`/api/domestic/crm/interview-journey?email_draft_id=${row.id}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     const result = await response.json();
@@ -136,7 +136,7 @@ export default function TrackerHistoryPage() {
             const session = JSON.parse(localStorage.getItem('session') || '{}');
             const token = session.access_token;
             
-            const response = await fetch('/api/corporate/crm/interview-journey', {
+            const response = await fetch('/api/domestic/crm/interview-journey', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -154,7 +154,7 @@ export default function TrackerHistoryPage() {
             
             if (result.success) {
                 // Fetch latest journey data from API after save
-                const fetchResponse = await fetch(`/api/corporate/crm/interview-journey?email_draft_id=${selectedHistoryRow.id}`, {
+                const fetchResponse = await fetch(`/api/domestic/crm/interview-journey?email_draft_id=${selectedHistoryRow.id}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const fetchResult = await fetchResponse.json();
