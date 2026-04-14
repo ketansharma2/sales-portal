@@ -1,6 +1,53 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
+export async function GET(request) {
+  try {
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const client_id = searchParams.get('client_id')
+
+    if (!client_id) {
+      return NextResponse.json({ error: 'Client ID is required' }, { status: 400 })
+    }
+
+    const { data: branches, error: fetchError } = await supabaseServer
+      .from('domestic_crm_branch')
+      .select('branch_id, branch_name, state, city, initial_status')
+      .eq('client_id', client_id)
+      .order('branch_name', { ascending: true })
+
+    if (fetchError) {
+      console.error('Fetch branches error:', fetchError)
+      return NextResponse.json({
+        error: 'Failed to fetch branches',
+        details: fetchError.message
+      }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: branches || []
+    })
+
+  } catch (error) {
+    console.error('Fetch branches API error:', error)
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: error.message
+    }, { status: 500 })
+  }
+}
+
 export async function POST(request) {
   try {
     // Authentication

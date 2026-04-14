@@ -16,17 +16,25 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url)
     const branchId = searchParams.get('branch_id')
+    const branchIds = searchParams.get('branch_ids')
 
-    if (!branchId) {
-      return NextResponse.json({ error: 'Branch ID is required' }, { status: 400 })
+    if (!branchId && !branchIds) {
+      return NextResponse.json({ error: 'Branch ID or Branch IDs are required' }, { status: 400 })
     }
 
-    // Fetch requirements for the branch
-    const { data: requirements, error } = await supabaseServer
+    let query = supabaseServer
       .from('domestic_crm_reqs')
       .select('*')
-      .eq('branch_id', branchId)
       .order('date', { ascending: false })
+
+    if (branchIds) {
+      const branchIdArray = branchIds.split(',').map(id => id.trim())
+      query = query.in('branch_id', branchIdArray)
+    } else if (branchId) {
+      query = query.eq('branch_id', branchId)
+    }
+
+    const { data: requirements, error } = await query
 
     if (error) {
       console.error('Fetch requirements error:', error)

@@ -59,7 +59,7 @@ export default function AssignWorkPage() {
         const fetchClients = async () => {
             try {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/corporate/crm/clients', {
+                const response = await fetch('/api/domestic/crm/clients', {
                     headers: {
                         'Authorization': `Bearer ${session.access_token}`
                     }
@@ -82,7 +82,7 @@ export default function AssignWorkPage() {
         const fetchTlUsers = async () => {
             try {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/corporate/crm/tl-users', {
+                const response = await fetch('/api/domestic/crm/tl-users', {
                     headers: {
                         'Authorization': `Bearer ${session.access_token}`
                     }
@@ -105,7 +105,7 @@ export default function AssignWorkPage() {
         const fetchWorkbenchAssignments = async () => {
             try {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/corporate/crm/workbench', {
+                const response = await fetch('/api/domestic/crm/workbench', {
                     headers: {
                         'Authorization': `Bearer ${session.access_token}`
                     }
@@ -162,7 +162,7 @@ export default function AssignWorkPage() {
             setLoadingBranches(true);
             try {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch(`/api/corporate/crm/branches?client_id=${formData.client}`, {
+                const response = await fetch(`/api/domestic/crm/branches?client_id=${formData.client}`, {
                     headers: {
                         'Authorization': `Bearer ${session.access_token}`
                     }
@@ -192,7 +192,7 @@ export default function AssignWorkPage() {
             try {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
                 const branchIds = branchesList.map(b => b.branch_id).join(',');
-                const response = await fetch(`/api/corporate/crm/requirements?branch_ids=${branchIds}`, {
+                const response = await fetch(`/api/domestic/crm/requirements?branch_ids=${branchIds}`, {
                     headers: {
                         'Authorization': `Bearer ${session.access_token}`
                     }
@@ -270,7 +270,7 @@ export default function AssignWorkPage() {
 
                 try {
                     const session = JSON.parse(localStorage.getItem('session') || '{}');
-                    const response = await fetch('/api/corporate/crm/workbench', {
+                    const response = await fetch('/api/domestic/crm/workbench', {
                         method: 'PUT',
                         headers: {
                             'Authorization': `Bearer ${session.access_token}`,
@@ -292,7 +292,7 @@ export default function AssignWorkPage() {
 
                     if (data.success) {
                         // Refresh assignments from API to get complete data with joins
-                        const refreshResponse = await fetch('/api/corporate/crm/workbench', {
+                        const refreshResponse = await fetch('/api/domestic/crm/workbench', {
                             headers: {
                                 'Authorization': `Bearer ${session.access_token}`
                             }
@@ -361,7 +361,7 @@ export default function AssignWorkPage() {
 
                 try {
                     const session = JSON.parse(localStorage.getItem('session') || '{}');
-                    const response = await fetch('/api/corporate/crm/workbench', {
+                    const response = await fetch('/api/domestic/crm/workbench', {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${session.access_token}`,
@@ -382,7 +382,7 @@ export default function AssignWorkPage() {
 
                     if (data.success) {
                         // Refresh assignments from API to get complete data with joins
-                        const refreshResponse = await fetch('/api/corporate/crm/workbench', {
+                        const refreshResponse = await fetch('/api/domestic/crm/workbench', {
                             headers: {
                                 'Authorization': `Bearer ${session.access_token}`
                             }
@@ -456,7 +456,7 @@ export default function AssignWorkPage() {
         if(window.confirm("Are you sure you want to delete this assignment?")) {
             try {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch(`/api/corporate/crm/workbench?workbench_id=${id}`, {
+                const response = await fetch(`/api/domestic/crm/workbench?workbench_id=${id}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${session.access_token}`
@@ -467,7 +467,7 @@ export default function AssignWorkPage() {
 
                 if (data.success) {
                     // Refresh assignments from API
-                    const refreshResponse = await fetch('/api/corporate/crm/workbench', {
+                    const refreshResponse = await fetch('/api/domestic/crm/workbench', {
                         headers: {
                             'Authorization': `Bearer ${session.access_token}`
                         }

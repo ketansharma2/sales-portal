@@ -34,13 +34,19 @@ export async function GET(request) {
     const reqIds = [...new Set(workbenchData.map(item => item.req_id).filter(Boolean))]
     const recruiterIds = [...new Set(workbenchData.map(item => item.sent_to_rc).filter(Boolean))]
 
+    console.log('TL Workbench - Workbench count:', workbenchData?.length || 0)
+    console.log('TL Workbench - Req IDs:', reqIds)
+
     let reqsData = []
     if (reqIds.length > 0) {
-      const { data: requirements } = await supabaseServer
+      const { data: requirements, error: reqsError } = await supabaseServer
         .from('domestic_crm_reqs')
-        .select('req_id, branch_id, job_title, experience, package, openings, location, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers, contact_details')
+        .select('req_id, branch_id, job_title, experience, package, openings')
         .in('req_id', reqIds)
       
+      if (reqsError) {
+        console.error('Fetch requirements error:', reqsError)
+      }
       reqsData = requirements || []
     }
 
@@ -194,18 +200,7 @@ export async function GET(request) {
         totalCv: totalCvMap.get(item.workbench_id) || 0,
         tl_remarks: item.tl_remarks || '',
         rc_remarks: item.rc_remarks || '',
-        advance_sti: stiSumMap.get(item.workbench_id) || 0,
-        location: req?.location || '',
-        employment_type: req?.employment_type || '',
-        working_days: req?.working_days || '',
-        timings: req?.timings || '',
-        tool_requirement: req?.tool_req || '',
-        job_summary: req?.job_summary || '',
-        rnr: req?.rnr || '',
-        req_skills: req?.req_skills || '',
-        preferred_qual: req?.preferred_qual || '',
-        company_offers: req?.company_offers || '',
-        contact_details: req?.contact_details || ''
+        advance_sti: stiSumMap.get(item.workbench_id) || 0
       }
     })
 

@@ -165,7 +165,7 @@ export default function CRMClientTrackerPage() {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
                 const token = session.access_token;
                 
-                const response = await fetch('/api/corporate/crm/tl-users', {
+                const response = await fetch('/api/domestic/crm/tl-users', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
@@ -236,7 +236,7 @@ export default function CRMClientTrackerPage() {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
                 const token = session.access_token;
                 
-                const response = await fetch('/api/corporate/crm/tracker', {
+                const response = await fetch('/api/domestic/crm/tracker', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
@@ -280,7 +280,7 @@ export default function CRMClientTrackerPage() {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
                 const token = session.access_token;
                 
-                const response = await fetch('/api/corporate/crm/clients', {
+                const response = await fetch('/api/domestic/crm/clients', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
@@ -381,7 +381,7 @@ export default function CRMClientTrackerPage() {
             for (const row of editableDraftData) {
                 console.log('Saving candidate:', row.name, 'id:', row.id);
                 
-                const saveResponse = await fetch('/api/corporate/crm/emails', {
+                const saveResponse = await fetch('/api/domestic/crm/emails', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -656,7 +656,7 @@ export default function CRMClientTrackerPage() {
         try {
             // 1. Save each candidate to database (corporate_crm_emails)
             for (const row of editableDraftData) {
-                await fetch('/api/corporate/crm/emails', {
+                await fetch('/api/domestic/crm/emails', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,

@@ -193,7 +193,7 @@ export default function FAQManagement() {
         const token = session.access_token;
         if (!token) return;
 
-        const response = await fetch('/api/corporate/crm/clients-list', {
+        const response = await fetch('/api/domestic/crm/clients-list', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -220,7 +220,7 @@ export default function FAQManagement() {
         const token = session.access_token;
         if (!token) return;
 
-        const response = await fetch(`/api/corporate/crm/requirements-by-client?client_id=${formData.client}`, {
+        const response = await fetch(`/api/domestic/crm/requirements-by-client?client_id=${formData.client}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -246,7 +246,7 @@ export default function FAQManagement() {
         const token = session.access_token;
         if (!token) return;
 
-        const response = await fetch('/api/corporate/crm/faq', {
+        const response = await fetch('/api/domestic/crm/faq', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -322,7 +322,7 @@ export default function FAQManagement() {
       let response;
       if (isEditing) {
         // Update existing FAQ
-        response = await fetch('/api/corporate/crm/faq', {
+        response = await fetch('/api/domestic/crm/faq', {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -335,7 +335,7 @@ export default function FAQManagement() {
         });
       } else {
         // Create new FAQ
-        response = await fetch('/api/corporate/crm/faq', {
+        response = await fetch('/api/domestic/crm/faq', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -352,7 +352,7 @@ export default function FAQManagement() {
       const data = await response.json();
       if (data.success) {
         // Refresh FAQs list
-        const faqsResponse = await fetch('/api/corporate/crm/faq', {
+        const faqsResponse = await fetch('/api/domestic/crm/faq', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const faqsData = await faqsResponse.json();
@@ -379,7 +379,7 @@ export default function FAQManagement() {
       const token = session.access_token;
       if (!token) return;
 
-      const response = await fetch(`/api/corporate/crm/faq/${faq_id}`, {
+      const response = await fetch(`/api/domestic/crm/faq/${faq_id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

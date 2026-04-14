@@ -152,7 +152,7 @@ export default function EmailHistoryPage() {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
                 const token = session.access_token;
                 
-                const response = await fetch('/api/corporate/crm/clients', {
+                const response = await fetch('/api/domestic/crm/clients', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
@@ -177,7 +177,7 @@ export default function EmailHistoryPage() {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
                 const token = session.access_token;
                 
-                const response = await fetch('/api/corporate/crm/email-history', {
+                const response = await fetch('/api/domestic/crm/email-history', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
@@ -218,7 +218,7 @@ export default function EmailHistoryPage() {
             const session = JSON.parse(localStorage.getItem('session') || '{}');
             const token = session.access_token;
             
-            const response = await fetch(`/api/corporate/crm/interview-journey?email_draft_id=${candidateRow.email_draft_id}`, {
+            const response = await fetch(`/api/domestic/crm/interview-journey?email_draft_id=${candidateRow.email_draft_id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             
