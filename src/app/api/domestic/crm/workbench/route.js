@@ -56,7 +56,7 @@ export async function GET(request) {
 
     const { data: reqsData, error: reqsError } = reqIds.length > 0 ? await supabaseServer
       .from('domestic_crm_reqs')
-      .select('req_id, job_title, experience, package, openings')
+      .select('req_id, job_title, experience, package, openings, location, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers, contact_details')
       .in('req_id', reqIds) : { data: [] }
 
     if (reqsError) {
@@ -176,14 +176,26 @@ export async function GET(request) {
         rc_remarks: item.rc_remarks || '',
         tl_remarks: item.tl_remarks || '',
         cv_remarks: item.cv_remarks || '',
-status: item.status || 'Pending',
+        status: item.status || 'Pending',
         tracker_sent: trackerSentMap.get(item.workbench_id) || 0,
         today_asset: todayAssetMap.get(item.workbench_id) || 0,
         today_conversion: todayConversionMap.get(item.workbench_id) || 0,
         cv_naukri: cvNaukriMap.get(item.workbench_id) || 0,
         cv_indeed: cvIndeedMap.get(item.workbench_id) || 0,
         cv_other: cvOtherMap.get(item.workbench_id) || 0,
-        totalCv: totalCvMap.get(item.workbench_id) || 0
+        totalCv: totalCvMap.get(item.workbench_id) || 0,
+        // JD fields
+        location: req?.location || '',
+        employment_type: req?.employment_type || '',
+        working_days: req?.working_days || '',
+        timings: req?.timings || '',
+        tool_requirement: req?.tool_req || '',
+        job_summary: req?.job_summary || '',
+        rnr: req?.rnr || '',
+        req_skills: req?.req_skills || '',
+        preferred_qual: req?.preferred_qual || '',
+        company_offers: req?.company_offers || '',
+        contact_details: req?.contact_details || ''
       }
     })
 

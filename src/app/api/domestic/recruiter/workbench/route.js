@@ -33,7 +33,7 @@ export async function GET(request) {
     if (reqIds.length > 0) {
       const { data: requirements, error: reqsError } = await supabaseServer
         .from('domestic_crm_reqs')
-        .select('req_id, branch_id, job_title, experience, package, openings')
+        .select('req_id, branch_id, job_title, experience, package, openings, location, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers, contact_details')
         .in('req_id', reqIds)
       
       if (reqsError) {
@@ -126,7 +126,19 @@ export async function GET(request) {
         created_at: item.created_at,
         slot: item.slot || '',
         advance_sti: totalSti,
-        rc_remarks: item.rc_remarks || ''
+        rc_remarks: item.rc_remarks || '',
+        // JD fields
+        location: req?.location || '',
+        employment_type: req?.employment_type || '',
+        working_days: req?.working_days || '',
+        timings: req?.timings || '',
+        tool_requirement: req?.tool_req || '',
+        job_summary: req?.job_summary || '',
+        rnr: req?.rnr || '',
+        req_skills: req?.req_skills || '',
+        preferred_qual: req?.preferred_qual || '',
+        company_offers: req?.company_offers || '',
+        contact_details: req?.contact_details || ''
       }
     }) || []
 

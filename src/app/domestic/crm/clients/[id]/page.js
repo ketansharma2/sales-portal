@@ -10,8 +10,9 @@ import {
   Briefcase, CheckCircle, Edit, Share2,
   Calendar, CreditCard, Layout, ShieldCheck,
   ImageIcon, ExternalLink, X, Save, Eye, Lock,
-  PlusCircle
+  PlusCircle, Download
 } from "lucide-react";
+import Image from "next/image";
 
 export default function ClientMasterProfile() {
   const params = useParams();
@@ -28,6 +29,53 @@ export default function ClientMasterProfile() {
   const [isAllContactsOpen, setIsAllContactsOpen] = useState(false);
   const [isAllReqsOpen, setIsAllReqsOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingReqId, setEditingReqId] = useState(null);
+  const [viewJdData, setViewJdData] = useState(null);
+  
+  const [jdFormData, setJdFormData] = useState({
+      jd_id: null, client_name: '', job_title: '', location: '', experience: '',
+      employment_type: '', working_days: '', timings: '', package: '',
+      tool_requirement: '', job_summary: '', rnr: '', req_skills: '',
+      preferred_qual: '', company_offers: '', contact_details: ''
+  });
+
+  // --- MOCK PAST JDs DATABASE (For Auto-fill Feature) ---
+  const mockPastJDs = [
+      {
+          id: 101, client_name: "TechCorp Solutions", job_title: "Java Developer", location: "Bangalore", 
+          experience: "3-5 Years", employment_type: "Full Time", working_days: "5 Days", 
+          timings: "10:00 AM - 07:00 PM", package: "12-15 LPA", tool_requirement: "IntelliJ, Jira", 
+          job_summary: "Looking for a strong backend Java developer...", 
+          rnr: "1. Build microservices.\n2. Optimize database queries.", 
+          req_skills: "Java 8+, Spring Boot, Microservices, MySQL", 
+          preferred_qual: "B.Tech/B.E in Computer Science", 
+          company_offers: "Health Insurance, Free Cab, Flexible Timings", 
+          contact_details: "hr@techcorp.com"
+      },
+      {
+          id: 102, client_name: "Urban Money", job_title: "Telesales Executive", location: "Delhi", 
+          experience: "1-3 Years", employment_type: "Full Time", working_days: "6 Days", 
+          timings: "09:30 AM - 06:30 PM", package: "3-4 LPA", tool_requirement: "CRM, Dialer", 
+          job_summary: "Outbound calling to prospective B2B clients.", 
+          rnr: "1. Lead Generation.\n2. Conversion tracking.", 
+          req_skills: "Excellent Communication, Sales Pitching", 
+          preferred_qual: "Any Graduate", 
+          company_offers: "Fixed Salary + Incentives", 
+          contact_details: "recruitment@urbanmoney.com"
+      },
+      {
+          id: 103, client_name: "FinanceBuddy", job_title: "Accountant", location: "Gurgaon", 
+          experience: "2-4 Years", employment_type: "Full Time", working_days: "5 Days", 
+          timings: "10:00 AM - 06:00 PM", package: "5-7 LPA", tool_requirement: "Tally, Excel", 
+          job_summary: "Handle day-to-day accounting operations.", 
+          rnr: "1. Book keeping.\n2. GST returns.", 
+          req_skills: "CA Inter, Tally, GST", 
+          preferred_qual: "B.Com, CA Inter", 
+          company_offers: "Performance Bonus, PF", 
+          contact_details: "jobs@financebuddy.com"
+      }
+  ];
 
   // --- 1. MASTER CLIENT DATA ---
   const [clientData, setClientData] = useState({
@@ -695,47 +743,161 @@ const [newConversationData, setNewConversationData] = useState({
       alert('Error saving tracker');
     }
   };
- const handleSaveRequirement = async () => {
-   try {
-     const session = JSON.parse(localStorage.getItem('session') || '{}');
-     const response = await fetch('/api/domestic/crm/requirements', {
-       method: 'POST',
-       headers: {
-         'Content-Type': 'application/json',
-         'Authorization': `Bearer ${session.access_token}`
-       },
-       body: JSON.stringify({
-         branch_id: selectedBranchId,
-         job_title: newReqData.jobTitle,
-         jd_link: newReqData.jdLink,
-         experience: newReqData.experience,
-         package: newReqData.package,
-         openings: newReqData.openings,
-         priority: newReqData.priority,
-         status: newReqData.status,
-         timeline: newReqData.timeline,
-         date: newReqData.receivedDate
-       })
-     });
+const handleSaveRequirement = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/crm/requirements', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          branch_id: selectedBranchId,
+          job_title: newReqData.jobTitle,
+          jd_link: newReqData.jdLink,
+          experience: newReqData.experience,
+          package: newReqData.package,
+          openings: newReqData.openings,
+          priority: newReqData.priority,
+          status: newReqData.status,
+          timeline: newReqData.timeline,
+          date: newReqData.receivedDate,
+          // JD fields
+          location: jdFormData.location,
+          employment_type: jdFormData.employment_type,
+          working_days: jdFormData.working_days,
+          timings: jdFormData.timings,
+          tool_requirement: jdFormData.tool_requirement,
+          job_summary: jdFormData.job_summary,
+          rnr: jdFormData.rnr,
+          req_skills: jdFormData.req_skills,
+          preferred_qual: jdFormData.preferred_qual,
+          company_offers: jdFormData.company_offers,
+          contact_details: jdFormData.contact_details
+        })
+      });
 
-     const data = await response.json();
-     if (data.success) {
-       // Refresh requirements
-       fetchRequirements();
-       setIsReqModalOpen(false);
-       setNewReqData({
-         jobTitle: '', jdLink: '', experience: '', package: '',
-         openings: '', priority: '', status: 'Not Started', timeline: '',
-         receivedDate: new Date().toISOString().split('T')[0]
-       });
-     } else {
-       alert('Failed to save requirement: ' + (data.error || 'Unknown error'));
-     }
-   } catch (error) {
-     console.error('Error saving requirement:', error);
-     alert('Error saving requirement');
-   }
- };
+      const data = await response.json();
+      if (data.success) {
+        fetchRequirements();
+        setIsReqModalOpen(false);
+        setIsEditMode(false);
+        setEditingReqId(null);
+        setNewReqData({
+          jobTitle: '', jdLink: '', experience: '', package: '',
+          openings: '', priority: '', status: 'Not Started', timeline: '',
+          receivedDate: new Date().toISOString().split('T')[0]
+        });
+        setJdFormData({
+          jd_id: null, client_name: '', job_title: '', location: '', experience: '',
+          employment_type: '', working_days: '', timings: '', package: '',
+          tool_requirement: '', job_summary: '', rnr: '', req_skills: '',
+          preferred_qual: '', company_offers: '', contact_details: ''
+        });
+      } else {
+        alert('Failed to save requirement: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error saving requirement:', error);
+      alert('Error saving requirement');
+    }
+  };
+
+  const handleImportSelect = (e) => {
+      const selectedId = parseInt(e.target.value);
+      if (!selectedId) return;
+      
+      const selectedJd = mockPastJDs.find(jd => jd.id === selectedId);
+      if (selectedJd) {
+          setJdFormData({
+              ...jdFormData,
+              client_name: selectedJd.client_name,
+              job_title: selectedJd.job_title,
+              location: selectedJd.location,
+              experience: selectedJd.experience,
+              employment_type: selectedJd.employment_type,
+              working_days: selectedJd.working_days,
+              timings: selectedJd.timings,
+              package: selectedJd.package,
+              tool_requirement: selectedJd.tool_requirement,
+              job_summary: selectedJd.job_summary,
+              rnr: selectedJd.rnr,
+              req_skills: selectedJd.req_skills,
+              preferred_qual: selectedJd.preferred_qual,
+              company_offers: selectedJd.company_offers,
+              contact_details: selectedJd.contact_details
+          });
+          setNewReqData({
+              ...newReqData,
+              experience: selectedJd.experience,
+              package: selectedJd.package
+          });
+      }
+  };
+
+  const handleUpdateRequirement = async () => {
+    if (!editingReqId) return;
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/crm/requirements', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          req_id: editingReqId,
+          branch_id: selectedBranchId,
+          job_title: newReqData.jobTitle,
+          jd_link: newReqData.jdLink,
+          experience: newReqData.experience,
+          package: newReqData.package,
+          openings: newReqData.openings,
+          priority: newReqData.priority,
+          status: newReqData.status,
+          timeline: newReqData.timeline,
+          date: newReqData.receivedDate,
+          location: jdFormData.location,
+          employment_type: jdFormData.employment_type,
+          working_days: jdFormData.working_days,
+          timings: jdFormData.timings,
+          tool_requirement: jdFormData.tool_requirement,
+          job_summary: jdFormData.job_summary,
+          rnr: jdFormData.rnr,
+          req_skills: jdFormData.req_skills,
+          preferred_qual: jdFormData.preferred_qual,
+          company_offers: jdFormData.company_offers,
+          contact_details: jdFormData.contact_details
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        fetchRequirements();
+        setIsReqModalOpen(false);
+        setIsEditMode(false);
+        setEditingReqId(null);
+        setNewReqData({
+          jobTitle: '', jdLink: '', experience: '', package: '',
+          openings: '', priority: '', status: 'Not Started', timeline: '',
+          receivedDate: new Date().toISOString().split('T')[0]
+        });
+        setJdFormData({
+          jd_id: null, client_name: '', job_title: '', location: '', experience: '',
+          employment_type: '', working_days: '', timings: '', package: '',
+          tool_requirement: '', job_summary: '', rnr: '', req_skills: '',
+          preferred_qual: '', company_offers: '', contact_details: ''
+        });
+        alert('Requirement updated successfully!');
+      } else {
+        alert('Failed to update requirement: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error updating requirement:', error);
+      alert('Error updating requirement');
+    }
+  };
 
 return (
     <div className="flex h-screen bg-[#f8fafc] font-['Calibri'] text-slate-800 overflow-hidden">
@@ -1755,26 +1917,62 @@ return (
            </div>
         </div>
       )}
-      {/* ================= MODAL 6: ADD REQUIREMENT ================= */}
+      {/* ================= MODAL 6: ADD REQUIREMENT & JD ================= */}
       {isReqModalOpen && (
-        <div className="fixed inset-0 bg-[#103c7f]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-[#103c7f]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 print:hidden animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[95vh] max-h-[850px] flex flex-col overflow-hidden animate-in zoom-in-95 border-4 border-white relative z-[10000]">
                 
                 {/* Header */}
-                <div className="bg-[#103c7f] px-6 py-4 flex justify-between items-center text-white">
+                <div className="bg-[#103c7f] px-6 py-4 flex justify-between items-center text-white shrink-0">
                     <div>
-                        <h3 className="text-lg font-black uppercase tracking-wide">Add Requirement</h3>
-                        <p className="text-xs text-blue-200 opacity-80">Post a new job requirement for this client.</p>
+                        <h3 className="font-black text-lg uppercase tracking-wide flex items-center gap-2">
+                            <Briefcase size={20}/> {isEditMode ? 'Update Req' : 'Add Requirement'}
+                        </h3>
+                        <p className="text-[10px] text-blue-200 font-bold uppercase tracking-widest mt-0.5">
+                            {isEditMode ? 'Modify existing job requirement and JD details.' : 'Post a new job requirement and define JD details.'}
+                        </p>
                     </div>
-                    <button onClick={() => setIsReqModalOpen(false)} className="hover:bg-white/10 p-1.5 rounded-full transition-colors"><X size={20}/></button>
+                    <button onClick={() => {
+                        setIsReqModalOpen(false);
+                        setIsEditMode(false);
+                        setEditingReqId(null);
+                        setNewReqData({
+                            jobTitle: '', jdLink: '', experience: '', package: '',
+                            openings: '', priority: '', status: 'Not Started', timeline: '',
+                            receivedDate: new Date().toISOString().split('T')[0]
+                        });
+                        setJdFormData({
+                            jd_id: null, client_name: '', job_title: '', location: '', experience: '',
+                            employment_type: '', working_days: '', timings: '', package: '',
+                            tool_requirement: '', job_summary: '', rnr: '', req_skills: '',
+                            preferred_qual: '', company_offers: '', contact_details: ''
+                        });
+                    }} className="hover:bg-white/20 p-1.5 rounded-full transition"><X size={20}/></button>
                 </div>
-
-                {/* Body */}
-                <div className="p-8 space-y-5">
+                
+                {/* Scrollable Form Body */}
+                <div className="p-6 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/50">
                     
-                    {/* Row 1: Job Title & JD Link */}
-                    <div className="grid grid-cols-2 gap-5">
+                    {/* AUTO-FILL STRIP */}
+                    <div className="mb-6 bg-blue-50 border border-blue-200 p-4 rounded-xl shadow-sm flex flex-col md:flex-row md:items-center gap-4 justify-between">
                         <div>
+                            <p className="text-xs font-black text-[#103c7f] uppercase tracking-widest flex items-center gap-1.5"><Layout size={14}/> Auto-Fill From Past JDs</p>
+                            <p className="text-[9px] text-blue-600 font-bold uppercase mt-1">Selecting a profile will overwrite current JD form values.</p>
+                        </div>
+                        <select onChange={handleImportSelect} className="w-full md:w-72 border border-blue-300 rounded-lg p-2.5 text-sm font-bold text-slate-700 bg-white focus:border-[#103c7f] outline-none cursor-pointer shadow-sm">
+                            <option value="">-- Select from Database --</option>
+                            {mockPastJDs && mockPastJDs.map(jd => (
+                                <option key={jd.id} value={jd.id}>{jd.job_title} ({jd.client_name})</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-3">
+                        
+                        {/* SECTION 1: CORE DETAILS */}
+                        <div className="col-span-1 md:col-span-4 mb-2"><h4 className="text-xs font-black text-[#103c7f] uppercase border-b border-blue-100 pb-2 flex items-center gap-1.5"><Building2 size={14}/> Core Details</h4></div>
+                        
+                        <div className="md:col-span-2">
                             <label className="text-[10px] font-bold text-gray-500 uppercase">Job Title</label>
                             <input 
                               type="text" 
@@ -1783,45 +1981,17 @@ return (
                               className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
                             />
                         </div>
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase">JD Link</label>
+                        <div className="md:col-span-2">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase">Requirement Received Date</label>
                             <input 
-                              type="text" 
-                              value={newReqData.jdLink}
-                              onChange={(e) => setNewReqData({...newReqData, jdLink: e.target.value})}
-                              className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none text-blue-600 underline"
-                              placeholder="https://..."
-                            />
-                        </div>
-                    </div>
-
-                    {/* Row 2: Experience & Package */}
-                    <div className="grid grid-cols-2 gap-5">
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase">Experience</label>
-                            <input 
-                              type="text" 
-                              value={newReqData.experience}
-                              onChange={(e) => setNewReqData({...newReqData, experience: e.target.value})}
+                              type="date" 
+                              value={newReqData.receivedDate}
+                              onChange={(e) => setNewReqData({...newReqData, receivedDate: e.target.value})}
                               className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
-                              placeholder="e.g. 2-4 Years"
                             />
                         </div>
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase">Package</label>
-                            <input 
-                              type="text" 
-                              value={newReqData.package}
-                              onChange={(e) => setNewReqData({...newReqData, package: e.target.value})}
-                              className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
-                              placeholder="e.g. 12 LPA"
-                            />
-                        </div>
-                    </div>
 
-                    {/* Row 3: Openings & Priority */}
-                    <div className="grid grid-cols-2 gap-5">
-                        <div>
+                        <div className="md:col-span-2">
                             <label className="text-[10px] font-bold text-gray-500 uppercase">No. of Openings</label>
                             <input 
                               type="number" 
@@ -1830,7 +2000,7 @@ return (
                               className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
                             />
                         </div>
-                        <div>
+                        <div className="md:col-span-2">
                             <label className="text-[10px] font-bold text-gray-500 uppercase">Hiring Priority</label>
                             <select 
                               value={newReqData.priority}
@@ -1843,11 +2013,8 @@ return (
                                 <option value="Low">Low</option>
                             </select>
                         </div>
-                    </div>
 
-                    {/* Row 4: Status & Timeline */}
-                    <div className="grid grid-cols-2 gap-5">
-                        <div>
+                        <div className="md:col-span-2">
                             <label className="text-[10px] font-bold text-gray-500 uppercase">Status</label>
                             <select 
                               value={newReqData.status}
@@ -1859,7 +2026,7 @@ return (
                                 <option value="Done">Done</option>
                             </select>
                         </div>
-                        <div>
+                        <div className="md:col-span-2">
                             <label className="text-[10px] font-bold text-gray-500 uppercase">Timeline</label>
                             <input 
                               type="date" 
@@ -1868,28 +2035,44 @@ return (
                               className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
                             />
                         </div>
+
+                        {/* SECTION 2: JD SPECIFIC DETAILS */}
+                        <div className="col-span-1 md:col-span-4 mt-6 mb-2"><h4 className="text-xs font-black text-[#103c7f] uppercase border-b border-blue-100 pb-2 flex items-center gap-1.5"><FileText size={14}/> Job Description Details</h4></div>
+
+                        <div><label className="text-[10px] font-bold text-gray-500 uppercase">Location</label><input type="text" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none" value={jdFormData.location || ""} onChange={(e)=>setJdFormData({...jdFormData, location: e.target.value})}/></div>
+                        <div><label className="text-[10px] font-bold text-gray-500 uppercase">Experience</label><input type="text" placeholder="e.g. 2-4 Yrs" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none" value={newReqData.experience} onChange={(e) => setNewReqData({...newReqData, experience: e.target.value})}/></div>
+                        <div><label className="text-[10px] font-bold text-gray-500 uppercase">Package (LPA)</label><input type="number" placeholder="e.g. 12" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none" value={newReqData.package} onChange={(e) => setNewReqData({...newReqData, package: e.target.value})}/></div>
+                        <div><label className="text-[10px] font-bold text-gray-500 uppercase">Employment Type</label><input type="text" placeholder="e.g. Full Time" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none" value={jdFormData.employment_type || ""} onChange={(e)=>setJdFormData({...jdFormData, employment_type: e.target.value})}/>
+                        </div>
+                        
+                        <div><label className="text-[10px] font-bold text-gray-500 uppercase">Working Days</label><input type="text" placeholder="e.g. 5 Days" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none" value={jdFormData.working_days || ""} onChange={(e)=>setJdFormData({...jdFormData, working_days: e.target.value})}/></div>
+                        <div><label className="text-[10px] font-bold text-gray-500 uppercase">Timings</label><input type="text" placeholder="e.g. 10 AM - 7 PM" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none" value={jdFormData.timings || ""} onChange={(e)=>setJdFormData({...jdFormData, timings: e.target.value})}/></div>
+                        <div className="md:col-span-2"><label className="text-[10px] font-bold text-gray-500 uppercase">Tool Requirement</label><input type="text" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none" value={jdFormData.tool_requirement || ""} onChange={(e)=>setJdFormData({...jdFormData, tool_requirement: e.target.value})}/></div>
+
+                        {/* SECTION 3: TEXT AREAS */}
+                        <div className="col-span-1 md:col-span-4 mt-4 mb-2"><h4 className="text-xs font-black text-[#103c7f] uppercase border-b border-blue-100 pb-2 flex items-center gap-1.5"><Layout size={14}/> Description & Requirements</h4></div>
+                        
+                        <div className="col-span-1 md:col-span-4"><label className="text-[10px] font-bold text-gray-500 uppercase">Job Summary</label><textarea rows="3" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none" value={jdFormData.job_summary || ""} onChange={(e)=>setJdFormData({...jdFormData, job_summary: e.target.value})}></textarea></div>
+                        <div className="col-span-1 md:col-span-4"><label className="text-[10px] font-bold text-gray-500 uppercase">Role & Responsibilities</label><textarea rows="4" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none h-24" value={jdFormData.rnr || ""} onChange={(e)=>setJdFormData({...jdFormData, rnr: e.target.value})}></textarea></div>
+                        <div className="md:col-span-2"><label className="text-[10px] font-bold text-gray-500 uppercase">Required Skills</label><textarea rows="3" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none" value={jdFormData.req_skills || ""} onChange={(e)=>setJdFormData({...jdFormData, req_skills: e.target.value})}></textarea></div>
+                        <div className="md:col-span-2"><label className="text-[10px] font-bold text-gray-500 uppercase">Preferred Qualifications</label><textarea rows="3" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none" value={jdFormData.preferred_qual || ""} onChange={(e)=>setJdFormData({...jdFormData, preferred_qual: e.target.value})}></textarea></div>
+                        <div className="md:col-span-2"><label className="text-[10px] font-bold text-gray-500 uppercase">What Company Offers</label><textarea rows="3" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none" value={jdFormData.company_offers || ""} onChange={(e)=>setJdFormData({...jdFormData, company_offers: e.target.value})}></textarea></div>
+                        <div className="md:col-span-2"><label className="text-[10px] font-bold text-gray-500 uppercase">Contact Info (For Candidates)</label><textarea rows="3" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none" value={jdFormData.contact_details || ""} onChange={(e)=>setJdFormData({...jdFormData, contact_details: e.target.value})}></textarea></div>
+
                     </div>
-
-                    
-
-                    {/* Row 6: Requirement Received Date */}
-                    <div>
-                        <label className="text-[10px] font-bold text-gray-500 uppercase">Requirement Received Date</label>
-                        <input 
-                          type="date" 
-                          value={newReqData.receivedDate}
-                          onChange={(e) => setNewReqData({...newReqData, receivedDate: e.target.value})}
-                          className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
-                        />
-                    </div>
-
                 </div>
 
-                {/* Footer */}
-                <div className="p-5 bg-gray-50 border-t flex justify-end gap-3">
-                    <button onClick={() => setIsReqModalOpen(false)} className="px-5 py-2.5 text-gray-500 font-bold hover:text-gray-700 text-sm">Cancel</button>
-                    <button onClick={handleSaveRequirement} className="bg-[#103c7f] hover:bg-blue-900 text-white px-8 py-2.5 rounded-lg font-bold text-sm shadow-md flex items-center gap-2">
-                        <Briefcase size={16}/> Save Requirement
+                {/* Footer Actions */}
+                <div className="p-5 border-t border-slate-200 bg-white flex justify-end gap-3 shrink-0">
+                    <button onClick={() => {
+                        setIsReqModalOpen(false);
+                        setIsEditMode(false);
+                        setEditingReqId(null);
+                    }} className="px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition shadow-sm border border-slate-200">
+                        Cancel
+                    </button>
+                    <button onClick={isEditMode ? handleUpdateRequirement : handleSaveRequirement} className="bg-[#103c7f] text-white px-8 py-2.5 rounded-lg font-black text-xs uppercase tracking-widest shadow-md hover:bg-blue-900 transition flex items-center gap-2">
+                        <Save size={16}/> {isEditMode ? 'Update Requirement' : 'Save Complete Requirement'}
                     </button>
                 </div>
             </div>
@@ -2326,50 +2509,51 @@ return (
                  <div>
                     <h3 className="text-lg font-black uppercase tracking-wide">All Requirements</h3>
                     <p className="text-xs text-blue-200 opacity-80">Comprehensive list of active and closed mandates.</p>
-                 </div>
-                 <button onClick={() => setIsAllReqsOpen(false)} className="hover:bg-white/10 p-1.5 rounded-full transition-colors"><X size={20}/></button>
-              </div>
+</div>
+                  <button onClick={() => setIsAllReqsOpen(false)} className="hover:bg-white/10 p-1.5 rounded-full transition-colors"><X size={20}/></button>
+               </div>
 
-              {/* Scrollable Body */}
-              <div className="p-6 overflow-y-auto custom-scrollbar bg-gray-50 flex-1">
-                 <div className="space-y-8">
-                    
-                    {/* Loop through branches */}
-                    {clientData.branches.map((branch) => {
-                       const requirements = branchDetails[branch.branch_id]?.requirements || [];
+               {/* Scrollable Body */}
+               <div className="p-6 overflow-y-auto custom-scrollbar bg-gray-50 flex-1">
+                  <div className="space-y-8">
+                     
+                     {/* Loop through branches */}
+                     {clientData.branches.map((branch) => {
+                        const requirements = branchDetails[branch.branch_id]?.requirements || [];
 
-                       return (
-                          <div key={branch.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                             
-                             {/* Branch Header */}
-                             <div className="bg-gray-100/80 px-4 py-2.5 border-b border-gray-200 flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                   <Building2 size={16} className="text-[#103c7f]"/>
-                                   <h4 className="text-sm font-bold text-gray-800">{branch.name}</h4>
-                                   <span className="text-[10px] text-gray-500 font-medium bg-white px-2 py-0.5 rounded border border-gray-200">{branch.state}</span>
-                                </div>
-                                <span className="text-[10px] font-bold bg-white border border-gray-200 px-2 py-0.5 rounded text-gray-600">
-                                   {requirements.length} Reqs
-                                </span>
-                             </div>
+                        return (
+                           <div key={branch.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                              
+                              {/* Branch Header */}
+                              <div className="bg-gray-100/80 px-4 py-2.5 border-b border-gray-200 flex justify-between items-center">
+                                 <div className="flex items-center gap-2">
+                                    <Building2 size={16} className="text-[#103c7f]"/>
+                                    <h4 className="text-sm font-bold text-gray-800">{branch.name}</h4>
+                                    <span className="text-[10px] text-gray-500 font-medium bg-white px-2 py-0.5 rounded border border-gray-200">{branch.state}</span>
+                                 </div>
+                                 <span className="text-[10px] font-bold bg-white border border-gray-200 px-2 py-0.5 rounded text-gray-600">
+                                    {requirements.length} Reqs
+                                 </span>
+                              </div>
 
-                             {/* Requirements Table */}
-                             <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                   <thead>
-                                      <tr className="bg-gray-50 text-[10px] uppercase text-gray-500 font-bold border-b border-gray-100 whitespace-nowrap">
-                                         <th className="px-4 py-3 min-w-[150px]">Job Title</th>
-                                         <th className="px-4 py-3 text-center">JD Link</th>
-                                         <th className="px-4 py-3">Experience</th>
-                                         <th className="px-4 py-3">Package</th>
-                                         <th className="px-4 py-3 text-center">Openings</th>
-                                         <th className="px-4 py-3">Priority</th>
-                                         <th className="px-4 py-3">Status</th>
-                                         <th className="px-4 py-3">Timeline</th>
-                                         <th className="px-4 py-3 text-right">Received Date</th>
-                                      </tr>
-                                   </thead>
-                                   <tbody className="text-xs text-gray-700">
+                              {/* Requirements Table */}
+                              <div className="overflow-x-auto">
+                                 <table className="w-full text-left border-collapse">
+                                    <thead>
+                                       <tr className="bg-gray-50 text-[10px] uppercase text-gray-500 font-bold border-b border-gray-100 whitespace-nowrap">
+                                          <th className="px-4 py-3 min-w-[150px]">Job Title</th>
+                                          <th className="px-4 py-3 text-center">JD Details</th>
+                                          <th className="px-4 py-3">Experience</th>
+                                          <th className="px-4 py-3">Package</th>
+                                          <th className="px-4 py-3 text-center">Openings</th>
+                                          <th className="px-4 py-3">Priority</th>
+                                          <th className="px-4 py-3">Status</th>
+                                          <th className="px-4 py-3">Timeline</th>
+                                          <th className="px-4 py-3 text-right">Received Date</th>
+                                          <th className="px-4 py-3 text-center">Action</th>
+                                       </tr>
+                                    </thead>
+                                    <tbody className="text-xs text-gray-700">
                                       {requirements.length > 0 ? requirements.map((req, index) => (
                                          <tr key={req.req_id} className={`hover:bg-blue-50/30 transition ${index !== requirements.length - 1 ? 'border-b border-gray-100' : ''}`}>
                                             
@@ -2378,10 +2562,17 @@ return (
                                                {req.job_title}
                                             </td>
 
-                                            {/* JD Link */}
+                                            {/* JD View Button */}
                                             <td className="px-4 py-3 text-center">
-                                               <button className="text-blue-600 hover:text-blue-800 bg-blue-50 p-1.5 rounded-md transition-colors" title="View JD">
-                                                  <LinkIcon size={12}/>
+                                               <button 
+                                                  onClick={() => setViewJdData({
+                                                    ...req,
+                                                    tool_requirement: req.tool_req
+                                                  })} 
+                                                  className="text-blue-600 hover:text-white bg-blue-50 hover:bg-blue-600 px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 mx-auto font-bold text-[10px] uppercase tracking-widest" 
+                                                  title="View Full JD"
+                                               >
+                                                  <Eye size={12}/> View JD
                                                </button>
                                             </td>
 
@@ -2429,6 +2620,50 @@ return (
                                             {/* Received Date */}
                                             <td className="px-4 py-3 text-right text-gray-500 font-mono">
                                                {req.date ? new Date(req.date).toLocaleDateString('en-GB') : "N/A"}
+                                            </td>
+
+                                            {/* Action */}
+                                            <td className="px-4 py-3 text-center">
+                                               <button
+                                                  onClick={() => {
+                                                     setIsEditMode(true);
+                                                     setEditingReqId(req.req_id);
+                                                     setNewReqData({
+                                                        jobTitle: req.job_title || '',
+                                                        jdLink: req.jd_link || '',
+                                                        experience: req.experience || '',
+                                                        package: req.package || '',
+                                                        openings: req.openings || '',
+                                                        priority: req.priority || '',
+                                                        status: req.status || 'Not Started',
+                                                        timeline: req.timeline || '',
+                                                        receivedDate: req.date ? new Date(req.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+                                                     });
+                                                     setJdFormData({
+                                                        jd_id: req.req_id,
+                                                        client_name: clientData.name || '',
+                                                        job_title: req.job_title || '',
+                                                        location: req.location || '',
+                                                        experience: req.experience || '',
+                                                        employment_type: req.employment_type || '',
+                                                        working_days: req.working_days || '',
+                                                        timings: req.timings || '',
+                                                        package: req.package || '',
+                                                        tool_requirement: req.tool_req || '',
+                                                        job_summary: req.job_summary || '',
+                                                        rnr: req.rnr || '',
+                                                        req_skills: req.req_skills || '',
+                                                        preferred_qual: req.preferred_qual || '',
+                                                        company_offers: req.company_offers || '',
+                                                        contact_details: req.contact_details || ''
+                                                     });
+                                                     setIsAllReqsOpen(false);
+                                                     setIsReqModalOpen(true);
+                                                  }}
+                                                  className="text-blue-600 hover:text-white bg-blue-50 hover:bg-blue-600 px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 mx-auto font-bold text-[10px] uppercase tracking-widest"
+                                               >
+                                                  <Edit size={12}/> Edit
+                                               </button>
                                             </td>
 
                                          </tr>
@@ -2500,7 +2735,7 @@ return (
               >
                 <ExternalLink size={16} /> Open Full Size
               </a>
-              <button
+<button
                 onClick={() => setPreviewUrl(null)}
                 className="px-4 py-2 bg-gray-200 text-gray-700 font-bold text-sm rounded-lg hover:bg-gray-300 transition"
               >
@@ -2508,6 +2743,106 @@ return (
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ================= MODAL 10: VIEW JD DETAILS ================= */}
+      {viewJdData && (
+        <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-xl flex justify-center items-center z-[9999] p-0 md:p-4 print:static print:block print:bg-white print:p-0 print:z-auto">
+            
+            <div className="bg-transparent w-full max-w-[800px] h-full md:h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 relative shadow-2xl rounded-2xl print:block print:h-auto print:max-w-full print:shadow-none print:rounded-none print:overflow-visible">
+                
+                {/* Header (Hidden in Print) */}
+                <div className="bg-[#103c7f] text-white p-4 flex justify-between items-center shrink-0 border-b border-blue-900 print:hidden">
+                    <div className="flex items-center gap-3">
+                        <FileText size={20} />
+                        <h3 className="font-bold text-lg uppercase tracking-wide">Job Description Preview</h3>
+                    </div>
+                    <div className="flex gap-3">
+                        <button onClick={() => window.print()} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider">
+                            <Download size={16}/> Save as PDF
+                        </button>
+                        <button onClick={() => setViewJdData(null)} className="hover:bg-white/20 p-2 rounded-full transition">
+                            <X size={20}/>
+                        </button>
+                    </div>
+                </div>
+
+                {/* --- PDF CONTENT --- */}
+                <div className="flex-1 min-h-0 overflow-y-auto bg-gray-200 p-4 md:p-8 block print:block print:overflow-visible print:bg-white print:p-0 custom-scrollbar">
+                    <div className="bg-white w-full max-w-[210mm] min-h-[297mm] h-max mx-auto p-[10mm] md:p-[15mm] shadow-xl text-black font-['Calibri'] relative print:w-full print:max-w-none print:shadow-none print:m-0 print:border-none" id="pdf-content">
+                        
+                        {/* 1. Header Logo */}
+                        <div className="mb-10">
+                            <Image src="/maven-logo.png" alt="Maven Jobs" width={220} height={70} className="object-contain" priority />
+                        </div>
+
+                        {/* 2. Bordered Container */}
+                        <div className="border border-black p-8 min-h-[850px] relative print:border-none print:p-0">
+                            
+                            {/* Key Value Pairs */}
+                            <div className="space-y-4 mb-10 text-[15px] leading-relaxed">
+                                {viewJdData.job_title && <p><span className="font-bold">JOB TITLE : </span> {viewJdData.job_title}</p>}
+                                {viewJdData.location && <p><span className="font-bold">LOCATION : </span> {viewJdData.location}</p>}
+                                {viewJdData.experience && <p><span className="font-bold">EXPERIENCE : </span> {viewJdData.experience}</p>}
+                                {viewJdData.employment_type && <p><span className="font-bold">EMPLOYMENT TYPE : </span> {viewJdData.employment_type}</p>}
+                                {viewJdData.working_days && <p><span className="font-bold">WORKING DAYS : </span> {viewJdData.working_days}</p>}
+                                {viewJdData.timings && <p><span className="font-bold">TIMINGS : </span> {viewJdData.timings}</p>}
+                                {viewJdData.package && <p><span className="font-bold">PACKAGE : </span> {viewJdData.package}</p>}
+                                {viewJdData.tool_requirement && <p><span className="font-bold">TOOL REQUIREMENT : </span> {viewJdData.tool_requirement}</p>}
+                            </div>
+
+                            {/* Sections */}
+                            <div className="space-y-8 text-[15px]">
+                                {viewJdData.job_summary && (
+                                    <div><h4 className="font-bold mb-2 uppercase text-[16px]">Job Summary :</h4><p className="leading-relaxed text-justify text-gray-800">{viewJdData.job_summary}</p></div>
+                                )}
+                                
+                                {viewJdData.rnr && (
+                                    <div><h4 className="font-bold mb-2 uppercase text-[16px]">Role & Responsibilities :</h4>
+                                        <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                            {viewJdData.rnr.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                        </ul>
+                                    </div>
+                                )}
+                                
+                                {viewJdData.req_skills && (
+                                    <div><h4 className="font-bold mb-2 uppercase text-[16px]">Required Skills :</h4>
+                                        <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                            {viewJdData.req_skills.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                        </ul>
+                                    </div>
+                                )}
+                                
+                                {viewJdData.preferred_qual && (
+                                    <div><h4 className="font-bold mb-2 uppercase text-[16px]">Preferred Qualifications :</h4>
+                                        <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                            {viewJdData.preferred_qual.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                        </ul>
+                                    </div>
+                                )}
+                                
+                                {viewJdData.company_offers && (
+                                    <div><h4 className="font-bold mb-2 uppercase text-[16px]">What Company Offer :</h4>
+                                        <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                            {viewJdData.company_offers.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                        </ul>
+                                    </div>
+                                )}
+                                
+                                {viewJdData.contact_details && (
+                                    <div className="mt-12 pt-6 border-t border-black/20">
+                                        <h4 className="font-bold mb-3 uppercase text-[16px]">Contact Us To Apply :</h4>
+                                        <div className="whitespace-pre-line leading-loose text-gray-900 font-medium">{viewJdData.contact_details}</div>
+                                    </div>
+                                )}
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </div>
       )}
     </div>

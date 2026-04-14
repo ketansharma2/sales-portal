@@ -81,7 +81,7 @@ export async function GET(request) {
     if (reqIds.length > 0) {
       const { data: requirements, error: reqError } = await supabaseServer
         .from('domestic_crm_reqs')
-        .select('req_id, branch_id, job_title, package, experience, openings')
+        .select('req_id, branch_id, job_title, package, experience, openings, location, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers, contact_details')
         .in('req_id', reqIds)
       
       if (reqError) {
@@ -231,7 +231,19 @@ export async function GET(request) {
         cv_naukri: conversationStats.cv_naukri,
         cv_indeed: conversationStats.cv_indeed,
         cv_other: conversationStats.cv_other,
-        experience: req?.experience || ''
+        experience: req?.experience || '',
+        // JD fields
+        location: req?.location || '',
+        employment_type: req?.employment_type || '',
+        working_days: req?.working_days || '',
+        timings: req?.timings || '',
+        tool_requirement: req?.tool_req || '',
+        job_summary: req?.job_summary || '',
+        rnr: req?.rnr || '',
+        req_skills: req?.req_skills || '',
+        preferred_qual: req?.preferred_qual || '',
+        company_offers: req?.company_offers || '',
+        contact_details: req?.contact_details || ''
       }
     }))
 
