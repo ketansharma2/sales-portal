@@ -20,7 +20,7 @@ export async function POST(request) {
     // Validate required fields
     const requiredFields = [
       'sourcing_date', 'company', 'client_type', 'category', 'state', 'location',
-      'employee_count', 'reference'
+      'employee_count'
     ]
 
     const missingFields = requiredFields.filter(field => !body[field])
