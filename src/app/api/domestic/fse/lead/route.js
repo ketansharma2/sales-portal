@@ -347,7 +347,8 @@ export async function PUT(request) {
       projection: newValues.projection,
       remarks: newValues.remarks,
       sent_to_sm: newValues.sent_to_sm,
-      lock_date: newValues.lock_date
+      lock_date: newValues.lock_date,
+      tnc: newValues.tnc
     }
 
     // Remove undefined fields

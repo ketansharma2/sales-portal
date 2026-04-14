@@ -4,7 +4,7 @@ import {
   Pencil, Plus, X, Search, Loader2, Eye, Star,
   Calendar, Phone, MapPin, User, Building2, CheckCircle,
   ArrowRight, MessageSquarePlus, Mail, Zap,CalendarOff,
-  HistoryIcon, Send, Lock, AlertCircle
+  HistoryIcon, Send, Lock, AlertCircle, FileText
 } from "lucide-react";
 
 export default function LeadsMasterPage() {
@@ -27,6 +27,9 @@ export default function LeadsMasterPage() {
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [nonFieldDays, setNonFieldDays] = useState([]);
   const [openModal, setOpenModal] = useState(false);
+  const [managerData, setManagerData] = useState(null);
+  const [tncText, setTncText] = useState('');
+  const [sendingToManager, setSendingToManager] = useState(false);
   // Edit Interaction Modal State
   const [isEditInteractionModalOpen, setIsEditInteractionModalOpen] = useState(false);
   const [editingInteraction, setEditingInteraction] = useState(null);
@@ -92,6 +95,27 @@ export default function LeadsMasterPage() {
     }, []);
 
    useEffect(() => { setMounted(true); }, []);
+
+   // Fetch current user's manager data
+   useEffect(() => {
+     const fetchManagerData = async () => {
+       try {
+         const session = JSON.parse(localStorage.getItem('session') || '{}');
+         if (!session.access_token) return;
+         
+         const response = await fetch('/api/domestic/fse/manager', {
+           headers: { 'Authorization': `Bearer ${session.access_token}` }
+         });
+         const data = await response.json();
+         if (data.success && data.data) {
+           setManagerData(data.data);
+         }
+       } catch (error) {
+         console.error('Failed to fetch manager data:', error);
+       }
+     };
+     fetchManagerData();
+   }, []);
 
   // Robust Dependency Array
   useEffect(() => {
@@ -305,27 +329,31 @@ export default function LeadsMasterPage() {
   // };
 
   const handleSendToManager = (lead) => {
-  console.log("data:", lead);
-
-  // instead of confirm()
-  setSelectedLead(lead);
-  setOpenModal(true);
-};
-
-const handleConfirmSend = async () => {
-  if (!selectedLead) return;
-
-  const updateData = {
-    client_id: selectedLead.client_id,
-    sent_to_sm: true,
-    lock_date: new Date().toISOString().split("T")[0],
+    console.log("data:", lead);
+    setSelectedLead(lead);
+    setTncText('');
+    setOpenModal(true);
   };
 
-  await saveLead(updateData);
+  const handleConfirmSend = async () => {
+    if (!selectedLead) return;
+    
+    setSendingToManager(true);
+    
+    const updateData = {
+      client_id: selectedLead.client_id,
+      sent_to_sm: true,
+      lock_date: new Date().toISOString().split("T")[0],
+      tnc: tncText
+    };
 
-  setOpenModal(false);
-  setSelectedLead(null);
-};
+    await saveLead(updateData);
+
+    setSendingToManager(false);
+    setOpenModal(false);
+    setSelectedLead(null);
+    setTncText('');
+  };
   // 👇 ADD THIS FUNCTION (Missing)
   const handleSaveLeave = async (date, reason, remarks) => { // <--- Added remarks here
     try {
@@ -727,7 +755,14 @@ const handleConfirmSend = async () => {
                     {/* ACTIONS - STICKY RIGHT */}
                     <td className="px-3 py-2.5 sticky right-0 bg-white group-hover:bg-blue-50/40 transition-colors border-l border-gray-100 z-10 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
                       {lead.sent_to_sm ? (
-                        <div className="flex items-center justify-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => { setSelectedLead(lead); setIsFullViewOpen(true); }}
+                            className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 hover:shadow-md transition-all border border-green-100 active:scale-95"
+                            title="Full View"
+                          >
+                            <Eye size={14} strokeWidth={2.5} />
+                          </button>
                           <span className="px-2 py-1 bg-gray-100 text-gray-400 text-[10px] font-bold rounded border border-gray-200 uppercase tracking-wider">
                             LOCKED
                           </span>
@@ -882,16 +917,15 @@ const handleConfirmSend = async () => {
         </div>
 
         <div className="text-left">
-          <p className="font-semibold">
-            MANAGER
+          <p className="font-semibold text-[#103c7f]">
+            {managerData?.name || "MANAGER"}
           </p>
           <p className="text-sm text-gray-500">
-            {selectedLead?.email || "No email"}
+            {managerData?.email || "No email"}
           </p>
         </div>
       </div>
 
-      {/* ✅ Textarea Added */}
       <div className="mt-5 text-left">
         <label className="block text-sm font-medium text-gray-600 mb-1">
          Write Term and Condition  <span className="text-red-500">*</span>
@@ -900,6 +934,8 @@ const handleConfirmSend = async () => {
           placeholder="Write a message for team lead..."
           className="w-full border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           rows={3}
+          value={tncText}
+          onChange={(e) => setTncText(e.target.value)}
         />
       </div>
 
@@ -917,9 +953,10 @@ const handleConfirmSend = async () => {
 
       <button
         onClick={handleConfirmSend}
-        className="px-5 py-2 rounded-lg bg-green-600 text-white"
+        disabled={sendingToManager || !tncText.trim()}
+        className={`px-5 py-2 rounded-lg text-white ${sendingToManager || !tncText.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
       >
-        CONFIRM SEND
+        {sendingToManager ? 'SENDING...' : 'CONFIRM SEND'}
       </button>
     </div>
   </div>
@@ -1641,15 +1678,18 @@ const handleConfirmSend = async () => {
          <div className="overflow-y-auto custom-scrollbar flex-1 p-6 md:p-8 space-y-6">
            
             {/* 2. BASIC INFO STRIP */}
-           <div className="flex flex-wrap gap-2">
-             <StatCard label="Sourcing Date" value={lead?.sourcing_date} icon={Calendar} />
-             <StatCard label="Category" value={lead?.category} icon={Zap} />
-             <StatCard label="Sourcing Mode" value={lead?.sourcing_mode} icon={Phone} />
-             <StatCard label="Emp Count" value={lead?.emp_count} icon={User} />
-             <StatCard label="Reference" value={lead?.reference} icon={MessageSquarePlus} />
-             <StatCard label="Current Status" value={lead?.status} icon={CheckCircle} colorClass="bg-green-50 text-green-600"/>
-             <StatCard label="Projection" value={lead?.projection} icon={Zap} colorClass="bg-purple-50 text-purple-600 "/>
-           </div>
+            <div className="flex flex-wrap gap-2">
+              <StatCard label="Sourcing Date" value={lead?.sourcing_date} icon={Calendar} />
+              <StatCard label="Category" value={lead?.category} icon={Zap} />
+              <StatCard label="Sourcing Mode" value={lead?.sourcing_mode} icon={Phone} />
+              <StatCard label="Emp Count" value={lead?.emp_count} icon={User} />
+              <StatCard label="Reference" value={lead?.reference} icon={MessageSquarePlus} />
+              <StatCard label="Current Status" value={lead?.status} icon={CheckCircle} colorClass="bg-green-50 text-green-600"/>
+              <StatCard label="Projection" value={lead?.projection} icon={Zap} colorClass="bg-purple-50 text-purple-600 "/>
+              {lead?.sent_to_sm && (
+                <StatCard label="T&C" value={lead?.tnc || '--'} icon={FileText} colorClass="bg-orange-50 text-orange-600"/>
+              )}
+            </div>
 
            {/* 3. INTERACTION HISTORY TABLE */}
            <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm flex flex-col">
