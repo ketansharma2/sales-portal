@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Users, UserPlus, X, Trash2, Edit } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Users, UserPlus, X, Trash2, Edit, Eye, EyeOff } from "lucide-react";
 
 const ROLE_ABBREVIATIONS = {
-  TL: "AD",
+  TL: "TL",
   RC: "RC",
   CRM: "CRM",
   FSE: "FSE",
@@ -20,33 +20,53 @@ const REGIONS = ["NORTH", "SOUTH", "EAST", "WEST"];
 const MANAGERS = ["Manager A", "Manager B"];
 const TLS = ["TL A", "TL B"];
 
-const DUMMY_USERS = [
-  {
-    id: 1,
-    name: "Raj Sharma",
-    email: "raj@example.com",
-    password: "123456",
-    roles: ["LEADGEN", "CRM"],
-    sector: "Corporate",
-    manager: "Manager A",
-    tl: "TL A",
-    region: "NORTH",
-  },
-  {
-    id: 2,
-    name: "Priya Verma",
-    email: "priya@example.com",
-    password: "123456",
-    roles: ["TL", "MANAGER"],
-    sector: "Domestic",
-    manager: "Manager B",
-    tl: "TL B",
-    region: "SOUTH",
-  },
-];
-
 export default function UserManagementDemo() {
-  const [users, setUsers] = useState(DUMMY_USERS);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const response = await fetch('/api/admin/users', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setUsers(data.data || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  const [allManagers, setAllManagers] = useState([]);
+  const [allTLs, setAllTLs] = useState([]);
+
+  useEffect(() => {
+    const fetchManagersTLs = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const response = await fetch('/api/admin/users', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          const mgrs = (data.data || []).filter(u => (u.role || []).includes('MANAGER'));
+          const tls = (data.data || []).filter(u => (u.role || []).includes('TL'));
+          setAllManagers(mgrs);
+          setAllTLs(tls);
+        }
+      } catch (error) {
+        console.error('Failed to fetch managers/tls:', error);
+      }
+    };
+    fetchManagersTLs();
+  }, []);
 
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState("create"); // create | edit
@@ -63,10 +83,35 @@ export default function UserManagementDemo() {
     region: "",
   });
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterSector, setFilterSector] = useState("All");
+  const [filterRole, setFilterRole] = useState("All");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const filteredManagers = form.sector && form.sector !== "All" 
+    ? allManagers.filter(m => m.sector === form.sector)
+    : allManagers;
+  
+  const filteredTLs = form.sector && form.sector !== "All"
+    ? allTLs.filter(t => t.sector === form.sector)
+    : allTLs;
+
+  const filteredUsers = users.filter(u => {
+    const matchesSearch = !searchTerm || (u.name || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSector = filterSector === "All" || u.sector === filterSector;
+    const matchesRole = filterRole === "All" || (u.role || []).includes(filterRole);
+    return matchesSearch && matchesSector && matchesRole;
+  });
+
   /* ---------------- CHANGE HANDLERS ---------------- */
 
   const handleChange = (key, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    if (key === 'sector') {
+      setForm((prev) => ({ ...prev, [key]: value, manager: "", tl: "" }));
+    } else {
+      setForm((prev) => ({ ...prev, [key]: value }));
+    }
   };
 
   const toggleRole = (role) => {
@@ -102,49 +147,97 @@ export default function UserManagementDemo() {
   const openEdit = (user) => {
     setOpen(true);
     setMode("edit");
-    setEditingId(user.id);
+    setEditingId(user.user_id);
 
     setForm({
-      name: user.name,
-      email: user.email,
-      password: user.password,
-      roles: user.roles,
-      sector: user.sector,
-      manager: user.manager,
-      tl: user.tl,
-      region: user.region,
+      name: user.name || "",
+      email: user.email || "",
+      password: "",
+      roles: user.role || [],
+      sector: user.sector || "",
+      manager: user.manager_id || "",
+      tl: user.tl_id || "",
+      region: user.region || "",
     });
   };
 
   /* ---------------- SUBMIT ---------------- */
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (mode === "create") {
-      setUsers((prev) => [
-        { ...form, id: Date.now() },
-        ...prev,
-      ]);
+      if (!form.name || !form.email || !form.password || form.roles.length === 0) {
+        alert("Please fill all required fields (Name, Email, Password, Role)");
+        return;
+      }
     } else {
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === editingId ? { ...u, ...form } : u
-        )
-      );
+      if (!form.name || !form.email || form.roles.length === 0) {
+        alert("Please fill all required fields (Name, Email, Role)");
+        return;
+      }
     }
 
-    setOpen(false);
-  };
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
-  /* ---------------- DELETE ---------------- */
-
-  const deleteUser = (id) => {
-    setUsers((prev) => prev.filter((u) => u.id !== id));
+    const session = JSON.parse(localStorage.getItem('session') || '{}');
+    
+    if (mode === "create") {
+      // POST for create
+      try {
+        const response = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(form)
+        });
+        const data = await response.json();
+        if (data.success) {
+          setUsers(prev => [{ ...form, role: form.roles, user_id: data.data?.user_id }, ...prev]);
+          setOpen(false);
+        } else {
+          alert(data.error || "Failed to create user");
+        }
+      } catch (error) {
+        console.error('Create error:', error);
+        alert("Failed to create user");
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      // PUT for edit - map roles to role for API
+      const putData = { 
+        user_id: editingId, 
+        name: form.name, 
+        sector: form.sector, 
+        role: form.roles,
+        manager_id: form.manager || null,
+        tl_id: form.tl || null
+      }
+      try {
+        const response = await fetch('/api/admin/users', {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(putData)
+        });
+        const data = await response.json();
+        if (data.success) {
+          setUsers(prev => prev.map(u => u.user_id === editingId ? { ...u, ...form } : u));
+          setOpen(false);
+        } else {
+          alert(data.error || "Failed to update user");
+        }
+      } catch (error) {
+        console.error('Update error:', error);
+        alert("Failed to update user");
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
   };
 
   /* ---------------- UI ---------------- */
 
   return (
-    <div className="p-2 h-screen flex flex-col bg-gray-50 font-['Calibri']">
+    <div className="p-2  flex flex-col bg-gray-100 font-['Calibri']  ">
 
       {/* HEADER */}
       <div className="flex justify-between items-center mb-3">
@@ -153,7 +246,7 @@ export default function UserManagementDemo() {
             <Users size={22} /> User Management
           </h1>
           <p className="text-xs text-gray-500 font-bold uppercase">
-            Total Users: {users.length}
+            Total Users: {filteredUsers.length} / {users.length}
           </p>
         </div>
 
@@ -165,8 +258,46 @@ export default function UserManagementDemo() {
         </button>
       </div>
 
+      {/* FILTERS */}
+      <div className="flex gap-3 mb-3 max-w-[35vw] ml-9 bg-white p-2 rounded-lg">
+      
+        <div className="w-48">
+          <input
+            type="text"
+            placeholder="Search by name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold"
+          />
+        </div>
+        <div className="w-36">
+          <select
+            value={filterSector}
+            onChange={(e) => setFilterSector(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold"
+          >
+            <option value="All">All Sectors</option>
+            <option value="Corporate">Corporate</option>
+            <option value="Domestic">Domestic</option>
+          </select>
+        </div>
+        <div className="w-36">
+          <select
+            value={filterRole}
+            onChange={(e) => setFilterRole(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold"
+          >
+            <option value="All">All Roles</option>
+            {ROLES.map(r => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {/* TABLE */}
-<div className="bg-white rounded-xl overflow-auto flex-1">
+<div className="flex justify-center">
+  <div className="bg-white rounded-xl mb-8 w-[95%] ">
   <table className="w-full text-sm table-fixed">
 
     <thead className="bg-[#103c7f] text-white text-xs uppercase">
@@ -177,68 +308,65 @@ export default function UserManagementDemo() {
         <th className="p-2 w-[120px]">Sector</th>
         <th className="p-2 w-[140px]">Manager</th>
         <th className="p-2 w-[120px]">TL</th>
-        <th className="p-2 w-[120px]">Region</th>
         <th className="p-2 w-[100px]">Action</th>
       </tr>
     </thead>
 
     <tbody>
-      {users.map((u) => (
+      {loading && (
+        <tr>
+          <td colSpan={7} className="p-8 text-center text-gray-500">
+            Loading users...
+          </td>
+        </tr>
+      )}
+      {!loading && filteredUsers.length === 0 && (
+        <tr>
+          <td colSpan={7} className="p-8 text-center text-gray-500">
+            No users found
+          </td>
+        </tr>
+      )}
+      {!loading && filteredUsers.length > 0 && filteredUsers.map((u) => (
         <tr
-          key={u.id}
+          key={u.user_id}
           className="border-b border-gray-100 hover:bg-gray-50 transition"
         >
-
           <td className="p-2 font-bold text-[#103c7f] truncate">
             {u.name}
           </td>
-
           <td className="p-2 truncate">{u.email}</td>
-
           <td className="p-2">
             <div className="flex flex-wrap gap-1 justify-center">
-              {u.roles.map((r) => (
+              {(u.role || []).map((r) => (
                 <span
                   key={r}
-                  className="text-[10px] bg-blue-100 px-2 py-0.5 rounded whitespace-nowrap"
+                  className="text-[10px] bg-blue-100 font-semibold px-2 py-0.5 rounded whitespace-nowrap"
                 >
-                  {ROLE_ABBREVIATIONS[r]}
+                  {ROLE_ABBREVIATIONS[r] || r}
                 </span>
               ))}
             </div>
           </td>
-
-          <td className="p-2 text-center">{u.sector}</td>
-          <td className="p-2 text-center">{u.manager}</td>
-          <td className="p-2 text-center">{u.tl}</td>
-          <td className="p-2 text-center">{u.region}</td>
-
-          {/* ACTION FIXED ALIGN */}
+          <td className="p-2 text-center">{u.sector || "-"}</td>
+          <td className="p-2 text-center">{u.manager_name || "-"}</td>
+          <td className="p-2 text-center">{u.tl_name || "-"}</td>
           <td className="p-2">
             <div className="flex justify-center items-center gap-2">
-
               <button
                 onClick={() => openEdit(u)}
                 className="p-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200"
               >
                 <Edit size={14} />
               </button>
-
-              <button
-                onClick={() => deleteUser(u.id)}
-                className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200"
-              >
-                <Trash2 size={14} />
-              </button>
-
             </div>
           </td>
-
         </tr>
       ))}
     </tbody>
 
   </table>
+</div>
 </div>
 
       {/* MODAL */}
@@ -261,20 +389,55 @@ export default function UserManagementDemo() {
             {/* BODY */}
             <div className="p-6 space-y-4 max-h-[70vh] overflow-auto">
 
-              <Input label="Name" value={form.name}
+              <Input label="Name" required value={form.name}
                 onChange={(e) => handleChange("name", e.target.value)} />
 
-              <Input label="Email" value={form.email}
-                onChange={(e) => handleChange("email", e.target.value)} />
+              {mode === "create" ? (
+                <Input label="Email" required value={form.email}
+                  onChange={(e) => handleChange("email", e.target.value)} />
+                ) : (
+                <Input label="Email" value={form.email} disabled />
+                )}
 
-              <Input label="Password" type="password"
-                value={form.password}
-                onChange={(e) => handleChange("password", e.target.value)} />
+              {mode === "create" ? (
+              <div>
+                <label className="text-xs font-bold text-gray-500">
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={form.password}
+                    onChange={(e) => handleChange("password", e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#103c7f]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="text-xs font-bold text-gray-500">
+                  Password
+                </label>
+                <input
+                  disabled
+                  value="●●●●●●●●●"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 bg-gray-100 text-gray-500 disabled"
+                />
+                {/* <p className="text-[10px] text-gray-400 mt-1">Contact admin to change password</p> */}
+              </div>
+            )}
 
               {/* ROLES */}
               <div>
                 <label className="text-xs font-bold text-gray-500">
-                  Roles
+                  Roles <span className="text-red-500">*</span>
                 </label>
 
                 <div className="flex flex-wrap gap-2 mt-2">
@@ -305,13 +468,15 @@ export default function UserManagementDemo() {
 
                 <Select label="Manager"
                   value={form.manager}
-                  options={MANAGERS}
+                  options={filteredManagers.map(m => m.user_id)}
+                  optionLabels={filteredManagers.map(m => m.name)}
                   onChange={(v) => handleChange("manager", v)}
                 />
 
                 <Select label="TL"
                   value={form.tl}
-                  options={TLS}
+                  options={filteredTLs.map(t => t.user_id)}
+                  optionLabels={filteredTLs.map(t => t.name)}
                   onChange={(v) => handleChange("tl", v)}
                 />
 
@@ -337,9 +502,10 @@ export default function UserManagementDemo() {
 
               <button
                 onClick={handleSubmit}
-                className="bg-[#103c7f] text-white px-5 py-2 rounded-xl font-bold"
+                disabled={isSubmitting}
+                className="bg-[#103c7f] disabled:opacity-50 text-white px-5 py-2 rounded-xl font-bold"
               >
-                {mode === "create" ? "Save User" : "Update User"}
+                {isSubmitting ? "Saving..." : (mode === "create" ? "Save User" : "Update User")}
               </button>
 
             </div>
@@ -353,11 +519,11 @@ export default function UserManagementDemo() {
 }
 
 /* INPUT */
-function Input({ label, ...props }) {
+function Input({ label, required, ...props }) {
   return (
     <div>
       <label className="text-xs font-bold text-gray-500">
-        {label}
+        {label} {required && <span className="text-red-500">*</span>}
       </label>
       <input
         {...props}
@@ -369,11 +535,11 @@ focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#103c7f]"
 }
 
 /* SELECT */
-function Select({ label, options, value, onChange }) {
+function Select({ label, options, value, onChange, optionLabels, required }) {
   return (
     <div>
       <label className="text-xs font-bold text-gray-500">
-        {label}
+        {label} {required && <span className="text-red-500">*</span>}
       </label>
       <select
         value={value}
@@ -382,9 +548,9 @@ function Select({ label, options, value, onChange }) {
 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#103c7f]"
       >
         <option value="">Select {label}</option>
-        {options.map((o) => (
+        {options.map((o, i) => (
           <option key={o} value={o}>
-            {o}
+            {optionLabels ? optionLabels[i] : o}
           </option>
         ))}
       </select>

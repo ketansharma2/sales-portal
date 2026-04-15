@@ -45,6 +45,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     {name: "Morning Report", href: "/admin/morning-report", icon: <SunMedium size={20} /> },
     { name: "CRM Overview", href: "/admin/crm", icon: <Briefcase size={20} /> },
     { name: "Franchise", href: "/admin/franchise", icon: <Store size={20} /> },
+    { name: "User Mgt", href: "/admin/users", icon: <UserCheck size={20} /> },
     { name: "Hierarchy", href: "/admin/hierarchy", icon: <Users size={20} /> },
     ];
   } 
