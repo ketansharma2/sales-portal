@@ -19,10 +19,14 @@ export async function GET(request) {
     const client_id = searchParams.get('client_id')
     const sent_to_tl = searchParams.get('sent_to_tl')
 
+    // Filter by authenticated user_id
+    const currentUserId = user.user_id || user.id
+
     // Build query for workbench data
     let query = supabaseServer
       .from('corporate_workbench')
       .select('*')
+      .eq('user_id', currentUserId)
       .order('created_at', { ascending: false })
 
     // Apply filters
