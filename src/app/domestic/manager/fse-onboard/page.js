@@ -39,6 +39,7 @@ function FseOnboardContent() {
   const [selectedLead, setSelectedLead] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deliveryUser, setDeliveryUser] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Filters
   const [filters, setFilters] = useState({
@@ -202,12 +203,15 @@ function FseOnboardContent() {
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
       const session = JSON.parse(localStorage.getItem("session") || "{}");
       const token = session?.access_token;
 
       if (!token) {
         alert("Authentication required");
+        setIsSubmitting(false);
         return;
       }
 
@@ -238,6 +242,8 @@ function FseOnboardContent() {
     } catch (error) {
       console.error("Error passing to CRM:", error);
       alert("An error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -959,10 +965,10 @@ function FseOnboardContent() {
                 </button>
                 <button
                   onClick={submitHandover}
-                  disabled={!deliveryUser}
+                  disabled={!deliveryUser || isSubmitting}
                   className="bg-[#103c7f] disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg hover:bg-blue-900 transition flex items-center gap-2"
                 >
-                  <CheckCircle size={18} /> Confirm Handover
+                  <CheckCircle size={18} /> {isSubmitting ? "Processing..." : "Confirm Handover"}
                 </button>
               </div>
             </div>
@@ -1095,6 +1101,20 @@ function FseOnboardContent() {
                     </p>
                     <p className="text-xs font-bold text-gray-800">
                       {selectedLead.projection}
+                    </p>
+                  </div>
+                </div>
+                {/* Card 8: Terms & Conditions */}
+                <div className="bg-white border border-gray-100 rounded-xl p-3 min-w-[180px] shadow-sm flex items-center gap-3">
+                  <div className="bg-amber-50 p-2 rounded-lg text-amber-600">
+                    <ListChecks size={18} />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                      Terms & Conditions
+                    </p>
+                    <p className="text-xs font-bold text-gray-800 truncate max-w-[120px]" title={selectedLead.tnc}>
+                      {selectedLead.tnc || "N/A"}
                     </p>
                   </div>
                 </div>

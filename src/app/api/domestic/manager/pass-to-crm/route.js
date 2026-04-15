@@ -43,6 +43,8 @@ export async function POST(request) {
       .eq('client_id', client_id)
       .single()
 
+    const tncValue = client?.tnc || null
+
     if (clientError || !client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
@@ -80,7 +82,8 @@ export async function POST(request) {
         phone: contactNo,
         remarks: latestRemarks,
         status: client.status,
-        user_id: crm_user_id
+        user_id: crm_user_id,
+        tnc: tncValue
       })
       .select()
       .single()
