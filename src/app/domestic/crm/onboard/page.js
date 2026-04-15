@@ -31,6 +31,7 @@ export default function OnboardPage() {
           const formattedClients = data.data.map(client => ({
             id: client.client_id,
             date: client.onboarding_date ? new Date(client.onboarding_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A',
+            dateRaw: client.onboarding_date || '',
             company: client.company_name,
             category: client.category,
             location: client.location,
@@ -41,9 +42,10 @@ export default function OnboardPage() {
               phone: client.phone || 'N/A'
             },
             remarks: client.remarks || 'No remarks',
+            tnc: client.tnc || 'N/A',
             clientStatus: client.client_status || 'Inactive',
             isAcknowledged: client.status === 'Done' // Set to true if status is 'Done'
-          }));
+          })).sort((a, b) => new Date(b.dateRaw) - new Date(a.dateRaw));
           setOnboardingList(formattedClients);
         }
       } catch (error) {
@@ -184,6 +186,7 @@ export default function OnboardPage() {
                   <th className="px-5 py-3 whitespace-nowrap">Location & State</th>
                   <th className="px-5 py-3 whitespace-nowrap w-64">Contact Person</th>
                   <th className="px-5 py-3 whitespace-nowrap">Remarks</th>
+                  <th className="px-5 py-3 whitespace-nowrap">TNC</th>
                   <th className="px-5 py-3 whitespace-nowrap">Client Status</th>
                   <th className="px-5 py-3 whitespace-nowrap text-center">Status</th>
                 </tr>
@@ -192,7 +195,7 @@ export default function OnboardPage() {
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan="8" className="px-6 py-8 text-center">
+                    <td colSpan="9" className="px-6 py-8 text-center">
                       <div className="flex flex-col items-center justify-center text-gray-400">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#103c7f] mb-2"></div>
                         <p className="text-sm font-bold">Loading clients...</p>
@@ -233,6 +236,9 @@ export default function OnboardPage() {
                           <span className="text-[11px] font-medium text-gray-600 truncate max-w-[150px]" title={item.remarks}>{item.remarks}</span>
                         </div>
                       </td>
+                      <td className="px-5 py-3.5">
+                        <span className="text-[10px] font-medium text-gray-600 truncate block max-w-[120px]" title={item.tnc}>{item.tnc}</span>
+                      </td>
 
                       {/* --- CLIENT STATUS COLUMN --- */}
                       <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
@@ -267,7 +273,7 @@ export default function OnboardPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="8" className="px-6 py-8 text-center">
+                    <td colSpan="9" className="px-6 py-8 text-center">
                         <div className="flex flex-col items-center justify-center text-gray-400">
                             <Search size={32} className="opacity-20 mb-2"/>
                             <p className="text-sm font-bold">No records found matching "{searchQuery}"</p>
