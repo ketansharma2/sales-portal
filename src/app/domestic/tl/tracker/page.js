@@ -27,10 +27,28 @@ function CVPreview({ url, name }) {
                 }
                 
                 const blob = await response.blob();
-                setFileType(blob.type);
+                
+                // Detect actual file type from magic bytes if binary/octet-stream
+                let detectedType = blob.type;
+                if (blob.type === 'binary/octet-stream' || blob.type === 'application/octet-stream') {
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const bytes = new Uint8Array(arrayBuffer.slice(0, 8));
+                    const header = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+                    
+                    if (header.startsWith('25504446')) {
+                        detectedType = 'application/pdf';
+                    } else if (header.startsWith('89504e47')) {
+                        detectedType = 'image/png';
+                    } else if (header.startsWith('ffd8ff')) {
+                        detectedType = 'image/jpeg';
+                    } else if (header.startsWith('504b')) {
+                        detectedType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                    }
+                }
+                setFileType(detectedType);
                 
                 // For images, convert to PDF first
-                if (blob.type.startsWith('image/')) {
+                if (detectedType.startsWith('image/')) {
                     const img = new Image();
                     const imgUrl = URL.createObjectURL(blob);
                     
@@ -51,6 +69,10 @@ function CVPreview({ url, name }) {
                     const pdfBlob = pdf.output('blob');
                     const pdfUrl = URL.createObjectURL(pdfBlob);
                     setBlobUrl(pdfUrl);
+                } else if (detectedType === 'application/pdf') {
+                    const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+                    const fileBlobUrl = URL.createObjectURL(pdfBlob);
+                    setBlobUrl(fileBlobUrl);
                 } else {
                     const fileBlobUrl = URL.createObjectURL(blob);
                     setBlobUrl(fileBlobUrl);

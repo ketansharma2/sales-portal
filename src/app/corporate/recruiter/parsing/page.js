@@ -21,7 +21,6 @@ function CVPreview({ url, name }) {
                 setLoading(true);
                 setError(null);
                 
-                console.log('Fetching file as blob:', url);
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -29,11 +28,35 @@ function CVPreview({ url, name }) {
                 }
                 
                 const blob = await response.blob();
-                console.log('File blob size:', blob.size, 'type:', blob.type);
-                setFileType(blob.type);
+                
+                // Detect actual file type from magic bytes if binary/octet-stream
+                let detectedType = blob.type;
+                if (blob.type === 'binary/octet-stream' || blob.type === 'application/octet-stream') {
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const bytes = new Uint8Array(arrayBuffer.slice(0, 8));
+                    const header = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+                    
+                    // PDF: starts with 25 50 44 46 (%PDF)
+                    if (header.startsWith('25504446')) {
+                        detectedType = 'application/pdf';
+                    }
+                    // PNG: 89 50 4E 47
+                    else if (header.startsWith('89504e47')) {
+                        detectedType = 'image/png';
+                    }
+                    // JPG: FF D8 FF
+                    else if (header.startsWith('ffd8ff')) {
+                        detectedType = 'image/jpeg';
+                    }
+                    // DOCX (ZIP): 50 4B (PK)
+                    else if (header.startsWith('504b')) {
+                        detectedType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                    }
+                }
+                setFileType(detectedType);
                 
                 // For images, convert to PDF first
-                if (blob.type.startsWith('image/')) {
+                if (detectedType.startsWith('image/')) {
                     const img = new Image();
                     const imgUrl = URL.createObjectURL(blob);
                     
@@ -55,7 +78,13 @@ function CVPreview({ url, name }) {
                     const pdfBlob = pdf.output('blob');
                     const pdfUrl = URL.createObjectURL(pdfBlob);
                     setBlobUrl(pdfUrl);
+                } else if (detectedType === 'application/pdf') {
+                    // For PDFs with wrong content-type, create blob with correct type
+                    const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+                    const fileBlobUrl = URL.createObjectURL(pdfBlob);
+                    setBlobUrl(fileBlobUrl);
                 } else {
+                    // For other files, create blob URL
                     const fileBlobUrl = URL.createObjectURL(blob);
                     setBlobUrl(fileBlobUrl);
                 }

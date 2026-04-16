@@ -765,7 +765,35 @@ export default function RecruiterWorkbenchReport() {
                                                                 try {
                                                                     const response = await fetch(row.cvUrl);
                                                                     const blob = await response.blob();
-                                                                    const fileType = blob.type;
+                                                                    let fileType = blob.type;
+                                                                    
+                                                                    // Detect actual file type from magic bytes if binary/octet-stream or unknown
+                                                                    if (!fileType || fileType === 'binary/octet-stream' || fileType === 'application/octet-stream') {
+const arrayBuffer = await blob.arrayBuffer();
+                                                                        const bytes = new Uint8Array(arrayBuffer.slice(0, 8));
+                                                                        const header = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+                                                                         // PDF: starts with 25 50 44 46 (%PDF)
+                                                                        if (header.startsWith('25504446')) {
+                                                                            fileType = 'application/pdf';
+                                                                        }
+                                                                        // PNG: 89 50 4E 47
+                                                                        else if (header.startsWith('89504e47')) {
+                                                                            fileType = 'image/png';
+                                                                        }
+                                                                        // JPG: FF D8 FF
+                                                                        else if (header.startsWith('ffd8ff')) {
+                                                                            fileType = 'image/jpeg';
+                                                                            console.log('Detected: JPG');
+                                                                        }
+                                                                        // GIF: 47 49 46 38
+                                                                        else if (header.startsWith('47494638')) {
+                                                                            fileType = 'image/gif';
+                                                                        }
+                                                                        // DOCX (ZIP): 50 4B (PK)
+                                                                        else if (header.startsWith('504b')) {
+                                                                            fileType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                                                                        }
+                                                                    }
                                                                     
                                                                     // Handle images - convert to PDF
                                                                     if (fileType.startsWith('image/')) {
@@ -792,7 +820,13 @@ export default function RecruiterWorkbenchReport() {
                                                                             fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
                                                                         setCvPreviewUrl('word');
                                                                     }
-                                                                    // Handle PDF and other files
+                                                                    // Handle PDF files - even if blob type was wrong
+                                                                    else if (fileType === 'application/pdf') {
+                                                                        const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+                                                                        const fileUrl = URL.createObjectURL(pdfBlob);
+                                                                        setCvPreviewUrl(fileUrl);
+                                                                    }
+                                                                    // Handle other files
                                                                     else {
                                                                         const fileUrl = URL.createObjectURL(blob);
                                                                         setCvPreviewUrl(fileUrl);
