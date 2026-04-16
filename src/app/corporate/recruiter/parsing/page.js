@@ -181,6 +181,7 @@ export default function CVParsingPage() {
     const [statusFilter, setStatusFilter] = useState("");
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
 
     // Fixed status options
     const statusOptions = [
@@ -194,9 +195,19 @@ export default function CVParsingPage() {
         "Other"
     ];
 
-    // Filter data based on status and date range
+    // Filter data based on status, date range and search
     const filteredParsedData = useMemo(() => {
         let filtered = parsedData;
+        
+        // Search filter
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter(row => 
+                row.name?.toLowerCase().includes(query) ||
+                row.email?.toLowerCase().includes(query) ||
+                row.mobile?.includes(query)
+            );
+        }
         
         if (statusFilter) {
             filtered = filtered.filter(row => row.latest_status === statusFilter);
@@ -221,7 +232,7 @@ export default function CVParsingPage() {
         }
         
         return filtered;
-    }, [parsedData, statusFilter, fromDate, toDate]);
+    }, [parsedData, statusFilter, fromDate, toDate, searchQuery]);
 
     // Fetch CV parsing data on component mount
     useEffect(() => {
@@ -649,6 +660,17 @@ export default function CVParsingPage() {
                                 <CheckCircle2 size={16} className="text-emerald-500"/> Parsed Candidates Queue
                             </h3>
                             <div className="flex items-center gap-3">
+                                {/* Search */}
+                                <div className="flex items-center gap-1">
+                                    <Search size={12} className="text-slate-400"/>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Search name/email/mobile"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="text-[10px] font-bold text-slate-700 bg-white border border-slate-200 rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer w-40"
+                                    />
+                                </div>
                                 {/* From Date */}
                                 <div className="flex items-center gap-1">
                                     <Calendar size={12} className="text-slate-400"/>

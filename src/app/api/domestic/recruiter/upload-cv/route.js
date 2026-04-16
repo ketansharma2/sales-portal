@@ -38,6 +38,25 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
+    // Get candidate name from cv_parsing table
+    let candidateName = 'unknown'
+    if (cvParsingId) {
+      const { data: cvData } = await supabaseServer
+        .from('cv_parsing')
+        .select('name')
+        .eq('id', cvParsingId)
+        .single()
+      if (cvData?.name) {
+        candidateName = cvData.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
+      }
+    }
+
+    // Get file extension
+    const extension = file.name.split('.').pop() || 'pdf'
+    
+    // Generate unique filename: {id}_{candidateName}.{extension}
+    const fileName = `${cvParsingId}_${candidateName}.${extension}`
+
     // Validate file type
     const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/jpg', 'image/png']
     if (!allowedTypes.includes(file.type)) {
@@ -49,10 +68,6 @@ export async function POST(request) {
     if (file.size > maxSize) {
       return NextResponse.json({ error: 'File size exceeds 10MB limit' }, { status: 400 })
     }
-
-    // Generate unique filename (use original file name - URL encoded for S3)
-    const encodedFileName = encodeURIComponent(file.name).replace(/%20/g, '_');
-    const fileName = `${cvParsingId}_${encodedFileName}`
 
     // Convert file to buffer
     console.log('Converting file to buffer...')
