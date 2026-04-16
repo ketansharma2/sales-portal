@@ -2041,7 +2041,10 @@ return (
 
                         <div><label className="text-[10px] font-bold text-gray-500 uppercase">Location</label><input type="text" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none" value={jdFormData.location || ""} onChange={(e)=>setJdFormData({...jdFormData, location: e.target.value})}/></div>
                         <div><label className="text-[10px] font-bold text-gray-500 uppercase">Experience</label><input type="text" placeholder="e.g. 2-4 Yrs" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none" value={newReqData.experience} onChange={(e) => setNewReqData({...newReqData, experience: e.target.value})}/></div>
-                        <div><label className="text-[10px] font-bold text-gray-500 uppercase">Package (LPA)</label><input type="number" placeholder="e.g. 12" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none" value={newReqData.package} onChange={(e) => setNewReqData({...newReqData, package: e.target.value})}/></div>
+                        <div className="flex items-center gap-2"><div className="flex-1"><label className="text-[10px] font-bold text-gray-500 uppercase">Package (LPA)</label><input type="number" step="0.1" placeholder="e.g. 5.5" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none" value={newReqData.package} onChange={(e) => {
+                            const val = e.target.value === '' ? '' : (parseFloat(e.target.value) > 99 ? 99 : e.target.value);
+                            setNewReqData({...newReqData, package: val});
+                        }}/></div>{newReqData.package && <span className="text-xs font-bold text-[#103c7f] mt-4">{newReqData.package} LPA</span>}</div>
                         <div><label className="text-[10px] font-bold text-gray-500 uppercase">Employment Type</label><input type="text" placeholder="e.g. Full Time" className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none" value={jdFormData.employment_type || ""} onChange={(e)=>setJdFormData({...jdFormData, employment_type: e.target.value})}/>
                         </div>
                         
