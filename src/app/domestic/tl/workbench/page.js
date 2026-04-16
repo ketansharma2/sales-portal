@@ -375,71 +375,89 @@ export default function TLWorkbenchPage() {
                                             
                                             {/* --- EDITABLE COLUMN: RECRUITER --- */}
                                             <td className="p-1 border-r border-gray-200 bg-blue-50/10">
-                                                <select
-                                                    className="w-full bg-transparent border-none p-2 text-xs font-bold text-blue-700 outline-none cursor-pointer focus:ring-2 focus:ring-blue-500 focus:bg-white rounded"
-                                                    value={item.recruiter}
-                                                    onChange={(e) => handleRowChange(item.id, 'recruiter', e.target.value)}
-                                                    disabled={loadingRcUsers}
-                                                >
-                                                    <option value="" className="text-gray-400">{loadingRcUsers ? "Loading..." : "-- Select Recruiter --"}</option>
-                                                    {rcUsersList.map(rc => <option key={rc.user_id} value={rc.name}>{rc.name}</option>)}
-                                                </select>
+                                                {(() => {
+                                                    const isPast = new Date(item.date) < new Date(new Date().toISOString().split('T')[0]);
+                                                    return (
+                                                        <select
+                                                            className={`w-full bg-transparent border-none p-2 text-xs font-bold text-blue-700 outline-none cursor-pointer focus:ring-2 focus:ring-blue-500 focus:bg-white rounded ${isPast ? 'text-gray-400 cursor-not-allowed' : ''}`}
+                                                            value={item.recruiter}
+                                                            onChange={(e) => handleRowChange(item.id, 'recruiter', e.target.value)}
+                                                            disabled={loadingRcUsers || isPast}
+                                                        >
+                                                            <option value="" className="text-gray-400">{loadingRcUsers ? "Loading..." : "-- Select Recruiter --"}</option>
+                                                            {rcUsersList.map(rc => <option key={rc.user_id} value={rc.name}>{rc.name}</option>)}
+                                                        </select>
+                                                    );
+                                                })()}
                                             </td>
                                             
                                             {/* --- EDITABLE COLUMN: SLOT TIMINGS --- */}
                                             <td className="p-1 border-r border-gray-200 bg-blue-50/10">
-                                                <select 
-                                                    className="w-full bg-transparent border-none p-2 text-xs font-bold text-purple-700 outline-none cursor-pointer focus:ring-2 focus:ring-purple-500 focus:bg-white rounded"
-                                                    value={item.slot}
-                                                    onChange={(e) => handleRowChange(item.id, 'slot', e.target.value)}
-                                                >
-                                                    <option value="" className="text-gray-400">-- Select Slot --</option>
-                                                    {slotsList.map(s => <option key={s} value={s}>{s}</option>)}
-                                                </select>
+                                                {(() => {
+                                                    const isPast = new Date(item.date) < new Date(new Date().toISOString().split('T')[0]);
+                                                    return (
+                                                        <select 
+                                                            className={`w-full bg-transparent border-none p-2 text-xs font-bold text-purple-700 outline-none cursor-pointer focus:ring-2 focus:ring-purple-500 focus:bg-white rounded ${isPast ? 'text-gray-400 cursor-not-allowed' : ''}`}
+                                                            value={item.slot}
+                                                            onChange={(e) => handleRowChange(item.id, 'slot', e.target.value)}
+                                                            disabled={isPast}
+                                                        >
+                                                            <option value="" className="text-gray-400">-- Select Slot --</option>
+                                                            {slotsList.map(s => <option key={s} value={s}>{s}</option>)}
+                                                        </select>
+                                                    );
+                                                })()}
                                             </td>
 
                                             {/* --- ACTION COLUMN --- */}
                                             <td className="p-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)]">
-                                                <div className="flex justify-center items-center gap-1.5">
-                                                    {/* Assign / Assigned Button */}
-                                                    {item.isFinalAssigned && item.slot ? (
-                                                        <span className="px-2.5 py-1.5 rounded font-bold text-[10px] flex items-center gap-1 uppercase tracking-wider bg-green-100 text-green-700 border border-green-200">
-                                                            <Send size={12}/> Assigned
-                                                        </span>
-                                                    ) : (
-                                                        <button 
-                                                            onClick={() => handleIndividualAssign(item)}
-                                                            className="px-2.5 py-1.5 rounded font-bold text-[10px] flex items-center gap-1 uppercase tracking-wider transition bg-[#103c7f] text-white hover:bg-blue-900 shadow-sm"
-                                                            title="Assign to Recruiter"
-                                                        >
-                                                            <Send size={12}/> Assign
-                                                        </button>
-                                                    )}
+                                                {(() => {
+                                                    const isPast = new Date(item.date) < new Date(new Date().toISOString().split('T')[0]);
+                                                    return (
+                                                        <div className="flex justify-center items-center gap-1.5">
+                                                            {/* Assign / Assigned Button */}
+                                                            {item.isFinalAssigned && item.slot ? (
+                                                                <span className="px-2.5 py-1.5 rounded font-bold text-[10px] flex items-center gap-1 uppercase tracking-wider bg-green-100 text-green-700 border border-green-200">
+                                                                    <Send size={12}/> Assigned
+                                                                </span>
+                                                            ) : (
+                                                                <button 
+                                                                    onClick={() => !isPast && handleIndividualAssign(item)}
+                                                                    disabled={isPast}
+                                                                    className={`px-2.5 py-1.5 rounded font-bold text-[10px] flex items-center gap-1 uppercase tracking-wider transition shadow-sm ${isPast ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#103c7f] text-white hover:bg-blue-900'}`}
+                                                                    title={isPast ? "Cannot assign past date work" : "Assign to Recruiter"}
+                                                                >
+                                                                    <Send size={12}/> Assign
+                                                                </button>
+                                                            )}
 
-                                                    {/* Add/Edit Remark Button */}
-                                                    <button 
-                                                        onClick={() => handleOpenRemarkModal(item)}
-                                                        className={`p-1.5 border rounded hover:bg-blue-100 transition ${
-                                                            item.tl_remarks 
-                                                            ? 'bg-yellow-50 text-yellow-600 border-yellow-200' 
-                                                            : 'bg-blue-50 text-blue-600 border border-blue-200'
-                                                        }`}
-                                                        title={item.tl_remarks ? "Edit TL Remark" : "Add TL Remark"}
-                                                    >
-                                                        {item.tl_remarks ? <Edit size={14}/> : <MessageSquarePlus size={14}/>}
-                                                    </button>
+                                                            {/* Add/Edit Remark Button */}
+                                                            <button 
+                                                                onClick={() => !isPast && handleOpenRemarkModal(item)}
+                                                                disabled={isPast}
+                                                                className={`p-1.5 border rounded hover:bg-blue-100 transition ${isPast ? 'bg-gray-50 text-gray-300 border-gray-200 cursor-not-allowed' : (
+                                                                    item.tl_remarks 
+                                                                    ? 'bg-yellow-50 text-yellow-600 border-yellow-200' 
+                                                                    : 'bg-blue-50 text-blue-600 border border-blue-200'
+                                                                )}`}
+                                                                title={isPast ? "Cannot edit past date remarks" : (item.tl_remarks ? "Edit TL Remark" : "Add TL Remark")}
+                                                            >
+                                                                {item.tl_remarks ? <Edit size={14}/> : <MessageSquarePlus size={14}/>}
+                                                            </button>
 
-                                                    {/* View Work Button (Only visible if assigned) */}
-                                                    {item.isFinalAssigned && (
-                                                        <button 
-                                                            onClick={() => handleViewWork(item)}
-                                                            className="p-1.5 bg-purple-50 text-purple-600 border border-purple-200 rounded hover:bg-purple-100 transition"
-                                                            title="View Work Progress"
-                                                        >
-                                                            <Activity size={14}/>
-                                                        </button>
-                                                    )}
-                                                </div>
+                                                            {/* View Work Button (Only visible if assigned) */}
+                                                            {item.isFinalAssigned && (
+                                                                <button 
+                                                                    onClick={() => handleViewWork(item)}
+                                                                    className="p-1.5 bg-purple-50 text-purple-600 border border-purple-200 rounded hover:bg-purple-100 transition"
+                                                                    title="View Work Progress"
+                                                                >
+                                                                    <Activity size={14}/>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </td>
 
                                         </tr>

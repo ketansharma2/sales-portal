@@ -751,31 +751,38 @@ export default function AssignWorkPage() {
                                     <td className="p-3 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)]">
                                         <div className="flex justify-center items-center gap-1.5">
                                             {/* Edit Button */}
-                                            <button
-                                                onClick={() => handleEdit(item)}
-                                                className="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 transition"
-                                                title="Edit Assignment"
-                                            >
-                                                <Edit size={14} />
-                                            </button>
+                                            {(() => {
+                                                const isPast = new Date(item.date) < new Date(new Date().toISOString().split('T')[0]);
+                                                return (
+                                                    <>
+                                                        <button
+                                                            onClick={() => !isPast && handleEdit(item)}
+                                                            disabled={isPast}
+                                                            className={`p-1.5 border rounded transition ${isPast ? 'text-gray-300 bg-gray-50 border-gray-200 cursor-not-allowed' : 'text-blue-600 bg-blue-50 border-blue-200 hover:bg-blue-100'}`}
+                                                            title={isPast ? "Cannot edit past date assignments" : "Edit Assignment"}
+                                                        >
+                                                            <Edit size={14} />
+                                                        </button>
 
-                                            {/* View Work Button */}
-                                            <button
-                                                onClick={() => handleViewWork(item)}
-                                                className="p-1.5 text-purple-600 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 transition"
-                                                title="View Downstream Progress"
-                                            >
-                                                <Activity size={14} />
-                                            </button>
+                                                        <button
+                                                            onClick={() => handleViewWork(item)}
+                                                            className="p-1.5 text-purple-600 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 transition"
+                                                            title="View Downstream Progress"
+                                                        >
+                                                            <Activity size={14} />
+                                                        </button>
 
-                                            {/* Delete Button */}
-                                            <button
-                                                onClick={() => handleDelete(item.id)}
-                                                className="p-1.5 text-red-600 bg-red-50 border border-red-200 rounded hover:bg-red-100 transition"
-                                                title="Delete Assignment"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
+                                                        <button
+                                                            onClick={() => !isPast && handleDelete(item.id)}
+                                                            disabled={isPast}
+                                                            className={`p-1.5 border rounded transition ${isPast ? 'text-gray-300 bg-gray-50 border-gray-200 cursor-not-allowed' : 'text-red-600 bg-red-50 border-red-200 hover:bg-red-100'}`}
+                                                            title={isPast ? "Cannot delete past date assignments" : "Delete Assignment"}
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </>
+                                                );
+                                            })()}
                                         </div>
                                     </td>
 
