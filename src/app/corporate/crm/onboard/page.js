@@ -115,13 +115,14 @@ export default function OnboardPage() {
 
   // --- LOGIC: Filter Data ---
   const filteredList = onboardingList.filter((item) => {
+    if (!searchQuery) return true;
     const searchLower = searchQuery.toLowerCase();
     return (
-      item.company.toLowerCase().includes(searchLower) ||
-      item.contact.name.toLowerCase().includes(searchLower) ||
-      item.state.toLowerCase().includes(searchLower) ||
-      item.location.toLowerCase().includes(searchLower) ||
-      item.id.toString().includes(searchLower)
+      (item.company?.toLowerCase().includes(searchLower)) ||
+      (item.contact?.name?.toLowerCase().includes(searchLower)) ||
+      (item.state?.toLowerCase().includes(searchLower)) ||
+      (item.location?.toLowerCase().includes(searchLower)) ||
+      (item.id?.toString().includes(searchLower))
     );
   });
 
