@@ -179,6 +179,8 @@ export default function CVParsingPage() {
     // --- PARSED DATA ---
     const [parsedData, setParsedData] = useState([]);
     const [statusFilter, setStatusFilter] = useState("");
+    const [fromDate, setFromDate] = useState("");
+    const [toDate, setToDate] = useState("");
 
     // Fixed status options
     const statusOptions = [
@@ -192,11 +194,34 @@ export default function CVParsingPage() {
         "Other"
     ];
 
-    // Filter data based on status
+    // Filter data based on status and date range
     const filteredParsedData = useMemo(() => {
-        if (!statusFilter) return parsedData;
-        return parsedData.filter(row => row.latest_status === statusFilter);
-    }, [parsedData, statusFilter]);
+        let filtered = parsedData;
+        
+        if (statusFilter) {
+            filtered = filtered.filter(row => row.latest_status === statusFilter);
+        }
+        
+        if (fromDate) {
+            const from = new Date(fromDate);
+            filtered = filtered.filter(row => {
+                if (!row.portal_date) return true;
+                const rowDate = new Date(row.portal_date);
+                return !isNaN(rowDate) && rowDate >= from;
+            });
+        }
+        
+        if (toDate) {
+            const to = new Date(toDate);
+            filtered = filtered.filter(row => {
+                if (!row.portal_date) return true;
+                const rowDate = new Date(row.portal_date);
+                return !isNaN(rowDate) && rowDate <= to;
+            });
+        }
+        
+        return filtered;
+    }, [parsedData, statusFilter, fromDate, toDate]);
 
     // Fetch CV parsing data on component mount
     useEffect(() => {
@@ -227,6 +252,7 @@ export default function CVParsingPage() {
                 const transformedData = result.data.map(item => ({
                     id: item.id,
                     portal: item.portal || "NA",
+                    portal_date: item.portal_date || null,
                     portalDate: item.portal_date ? new Date(item.portal_date).toLocaleDateString("en-GB", {
                         day: "2-digit",
                         month: "short",
@@ -623,6 +649,24 @@ export default function CVParsingPage() {
                                 <CheckCircle2 size={16} className="text-emerald-500"/> Parsed Candidates Queue
                             </h3>
                             <div className="flex items-center gap-3">
+                                {/* From Date */}
+                                <div className="flex items-center gap-1">
+                                    <Calendar size={12} className="text-slate-400"/>
+                                    <input 
+                                        type="date" 
+                                        value={fromDate}
+                                        onChange={(e) => setFromDate(e.target.value)}
+                                        className="text-[10px] font-bold text-slate-700 bg-white border border-slate-200 rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                                    />
+                                </div>
+                                <span className="text-slate-400 text-xs">to</span>
+                                {/* To Date */}
+                                <input 
+                                    type="date" 
+                                    value={toDate}
+                                    onChange={(e) => setToDate(e.target.value)}
+                                    className="text-[10px] font-bold text-slate-700 bg-white border border-slate-200 rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                                />
                                 {/* Status Filter */}
                                 <select 
                                     className="text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
@@ -642,7 +686,7 @@ export default function CVParsingPage() {
 
                         {/* Wrapper div for both Vertical and Horizontal scrolling */}
                         <div className="overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar pb-4 relative">
-                            <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1700px]">
+                            <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1400px]">
                                 
                                 {/* Sticky Header */}
                                 <thead className="sticky top-0 z-20">
@@ -651,7 +695,7 @@ export default function CVParsingPage() {
                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Latest Status</th>
                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Portal Info</th>
                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Candidate Details</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Location / Gender</th>
+                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest max-w-40">Location / Gender</th>
                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Qualification</th>
                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Experience / Company</th>
                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Top Skills</th>
@@ -714,8 +758,8 @@ export default function CVParsingPage() {
                                             </td>
 
                                             {/* 7 & 8. Location & Gender */}
-                                            <td className="py-3 px-4">
-                                                <p className="text-xs font-bold text-slate-700 flex items-center gap-1"><MapPin size={10} className="text-slate-400"/>{row.location}</p>
+                                            <td className="py-3 px-4 max-w-40">
+                                                <p className="text-xs font-bold text-slate-700 flex items-center gap-1 truncate" title={row.location}><MapPin size={10} className="text-slate-400 shrink-0"/>{row.location}</p>
                                                 <p className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-wider">{row.gender}</p>
                                             </td>
 

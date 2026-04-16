@@ -142,6 +142,8 @@ export async function GET(request) {
           .eq('req_id', item.req_id)
           .eq('user_id', currentUserId)
           .eq('calling_date', item.date)
+          .not('sent_to_tl', 'is', null)
+          .eq('sent_date', item.date)
         
         const { data: convData } = await convQuery
         
@@ -157,35 +159,37 @@ export async function GET(request) {
           }
         }
         
-        // Get CV sourced: count cv_parsing where portal_date = calling_date from conversation
-        const cvParsingQuery = supabaseServer
-          .from('cv_parsing')
-          .select('portal')
+        // Get CV sourced: use same logic as corporate/crm - get parsing_ids from conversation first
+        const { data: trackerRows } = await supabaseServer
+          .from('candidates_conversation')
+          .select('parsing_id')
           .eq('req_id', item.req_id)
           .eq('user_id', currentUserId)
-          .eq('portal_date', item.date)
-        
-        const { data: cvParsingData } = await cvParsingQuery
-        
-        if (cvParsingData && cvParsingData.length > 0) {
-          // Count by portal type
-          const portalCounts = cvParsingData.reduce((acc, row) => {
-            const portal = row.portal?.toLowerCase() || ''
-            if (portal.includes('naukri')) {
-              acc.cv_naukri++
-            } else if (portal.includes('indeed')) {
-              acc.cv_indeed++
-            } else {
-              acc.cv_other++
-            }
-            acc.cv_sourced++
-            return acc
-          }, { cv_sourced: 0, cv_naukri: 0, cv_indeed: 0, cv_other: 0 })
-          
-          conversationStats = {
-            ...conversationStats,
-            ...portalCounts
-          }
+          .eq('calling_date', item.date)
+          .not('sent_to_tl', 'is', null)
+          .eq('sent_date', item.date)
+          .not('parsing_id', 'is', null)
+
+        const parsingIds = [...new Set(trackerRows?.map(r => r.parsing_id).filter(Boolean))] || []
+
+        let cv_naukri = 0, cv_indeed = 0, cv_other = 0
+        if (parsingIds.length > 0) {
+          const { data: cvData } = await supabaseServer
+            .from('cv_parsing')
+            .select('portal')
+            .in('id', parsingIds)
+
+          cv_naukri = cvData?.filter(c => c.portal === 'Naukri').length || 0
+          cv_indeed = cvData?.filter(c => c.portal === 'Indeed').length || 0
+          cv_other = cvData?.filter(c => c.portal === 'Other').length || 0
+        }
+
+        conversationStats = {
+          ...conversationStats,
+          cv_sourced: cv_naukri + cv_indeed + cv_other,
+          cv_naukri,
+          cv_indeed,
+          cv_other
         }
       }
 
