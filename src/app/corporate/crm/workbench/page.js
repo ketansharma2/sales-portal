@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { 
     Calendar, Briefcase, IndianRupee, Clock, 
     FileText, Send, TrendingUp, Database, UserCheck, MessageSquare, 
-    Search, Eye, X, Users, LayoutDashboard, Settings, UserCog
+    Search, Eye, X, Users, LayoutDashboard, Settings, UserCog, Download
 } from "lucide-react";
 
 export default function CRMWorkbenchReport() {
@@ -217,6 +217,10 @@ export default function CRMWorkbenchReport() {
     // Modals State
     const [cvModalData, setCvModalData] = useState(null);
     const [jdModalData, setJdModalData] = useState(null);
+    
+    // JD View Modal State (PDF Style)
+    const [isJdViewModalOpen, setIsJdViewModalOpen] = useState(false);
+    const [currentJdView, setCurrentJdView] = useState(null);
 
     // Workbench data from API
     const [workbenchData, setWorkbenchData] = useState([]);
@@ -514,7 +518,26 @@ export default function CRMWorkbenchReport() {
                                                         <span className="font-bold text-gray-600 leading-tight truncate">{row.job_title}</span>
                                                         {row.job_summary ? (
                                                             <button 
-                                                                onClick={() => setJdModalData(row)}
+                                                                onClick={() => {
+                                                                    setJdModalData(row);
+                                                                    setCurrentJdView({
+                                                                        title: row.job_title,
+                                                                        summary: row.job_summary,
+                                                                        skills: row.req_skills || '',
+                                                                        location: row.location || '',
+                                                                        experience: row.experience || '',
+                                                                        employment_type: row.employment_type || '',
+                                                                        working_days: row.working_days || '',
+                                                                        timings: row.timings || '',
+                                                                        package_salary: row.package || '',
+                                                                        tool_requirement: row.tool_requirement || '',
+                                                                        rnr: row.rnr || '',
+                                                                        preferred_qual: row.preferred_qual || '',
+                                                                        company_offers: row.company_offers || '',
+                                                                        contact_details: row.contact_details || ''
+                                                                    });
+                                                                    setIsJdViewModalOpen(true);
+                                                                }}
                                                                 className="text-blue-600 hover:text-white hover:bg-blue-600 font-black text-[8px] uppercase tracking-widest bg-blue-50 px-1.5 py-0.5 rounded transition-colors border border-blue-200 shrink-0"
                                                             >
                                                                 View JD
@@ -620,31 +643,101 @@ export default function CRMWorkbenchReport() {
                 </div>
             )}
 
-            {/* --- MODAL FOR VIEWING JD CONTENT --- */}
-            {jdModalData && (
-                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4" onClick={() => setJdModalData(null)}>
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-                        <div className="bg-[#103c7f] p-3 flex justify-between items-center text-white shrink-0">
-                            <h3 className="font-black text-sm uppercase tracking-wide flex items-center gap-2">
-                                <FileText size={16}/> Job Description
-                            </h3>
-                            <button onClick={() => setJdModalData(null)} className="hover:bg-white/20 p-1 rounded-full transition bg-white/10">
-                                <X size={16} />
-                            </button>
+            {jdModalData && isJdViewModalOpen && (
+                <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-xl flex justify-center items-center z-[10000] p-0 md:p-4 print:static print:block print:bg-white print:p-0 print:z-auto" onClick={() => { setIsJdViewModalOpen(false); setJdModalData(null); }}>
+                    
+                    <div className="bg-transparent w-full max-w-[800px] h-full md:h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 relative shadow-2xl rounded-2xl print:block print:h-auto print:max-w-full print:shadow-none print:rounded-none print:overflow-visible" onClick={(e) => e.stopPropagation()}>
+                        
+                        {/* Header (Hidden in Print) */}
+                        <div className="bg-[#103c7f] text-white p-4 flex justify-between items-center shrink-0 border-b border-blue-900 print:hidden">
+                            <div className="flex items-center gap-3">
+                                <FileText size={20} />
+                                <h3 className="font-bold text-lg uppercase tracking-wide">Document Preview</h3>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={() => window.print()} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider">
+                                    <Download size={16}/> Save as PDF
+                                </button>
+                                <button onClick={() => { setIsJdViewModalOpen(false); setJdModalData(null); }} className="hover:bg-white/20 p-2 rounded-full transition">
+                                    <X size={20}/>
+                                </button>
+                            </div>
                         </div>
-                        <div className="p-6 bg-gray-50">
-                            <h4 className="text-lg font-black text-[#103c7f] mb-3 border-b border-gray-200 pb-2">
-                                {jdModalData.job_title}
-                            </h4>
-                            <p className="text-sm font-medium text-gray-700 leading-relaxed whitespace-pre-wrap">
-                                {jdModalData.job_summary}
-                            </p>
+
+                        {/* --- PDF CONTENT --- */}
+                        <div className="flex-1 min-h-0 overflow-y-auto bg-gray-200 p-4 md:p-8 block print:block print:overflow-visible print:bg-white print:p-0 custom-scrollbar">
+                            <div className="bg-white w-full max-w-[210mm] min-h-[297mm] h-max mx-auto p-[10mm] md:p-[15mm] shadow-xl text-black font-['Calibri'] relative print:w-full print:max-w-none print:shadow-none print:m-0 print:border-none" id="pdf-content">
+                                
+                                {/* 1. Header Logo */}
+                                <div className="mb-10">
+                                    <img src="/maven-logo.png" alt="Maven Jobs" style={{ width: '220px', height: '70px', objectFit: 'contain' }} />
+                                </div>
+
+                                {/* 2. Bordered Container */}
+                                <div className="border border-black p-8 min-h-[850px] relative print:border-none print:p-0">
+                                    
+                                    {/* Key Value Pairs */}
+                                    <div className="space-y-4 mb-10 text-[15px] leading-relaxed">
+                                        {currentJdView.title && <p><span className="font-bold">JOB TITLE : </span> {currentJdView.title}</p>}
+                                        {currentJdView.location && <p><span className="font-bold">LOCATION : </span> {currentJdView.location}</p>}
+                                        {currentJdView.experience && <p><span className="font-bold">EXPERIENCE : </span> {currentJdView.experience}</p>}
+                                        {currentJdView.employment_type && <p><span className="font-bold">EMPLOYMENT TYPE : </span> {currentJdView.employment_type}</p>}
+                                        {currentJdView.working_days && <p><span className="font-bold">WORKING DAYS : </span> {currentJdView.working_days}</p>}
+                                        {currentJdView.timings && <p><span className="font-bold">TIMINGS : </span> {currentJdView.timings}</p>}
+                                        {currentJdView.package_salary && <p><span className="font-bold">PACKAGE : </span> {currentJdView.package_salary}</p>}
+                                        {currentJdView.tool_requirement && <p><span className="font-bold">TOOL REQUIREMENT : </span> {currentJdView.tool_requirement}</p>}
+                                    </div>
+
+                                    {/* Sections */}
+                                    <div className="space-y-8 text-[15px]">
+                                        {currentJdView.summary && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Job Summary :</h4><p className="leading-relaxed text-justify text-gray-800">{currentJdView.summary}</p></div>
+                                        )}
+                                        
+                                        {currentJdView.rnr && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Role & Responsibilities :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {currentJdView.rnr.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {currentJdView.skills && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Required Skills :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {currentJdView.skills.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {currentJdView.preferred_qual && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">Preferred Qualifications :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {currentJdView.preferred_qual.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {currentJdView.company_offers && (
+                                            <div><h4 className="font-bold mb-2 uppercase text-[16px]">What Company Offer :</h4>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                                    {currentJdView.company_offers.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {currentJdView.contact_details && (
+                                            <div className="mt-12 pt-6 border-t border-black/20">
+                                                <h4 className="font-bold mb-3 uppercase text-[16px]">Contact Us To Apply :</h4>
+                                                <div className="whitespace-pre-line leading-loose text-gray-900 font-medium">{currentJdView.contact_details}</div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                </div>
+                            </div>
                         </div>
-                        <div className="p-3 bg-white border-t border-gray-100 flex justify-end">
-                            <button onClick={() => setJdModalData(null)} className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold uppercase tracking-widest rounded-lg transition-colors">
-                                Close
-                            </button>
-                        </div>
+
                     </div>
                 </div>
             )}
