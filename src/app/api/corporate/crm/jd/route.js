@@ -18,10 +18,11 @@ export async function GET(request) {
 
     const userId = user.user_id || user.id
 
-    // Get all JDs from corporate_crm_jd table
+    // Get all JDs from corporate_crm_jd table created by current user
     const { data: jds, error } = await supabaseServer
       .from('corporate_crm_jd')
       .select('*')
+      .eq('created_by', userId)
       .order('created_date', { ascending: false })
 
     if (error) {
