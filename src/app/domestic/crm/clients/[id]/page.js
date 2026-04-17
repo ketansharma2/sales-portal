@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { jsPDF } from "jspdf";
 import {
   Building2, MapPin, Phone, Mail, User,
   FileText, Plus, ChevronRight, ArrowLeft,
@@ -315,6 +316,200 @@ const [newConversationData, setNewConversationData] = useState({
     timeline: '',
     receivedDate: new Date().toISOString().split('T')[0]
   });
+
+  const formatPackageForDB = (val) => {
+    if (!val || val === '') return '';
+    return `${val} LPA`;
+  };
+
+  const extractPackageForDisplay = (val) => {
+    if (!val) return '';
+    if (val.includes('LPA')) {
+      return val.replace('LPA', '').trim();
+    }
+    return val;
+  };
+
+  const generatePDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const leftMargin = 15;
+    const rightMargin = 15;
+    const contentWidth = pageWidth - leftMargin - rightMargin;
+    let y = 15;
+    const lineHeight = 6;
+
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, pageWidth, 297, 'F');
+
+    const img = new window.Image();
+    img.src = '/maven-logo.png';
+    img.onload = () => {
+      try {
+        doc.addImage(img, 'PNG', leftMargin, y - 5, 60, 20);
+      } catch (e) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(22);
+        doc.setTextColor(16, 55, 127);
+        doc.text("MAVEN JOBS", leftMargin, y);
+      }
+      y += 20;
+      finishPDF(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, lineHeight);
+    };
+    img.onerror = () => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.setTextColor(16, 55, 127);
+      doc.text("MAVEN JOBS", leftMargin, y);
+      y += 20;
+      finishPDF(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, lineHeight);
+    };
+  };
+
+  const finishPDF = (doc, y, pageWidth, leftMargin, rightMargin, contentWidth, lineHeight) => {
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.5);
+    doc.rect(leftMargin, y, contentWidth, 260);
+
+    y += 8;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+
+    const fields = [
+      { label: "JOB TITLE", value: viewJdData.job_title },
+      { label: "LOCATION", value: viewJdData.location },
+      { label: "EXPERIENCE", value: viewJdData.experience },
+      { label: "EMPLOYMENT TYPE", value: viewJdData.employment_type },
+      { label: "WORKING DAYS", value: viewJdData.working_days },
+      { label: "TIMINGS", value: viewJdData.timings },
+      { label: "PACKAGE", value: viewJdData.package },
+      { label: "TOOL REQUIREMENT", value: viewJdData.tool_requirement }
+    ];
+
+    fields.forEach(field => {
+      if (field.value) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text(`${field.label} : `, leftMargin + 5, y);
+        const labelWidth = doc.getTextWidth(`${field.label} : `);
+        doc.setFont("helvetica", "normal");
+        doc.text(field.value, leftMargin + 5 + labelWidth, y);
+        y += lineHeight + 1;
+      }
+    });
+
+    y += 5;
+    doc.setDrawColor(180, 180, 180);
+    doc.setLineWidth(0.3);
+    doc.line(leftMargin + 5, y, pageWidth - rightMargin - 5, y);
+    y += 8;
+
+    doc.setFontSize(12);
+    if (viewJdData.job_summary) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("Job Summary :", leftMargin + 5, y);
+      y += lineHeight;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(60, 60, 60);
+      const splitSummary = doc.splitTextToSize(viewJdData.job_summary, contentWidth - 10);
+      doc.text(splitSummary, leftMargin + 5, y);
+      y += splitSummary.length * 5 + 8;
+      doc.setTextColor(0, 0, 0);
+    }
+
+    doc.setFontSize(12);
+    if (viewJdData.rnr) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("Role & Responsibilities :", leftMargin + 5, y);
+      y += lineHeight + 1;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(60, 60, 60);
+      const rnrLines = viewJdData.rnr.split('\n').filter(l => l.trim());
+      rnrLines.forEach(line => {
+        doc.text(`• ${line.trim()}`, leftMargin + 5, y);
+        y += 5;
+      });
+      y += 5;
+      doc.setTextColor(0, 0, 0);
+    }
+
+    if (viewJdData.req_skills) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("Required Skills :", leftMargin + 5, y);
+      y += lineHeight + 1;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(60, 60, 60);
+      const skillLines = viewJdData.req_skills.split('\n').filter(l => l.trim());
+      skillLines.forEach(line => {
+        doc.text(`• ${line.trim()}`, leftMargin + 5, y);
+        y += 5;
+      });
+      y += 5;
+      doc.setTextColor(0, 0, 0);
+    }
+
+    if (viewJdData.preferred_qual) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("Preferred Qualifications :", leftMargin + 5, y);
+      y += lineHeight + 1;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(60, 60, 60);
+      const qualLines = viewJdData.preferred_qual.split('\n').filter(l => l.trim());
+      qualLines.forEach(line => {
+        doc.text(`• ${line.trim()}`, leftMargin + 5, y);
+        y += 5;
+      });
+      y += 5;
+      doc.setTextColor(0, 0, 0);
+    }
+
+    if (viewJdData.company_offers) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("What Company Offer :", leftMargin + 5, y);
+      y += lineHeight + 1;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(60, 60, 60);
+      const offerLines = viewJdData.company_offers.split('\n').filter(l => l.trim());
+      offerLines.forEach(line => {
+        doc.text(`• ${line.trim()}`, leftMargin + 5, y);
+        y += 5;
+      });
+      y += 5;
+      doc.setTextColor(0, 0, 0);
+    }
+
+    if (viewJdData.contact_details) {
+      y += 8;
+      doc.setDrawColor(180, 180, 180);
+      doc.setLineWidth(0.2);
+      doc.line(leftMargin + 5, y, pageWidth - rightMargin - 5, y);
+      y += 8;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("Contact Us To Apply :", leftMargin + 5, y);
+      y += lineHeight;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(60, 60, 60);
+      const contactLines = doc.splitTextToSize(viewJdData.contact_details, contentWidth - 10);
+      doc.text(contactLines, leftMargin + 5, y);
+    }
+
+    const fileName = viewJdData.job_title ? `${viewJdData.job_title.replace(/\s+/g, '_')}_JD.pdf` : 'Job_Description.pdf';
+    doc.save(fileName);
+  };
+
   const [newTrackerData, setNewTrackerData] = useState({
     reqId: '',
     shareDate: new Date().toISOString().split('T')[0],
@@ -757,7 +952,7 @@ const handleSaveRequirement = async () => {
           job_title: newReqData.jobTitle,
           jd_link: newReqData.jdLink,
           experience: newReqData.experience,
-          package: newReqData.package,
+          package: formatPackageForDB(newReqData.package),
           openings: newReqData.openings,
           priority: newReqData.priority,
           status: newReqData.status,
@@ -852,7 +1047,7 @@ const handleSaveRequirement = async () => {
           job_title: newReqData.jobTitle,
           jd_link: newReqData.jdLink,
           experience: newReqData.experience,
-          package: newReqData.package,
+          package: formatPackageForDB(newReqData.package),
           openings: newReqData.openings,
           priority: newReqData.priority,
           status: newReqData.status,
@@ -2631,17 +2826,17 @@ return (
                                                   onClick={() => {
                                                      setIsEditMode(true);
                                                      setEditingReqId(req.req_id);
-                                                     setNewReqData({
-                                                        jobTitle: req.job_title || '',
-                                                        jdLink: req.jd_link || '',
-                                                        experience: req.experience || '',
-                                                        package: req.package || '',
-                                                        openings: req.openings || '',
-                                                        priority: req.priority || '',
-                                                        status: req.status || 'Not Started',
-                                                        timeline: req.timeline || '',
-                                                        receivedDate: req.date ? new Date(req.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-                                                     });
+setNewReqData({
+                                                         jobTitle: req.job_title || '',
+                                                         jdLink: req.jd_link || '',
+                                                         experience: req.experience || '',
+                                                         package: extractPackageForDisplay(req.package) || '',
+                                                         openings: req.openings || '',
+                                                         priority: req.priority || '',
+                                                         status: req.status || 'Not Started',
+                                                         timeline: req.timeline || '',
+                                                         receivedDate: req.date ? new Date(req.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+                                                      });
                                                      setJdFormData({
                                                         jd_id: req.req_id,
                                                         client_name: clientData.name || '',
@@ -2762,7 +2957,7 @@ return (
                         <h3 className="font-bold text-lg uppercase tracking-wide">Job Description Preview</h3>
                     </div>
                     <div className="flex gap-3">
-                        <button onClick={() => window.print()} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider">
+                        <button onClick={generatePDF} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider">
                             <Download size={16}/> Save as PDF
                         </button>
                         <button onClick={() => setViewJdData(null)} className="hover:bg-white/20 p-2 rounded-full transition">

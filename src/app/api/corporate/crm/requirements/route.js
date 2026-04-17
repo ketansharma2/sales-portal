@@ -119,7 +119,7 @@ export async function POST(request) {
         job_title,
         jd_link,
         experience,
-        package: pkg ? parseInt(pkg) : null,
+        package: pkg || null,
         openings: parseInt(openings) || 0,
         priority,
         status,
