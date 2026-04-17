@@ -61,52 +61,62 @@ export default function ClientMasterProfile() {
       preferred_qual: '', company_offers: '', contact_details: ''
   });
 
-  // --- MOCK PAST JDs DATABASE (For Auto-fill Feature) ---
-  const mockPastJDs = [
-      {
-          id: 101, client_name: "TechCorp Solutions", job_title: "Java Developer", location: "Bangalore", 
-          experience: "3-5 Years", employment_type: "Full Time", working_days: "5 Days", 
-          timings: "10:00 AM - 07:00 PM", package: "12-15 LPA", tool_requirement: "IntelliJ, Jira", 
-          job_summary: "Looking for a strong backend Java developer...", 
-          rnr: "1. Build microservices.\n2. Optimize database queries.", 
-          req_skills: "Java 8+, Spring Boot, Microservices, MySQL", 
-          preferred_qual: "B.Tech/B.E in Computer Science", 
-          company_offers: "Health Insurance, Free Cab, Flexible Timings", 
-          contact_details: "hr@techcorp.com"
-      },
-      {
-          id: 102, client_name: "Urban Money", job_title: "Telesales Executive", location: "Delhi", 
-          experience: "1-3 Years", employment_type: "Full Time", working_days: "6 Days", 
-          timings: "09:30 AM - 06:30 PM", package: "3-4 LPA", tool_requirement: "CRM, Dialer", 
-          job_summary: "Outbound calling to prospective B2B clients.", 
-          rnr: "1. Lead Generation.\n2. Conversion tracking.", 
-          req_skills: "Excellent Communication, Sales Pitching", 
-          preferred_qual: "Any Graduate", 
-          company_offers: "High Incentives, Fast Growth", 
-          contact_details: "careers@urbanmoney.com"
+  const [pastJDs, setPastJDs] = useState([]);
+  const [loadingPastJDs, setLoadingPastJDs] = useState(false);
+  const [savingRequirement, setSavingRequirement] = useState(false);
+
+  const fetchPastJDs = async () => {
+    setLoadingPastJDs(true);
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch(`/api/corporate/crm/jd/past-jds`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const result = await response.json();
+      if (result.success && result.data) {
+        setPastJDs(result.data);
       }
-  ];
+    } catch (error) {
+      console.error('Error fetching past JDs:', error);
+    } finally {
+      setLoadingPastJDs(false);
+    }
+  };
 
   // --- HANDLER FOR JD AUTO-FILL ---
   const handleImportSelect = (e) => {
-      const selectedId = parseInt(e.target.value);
-      if (!selectedId) return;
+      const idx = parseInt(e.target.value);
+      if (isNaN(idx)) return;
 
-      const selectedJD = mockPastJDs.find(jd => jd.id === selectedId);
+      const selectedJD = pastJDs[idx];
       if (selectedJD) {
           // Fill Core Req Data
           setNewReqData(prev => ({
               ...prev,
-              jobTitle: selectedJD.job_title,
-              experience: selectedJD.experience,
-              package: selectedJD.package
+              jobTitle: selectedJD.job_title || '',
+              experience: selectedJD.experience || '',
+              package: selectedJD.package || ''
           }));
           
           // Fill JD Details Data
           setJdFormData({ 
               ...jdFormData, 
-              ...selectedJD, 
-              jd_id: null // remove ID so it saves as new
+              job_title: selectedJD.job_title || '',
+              location: selectedJD.location || '',
+              experience: selectedJD.experience || '',
+              employment_type: selectedJD.employment_type || '',
+              working_days: selectedJD.working_days || '',
+              timings: selectedJD.timings || '',
+              package: selectedJD.package || '',
+              tool_requirement: selectedJD.tool_requirement || '',
+              job_summary: selectedJD.job_summary || '',
+              rnr: selectedJD.rnr || '',
+              req_skills: selectedJD.req_skills || '',
+              preferred_qual: selectedJD.preferred_qual || '',
+              company_offers: selectedJD.company_offers || '',
+              contact_details: selectedJD.contact_details || '',
+              client_name: selectedJD.client_name || '',
+              jd_id: null
           });
       }
   };
@@ -345,46 +355,57 @@ const [newConversationData, setNewConversationData] = useState({
     return val;
   };
 
-  const generatePDF = () => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const leftMargin = 15;
-    const rightMargin = 15;
-    const contentWidth = pageWidth - leftMargin - rightMargin;
-    let y = 15;
-    const lineHeight = 6;
-
-    doc.setFillColor(255, 255, 255);
-    doc.rect(0, 0, pageWidth, 297, 'F');
-
-    const img = new window.Image();
-    img.src = '/maven-logo.png';
-    img.onload = () => {
-      try {
-        doc.addImage(img, 'PNG', leftMargin, y - 5, 60, 20);
-      } catch (e) {
+  const addNewPageIfNeeded = (doc, currentY, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap, drawBorder = true) => {
+    if (currentY + bottomGap >= pageHeight - 50) {
+        doc.addPage();
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+        let newY = topGap;
         doc.setFont("helvetica", "bold");
         doc.setFontSize(22);
         doc.setTextColor(16, 55, 127);
-        doc.text("MAVEN JOBS", leftMargin, y);
-      }
-      y += 20;
-      finishPDF(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, lineHeight);
-    };
-    img.onerror = () => {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(22);
-      doc.setTextColor(16, 55, 127);
-      doc.text("MAVEN JOBS", leftMargin, y);
-      y += 20;
-      finishPDF(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, lineHeight);
-    };
+        doc.text("MAVEN JOBS", leftMargin, newY);
+        newY += 25;
+        if (drawBorder) {
+            const containerHeight = pageHeight - topGap - bottomGap;
+            doc.setDrawColor(0);
+            doc.setLineWidth(0.5);
+            doc.rect(leftMargin, newY, contentWidth, containerHeight - 15);
+        }
+        return newY + 10;
+    }
+    return currentY;
+};
+
+const generatePDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const leftMargin = 15;
+    const rightMargin = 15;
+    const contentWidth = pageWidth - leftMargin - rightMargin;
+    const topGap = 15;
+    const bottomGap = 15;
+    let y = topGap;
+    const lineHeight = 6;
+
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(16, 55, 127);
+    doc.text("MAVEN JOBS", leftMargin, y);
+    y += 25;
+
+    finishPDF(doc, y, pageWidth, pageHeight, leftMargin, rightMargin, contentWidth, lineHeight, topGap, bottomGap);
   };
 
-  const finishPDF = (doc, y, pageWidth, leftMargin, rightMargin, contentWidth, lineHeight) => {
+  const finishPDF = (doc, y, pageWidth, pageHeight, leftMargin, rightMargin, contentWidth, lineHeight, topGap, bottomGap) => {
+    const containerHeight = pageHeight - topGap - bottomGap;
     doc.setDrawColor(0);
     doc.setLineWidth(0.5);
-    doc.rect(leftMargin, y, contentWidth, 260);
+    doc.rect(leftMargin, y, contentWidth, containerHeight - 15);
 
     y += 8;
     doc.setFont("helvetica", "bold");
@@ -404,6 +425,7 @@ const [newConversationData, setNewConversationData] = useState({
 
     fields.forEach(field => {
       if (field.value) {
+        y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.text(`${field.label} : `, leftMargin + 5, y);
@@ -422,6 +444,7 @@ const [newConversationData, setNewConversationData] = useState({
 
     doc.setFontSize(12);
     if (viewJdData.job_summary) {
+      y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.text("Job Summary :", leftMargin + 5, y);
@@ -430,13 +453,18 @@ const [newConversationData, setNewConversationData] = useState({
       doc.setFontSize(10);
       doc.setTextColor(60, 60, 60);
       const splitSummary = doc.splitTextToSize(viewJdData.job_summary, contentWidth - 10);
-      doc.text(splitSummary, leftMargin + 5, y);
-      y += splitSummary.length * 5 + 8;
+      splitSummary.forEach(line => {
+        y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
+        doc.text(line, leftMargin + 5, y);
+        y += 5;
+      });
+      y += 8;
       doc.setTextColor(0, 0, 0);
     }
 
     doc.setFontSize(12);
     if (viewJdData.rnr) {
+      y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.text("Role & Responsibilities :", leftMargin + 5, y);
@@ -446,6 +474,7 @@ const [newConversationData, setNewConversationData] = useState({
       doc.setTextColor(60, 60, 60);
       const rnrLines = viewJdData.rnr.split('\n').filter(l => l.trim());
       rnrLines.forEach(line => {
+        y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
         doc.text(`• ${line.trim()}`, leftMargin + 5, y);
         y += 5;
       });
@@ -454,6 +483,7 @@ const [newConversationData, setNewConversationData] = useState({
     }
 
     if (viewJdData.req_skills) {
+      y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.text("Required Skills :", leftMargin + 5, y);
@@ -463,6 +493,7 @@ const [newConversationData, setNewConversationData] = useState({
       doc.setTextColor(60, 60, 60);
       const skillLines = viewJdData.req_skills.split('\n').filter(l => l.trim());
       skillLines.forEach(line => {
+        y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
         doc.text(`• ${line.trim()}`, leftMargin + 5, y);
         y += 5;
       });
@@ -471,6 +502,7 @@ const [newConversationData, setNewConversationData] = useState({
     }
 
     if (viewJdData.preferred_qual) {
+      y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.text("Preferred Qualifications :", leftMargin + 5, y);
@@ -480,6 +512,7 @@ const [newConversationData, setNewConversationData] = useState({
       doc.setTextColor(60, 60, 60);
       const qualLines = viewJdData.preferred_qual.split('\n').filter(l => l.trim());
       qualLines.forEach(line => {
+        y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
         doc.text(`• ${line.trim()}`, leftMargin + 5, y);
         y += 5;
       });
@@ -488,6 +521,7 @@ const [newConversationData, setNewConversationData] = useState({
     }
 
     if (viewJdData.company_offers) {
+      y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.text("What Company Offer :", leftMargin + 5, y);
@@ -497,6 +531,7 @@ const [newConversationData, setNewConversationData] = useState({
       doc.setTextColor(60, 60, 60);
       const offerLines = viewJdData.company_offers.split('\n').filter(l => l.trim());
       offerLines.forEach(line => {
+        y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
         doc.text(`• ${line.trim()}`, leftMargin + 5, y);
         y += 5;
       });
@@ -505,6 +540,7 @@ const [newConversationData, setNewConversationData] = useState({
     }
 
     if (viewJdData.contact_details) {
+      y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
       y += 8;
       doc.setDrawColor(180, 180, 180);
       doc.setLineWidth(0.2);
@@ -518,7 +554,28 @@ const [newConversationData, setNewConversationData] = useState({
       doc.setFontSize(10);
       doc.setTextColor(60, 60, 60);
       const contactLines = doc.splitTextToSize(viewJdData.contact_details, contentWidth - 10);
-      doc.text(contactLines, leftMargin + 5, y);
+      contactLines.forEach(line => {
+        y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
+        doc.text(line, leftMargin + 5, y);
+        y += 5;
+      });
+    }
+
+    // Ensure we end on a proper page with logo if near end
+    if (y + bottomGap >= pageHeight - 60) {
+        doc.addPage();
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+        let newY = topGap;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(22);
+        doc.setTextColor(16, 55, 127);
+        doc.text("MAVEN JOBS", leftMargin, newY);
+        newY += 25;
+        const containerHeight = pageHeight - topGap - bottomGap;
+        doc.setDrawColor(0);
+        doc.setLineWidth(0.5);
+        doc.rect(leftMargin, newY, contentWidth, containerHeight - 15);
     }
 
     const fileName = viewJdData.job_title ? `${viewJdData.job_title.replace(/\s+/g, '_')}_JD.pdf` : 'Job_Description.pdf';
@@ -965,6 +1022,7 @@ const [newConversationData, setNewConversationData] = useState({
     }
   };
 const handleSaveRequirement = async () => {
+    setSavingRequirement(true);
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const response = await fetch('/api/corporate/crm/requirements', {
@@ -1020,15 +1078,18 @@ const handleSaveRequirement = async () => {
      } else {
        alert('Failed to save requirement: ' + (data.error || 'Unknown error'));
      }
-   } catch (error) {
-     console.error('Error saving requirement:', error);
-     alert('Error saving requirement');
-   }
- };
+} catch (error) {
+      console.error('Error saving requirement:', error);
+      alert('Error saving requirement');
+    } finally {
+      setSavingRequirement(false);
+    }
+  };
 
- // Handler to update existing requirement
- const handleUpdateRequirement = async () => {
-   try {
+  // Handler to update existing requirement
+  const handleUpdateRequirement = async () => {
+    setSavingRequirement(true);
+    try {
 const session = JSON.parse(localStorage.getItem('session') || '{}');
       const response = await fetch(`/api/corporate/crm/requirements/${editingReqId}`, {
         method: 'PUT',
@@ -1085,13 +1146,15 @@ const session = JSON.parse(localStorage.getItem('session') || '{}');
      } else {
        alert('Failed to update requirement: ' + (data.error || 'Unknown error'));
      }
-   } catch (error) {
-     console.error('Error updating requirement:', error);
-     alert('Error updating requirement');
-   }
- };
- 
- return (
+} catch (error) {
+      console.error('Error updating requirement:', error);
+      alert('Error updating requirement');
+    } finally {
+      setSavingRequirement(false);
+    }
+  };
+  
+  return (
     <div className="flex h-screen bg-[#f8fafc] font-['Calibri'] text-slate-800 overflow-hidden">
       
       {/* ================= COLUMN 1: FUNDAMENTALS + BRANCHES (Fixed Width) ================= */}
@@ -2110,10 +2173,17 @@ const session = JSON.parse(localStorage.getItem('session') || '{}');
                             <p className="text-xs font-black text-[#103c7f] uppercase tracking-widest flex items-center gap-1.5"><Layout size={14}/> Auto-Fill From Past JDs</p>
                             <p className="text-[9px] text-blue-600 font-bold uppercase mt-1">Selecting a profile will overwrite current JD form values.</p>
                         </div>
-                        <select onChange={handleImportSelect} className="w-full md:w-72 border border-blue-300 rounded-lg p-2.5 text-sm font-bold text-slate-700 bg-white focus:border-[#103c7f] outline-none cursor-pointer shadow-sm">
-                            <option value="">-- Select from Database --</option>
-                            {mockPastJDs && mockPastJDs.map(jd => (
-                                <option key={jd.id} value={jd.id}>{jd.job_title} ({jd.client_name})</option>
+                        <select 
+                            onChange={handleImportSelect} 
+                            onFocus={() => { if (pastJDs.length === 0) fetchPastJDs(); }}
+                            className="w-full md:w-72 border border-blue-300 rounded-lg p-2.5 text-sm font-bold text-slate-700 bg-white focus:border-[#103c7f] outline-none cursor-pointer shadow-sm"
+                            disabled={loadingPastJDs}
+                        >
+                            <option value="">{loadingPastJDs ? 'Loading...' : '-- Select from Database --'}</option>
+                            {pastJDs && pastJDs.map((jd, idx) => (
+                                <option key={idx} value={idx}>
+                                    {jd.job_title} - {jd.client_name} {jd.source === 'jd' ? '(JD)' : '(REQ)'}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -2224,8 +2294,12 @@ const session = JSON.parse(localStorage.getItem('session') || '{}');
                     }} className="px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition shadow-sm border border-slate-200">
                         Cancel
                     </button>
-                    <button onClick={isEditMode ? handleUpdateRequirement : handleSaveRequirement} className="bg-[#103c7f] text-white px-8 py-2.5 rounded-lg font-black text-xs uppercase tracking-widest shadow-md hover:bg-blue-900 transition flex items-center gap-2">
-                        <Save size={16}/> {isEditMode ? 'Update Requirement' : 'Save Complete Requirement'}
+                    <button 
+                        onClick={isEditMode ? handleUpdateRequirement : handleSaveRequirement} 
+                        disabled={savingRequirement}
+                        className={`bg-[#103c7f] text-white px-8 py-2.5 rounded-lg font-black text-xs uppercase tracking-widest shadow-md hover:bg-blue-900 transition flex items-center gap-2 ${savingRequirement ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                        <Save size={16}/> {savingRequirement ? 'Saving...' : (isEditMode ? 'Update Requirement' : 'Save Complete Requirement')}
                     </button>
                 </div>
             </div>

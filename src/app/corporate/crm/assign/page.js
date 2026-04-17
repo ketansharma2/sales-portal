@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { jsPDF } from "jspdf";
 import {
     ClipboardList, Calendar, Users, Briefcase, IndianRupee,
     Target, Plus, Trash2, Search, Edit, Activity, X,
@@ -24,6 +25,236 @@ export default function AssignWorkPage() {
     // JD View Modal State
     const [isJdViewModalOpen, setIsJdViewModalOpen] = useState(false);
     const [currentJdView, setCurrentJdView] = useState(null);
+
+    const addNewPageIfNeeded = (doc, currentY, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap, drawBorder = true) => {
+        if (currentY + bottomGap >= pageHeight - 50) {
+            doc.addPage();
+            doc.setFillColor(255, 255, 255);
+            doc.rect(0, 0, pageWidth, pageHeight, 'F');
+            let newY = topGap;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(22);
+            doc.setTextColor(16, 55, 127);
+            doc.text("MAVEN JOBS", leftMargin, newY);
+            newY += 25;
+            if (drawBorder) {
+                const containerHeight = pageHeight - topGap - bottomGap;
+                doc.setDrawColor(0);
+                doc.setLineWidth(0.5);
+                doc.rect(leftMargin, newY, contentWidth, containerHeight - 15);
+            }
+            return newY + 10;
+        }
+        return currentY;
+    };
+
+    const generateAssignPDF = () => {
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const leftMargin = 15;
+        const rightMargin = 15;
+        const contentWidth = pageWidth - leftMargin - rightMargin;
+        const topGap = 15;
+        const bottomGap = 15;
+        let y = topGap;
+        const lineHeight = 6;
+
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(22);
+        doc.setTextColor(16, 55, 127);
+        doc.text("MAVEN JOBS", leftMargin, y);
+        y += 25;
+
+        finishAssignPDF(doc, y, pageWidth, pageHeight, leftMargin, rightMargin, contentWidth, lineHeight, topGap, bottomGap);
+    };
+
+    const finishAssignPDF = (doc, y, pageWidth, pageHeight, leftMargin, rightMargin, contentWidth, lineHeight, topGap, bottomGap) => {
+        const containerHeight = pageHeight - topGap - bottomGap;
+        doc.setDrawColor(0);
+        doc.setLineWidth(0.5);
+        doc.rect(leftMargin, y, contentWidth, containerHeight - 15);
+        doc.setDrawColor(0);
+        doc.setLineWidth(0.5);
+        doc.rect(leftMargin, y, contentWidth, containerHeight - 15);
+
+        y += 8;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+
+        const fields = [
+            { label: "JOB TITLE", value: currentJdView.title },
+            { label: "LOCATION", value: currentJdView.location },
+            { label: "EXPERIENCE", value: currentJdView.experience },
+            { label: "EMPLOYMENT TYPE", value: currentJdView.employment_type },
+            { label: "WORKING DAYS", value: currentJdView.working_days },
+            { label: "TIMINGS", value: currentJdView.timings },
+            { label: "PACKAGE", value: currentJdView.package_salary },
+            { label: "TOOL REQUIREMENT", value: currentJdView.tool_requirement }
+        ];
+
+        fields.forEach(field => {
+            if (field.value) {
+                y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(10);
+                doc.text(`${field.label} : `, leftMargin + 5, y);
+                const labelWidth = doc.getTextWidth(`${field.label} : `);
+                doc.setFont("helvetica", "normal");
+                doc.text(field.value, leftMargin + 5 + labelWidth, y);
+                y += lineHeight + 1;
+            }
+        });
+
+        y += 5;
+        doc.setDrawColor(180, 180, 180);
+        doc.setLineWidth(0.3);
+        doc.line(leftMargin + 5, y, pageWidth - rightMargin - 5, y);
+        y += 8;
+
+        doc.setFontSize(12);
+        if (currentJdView.summary) {
+            y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.text("Job Summary :", leftMargin + 5, y);
+            y += lineHeight;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(60, 60, 60);
+            const splitSummary = doc.splitTextToSize(currentJdView.summary, contentWidth - 10);
+            splitSummary.forEach(line => {
+                y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
+                doc.text(line, leftMargin + 5, y);
+                y += 5;
+            });
+            y += 8;
+            doc.setTextColor(0, 0, 0);
+        }
+
+        doc.setFontSize(12);
+        if (currentJdView.rnr) {
+            y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.text("Role & Responsibilities :", leftMargin + 5, y);
+            y += lineHeight + 1;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(60, 60, 60);
+            const rnrLines = currentJdView.rnr.split('\n').filter(l => l.trim());
+            rnrLines.forEach(line => {
+                y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
+                doc.text(`• ${line.trim()}`, leftMargin + 5, y);
+                y += 5;
+            });
+            y += 5;
+            doc.setTextColor(0, 0, 0);
+        }
+
+        if (currentJdView.skills) {
+            y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.text("Required Skills :", leftMargin + 5, y);
+            y += lineHeight + 1;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(60, 60, 60);
+            const skillLines = currentJdView.skills.split(',').filter(l => l.trim());
+            skillLines.forEach(line => {
+                y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
+                doc.text(`• ${line.trim()}`, leftMargin + 5, y);
+                y += 5;
+            });
+            y += 5;
+            doc.setTextColor(0, 0, 0);
+        }
+
+        if (currentJdView.preferred_qual) {
+            y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.text("Preferred Qualifications :", leftMargin + 5, y);
+            y += lineHeight + 1;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(60, 60, 60);
+            const qualLines = currentJdView.preferred_qual.split('\n').filter(l => l.trim());
+            qualLines.forEach(line => {
+                y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
+                doc.text(`• ${line.trim()}`, leftMargin + 5, y);
+                y += 5;
+            });
+            y += 5;
+            doc.setTextColor(0, 0, 0);
+        }
+
+        if (currentJdView.company_offers) {
+            y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.text("What Company Offer :", leftMargin + 5, y);
+            y += lineHeight + 1;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(60, 60, 60);
+            const offerLines = currentJdView.company_offers.split('\n').filter(l => l.trim());
+            offerLines.forEach(line => {
+                y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
+                doc.text(`• ${line.trim()}`, leftMargin + 5, y);
+                y += 5;
+            });
+            y += 5;
+            doc.setTextColor(0, 0, 0);
+        }
+
+        if (currentJdView.contact_details) {
+            y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
+            y += 8;
+            doc.setDrawColor(180, 180, 180);
+            doc.setLineWidth(0.2);
+            doc.line(leftMargin + 5, y, pageWidth - rightMargin - 5, y);
+            y += 8;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.text("Contact Us To Apply :", leftMargin + 5, y);
+            y += lineHeight;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(60, 60, 60);
+            const contactLines = doc.splitTextToSize(currentJdView.contact_details, contentWidth - 10);
+            contactLines.forEach(line => {
+                y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
+                doc.text(line, leftMargin + 5, y);
+                y += 5;
+            });
+        }
+
+        // Ensure we end on a proper page with logo if near end
+        if (y + bottomGap >= pageHeight - 60) {
+            doc.addPage();
+            doc.setFillColor(255, 255, 255);
+            doc.rect(0, 0, pageWidth, pageHeight, 'F');
+            let newY = topGap;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(22);
+            doc.setTextColor(16, 55, 127);
+            doc.text("MAVEN JOBS", leftMargin, newY);
+            newY += 25;
+            const containerHeight = pageHeight - topGap - bottomGap;
+            doc.setDrawColor(0);
+            doc.setLineWidth(0.5);
+            doc.rect(leftMargin, newY, contentWidth, containerHeight - 15);
+        }
+
+        const fileName = currentJdView.title ? `${currentJdView.title.replace(/\s+/g, '_')}_JD.pdf` : 'Job_Description.pdf';
+        doc.save(fileName);
+    };
 
     // Dynamic Clients List
     const [clientsList, setClientsList] = useState([]);
@@ -812,7 +1043,7 @@ export default function AssignWorkPage() {
                                 <h3 className="font-bold text-lg uppercase tracking-wide">Document Preview</h3>
                             </div>
                             <div className="flex gap-3">
-                                <button onClick={() => window.print()} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider">
+                                <button onClick={generateAssignPDF} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider">
                                     <Download size={16}/> Save as PDF
                                 </button>
                                 <button onClick={() => setIsJdViewModalOpen(false)} className="hover:bg-white/20 p-2 rounded-full transition">

@@ -330,46 +330,57 @@ const [newConversationData, setNewConversationData] = useState({
     return val;
   };
 
-  const generatePDF = () => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const leftMargin = 15;
-    const rightMargin = 15;
-    const contentWidth = pageWidth - leftMargin - rightMargin;
-    let y = 15;
-    const lineHeight = 6;
-
-    doc.setFillColor(255, 255, 255);
-    doc.rect(0, 0, pageWidth, 297, 'F');
-
-    const img = new window.Image();
-    img.src = '/maven-logo.png';
-    img.onload = () => {
-      try {
-        doc.addImage(img, 'PNG', leftMargin, y - 5, 60, 20);
-      } catch (e) {
+  const addNewPageIfNeeded = (doc, currentY, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap, drawBorder = true) => {
+    if (currentY + bottomGap >= pageHeight - 50) {
+        doc.addPage();
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+        let newY = topGap;
         doc.setFont("helvetica", "bold");
         doc.setFontSize(22);
         doc.setTextColor(16, 55, 127);
-        doc.text("MAVEN JOBS", leftMargin, y);
-      }
-      y += 20;
-      finishPDF(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, lineHeight);
-    };
-    img.onerror = () => {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(22);
-      doc.setTextColor(16, 55, 127);
-      doc.text("MAVEN JOBS", leftMargin, y);
-      y += 20;
-      finishPDF(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, lineHeight);
-    };
+        doc.text("MAVEN JOBS", leftMargin, newY);
+        newY += 25;
+        if (drawBorder) {
+            const containerHeight = pageHeight - topGap - bottomGap;
+            doc.setDrawColor(0);
+            doc.setLineWidth(0.5);
+            doc.rect(leftMargin, newY, contentWidth, containerHeight - 15);
+        }
+        return newY + 10;
+    }
+    return currentY;
+};
+
+const generatePDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const leftMargin = 15;
+    const rightMargin = 15;
+    const contentWidth = pageWidth - leftMargin - rightMargin;
+    const topGap = 15;
+    const bottomGap = 15;
+    let y = topGap;
+    const lineHeight = 6;
+
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(16, 55, 127);
+    doc.text("MAVEN JOBS", leftMargin, y);
+    y += 25;
+
+    finishPDF(doc, y, pageWidth, pageHeight, leftMargin, rightMargin, contentWidth, lineHeight, topGap, bottomGap);
   };
 
-  const finishPDF = (doc, y, pageWidth, leftMargin, rightMargin, contentWidth, lineHeight) => {
+  const finishPDF = (doc, y, pageWidth, pageHeight, leftMargin, rightMargin, contentWidth, lineHeight, topGap, bottomGap) => {
+    const containerHeight = pageHeight - topGap - bottomGap;
     doc.setDrawColor(0);
     doc.setLineWidth(0.5);
-    doc.rect(leftMargin, y, contentWidth, 260);
+    doc.rect(leftMargin, y, contentWidth, containerHeight - 15);
 
     y += 8;
     doc.setFont("helvetica", "bold");
@@ -389,6 +400,7 @@ const [newConversationData, setNewConversationData] = useState({
 
     fields.forEach(field => {
       if (field.value) {
+        y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.text(`${field.label} : `, leftMargin + 5, y);
@@ -407,6 +419,7 @@ const [newConversationData, setNewConversationData] = useState({
 
     doc.setFontSize(12);
     if (viewJdData.job_summary) {
+      y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.text("Job Summary :", leftMargin + 5, y);
@@ -415,13 +428,18 @@ const [newConversationData, setNewConversationData] = useState({
       doc.setFontSize(10);
       doc.setTextColor(60, 60, 60);
       const splitSummary = doc.splitTextToSize(viewJdData.job_summary, contentWidth - 10);
-      doc.text(splitSummary, leftMargin + 5, y);
-      y += splitSummary.length * 5 + 8;
+      splitSummary.forEach(line => {
+        y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
+        doc.text(line, leftMargin + 5, y);
+        y += 5;
+      });
+      y += 8;
       doc.setTextColor(0, 0, 0);
     }
 
     doc.setFontSize(12);
     if (viewJdData.rnr) {
+      y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.text("Role & Responsibilities :", leftMargin + 5, y);
@@ -431,6 +449,7 @@ const [newConversationData, setNewConversationData] = useState({
       doc.setTextColor(60, 60, 60);
       const rnrLines = viewJdData.rnr.split('\n').filter(l => l.trim());
       rnrLines.forEach(line => {
+        y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
         doc.text(`• ${line.trim()}`, leftMargin + 5, y);
         y += 5;
       });
@@ -439,6 +458,7 @@ const [newConversationData, setNewConversationData] = useState({
     }
 
     if (viewJdData.req_skills) {
+      y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.text("Required Skills :", leftMargin + 5, y);
@@ -448,6 +468,7 @@ const [newConversationData, setNewConversationData] = useState({
       doc.setTextColor(60, 60, 60);
       const skillLines = viewJdData.req_skills.split('\n').filter(l => l.trim());
       skillLines.forEach(line => {
+        y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
         doc.text(`• ${line.trim()}`, leftMargin + 5, y);
         y += 5;
       });
@@ -456,6 +477,7 @@ const [newConversationData, setNewConversationData] = useState({
     }
 
     if (viewJdData.preferred_qual) {
+      y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.text("Preferred Qualifications :", leftMargin + 5, y);
@@ -465,6 +487,7 @@ const [newConversationData, setNewConversationData] = useState({
       doc.setTextColor(60, 60, 60);
       const qualLines = viewJdData.preferred_qual.split('\n').filter(l => l.trim());
       qualLines.forEach(line => {
+        y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
         doc.text(`• ${line.trim()}`, leftMargin + 5, y);
         y += 5;
       });
@@ -473,6 +496,7 @@ const [newConversationData, setNewConversationData] = useState({
     }
 
     if (viewJdData.company_offers) {
+      y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.text("What Company Offer :", leftMargin + 5, y);
@@ -482,6 +506,7 @@ const [newConversationData, setNewConversationData] = useState({
       doc.setTextColor(60, 60, 60);
       const offerLines = viewJdData.company_offers.split('\n').filter(l => l.trim());
       offerLines.forEach(line => {
+        y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
         doc.text(`• ${line.trim()}`, leftMargin + 5, y);
         y += 5;
       });
@@ -490,6 +515,7 @@ const [newConversationData, setNewConversationData] = useState({
     }
 
     if (viewJdData.contact_details) {
+      y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
       y += 8;
       doc.setDrawColor(180, 180, 180);
       doc.setLineWidth(0.2);
@@ -503,7 +529,28 @@ const [newConversationData, setNewConversationData] = useState({
       doc.setFontSize(10);
       doc.setTextColor(60, 60, 60);
       const contactLines = doc.splitTextToSize(viewJdData.contact_details, contentWidth - 10);
-      doc.text(contactLines, leftMargin + 5, y);
+      contactLines.forEach(line => {
+        y = addNewPageIfNeeded(doc, y, pageWidth, leftMargin, rightMargin, contentWidth, bottomGap, pageHeight, topGap);
+        doc.text(line, leftMargin + 5, y);
+        y += 5;
+      });
+    }
+
+    // Ensure we end on a proper page with logo if near end
+    if (y + bottomGap >= pageHeight - 60) {
+        doc.addPage();
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+        let newY = topGap;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(22);
+        doc.setTextColor(16, 55, 127);
+        doc.text("MAVEN JOBS", leftMargin, newY);
+        newY += 25;
+        const containerHeight = pageHeight - topGap - bottomGap;
+        doc.setDrawColor(0);
+        doc.setLineWidth(0.5);
+        doc.rect(leftMargin, newY, contentWidth, containerHeight - 15);
     }
 
     const fileName = viewJdData.job_title ? `${viewJdData.job_title.replace(/\s+/g, '_')}_JD.pdf` : 'Job_Description.pdf';
