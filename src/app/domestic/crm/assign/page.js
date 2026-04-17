@@ -71,7 +71,6 @@ export default function AssignWorkPage() {
 
         finishAssignPDF(doc, y, pageWidth, pageHeight, leftMargin, rightMargin, contentWidth, lineHeight, topGap, bottomGap);
     };
-    };
 
     const finishAssignPDF = (doc, y, pageWidth, pageHeight, leftMargin, rightMargin, contentWidth, lineHeight, topGap, bottomGap) => {
         const containerHeight = pageHeight - topGap - bottomGap;
