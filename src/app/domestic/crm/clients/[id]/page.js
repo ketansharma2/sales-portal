@@ -41,42 +41,27 @@ export default function ClientMasterProfile() {
       preferred_qual: '', company_offers: '', contact_details: ''
   });
 
-  // --- MOCK PAST JDs DATABASE (For Auto-fill Feature) ---
-  const mockPastJDs = [
-      {
-          id: 101, client_name: "TechCorp Solutions", job_title: "Java Developer", location: "Bangalore", 
-          experience: "3-5 Years", employment_type: "Full Time", working_days: "5 Days", 
-          timings: "10:00 AM - 07:00 PM", package: "12-15 LPA", tool_requirement: "IntelliJ, Jira", 
-          job_summary: "Looking for a strong backend Java developer...", 
-          rnr: "1. Build microservices.\n2. Optimize database queries.", 
-          req_skills: "Java 8+, Spring Boot, Microservices, MySQL", 
-          preferred_qual: "B.Tech/B.E in Computer Science", 
-          company_offers: "Health Insurance, Free Cab, Flexible Timings", 
-          contact_details: "hr@techcorp.com"
-      },
-      {
-          id: 102, client_name: "Urban Money", job_title: "Telesales Executive", location: "Delhi", 
-          experience: "1-3 Years", employment_type: "Full Time", working_days: "6 Days", 
-          timings: "09:30 AM - 06:30 PM", package: "3-4 LPA", tool_requirement: "CRM, Dialer", 
-          job_summary: "Outbound calling to prospective B2B clients.", 
-          rnr: "1. Lead Generation.\n2. Conversion tracking.", 
-          req_skills: "Excellent Communication, Sales Pitching", 
-          preferred_qual: "Any Graduate", 
-          company_offers: "Fixed Salary + Incentives", 
-          contact_details: "recruitment@urbanmoney.com"
-      },
-      {
-          id: 103, client_name: "FinanceBuddy", job_title: "Accountant", location: "Gurgaon", 
-          experience: "2-4 Years", employment_type: "Full Time", working_days: "5 Days", 
-          timings: "10:00 AM - 06:00 PM", package: "5-7 LPA", tool_requirement: "Tally, Excel", 
-          job_summary: "Handle day-to-day accounting operations.", 
-          rnr: "1. Book keeping.\n2. GST returns.", 
-          req_skills: "CA Inter, Tally, GST", 
-          preferred_qual: "B.Com, CA Inter", 
-          company_offers: "Performance Bonus, PF", 
-          contact_details: "jobs@financebuddy.com"
+const [pastJDs, setPastJDs] = useState([]);
+  const [loadingPastJDs, setLoadingPastJDs] = useState(false);
+  const [savingRequirement, setSavingRequirement] = useState(false);
+
+  const fetchPastJDs = async () => {
+    setLoadingPastJDs(true);
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/domestic/crm/jd/past-jds', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const result = await response.json();
+      if (result.success && result.data) {
+        setPastJDs(result.data);
       }
-  ];
+    } catch (error) {
+      console.error('Error fetching past JDs:', error);
+    } finally {
+      setLoadingPastJDs(false);
+    }
+  };
 
   // --- 1. MASTER CLIENT DATA ---
   const [clientData, setClientData] = useState({
@@ -986,6 +971,7 @@ const generatePDF = () => {
     }
   };
 const handleSaveRequirement = async () => {
+    setSavingRequirement(true);
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const response = await fetch('/api/domestic/crm/requirements', {
@@ -1043,30 +1029,32 @@ const handleSaveRequirement = async () => {
     } catch (error) {
       console.error('Error saving requirement:', error);
       alert('Error saving requirement');
+    } finally {
+      setSavingRequirement(false);
     }
   };
 
   const handleImportSelect = (e) => {
-      const selectedId = parseInt(e.target.value);
-      if (!selectedId) return;
+      const idx = parseInt(e.target.value);
+      if (isNaN(idx)) return;
       
-      const selectedJd = mockPastJDs.find(jd => jd.id === selectedId);
+      const selectedJd = pastJDs[idx];
       if (selectedJd) {
           setJdFormData({
               ...jdFormData,
-              client_name: selectedJd.client_name,
-              job_title: selectedJd.job_title,
-              location: selectedJd.location,
-              experience: selectedJd.experience,
-              employment_type: selectedJd.employment_type,
-              working_days: selectedJd.working_days,
-              timings: selectedJd.timings,
-              package: selectedJd.package,
-              tool_requirement: selectedJd.tool_requirement,
-              job_summary: selectedJd.job_summary,
-              rnr: selectedJd.rnr,
-              req_skills: selectedJd.req_skills,
-              preferred_qual: selectedJd.preferred_qual,
+              client_name: selectedJd.client_name || '',
+              job_title: selectedJd.job_title || '',
+              location: selectedJd.location || '',
+              experience: selectedJd.experience || '',
+              employment_type: selectedJd.employment_type || '',
+              working_days: selectedJd.working_days || '',
+              timings: selectedJd.timings || '',
+              package: selectedJd.package || '',
+              tool_requirement: selectedJd.tool_requirement || '',
+              job_summary: selectedJd.job_summary || '',
+              rnr: selectedJd.rnr || '',
+              req_skills: selectedJd.req_skills || '',
+              preferred_qual: selectedJd.preferred_qual || '',
               company_offers: selectedJd.company_offers,
               contact_details: selectedJd.contact_details
           });
@@ -2201,10 +2189,17 @@ return (
                             <p className="text-xs font-black text-[#103c7f] uppercase tracking-widest flex items-center gap-1.5"><Layout size={14}/> Auto-Fill From Past JDs</p>
                             <p className="text-[9px] text-blue-600 font-bold uppercase mt-1">Selecting a profile will overwrite current JD form values.</p>
                         </div>
-                        <select onChange={handleImportSelect} className="w-full md:w-72 border border-blue-300 rounded-lg p-2.5 text-sm font-bold text-slate-700 bg-white focus:border-[#103c7f] outline-none cursor-pointer shadow-sm">
-                            <option value="">-- Select from Database --</option>
-                            {mockPastJDs && mockPastJDs.map(jd => (
-                                <option key={jd.id} value={jd.id}>{jd.job_title} ({jd.client_name})</option>
+                        <select 
+                            onChange={handleImportSelect} 
+                            onFocus={() => { if (pastJDs.length === 0) fetchPastJDs(); }}
+                            className="w-full md:w-72 border border-blue-300 rounded-lg p-2.5 text-sm font-bold text-slate-700 bg-white focus:border-[#103c7f] outline-none cursor-pointer shadow-sm"
+                            disabled={loadingPastJDs}
+                        >
+                            <option value="">{loadingPastJDs ? 'Loading...' : '-- Select from Database --'}</option>
+                            {pastJDs && pastJDs.map((jd, idx) => (
+                                <option key={idx} value={idx}>
+                                    {jd.job_title} - {jd.client_name} {jd.source === 'jd' ? '(JD)' : '(REQ)'}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -2316,8 +2311,12 @@ return (
                     }} className="px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition shadow-sm border border-slate-200">
                         Cancel
                     </button>
-                    <button onClick={isEditMode ? handleUpdateRequirement : handleSaveRequirement} className="bg-[#103c7f] text-white px-8 py-2.5 rounded-lg font-black text-xs uppercase tracking-widest shadow-md hover:bg-blue-900 transition flex items-center gap-2">
-                        <Save size={16}/> {isEditMode ? 'Update Requirement' : 'Save Complete Requirement'}
+                    <button 
+                        onClick={isEditMode ? handleUpdateRequirement : handleSaveRequirement} 
+                        disabled={savingRequirement}
+                        className={`bg-[#103c7f] text-white px-8 py-2.5 rounded-lg font-black text-xs uppercase tracking-widest shadow-md hover:bg-blue-900 transition flex items-center gap-2 ${savingRequirement ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                        <Save size={16}/> {savingRequirement ? 'Saving...' : (isEditMode ? 'Update Requirement' : 'Save Complete Requirement')}
                     </button>
                 </div>
             </div>

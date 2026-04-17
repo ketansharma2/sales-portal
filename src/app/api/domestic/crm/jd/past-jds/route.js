@@ -19,13 +19,12 @@ export async function GET(request) {
 
     let pastJDs = []
 
-    // Fetch from corporate_crm_jd table - filter by created_by = userId
+    // Fetch from domestic_crm_jd table - filter by created_by = userId
     const { data: jdData, error: jdError } = await supabaseServer
-      .from('corporate_crm_jd')
+      .from('domestic_crm_jd')
       .select('jd_id, client_name, job_title, location, experience, employment_type, working_days, timings, package, tool_requirement, job_summary, rnr, req_skills, preferred_qual, company_offers, contact_details')
       .eq('created_by', userId)
       .order('created_date', { ascending: false })
-
     if (!jdError && jdData) {
       const formattedJDs = jdData.map(jd => ({
         id: jd.jd_id,
@@ -49,9 +48,10 @@ export async function GET(request) {
       pastJDs = [...pastJDs, ...formattedJDs]
     }
 
-    // Fetch from corporate_crm_reqs with client name via branch join - filter by user_id
+    // Fetch from domestic_crm_reqs with client name via branch join - filter by user_id
+    console.log('Fetching from domestic_crm_reqs for userId:', userId)
     const { data: reqsData, error: reqsError } = await supabaseServer
-      .from('corporate_crm_reqs')
+      .from('domestic_crm_reqs')
       .select(`
         req_id,
         job_title,
@@ -73,50 +73,42 @@ export async function GET(request) {
       .eq('user_id', userId)
       .order('date', { ascending: false })
 
-    if (!reqsError && reqsData && reqsData.length > 0) {
-      // Get branch IDs to join with clients
+    console.log('reqsData:', reqsData, 'reqsError:', reqsError)
+
+if (!reqsError && reqsData && reqsData.length > 0) {
       const uniqueBranchIds = reqsData.map(r => r.branch_id).filter(Boolean)
       const branchIds = [...new Set(uniqueBranchIds)]
       
-      if (branchIds.length === 0) {
-        return NextResponse.json({ success: true, data: pastJDs })
+      let branchToClientMap = {}
+      
+      if (branchIds.length > 0) {
+        // First get branch -> client_id from domestic_crm_branch
+        for (const bid of branchIds) {
+          const { data: branchData } = await supabaseServer
+            .from('domestic_crm_branch')
+            .select('branch_id, client_id')
+            .eq('branch_id', bid)
+            .single()
+          
+          if (branchData && branchData.client_id) {
+            // Then get company_name from domestic_crm_clients
+            const { data: clientData } = await supabaseServer
+              .from('domestic_crm_clients')
+              .select('client_id, company_name')
+              .eq('client_id', branchData.client_id)
+              .single()
+            
+            branchToClientMap[bid] = clientData?.company_name || bid.substring(0, 8)
+          }
+        }
       }
       
-      let branchClientMap = {}
-      if (branchIds.length > 0) {
-        const { data: branchesData } = await supabaseServer
-          .from('corporate_crm_branch')
-          .select('branch_id, client_id')
-          .in('branch_id', branchIds)
-        
-        if (branchesData) {
-          branchesData.forEach(b => {
-            branchClientMap[b.branch_id] = b.client_id
-          })
-        }
-      }
-
-      // Get client names
-      const clientIds = [...new Set(Object.values(branchClientMap))]
-      let clientNameMap = {}
-      if (clientIds.length > 0) {
-        const { data: clientsData } = await supabaseServer
-          .from('corporate_crm_clients')
-          .select('client_id, company_name')
-          .in('client_id', clientIds)
-        
-        if (clientsData) {
-          clientsData.forEach(c => {
-            clientNameMap[c.client_id] = c.company_name
-          })
-        }
-      }
-
-      // Format reqs data
+      console.log('Branch to client map:', branchToClientMap)
+      
       const formattedReqs = reqsData.map(req => ({
         id: req.req_id,
         source: 'req',
-        client_name: branchClientMap[req.branch_id] ? clientNameMap[branchClientMap[req.branch_id]] || 'Unknown' : 'Unknown',
+        client_name: req.branch_id ? (branchToClientMap[req.branch_id] || 'Branch-' + req.branch_id.substring(0, 8)) : 'Unknown',
         job_title: req.job_title,
         location: req.location,
         experience: req.experience,
@@ -133,9 +125,10 @@ export async function GET(request) {
         contact_details: req.contact_details
       }))
       pastJDs = [...pastJDs, ...formattedReqs]
+    } else {
+      console.log('No requirements found or error:', reqsError)
     }
 
-    // Sort by job_title
     pastJDs.sort((a, b) => (a.job_title || '').localeCompare(b.job_title || ''))
 
     return NextResponse.json({ success: true, data: pastJDs })
