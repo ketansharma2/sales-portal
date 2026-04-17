@@ -3,7 +3,7 @@
 import React, { useState, useRef } from "react";
 import { 
   Plus, Trash2, Printer, X, FileText, 
-  Building2, Truck, Receipt, FileCheck , Download
+  Building2, Receipt, FileCheck, Users
 } from "lucide-react";
 
 // --- PERMANENT HARDCODED DATA ---
@@ -26,7 +26,6 @@ const COMPANY_DATA = {
 };
 
 const STATES = ["Haryana", "Delhi", "Punjab", "UP", "Rajasthan", "Maharashtra", "Karnataka"];
-const UNITS = ["No.", "Hrs", "Days", "Service", "Pcs", "Months"];
 
 // Helper for date formatting
 Date.prototype.format = function(format) {
@@ -41,8 +40,6 @@ Date.prototype.format = function(format) {
 
 export default function ProformaInvoicePage() {
   const [piData, setPiData] = useState(null);
-  
-  // Add a ref to scroll down smoothly when PI is generated
   const previewRef = useRef(null);
 
   // --- FORM STATE ---
@@ -52,9 +49,8 @@ export default function ProformaInvoicePage() {
     fromDate: "", 
     toDate: "",   
     customer: { name: "Shree radhe", address: "At. Dolatpura, Taluka Desar, District Vadodara – 391774, Haryana, India", gstin: "PHBF184492", state: "Haryana", pincode: "132103" }, 
-    transport: { vehicleNo: "NA", transporter: "NA", grNo: "NA", mode: "NA" },
-    items: [{ id: 1, hsn: "998512", desc: "Permanent Staffing Services", qty: 1, unit: "No.", rate: 1000, amount: 0 }],
-    notes: ""
+    // NEW: Candidates Array for the new table
+    candidates: [{ id: 1, role: "Sales Executive", name: "Rahul Kumar", ctc: 500000, billingPercent: 8.33 }]
   });
 
   // --- AMOUNT IN WORDS CONVERTER ---
@@ -74,32 +70,31 @@ export default function ProformaInvoicePage() {
   };
 
   // --- CALCULATIONS ---
-  const taxableValue = form.items.reduce((sum, item) => sum + (item.qty * item.rate), 0);
+  // Taxable value is now the sum of all candidate fees
+  const taxableValue = form.candidates.reduce((sum, c) => sum + ((c.ctc * c.billingPercent) / 100), 0);
   const isInterstate = form.customer.state !== "Haryana";
   const cgst = isInterstate ? 0 : taxableValue * 0.09;
   const sgst = isInterstate ? 0 : taxableValue * 0.09;
   const igst = isInterstate ? taxableValue * 0.18 : 0;
   const grandTotal = Math.round(taxableValue + cgst + sgst + igst);
 
-  // --- HANDLERS ---
-  const addItem = () => {
-    setForm({ ...form, items: [...form.items, { id: Date.now(), hsn: "998512", desc: "", qty: 1, unit: "No.", rate: 0, amount: 0 }] });
+  // --- CANDIDATE HANDLERS ---
+  const addCandidate = () => {
+    setForm({ ...form, candidates: [...form.candidates, { id: Date.now(), role: "", name: "", ctc: 0, billingPercent: 8.33 }] });
   };
 
-  const removeItem = (id) => {
-    setForm({ ...form, items: form.items.filter(item => item.id !== id) });
+  const removeCandidate = (id) => {
+    setForm({ ...form, candidates: form.candidates.filter(c => c.id !== id) });
   };
 
-  const handleItemChange = (id, field, value) => {
-    const updatedItems = form.items.map(item => {
-      if (item.id === id) {
-        const updated = { ...item, [field]: value };
-        updated.amount = updated.qty * updated.rate;
-        return updated;
+  const handleCandidateChange = (id, field, value) => {
+    const updatedCandidates = form.candidates.map(c => {
+      if (c.id === id) {
+        return { ...c, [field]: value };
       }
-      return item;
+      return c;
     });
-    setForm({ ...form, items: updatedItems });
+    setForm({ ...form, candidates: updatedCandidates });
   };
 
   const generatePI = () => {
@@ -109,19 +104,16 @@ export default function ProformaInvoicePage() {
       amountInWords: numberToWords(grandTotal) 
     });
     
-    // Scroll down to the preview area smoothly after a short delay to allow render
     setTimeout(() => {
       previewRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
   };
 
-  // Since it's inline, we can just use the native browser print!
   const handlePrintPI = () => {
     window.print();
   };
 
   return (
-    // 'print:p-0 print:bg-white' ensures the background is clean when printing
     <div className="min-h-screen bg-gray-50 p-6 font-['Calibri'] print:p-0 print:bg-white">
       
       {/* =========================================
@@ -162,37 +154,30 @@ export default function ProformaInvoicePage() {
               </div>
             </section>
 
+            {/* NEW: CANDIDATE INPUT SECTION */}
             <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 overflow-x-auto">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xs font-black text-[#103c7f] uppercase tracking-widest flex items-center gap-2"><FileText size={14}/> Items & Services</h3>
-                <button onClick={addItem} className="text-emerald-600 font-bold text-xs flex items-center gap-1 hover:underline"><Plus size={14}/> Add Row</button>
+                <h3 className="text-xs font-black text-[#103c7f] uppercase tracking-widest flex items-center gap-2"><Users size={14}/> Candidate Details</h3>
+                <button onClick={addCandidate} className="text-emerald-600 font-bold text-xs flex items-center gap-1 hover:underline"><Plus size={14}/> Add Candidate</button>
               </div>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-gray-400 text-[10px] uppercase tracking-widest border-b pb-2">
-                    <th className="pb-2">Description</th>
-                    <th className="pb-2 w-20 text-center">HSN/SAC</th>
-                    <th className="pb-2 w-16 text-center">Qty</th>
-                    <th className="pb-2 w-20 text-center">Unit</th>
-                    <th className="pb-2 w-24 text-right">Unit Rate</th>
-                    <th className="pb-2 w-24 text-right">Amount</th>
-                    <th className="pb-2 w-8"></th>
+                    <th className="pb-2 w-[25%]">Job Role</th>
+                    <th className="pb-2 w-[25%]">Candidate Name</th>
+                    <th className="pb-2 w-[20%] text-right">CTC (Annual)</th>
+                    <th className="pb-2 w-[15%] text-right">Billing %</th>
+                    <th className="pb-2 w-[10%]"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {form.items.map((item) => (
-                    <tr key={item.id}>
-                      <td className="py-4"><input type="text" value={item.desc} className="w-full bg-transparent outline-none font-bold text-gray-800" onChange={e => handleItemChange(item.id, 'desc', e.target.value)} /></td>
-                      <td><input type="text" value={item.hsn} className="w-full bg-transparent text-center text-gray-600" onChange={e => handleItemChange(item.id, 'hsn', e.target.value)} /></td>
-                      <td><input type="number" value={item.qty} className="w-full bg-transparent text-center font-bold" onChange={e => handleItemChange(item.id, 'qty', e.target.value)} /></td>
-                      <td>
-                        <select className="w-full bg-transparent text-center text-xs text-gray-600 outline-none" value={item.unit} onChange={e => handleItemChange(item.id, 'unit', e.target.value)}>
-                          {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                        </select>
-                      </td>
-                      <td><input type="number" value={item.rate} className="w-full bg-transparent text-right font-black text-[#103c7f] outline-none" onChange={e => handleItemChange(item.id, 'rate', e.target.value)} /></td>
-                      <td className="text-right font-black text-gray-800">₹{item.amount.toLocaleString()}</td>
-                      <td className="text-right"><button onClick={() => removeItem(item.id)} className="text-red-400 hover:text-red-600"><Trash2 size={14}/></button></td>
+                  {form.candidates.map((c) => (
+                    <tr key={c.id}>
+                      <td className="py-4"><input type="text" value={c.role} className="w-full bg-transparent outline-none text-gray-800" onChange={e => handleCandidateChange(c.id, 'role', e.target.value)} placeholder="Role"/></td>
+                      <td><input type="text" value={c.name} className="w-full bg-transparent outline-none font-bold text-[#103c7f]" onChange={e => handleCandidateChange(c.id, 'name', e.target.value)} placeholder="Name"/></td>
+                      <td><input type="number" value={c.ctc} className="w-full bg-transparent text-right font-bold outline-none" onChange={e => handleCandidateChange(c.id, 'ctc', Number(e.target.value))} /></td>
+                      <td><input type="number" step="0.01" value={c.billingPercent} className="w-full bg-transparent text-right text-gray-600 outline-none" onChange={e => handleCandidateChange(c.id, 'billingPercent', Number(e.target.value))} /></td>
+                      <td className="text-right"><button onClick={() => removeCandidate(c.id)} className="text-red-400 hover:text-red-600"><Trash2 size={14}/></button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -204,10 +189,11 @@ export default function ProformaInvoicePage() {
             <section className="bg-[#103c7f] p-6 rounded-2xl shadow-xl text-white">
               <h3 className="text-[10px] font-black opacity-60 uppercase tracking-widest mb-4">Financial Summary</h3>
               <div className="space-y-3 text-sm">
-                <div className="flex justify-between opacity-80"><span>Taxable Value</span><span>₹{taxableValue.toLocaleString('en-IN')}</span></div>
+                <div className="flex justify-between opacity-80"><span>Total Candidates</span><span>{form.candidates.length}</span></div>
+                <div className="flex justify-between opacity-80"><span>Taxable Value</span><span>₹{taxableValue.toLocaleString('en-IN', {maximumFractionDigits: 2})}</span></div>
                 <div className="flex justify-between opacity-80">
                   <span>{isInterstate ? 'IGST (18%)' : 'CGST/SGST (18%)'}</span>
-                  <span>₹{(cgst + sgst + igst).toLocaleString('en-IN')}</span>
+                  <span>₹{(cgst + sgst + igst).toLocaleString('en-IN', {maximumFractionDigits: 2})}</span>
                 </div>
                 <div className="pt-4 border-t border-white/20 flex justify-between text-2xl font-black">
                   <span>Total</span><span>₹{grandTotal.toLocaleString('en-IN')}</span>
@@ -223,38 +209,37 @@ export default function ProformaInvoicePage() {
           INLINE PREVIEW SECTION (Visible during print)
       ========================================= */}
       {piData && (
-        <div ref={previewRef} className="max-w-[210mm] mx-auto mt-12 bg-white shadow-2xl print:shadow-none print:m-0 print:w-full">
+        <div ref={previewRef} className="max-w-[210mm] mx-auto mt-12 bg-white shadow-2xl print:shadow-none print:m-0 print:w-full print:max-w-full">
             
-            {/* Header controls for the preview - Hidden during print */}
             <div className="p-4 bg-gray-50 border-b flex justify-between items-center print:hidden rounded-t-lg">
               <span className="text-xs font-black uppercase text-gray-400 flex items-center gap-2"><FileCheck size={16} className="text-emerald-500"/> Proforma Invoice Preview</span>
               <div className="flex gap-2">
-                <button 
-                  onClick={handlePrintPI} 
-                  className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-sm hover:bg-emerald-700 transition"
-                >
+                <button onClick={handlePrintPI} className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-sm hover:bg-emerald-700 transition">
                   <Printer size={14}/> Print / Save PDF
                 </button>
                 <button onClick={() => setPiData(null)} className="bg-white border p-2 rounded-lg hover:bg-red-50 text-red-500 transition-colors"><X size={16}/></button>
               </div>
             </div>
 
-            {/* Actual Printable Invoice Body */}
-<div className="p-10 text-black flex flex-col">              <div className="flex justify-between items-start border-b-4 border-[#103c7f] pb-6 mb-8">
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <img src="/maven-logo.png" alt="Maven Logo" className="h-10 w-auto object-contain" />
-                  </div>
-                  <div className="text-[11px] font-bold leading-tight text-gray-600 uppercase">
-                    <p className="text-black text-xs mb-1">{COMPANY_DATA.name}</p>
+            <div className="p-4 text-black flex flex-col"> 
+              
+              {/* --- Header --- */}
+              <div className="flex justify-between items-center border-b-4 border-[#103c7f] pb-6 mb-8">
+                <div className="flex items-center gap-2">
+                  <img src="/Savvi-Logo.png" alt="Savvi Logo" className="h-30 w-auto object-contain" />
+                  <div className="text-[11px] font-bold leading-tight text-gray-600 uppercase border-l-2 border-gray-200 pl-5 py-2">
+                    <p className="text-black text-sm mb-1">{COMPANY_DATA.name}</p>
                     <p>{COMPANY_DATA.address}</p>
                     <p>EMAIL: {COMPANY_DATA.email}</p>
                     <p className="text-black mt-1">GSTIN: {COMPANY_DATA.gstin}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <h1 className="text-4xl font-black uppercase mb-4 text-[#103c7f] tracking-tight">Proforma Invoice</h1>
+                <div className="flex flex-col items-end text-right"> 
+                  <div className="flex flex-col items-end mb-2">
+                    <img src="/maven-logo.png" alt="Maven Logo" className="h-8 w-auto object-contain" />
+                  </div>
                   <div className="text-xs space-y-1">
+                    <h1 className="text-3xl font-black uppercase mb-1 text-[#103c7f] tracking-tight">Proforma Invoice</h1>
                     <p><b>PI NO:</b> {piData.invoiceNo}</p>
                     <p><b>DATE:</b> {piData.date}</p>
                     {piData.fromDate && <p><b>FROM:</b> {piData.fromDate} <b>TO:</b> {piData.toDate}</p>}
@@ -262,6 +247,7 @@ export default function ProformaInvoicePage() {
                 </div>
               </div>
 
+              {/* --- Billed To & Bank Details --- */}
               <div className="grid grid-cols-2 gap-12 mb-2 pb-8 border-b border-gray-100">
                 <div className="space-y-4">
                   <div>
@@ -307,6 +293,41 @@ export default function ProformaInvoicePage() {
               </div>
 
               <div className="flex-1 flex flex-col">
+                
+                {/* --- NEW: CANDIDATE DETAILS TABLE --- */}
+                <div className="mb-6">
+                  <h4 className="text-[10px] font-black text-[#103c7f] uppercase tracking-widest mb-2">Candidate Details</h4>
+                  <table className="w-full border-collapse border border-gray-300">
+                    <thead>
+                      <tr className="bg-gray-100 text-gray-600">
+                        <th className="p-2 border border-gray-300 text-center text-[9px] font-bold uppercase tracking-wider w-10">Sr No</th>
+                        <th className="p-2 border border-gray-300 text-left text-[9px] font-bold uppercase tracking-wider">Job Role</th>
+                        <th className="p-2 border border-gray-300 text-left text-[9px] font-bold uppercase tracking-wider">Candidate Name</th>
+                        <th className="p-2 border border-gray-300 text-right text-[9px] font-bold uppercase tracking-wider">CTC (Annual)</th>
+                        <th className="p-2 border border-gray-300 text-center text-[9px] font-bold uppercase tracking-wider w-16">Billing %</th>
+                        <th className="p-2 border border-gray-300 text-right text-[9px] font-bold uppercase tracking-wider">Fee Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-xs">
+                      {piData.candidates.map((c, idx) => {
+                        const feeAmt = (c.ctc * c.billingPercent) / 100;
+                        return (
+                          <tr key={c.id} className="border-b border-gray-300">
+                            <td className="p-2 border-r border-gray-300 text-center text-gray-500">{idx + 1}</td>
+                            <td className="p-2 border-r border-gray-300 text-gray-700">{c.role}</td>
+                            <td className="p-2 border-r border-gray-300 font-bold uppercase text-[#103c7f]">{c.name}</td>
+                            <td className="p-2 border-r border-gray-300 text-right text-gray-700">₹{c.ctc.toLocaleString('en-IN')}</td>
+                            <td className="p-2 border-r border-gray-300 text-center text-gray-700">{c.billingPercent}%</td>
+                            <td className="p-2 text-right font-bold text-gray-900">₹{feeAmt.toLocaleString('en-IN', {maximumFractionDigits: 2})}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* --- EXISTING SERVICE TABLE (Single Row) --- */}
+                <h4 className="text-[10px] font-black text-[#103c7f] uppercase tracking-widest mb-2">Service Details</h4>
                 <table className="w-full mb-4 border-collapse border border-gray-300">
                   <thead>
                     <tr className="bg-[#103c7f] text-white">
@@ -320,28 +341,23 @@ export default function ProformaInvoicePage() {
                     </tr>
                   </thead>
                   <tbody className="text-xs">
-                    {Array.from({ length: Math.max(3, piData.items.length) }).map((_, idx) => {
-                      const item = piData.items[idx];
-                      return (
-                        <tr key={item?.id || `empty-${idx}`} className="border-b border-gray-300 h-10">
-                          <td className="p-3 border-r border-gray-300 text-center font-bold text-gray-700">{item ? idx + 1 : ""}</td>
-                          <td className="p-3 border-r border-gray-300 font-bold uppercase">{item?.desc || ""}</td>
-                          <td className="p-3 border-r border-gray-300 text-center text-gray-600">{item?.hsn || ""}</td>
-                          <td className="p-3 border-r border-gray-300 text-center font-medium">{item?.qty || ""}</td>
-                          <td className="p-3 border-r border-gray-300 text-center font-medium">{item?.unit || ""}</td>
-                          <td className="p-3 border-r border-gray-300 text-right text-gray-600 font-medium">
-                            {item ? `₹${Number(item.rate).toLocaleString('en-IN')}` : ""}
-                          </td>
-                          <td className="p-3 text-right font-black text-gray-800">
-                            {item ? `₹${item.amount.toLocaleString('en-IN')}` : ""}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    <tr className="border-b border-gray-300 h-10">
+                      <td className="p-3 border-r border-gray-300 text-center font-bold text-gray-700">1</td>
+                      <td className="p-3 border-r border-gray-300 font-bold uppercase">Permanent Staffing Services</td>
+                      <td className="p-3 border-r border-gray-300 text-center text-gray-600">998512</td>
+                      <td className="p-3 border-r border-gray-300 text-center font-medium">1</td>
+                      <td className="p-3 border-r border-gray-300 text-center font-medium">No.</td>
+                      <td className="p-3 border-r border-gray-300 text-right text-gray-600 font-medium">
+                        ₹{piData.taxableValue.toLocaleString('en-IN', {maximumFractionDigits: 2})}
+                      </td>
+                      <td className="p-3 text-right font-black text-gray-800">
+                        ₹{piData.taxableValue.toLocaleString('en-IN', {maximumFractionDigits: 2})}
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
 
-                {/* mt-auto pushes this block to the bottom of the flex container */}
+                {/* --- TOTALS --- */}
                 <div className="flex flex-row justify-between items-end pt-6 mt-auto">
                   <div className="border-l-4 border-[#103c7f] pl-3 py-1 mb-1 max-w-[55%]">
                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Amount in Words</p>
@@ -349,10 +365,6 @@ export default function ProformaInvoicePage() {
                   </div>
 
                   <div className="w-72 space-y-1.5 text-xs">
-                    <div className="flex justify-between font-bold text-gray-600 px-2">
-                      <span>Freight:</span>
-                      <span>{piData.freight ? `₹ ${Number(piData.freight).toLocaleString('en-IN')}` : "NA"}</span>
-                    </div>
                     <div className="flex justify-between font-bold text-gray-600 px-2">
                       <span>Taxable Value:</span>
                       <span>₹ {piData.taxableValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -374,9 +386,7 @@ export default function ProformaInvoicePage() {
                     <div className="flex justify-between font-bold text-gray-600 px-2">
                       <span>Round Off:</span>
                       <span>
-                        {(piData.grandTotal - (piData.taxableValue + piData.cgst + piData.sgst + piData.igst + (piData.freight || 0))) === 0 
-                          ? "0.00" 
-                          : (piData.grandTotal - (piData.taxableValue + piData.cgst + piData.sgst + piData.igst + (piData.freight || 0))).toFixed(2)}
+                        {(piData.grandTotal - (piData.taxableValue + piData.cgst + piData.sgst + piData.igst)).toFixed(2)}
                       </span>
                     </div>
 
@@ -407,44 +417,31 @@ export default function ProformaInvoicePage() {
 
               <div className="mt-4 pt-4 border-t border-gray-200 text-center">
                  <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">
-                   Powered by <span className="text-[#103c7f]">MAVEN JOBS</span>
+                   Powered by <span className="text-[#103c7f]">SAVVI SALES & SERVICES PVT LTD</span>
                  </p>
               </div>
             </div>
         </div>
       )}
 
-    {/* Global Print Styles */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
-          /* 1. Force all parent elements to allow printing */
           html, body, div#__next, main {
-            height: auto !important;
-            min-height: auto !important;
-            overflow: visible !important;
-            background-color: white !important;
-          }
-          
-          /* 2. Clean up margins for the physical paper */
-          @page {
-            size: A4 portrait;
-            margin: 0mm;
-          }
-          
-          /* 3. Ensure colors and backgrounds print perfectly */
-          * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-
-          /* 4. Hide shadows and adjust width for paper */
-          .print\\:shadow-none {
-            box-shadow: none !important;
-          }
-          .print\\:w-full {
             width: 100% !important;
             max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background-color: white !important;
+            height: auto !important;
+            overflow: visible !important;
           }
+          @page { size: A4 portrait; margin: 0 !important; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box !important; }
+          .print\\:shadow-none { box-shadow: none !important; }
+          .print\\:m-0 { margin: 0 !important; }
+          .print\\:p-0 { padding: 0 !important; }
+          .print\\:w-full { width: 100% !important; }
+          .print\\:max-w-full { max-width: 100% !important; }
         }
       `}} />
     </div>
