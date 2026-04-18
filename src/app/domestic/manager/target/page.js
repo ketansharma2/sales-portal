@@ -14,6 +14,7 @@ export default function SMDomesticTargetPage() {
   
   // My Targets State (Assigned by HOD)
   const [myTargetMonth, setMyTargetMonth] = useState("April");
+  const [myTargetsData, setMyTargetsData] = useState([]);
 
   // Team Filter States
   const [filterMonth, setFilterMonth] = useState("All");
@@ -51,33 +52,6 @@ export default function SMDomesticTargetPage() {
       "Cold Calls", "Qualified Leads", "Revenue Generated"
   ];
 
-  const myTargetsData = [
-      { 
-        id: 101, year: "2026", month: "April", workingDays: "22", sector: "Domestic", assignedBy: "Rajesh Kumar (HOD)", assignedRole: "Head of Department",
-        guideline: "Focus on maximizing CTC generation across domestic clients.", 
-        kpi_metric: "CTC Generation", frequency: "Monthly", 
-        target: 6000000, achieved: 2200000
-      },
-      { 
-        id: 102, year: "2026", month: "April", workingDays: "24", sector: "Domestic", assignedBy: "Rajesh Kumar (HOD)", assignedRole: "Head of Department",
-        guideline: "Expand branch reach in tier 2 and tier 3 domestic cities.", 
-        kpi_metric: "New Client Acquisition", frequency: "Monthly", 
-        target: 15, achieved: 9 
-      },
-      { 
-        id: 103, year: "2026", month: "March", workingDays: "21", sector: "Domestic", assignedBy: "Rajesh Kumar (HOD)", assignedRole: "Head of Department",
-        guideline: "Target high-value tech startups for domestic placements.", 
-        kpi_metric: "CTC Generation", frequency: "Monthly", 
-        target: 5000000, achieved: 5200000 
-      },
-      { 
-        id: 104, year: "2026", month: "March", workingDays: "21", sector: "Domestic", assignedBy: "Rajesh Kumar (HOD)", assignedRole: "Head of Department",
-        guideline: "Build initial pipeline for Q1.", 
-        kpi_metric: "New Client Acquisition", frequency: "Monthly", 
-        target: 12, achieved: 14 
-      }
-  ];
-
   // --- MOCK DATA: TEAM TARGETS ASSIGNED BY SM ---
   const dummyTeamTargets = [
     {
@@ -94,13 +68,51 @@ export default function SMDomesticTargetPage() {
       target: 2400, achieved: 1800,
       calculation: "(1 LeadGen × 100 Calls/Day) × 24 Days"
     }
-  ];
+];
+ 
+  // Fetch my targets from API
+  const fetchMyTargets = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      
+      if (!token) return;
+      
+      const response = await fetch('/api/domestic/manager/my-targets', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        const mappedData = result.data.map(t => ({
+          id: t.id,
+          year: t.year,
+          month: t.month,
+          workingDays: t.workingDays,
+          assignedBy: t.assignedBy,
+          assignedRole: t.assignedRole,
+          guideline: t.guideline,
+          kpi_metric: t.kpi,
+          frequency: t.frequency,
+          target: t.totalTarget,
+          achieved: t.achieved || 0
+        }));
+        setMyTargetsData(mappedData);
+      }
+    } catch (error) {
+      console.error('Error fetching my targets:', error);
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setTeamTargets(dummyTeamTargets);
       setLoading(false);
     }, 500);
+    
+    fetchMyTargets();
+    
     return () => clearTimeout(timer);
   }, []);
 
