@@ -34,16 +34,17 @@ export async function GET(request) {
           .eq('client_id', client.client_id)
 
         if (branchesError) {
-          return { ...client, branchEmails: [] }
+          return { ...client, branchEmails: [], branchPhones: [] }
         }
 
         const branchIds = (branches || []).map(b => b.branch_id).filter(Boolean)
 
         let branchEmails = []
+        let branchPhones = []
         if (branchIds.length > 0) {
           const { data: contacts, error: contactsError } = await supabaseServer
             .from('domestic_crm_contacts')
-            .select('email')
+            .select('email, phone')
             .in('branch_id', branchIds)
 
           if (!contactsError && contacts) {
@@ -51,10 +52,15 @@ export async function GET(request) {
               .map(c => c.email)
               .filter(email => email && email.trim() !== '')
             branchEmails = [...new Set(allEmails)]
+            
+            const allPhones = contacts
+              .map(c => c.phone)
+              .filter(phone => phone && phone.trim() !== '')
+            branchPhones = [...new Set(allPhones)]
           }
         }
 
-        return { ...client, branchEmails }
+        return { ...client, branchEmails, branchPhones }
       })
     )
 

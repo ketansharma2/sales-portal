@@ -26,7 +26,8 @@ export async function POST(request) {
       qualification,
       experience,
       feedback,
-      cv_url
+      cv_url,
+      sent_via
     } = body
 
     if (!conversation_id || !company_name || !client_id) {
@@ -49,6 +50,7 @@ export async function POST(request) {
         experience: experience !== undefined && experience !== null ? String(experience) : '',
         feedback: feedback || '',
         cv_url: cv_url || '',
+        sent_via: sent_via || '',
         shared_date: new Date().toISOString().split('T')[0]
       })
       .select()
