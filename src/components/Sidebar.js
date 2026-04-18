@@ -3,7 +3,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
-  Users, Wallet, LayoutGrid, ShieldCheck, Store ,Briefcase,HelpCircle,
+  Users, Wallet, LayoutGrid, ShieldCheck, Store ,Briefcase,HelpCircle,Receipt,
   Settings, FileText, Target, Search, BarChart, Phone,Calendar,MapPin,Truck,UserPlus,IndianRupee,UserCheck,Edit,Plus,
   Package,PhoneCall,ClipboardList,KanbanSquare,TableProperties, SunMedium, UploadCloud,Activity,History,LayoutDashboard,  Building2,
   House,ShoppingCart
@@ -165,6 +165,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     menuItems = [
       { name: "Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "Revenue Tracker", href: `${roleBaseHref}/history`, icon: <IndianRupee size={20} /> }, 
+      { name: "Proforma Invoice", href: `${roleBaseHref}/pi`, icon: <Receipt size={20} /> }
     ];
   }
   // DEFAULT
