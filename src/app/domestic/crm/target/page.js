@@ -28,9 +28,9 @@ export default function CRMDomesticTargetPage() {
     year: new Date().getFullYear().toString(),
     month: "",
     workingDays: "",
-    department: "Delivery", // Locked to Delivery
-    sector: "Domestic", // Locked to Domestic
-    role: "Team Leader (TL)", // Only TL is available
+    department: "Delivery",
+    sector: "Domestic",
+    role: "TL",
     assignedTo: "",
     targetList: [{ guideline: "", kpi_metric: "", frequency: "Monthly", target: "" }]
   });
@@ -41,34 +41,45 @@ export default function CRMDomesticTargetPage() {
   // --- OPTIONS & LOGIC ---
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   
-  // ✅ Specific to Delivery Sector (Only TL now)
-  const teamRoles = ["Team Leader (TL)"];
-  const teamEmployees = {
-      "Team Leader (TL)": ["Rahul Verma", "Kiran Gupta", "Arjun Singh"]
+  const teamRoles = ["TL"];
+  const [teamEmployees, setTeamEmployees] = useState({});
+
+  const fetchTeamUsers = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      if (!token) return;
+      
+      const response = await fetch('/api/domestic/crm/team-users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        const tlUsers = result.data.filter(u => {
+          const roles = Array.isArray(u.role) ? u.role : [u.role];
+          const roleStr = roles.join(' ').toUpperCase();
+          return roleStr.includes('TL');
+        }).map(u => u.name);
+        
+        setTeamEmployees({
+          "TL": tlUsers
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching team users:', error);
+    }
   };
 
   const kpiMetrics = [
-      "Team Revenue Target", "SLA Compliance", "Escalation Resolution", 
-      "Bulk Submissions (Team)", "Final Joinings (Team)", "Attrition Control"
+    "CTC Generation", "Leads", "Contacts", "Calls", "Onboard", 
+    "Franchise Accept", "Sent To Manager", "Acknowledge", 
+    "Joining", "CV Parse", "Conversion", "Tracker Sent", 
+    "Interested", "Visit", "Accuracy"
   ];
 
-  // --- MOCK DATA: TEAM TARGETS ASSIGNED BY CRM (Only to TLs) ---
-  const dummyTeamTargets = [
-    {
-      id: 1, year: "2026", month: "April", workingDays: "22", department: "Delivery", sector: "Domestic", role: "Team Leader (TL)", assignedTo: "Rahul Verma",
-      guideline: "Ensure team hits 100% of their bulk hiring submission targets.",
-      kpi_metric: "Team Revenue Target", frequency: "Monthly",
-      target: 4000000, achieved: 3200000
-    },
-    {
-      id: 2, year: "2026", month: "April", workingDays: "22", department: "Delivery", sector: "Domestic", role: "Team Leader (TL)", assignedTo: "Kiran Gupta",
-      guideline: "Maintain strict control over candidate backouts before joining.",
-      kpi_metric: "Final Joinings (Team)", frequency: "Monthly",
-      target: 150, achieved: 110
-    }
-  ];
-
-  // Fetch my targets from API
+  // Fetch team targets from API
   const fetchMyTargets = async () => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
@@ -103,16 +114,44 @@ export default function CRMDomesticTargetPage() {
     }
   };
 
+  // Fetch team targets from API
+  const fetchTeamTargets = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      
+      if (!token) return;
+      
+      const params = new URLSearchParams();
+      if (filterMonth !== 'All') params.set('month', filterMonth);
+      if (filterRole !== 'All') params.set('role', filterRole);
+      if (filterName !== 'All') params.set('name', filterName);
+      
+      const response = await fetch(`/api/domestic/crm/team-targets?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setTeamTargets(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching team targets:', error);
+    }
+  };
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setTeamTargets(dummyTeamTargets);
-      setLoading(false);
-    }, 500);
-    
     fetchMyTargets();
-    
-    return () => clearTimeout(timer);
+    fetchTeamUsers();
+    fetchTeamTargets();
+    setLoading(false);
   }, []);
+
+  // Refetch team targets when filters change
+  useEffect(() => {
+    fetchTeamTargets();
+  }, [filterMonth, filterRole, filterName]);
 
   // --- HANDLERS ---
 
@@ -160,6 +199,8 @@ export default function CRMDomesticTargetPage() {
       setForm({ ...form, targetList: newList });
   };
 
+  const [savingTarget, setSavingTarget] = useState(false);
+
   const handleSaveTarget = () => {
     if(!form.month || !form.role || !form.workingDays || !form.assignedTo) {
         alert("Please fill all details including Employee Name.");
@@ -168,30 +209,120 @@ export default function CRMDomesticTargetPage() {
 
     if (editId) {
         const t = form.targetList[0];
-        const updatedTargets = teamTargets.map(item => {
-            if (item.id === editId) {
-                return {
-                    ...item,
-                    year: form.year, month: form.month, workingDays: form.workingDays, 
-                    role: form.role, assignedTo: form.assignedTo,
-                    guideline: t.guideline, kpi_metric: t.kpi_metric, frequency: t.frequency,
-                    target: parseInt(t.target) || 0
-                };
+        
+        const updateInAPI = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) {
+                    alert('Session expired. Please login again.');
+                    return;
+                }
+
+                setSavingTarget(true);
+
+                const response = await fetch('/api/domestic/crm/team-targets', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        target_id: editId,
+                        year: form.year,
+                        month: form.month,
+                        working_days: form.workingDays,
+                        role: form.role,
+                        guideline: t.guideline,
+                        kpi: t.kpi_metric,
+                        frequency: t.frequency,
+                        total_target: t.target
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Target updated successfully!');
+                    fetchTeamTargets();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error updating target:', error);
+                alert('Failed to update target');
+            } finally {
+                setSavingTarget(false);
             }
-            return item;
-        });
-        setTeamTargets(updatedTargets);
+        };
+
+        updateInAPI();
     } else {
-        const newEntries = form.targetList.map((t, idx) => {
-            return {
-                id: Date.now() + idx,
-                year: form.year, month: form.month, workingDays: form.workingDays, 
-                department: "Delivery", sector: "Domestic", role: form.role, assignedTo: form.assignedTo,
-                guideline: t.guideline, kpi_metric: t.kpi_metric, frequency: t.frequency,
-                target: parseInt(t.target) || 0, achieved: 0
-            };
-        });
-        setTeamTargets([...newEntries, ...teamTargets]);
+        const saveToAPI = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) {
+                    alert('Session expired. Please login again.');
+                    return;
+                }
+
+                const userResponse = await fetch('/api/domestic/crm/team-users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const userResult = await userResponse.json();
+                const selectedUser = userResult.data?.find(u => u.name === form.assignedTo);
+                
+                if (!selectedUser) {
+                    alert('User not found');
+                    return;
+                }
+
+                const targets = form.targetList.map(t => ({
+                    kpi_metric: t.kpi_metric,
+                    frequency: t.frequency,
+                    target: t.target,
+                    guideline: t.guideline
+                }));
+
+                setSavingTarget(true);
+
+                const response = await fetch('/api/domestic/crm/team-targets', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        year: form.year,
+                        month: form.month,
+                        working_days: form.workingDays,
+                        role: form.role,
+                        assigned_to: selectedUser.user_id,
+                        targets: targets
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Targets saved successfully!');
+                    fetchMyTargets();
+                    fetchTeamTargets();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error saving targets:', error);
+                alert('Failed to save targets');
+            } finally {
+                setSavingTarget(false);
+            }
+        };
+
+        saveToAPI();
     }
     
     setIsModalOpen(false);
@@ -498,7 +629,7 @@ export default function CRMDomesticTargetPage() {
                                 <label className="text-[10px] font-bold text-emerald-600 uppercase">Role</label>
                                 <select value={form.role} onChange={handleRoleChange} className="w-full border border-emerald-200 p-2 rounded-lg text-sm outline-none bg-emerald-50 focus:border-emerald-500" disabled>
                                     {/* ✅ Only TL is available */}
-                                    <option value="Team Leader (TL)">Team Leader (TL)</option>
+<option value="TL">Team Leader (TL)</option>
                                 </select>
                             </div>
                             
@@ -506,12 +637,18 @@ export default function CRMDomesticTargetPage() {
                                 <label className="text-[10px] font-bold text-purple-600 uppercase">Employee Name</label>
                                 <select 
                                     value={form.assignedTo} 
-                                    onChange={e => setForm({...form, assignedTo: e.target.value})} 
-                                    disabled={!form.role} 
-                                    className="w-full border border-purple-200 p-2 rounded-lg text-sm outline-none bg-purple-50 focus:border-purple-500 disabled:opacity-50"
+                                    onChange={e => {
+                                        const selectedName = e.target.value;
+                                        setForm({...form, assignedTo: selectedName});
+                                        const empRole = Object.entries(teamEmployees).find(([role, names]) => names.includes(selectedName))?.[0];
+                                        if (empRole) setForm(prev => ({...prev, role: empRole}));
+                                    }}
+                                    className="w-full border border-purple-200 p-2 rounded-lg text-sm outline-none bg-purple-50 focus:border-purple-500"
                                 >
                                     <option value="">- Select Name -</option>
-                                    {form.role && teamEmployees[form.role]?.map(emp => <option key={emp} value={emp}>{emp}</option>)}
+                                    {Object.values(teamEmployees).flat().map(emp => (
+                                        <option key={emp} value={emp}>{emp}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
@@ -565,8 +702,8 @@ export default function CRMDomesticTargetPage() {
                     )}
 
                     <div className="pt-4 border-t border-gray-100 mt-auto">
-                        <button onClick={handleSaveTarget} className="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl font-black uppercase tracking-widest text-white shadow-md flex items-center justify-center gap-2 transition-colors text-xs">
-                            <Save size={16}/> {editId ? "Update Target" : `Save & Assign Target`}
+<button onClick={handleSaveTarget} disabled={savingTarget} className="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl font-black uppercase tracking-widest text-white shadow-md flex items-center justify-center gap-2 transition-colors text-xs disabled:opacity-60 disabled:cursor-not-allowed">
+                            <Save size={16}/> {savingTarget ? "Saving..." : editId ? "Update Target" : "Save & Assign Target"}
                         </button>
                     </div>
                 </div>
