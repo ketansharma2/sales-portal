@@ -47,23 +47,27 @@ export async function GET(request) {
 
         // Get emails from corporate_crm_contacts using branch_ids
         let branchEmails = []
+        let branchPhones = []
         if (branchIds.length > 0) {
           const { data: contacts, error: contactsError } = await supabaseServer
             .from('corporate_crm_contacts')
-            .select('email')
+            .select('email, phone')
             .in('branch_id', branchIds)
 
           if (!contactsError && contacts) {
-            // Filter empty emails and get unique emails only
             const allEmails = contacts
               .map(c => c.email)
               .filter(email => email && email.trim() !== '')
-            // Remove duplicates
             branchEmails = [...new Set(allEmails)]
+            
+            const allPhones = contacts
+              .map(c => c.phone)
+              .filter(phone => phone && phone.trim() !== '')
+            branchPhones = [...new Set(allPhones)]
           }
         }
 
-        return { ...client, branchEmails }
+        return { ...client, branchEmails, branchPhones }
       })
     )
 

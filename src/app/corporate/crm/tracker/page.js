@@ -3,7 +3,7 @@ import { useState, useEffect ,useMemo } from "react";
 import { useRouter  } from "next/navigation";
 import { 
     Building2, Mail, History, Calendar, CheckCircle2, 
-    X, Send, FileText, Briefcase, MapPin, GraduationCap, Edit3, Loader2, File
+    X, Send, FileText, Briefcase, MapPin, GraduationCap, Edit3, Loader2, File, MessageCircle
 } from "lucide-react";
 import jsPDF from "jspdf";
 
@@ -168,7 +168,7 @@ export default function CRMClientTrackerPage() {
     const [selectedRowIds, setSelectedRowIds] = useState([]);
 
     // Form states for modals
-    const [shareForm, setShareForm] = useState({ company: "", clientId: "", toEmail: "" });
+    const [shareForm, setShareForm] = useState({ company: "", clientId: "", toEmail: "", mobileNumber: "", manualPhone: "" });
     const [editableDraftData, setEditableDraftData] = useState([]); // Holds data for the editable table
     const [clientCompanies, setClientCompanies] = useState([]); // Dynamic client list
 
@@ -353,7 +353,7 @@ export default function CRMClientTrackerPage() {
             }
         });
         setEditableDraftData(copiedData);
-        setShareForm({ company: "", clientId: "", toEmail: "" });
+        setShareForm({ company: "", clientId: "", toEmail: "", mobileNumber: "", manualPhone: "" });
         setModalType('draft_mail');
     };
 
@@ -420,7 +420,8 @@ export default function CRMClientTrackerPage() {
                         qualification: row.qualification,
                         experience: row.experience,
                         feedback: row.crmFeedback,
-                        cv_url: row.tlCvName || ''
+                        cv_url: row.tlCvName || '',
+                        sent_via: 'Email'
                     })
                 });
                 
@@ -695,7 +696,8 @@ export default function CRMClientTrackerPage() {
                         qualification: row.qualification,
                         experience: row.experience,
                         feedback: row.crmFeedback,
-                        cv_url: row.tlCvName || ''
+                        cv_url: row.tlCvName || '',
+                        sent_via: 'Email'
                     })
                 });
             }
@@ -1001,6 +1003,20 @@ export default function CRMClientTrackerPage() {
                             >
                                 <Mail size={12}/> Draft Mail
                             </button>
+                            <button 
+                                onClick={() => {
+                                    if (selectedRowIds.length === 0) return alert("Please select candidates to share.");
+                                    const selectedData = crmData.filter(c => selectedRowIds.includes(c.id));
+                                    const copiedData = JSON.parse(JSON.stringify(selectedData));
+                                    copiedData.forEach(item => { item.selected = true; });
+                                    setEditableDraftData(copiedData);
+                                    setShareForm({ company: "", clientId: "", toEmail: "", mobileNumber: "", manualPhone: "" });
+                                    setModalType('whatsapp_share');
+                                }}
+                                className="bg-emerald-500 text-white px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm hover:bg-emerald-600 flex items-center gap-1.5 transition-colors"
+                            >
+                                <MessageCircle size={12}/> Share via WhatsApp
+                            </button>
                         </div>
                     )}
                 </div>
@@ -1268,6 +1284,266 @@ export default function CRMClientTrackerPage() {
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-lg text-xs font-black uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50"
                             >
                                 <Send size={14}/> Save Draft & Copy to Clipboard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ========================================================= */}
+            {/* MODAL: WHATSAPP SHARE */}
+            {/* ========================================================= */}
+            {modalType === 'whatsapp_share' && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col border-4 border-white">
+                        
+                        <div className="bg-emerald-600 text-white px-5 py-4 flex justify-between items-center shrink-0">
+                            <div>
+                                <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                    <MessageCircle size={16}/> Share via WhatsApp
+                                </h2>
+                                <p className="text-[10px] font-bold text-emerald-200 mt-1">Select candidates to share via WhatsApp.</p>
+                            </div>
+                            <button onClick={() => setModalType(null)} className="hover:text-emerald-200 bg-white/10 p-1.5 rounded-full"><X size={18} /></button>
+                        </div>
+
+                        <div className="p-4 border-b border-slate-200 bg-white shrink-0">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Mobile Number (Recipients)</label>
+                            <div className="flex flex-wrap gap-2">
+                                <select 
+                                    className="bg-white border border-slate-300 text-slate-800 text-sm font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer flex-1 min-w-[200px]"
+                                    value={shareForm.company}
+                                    onChange={(e) => {
+                                        const selectedClient = clientCompanies.find(c => c.company_name === e.target.value);
+                                        const phones = selectedClient?.branchPhones || [];
+                                        setShareForm({
+                                            ...shareForm,
+                                            company: e.target.value,
+                                            clientId: selectedClient?.client_id || '',
+                                            mobileNumber: phones.length > 0 ? phones[0] : '',
+                                            manualPhone: ''
+                                        });
+                                    }}
+                                >
+                                    <option value="">-- Select Client --</option>
+                                    {clientCompanies.map(c => (
+                                        <option key={c.client_id} value={c.company_name}>{c.company_name}</option>
+                                    ))}
+                                </select>
+                                {(shareForm.company && (clientCompanies.find(c => c.company_name === shareForm.company)?.branchPhones || []).length > 0) ? (
+                                    shareForm.mobileNumber === '__manual__' ? (
+                                        <input 
+                                            type="tel" 
+                                            maxLength={10}
+                                            className="flex-1 min-w-[200px] bg-white border border-slate-300 text-slate-800 text-sm font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500"
+                                            value={shareForm.manualPhone || ''}
+                                            onChange={(e) => {
+                                                const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                                setShareForm({...shareForm, manualPhone: digits});
+                                            }}
+                                            placeholder="Enter mobile number"
+                                        />
+                                    ) : (
+                                        <select 
+                                            className="flex-1 min-w-[200px] bg-white border border-slate-300 text-slate-800 text-sm font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                                            value={shareForm.mobileNumber}
+                                            onChange={(e) => {
+                                                if (e.target.value === '__manual__') {
+                                                    setShareForm({...shareForm, mobileNumber: '__manual__'});
+                                                } else {
+                                                    setShareForm({...shareForm, mobileNumber: e.target.value});
+                                                }
+                                            }}
+                                        >
+                                            <option value="">-- Select Phone --</option>
+                                            {(clientCompanies.find(c => c.company_name === shareForm.company)?.branchPhones || []).map((phone, idx) => (
+                                                <option key={idx} value={phone}>{phone}</option>
+                                            ))}
+                                            <option value="__manual__">+ Enter Manually</option>
+                                        </select>
+                                    )
+                                ) : (
+                                    <input 
+                                        type="tel" 
+                                        maxLength={10}
+                                        className="flex-1 min-w-[200px] bg-white border border-slate-300 text-slate-800 text-sm font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500"
+                                        value={shareForm.mobileNumber}
+                                        onChange={(e) => {
+                                            const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                            setShareForm({...shareForm, mobileNumber: digits});
+                                        }}
+                                        placeholder="Enter mobile number"
+                                    />
+                                )}
+                            </div>
+                            <p className="text-[10px] font-bold text-slate-400 mt-1">Select client to see phone numbers or enter manually</p>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 bg-slate-50">
+                            <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto shadow-sm">
+                                <table className="w-full text-left whitespace-nowrap min-w-[1000px]">
+                                    <thead className="bg-slate-100 border-b border-slate-200">
+                                        <tr>
+                                            <th className="py-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest w-10">
+                                                <input 
+                                                    type="checkbox"
+                                                    checked={editableDraftData.length > 0 && editableDraftData.every(row => row.selected)}
+                                                    onChange={(e) => setEditableDraftData(editableDraftData.map(row => ({...row, selected: e.target.checked})))}
+                                                    className="cursor-pointer accent-emerald-600 w-4 h-4"
+                                                />
+                                            </th>
+                                            <th className="py-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Name</th>
+                                            <th className="py-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Profile</th>
+                                            <th className="py-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Location</th>
+                                            <th className="py-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Qualification</th>
+                                            <th className="py-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Experience</th>
+                                            <th className="py-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest min-w-[200px]">CRM Feedback</th>
+                                            <th className="py-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">CV</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {editableDraftData.map(row => (
+                                            <tr key={row.id} className={row.selected ? 'bg-emerald-50' : ''}>
+                                                <td className="p-2 text-center">
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={row.selected || false}
+                                                        onChange={(e) => {
+                                                            const updated = editableDraftData.map(item => 
+                                                                item.id === row.id ? {...item, selected: e.target.checked} : item
+                                                            );
+                                                            setEditableDraftData(updated);
+                                                        }}
+                                                        className="cursor-pointer accent-emerald-600 w-4 h-4"
+                                                    />
+                                                </td>
+                                                <td className="p-2">
+                                                    <input type="text" value={row.name} onChange={(e) => handleEditableDraftChange(row.id, 'name', e.target.value)} className="w-full text-xs font-bold border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded px-2 py-1 outline-none"/>
+                                                </td>
+                                                <td className="p-2">
+                                                    <input type="text" value={row.profile} onChange={(e) => handleEditableDraftChange(row.id, 'profile', e.target.value)} className="w-full text-xs font-bold border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded px-2 py-1 outline-none"/>
+                                                </td>
+                                                <td className="p-2">
+                                                    <input type="text" value={row.location} onChange={(e) => handleEditableDraftChange(row.id, 'location', e.target.value)} className="w-full text-xs font-bold border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded px-2 py-1 outline-none"/>
+                                                </td>
+                                                <td className="p-2">
+                                                    <input type="text" value={row.qualification} onChange={(e) => handleEditableDraftChange(row.id, 'qualification', e.target.value)} className="w-full text-xs font-bold border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded px-2 py-1 outline-none"/>
+                                                </td>
+                                                <td className="p-2">
+                                                    <input type="text" value={String(row.experience || '')} onChange={(e) => handleEditableDraftChange(row.id, 'experience', e.target.value)} className="w-full text-xs font-bold border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded px-2 py-1 outline-none"/>
+                                                </td>
+                                                <td className="p-2">
+                                                    <textarea 
+                                                        value={row.crmFeedback || ''}
+                                                        onChange={(e) => handleEditableDraftChange(row.id, 'crmFeedback', e.target.value)}
+                                                        placeholder="Enter CRM feedback..."
+                                                        className="w-full text-xs font-medium border border-slate-200 focus:border-emerald-500 rounded px-2 py-1 outline-none resize-none"
+                                                        rows={2}
+                                                    />
+                                                </td>
+                                                <td className="p-2 text-center">
+                                                    <button 
+                                                        onClick={() => openCVModal(row)}
+                                                        className="text-[10px] font-bold text-emerald-600 hover:text-emerald-800 flex items-center justify-center gap-1 mx-auto"
+                                                    >
+                                                        <FileText size={12} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div className="p-4 border-t border-slate-200 bg-white shrink-0 flex items-center justify-center gap-4">
+                            <button 
+                                onClick={async () => {
+                                    const selectedRows = editableDraftData.filter(r => r.selected);
+                                    if (selectedRows.length === 0) return alert("Please select at least one candidate.");
+                                    
+                                    const phoneNum = shareForm.mobileNumber === '__manual__' ? shareForm.manualPhone : shareForm.mobileNumber;
+                                    if (!phoneNum || phoneNum.length !== 10) {
+                                        return alert("Please select or enter a valid 10-digit mobile number.");
+                                    }
+                                    
+                                    const session = JSON.parse(localStorage.getItem('session') || '{}');
+                                    const token = session.access_token;
+                                    
+                                    if (!token) {
+                                        return alert("Session expired. Please login again.");
+                                    }
+                                    
+                                    const selectedClient = clientCompanies.find(c => c.company_name === shareForm.company);
+                                    const clientId = selectedClient?.client_id;
+                                    
+                                    if (clientId) {
+                                        for (const row of selectedRows) {
+                                            await fetch('/api/corporate/crm/emails', {
+                                                method: 'POST',
+                                                headers: {
+                                                    'Authorization': `Bearer ${token}`,
+                                                    'Content-Type': 'application/json'
+                                                },
+                                                body: JSON.stringify({
+                                                    conversation_id: row.id,
+                                                    company_name: shareForm.company,
+                                                    client_id: clientId,
+                                                    name: row.name,
+                                                    profile: row.profile,
+                                                    location: row.location,
+                                                    qualification: row.qualification,
+                                                    experience: row.experience,
+                                                    feedback: row.crmFeedback,
+                                                    cv_url: row.tlCvName || '',
+                                                    sent_via: 'WhatsApp'
+                                                })
+                                            });
+                                        }
+                                    }
+                                    
+                                    const selectedData = selectedRows;
+                                    const companyName = shareForm.company || 'Client';
+                                    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+                                    const bdName = userData.name || 'Maven Jobs Team';
+                                    
+                                    let message = `Hi ${companyName},\n\n`;
+                                    message += `Greetings from Maven Jobs!\n\n`;
+                                    message += `Please find the shortlisted candidates below:\n\n`;
+                                    
+                                    selectedData.forEach((row, i) => {
+                                        message += `${i + 1}. ${row.name}\n`;
+                                        message += `   - Profile: ${row.profile || '-'}\n`;
+                                        message += `   - Location: ${row.location || '-'}\n`;
+                                        message += `   - Exp: ${row.experience || '0'} Years\n`;
+                                        if (row.crmFeedback) {
+                                            message += `   - Note: ${row.crmFeedback}\n`;
+                                        }
+                                        if (row.tlCvName) {
+                                            message += `   - CV Link: ${row.tlCvName}\n`;
+                                        }
+                                        message += `\n`;
+                                    });
+                                    
+                                    message += `Please review and let us know your feedback.\n\n`;
+                                    message += `Thanks,\n`;
+                                    message += `${bdName}\n`;
+                                    message += `Maven Jobs`;
+                                    
+                                    const encodedMessage = encodeURIComponent(message);
+                                    const phone = `91${phoneNum}`;
+                                    const whatsappUrl = `https://wa.me/${phone}?text=${encodedMessage}`;
+                                    
+                                    window.open(whatsappUrl, '_blank');
+                                    
+                                    setSelectedRowIds([]);
+                                    setModalType(null);
+                                    alert(`Success! ${selectedRows.length} candidates sent via WhatsApp.`);
+                                }}
+                                disabled={(shareForm.mobileNumber === '__manual__' ? !shareForm.manualPhone || shareForm.manualPhone.length !== 10 : !shareForm.mobileNumber || shareForm.mobileNumber.length !== 10)}
+                                className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-lg text-xs font-black uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50"
+                            >
+                                <MessageCircle size={14}/> Send via WhatsApp
                             </button>
                         </div>
                     </div>

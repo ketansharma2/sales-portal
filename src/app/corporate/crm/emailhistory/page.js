@@ -211,6 +211,7 @@ export default function EmailHistoryPage() {
                         dateShared: row.created_at ? new Date(row.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-',
                         shared_date: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null,
                         clientCompany: row.company_name || '-',
+                        sentVia: row.sent_via || '-',
                         name: row.name || '-',
                         profile: row.profile || '-',
                         location: row.location || '-',
@@ -411,7 +412,7 @@ export default function EmailHistoryPage() {
                                         <td className="py-3 px-4 border-r border-slate-50 bg-slate-50/30">
                                             <p className="text-xs font-black text-indigo-700">{row.clientCompany}</p>
                                             <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1.5 uppercase tracking-widest mt-1">
-                                                <Calendar size={10} className="text-indigo-400"/> Shared: {row.dateShared}
+                                                <Calendar size={10} className="text-indigo-400"/> Shared: {row.dateShared} via {row.sentVia}
                                             </p>
                                         </td>
 
