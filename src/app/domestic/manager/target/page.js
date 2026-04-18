@@ -23,6 +23,7 @@ export default function SMDomesticTargetPage() {
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [savingTarget, setSavingTarget] = useState(false);
   const [editId, setEditId] = useState(null); 
   const [form, setForm] = useState({
     year: new Date().getFullYear().toString(),
@@ -41,15 +42,47 @@ export default function SMDomesticTargetPage() {
   // --- OPTIONS & LOGIC ---
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   
-  const teamRoles = ["Field Sales Exec. (FSE)", "Lead Generation"];
-  const teamEmployees = {
-      "Field Sales Exec. (FSE)": ["Amit Singh", "Priya Verma", "Suraj Sharma"],
-      "Lead Generation": ["Neha Sharma", "Ravi Kumar"]
+  const teamRoles = ["FSE", "LeadGen"];
+  const [teamEmployees, setTeamEmployees] = useState({});
+
+  const fetchTeamUsers = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      if (!token) return;
+      
+      const response = await fetch('/api/domestic/manager/team-users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        const fseUsers = result.data.filter(u => {
+          const roles = Array.isArray(u.role) ? u.role : [u.role];
+          return roles.includes('FSE');
+        }).map(u => u.name);
+        
+        const leadGenUsers = result.data.filter(u => {
+          const roles = Array.isArray(u.role) ? u.role : [u.role];
+          return roles.includes('LeadGen');
+        }).map(u => u.name);
+        
+        setTeamEmployees({
+          "FSE": fseUsers,
+          "LeadGen": leadGenUsers
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching team users:', error);
+    }
   };
 
   const kpiMetrics = [
-      "New Client Acquisition", "Branch Visits", "Meetings Booked", 
-      "Cold Calls", "Qualified Leads", "Revenue Generated"
+    "CTC Generation", "Leads", "Contacts", "Calls", "Onboard", 
+    "Franchise Accept", "Sent To Manager", "Acknowledge", 
+    "Joining", "CV Parse", "Conversion", "Tracker Sent", 
+    "Interested", "Visit", "Accuracy"
   ];
 
   // --- MOCK DATA: TEAM TARGETS ASSIGNED BY SM ---
@@ -105,16 +138,44 @@ export default function SMDomesticTargetPage() {
     }
   };
 
+  // Fetch team targets from API
+  const fetchTeamTargets = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      
+      if (!token) return;
+      
+      const params = new URLSearchParams();
+      if (filterMonth !== 'All') params.set('month', filterMonth);
+      if (filterRole !== 'All') params.set('role', filterRole);
+      if (filterName !== 'All') params.set('name', filterName);
+      
+      const response = await fetch(`/api/domestic/manager/team-targets?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setTeamTargets(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching team targets:', error);
+    }
+  };
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setTeamTargets(dummyTeamTargets);
-      setLoading(false);
-    }, 500);
-    
     fetchMyTargets();
-    
-    return () => clearTimeout(timer);
+    fetchTeamUsers();
+    fetchTeamTargets();
+    setLoading(false);
   }, []);
+
+  // Refetch team targets when filters change
+  useEffect(() => {
+    fetchTeamTargets();
+  }, [filterMonth, filterRole, filterName]);
 
   // --- HANDLERS ---
 
@@ -197,21 +258,73 @@ export default function SMDomesticTargetPage() {
         });
         setTeamTargets(updatedTargets);
     } else {
-        const newEntries = form.targetList.map((t, idx) => {
-            let mockCalc = t.frequency === "Daily" 
-                ? `(1 ${form.role.split(' ')[0]} × Y ${t.kpi_metric}/Day) × ${form.workingDays} Days` 
-                : `(1 ${form.role.split(' ')[0]} × Y ${t.kpi_metric}/Month)`;
+        // Save to API
+        const saveToAPI = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) {
+                    alert('Session expired. Please login again.');
+                    return;
+                }
 
-            return {
-                id: Date.now() + idx,
-                year: form.year, month: form.month, workingDays: form.workingDays, 
-                department: "Sales", sector: "Domestic", role: form.role, assignedTo: form.assignedTo,
-                guideline: t.guideline, kpi_metric: t.kpi_metric, frequency: t.frequency,
-                target: parseInt(t.target) || 0, achieved: 0,
-                calculation: mockCalc
-            };
-        });
-        setTeamTargets([...newEntries, ...teamTargets]);
+                // Get user's user_id from teamEmployees by name
+                const allUsers = Object.values(teamEmployees).flat();
+                const userResponse = await fetch('/api/domestic/manager/team-users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const userResult = await userResponse.json();
+                const selectedUser = userResult.data?.find(u => u.name === form.assignedTo);
+                
+                if (!selectedUser) {
+                    alert('User not found');
+                    return;
+                }
+
+                const targets = form.targetList.map(t => ({
+                    kpi_metric: t.kpi_metric,
+                    frequency: t.frequency,
+                    target: t.target,
+                    guideline: t.guideline
+                }));
+
+                setSavingTarget(true);
+
+                const response = await fetch('/api/domestic/manager/team-targets', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        year: form.year,
+                        month: form.month,
+                        working_days: form.workingDays,
+                        role: form.role,
+                        assigned_to: selectedUser.user_id,
+                        targets: targets
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Targets saved successfully!');
+                    fetchMyTargets();
+                    fetchTeamTargets();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error saving targets:', error);
+                alert('Failed to save targets');
+            } finally {
+                setSavingTarget(false);
+            }
+        };
+
+        saveToAPI();
     }
     
     setIsModalOpen(false);
@@ -532,12 +645,18 @@ export default function SMDomesticTargetPage() {
                                 <label className="text-[10px] font-bold text-purple-600 uppercase">Employee Name</label>
                                 <select 
                                     value={form.assignedTo} 
-                                    onChange={e => setForm({...form, assignedTo: e.target.value})} 
-                                    disabled={!form.role} 
-                                    className="w-full border border-purple-200 p-2 rounded-lg text-sm outline-none bg-purple-50 focus:border-purple-500 disabled:opacity-50"
+                                    onChange={e => {
+                                        const selectedName = e.target.value;
+                                        setForm({...form, assignedTo: selectedName});
+                                        const empRole = Object.entries(teamEmployees).find(([role, names]) => names.includes(selectedName))?.[0];
+                                        if (empRole) setForm(prev => ({...prev, role: empRole}));
+                                    }}
+                                    className="w-full border border-purple-200 p-2 rounded-lg text-sm outline-none bg-purple-50 focus:border-purple-500"
                                 >
                                     <option value="">- Select Name -</option>
-                                    {form.role && teamEmployees[form.role]?.map(emp => <option key={emp} value={emp}>{emp}</option>)}
+                                    {Object.values(teamEmployees).flat().map(emp => (
+                                        <option key={emp} value={emp}>{emp}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
@@ -591,8 +710,8 @@ export default function SMDomesticTargetPage() {
                     )}
 
                     <div className="pt-4 border-t border-gray-100 mt-auto">
-                        <button onClick={handleSaveTarget} className="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl font-black uppercase tracking-widest text-white shadow-md flex items-center justify-center gap-2 transition-colors text-xs">
-                            <Save size={16}/> {editId ? "Update Target" : `Save & Assign Target`}
+                        <button onClick={handleSaveTarget} disabled={savingTarget} className="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl font-black uppercase tracking-widest text-white shadow-md flex items-center justify-center gap-2 transition-colors text-xs disabled:opacity-60 disabled:cursor-not-allowed">
+                            <Save size={16}/> {savingTarget ? "Saving..." : editId ? "Update Target" : "Save & Assign Target"}
                         </button>
                     </div>
                 </div>

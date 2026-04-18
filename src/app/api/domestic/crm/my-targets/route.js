@@ -23,7 +23,7 @@ export async function GET(request) {
       .select('*')
       .eq('assigned_to', currentUserId)
       .eq('sector', 'Domestic')
-      .eq('role', 'MANAGER')
+      .eq('role', 'CRM')
       .order('month', { ascending: false })
 
     if (monthFilter && monthFilter !== 'All') {
@@ -32,7 +32,7 @@ export async function GET(request) {
 
     const { data: targets, error: targetsError } = await query
 
-const creatorUserIds = [...new Set((targets || []).map(t => t.user_id).filter(Boolean))]
+    const creatorUserIds = [...new Set((targets || []).map(t => t.user_id).filter(Boolean))]
     
     let creatorNames = {}
     if (creatorUserIds.length > 0) {

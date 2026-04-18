@@ -126,6 +126,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       { name: "Workbench Report", href: `${roleBaseHref}/workbench`, icon: <LayoutDashboard size={20} /> },
       { name: "JD Management", href: `${roleBaseHref}/jd`, icon: <FileText size={20} /> }, // Naya JD Page Tab
       { name: "Client FAQs", href: `${roleBaseHref}/faq`, icon: <HelpCircle size={20} /> }, // Interview Questions Repo
+      { name: "Target", href: `${roleBaseHref}/target`, icon: <Target size={20} /> },
     ];
   }
   else if (currentRole === "recruiter") {

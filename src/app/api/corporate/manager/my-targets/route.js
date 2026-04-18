@@ -22,6 +22,8 @@ export async function GET(request) {
       .from('hod_targets')
       .select('*')
       .eq('assigned_to', currentUserId)
+      .eq('sector', 'Corporate')
+      .eq('role', 'MANAGER')
       .order('month', { ascending: false })
 
     if (monthFilter && monthFilter !== 'All') {
