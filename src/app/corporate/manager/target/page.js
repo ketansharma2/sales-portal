@@ -14,6 +14,7 @@ export default function SMCorporateTargetPage() {
   
   // My Targets State (Assigned by HOD)
   const [myTargetMonth, setMyTargetMonth] = useState("April");
+  const [myTargetsData, setMyTargetsData] = useState([]);
 
   // Team Filter States
   const [filterMonth, setFilterMonth] = useState("All");
@@ -52,22 +53,6 @@ export default function SMCorporateTargetPage() {
       "LinkedIn Outreach", "Qualified B2B Leads", "Corporate Revenue"
   ];
 
-  // --- MOCK DATA: HOD ASSIGNED TARGETS TO CORPORATE SM ---
-  const myTargetsData = [
-      { 
-        id: 101, year: "2026", month: "April", workingDays: "22", sector: "Corporate", assignedBy: "Rajesh Kumar (HOD)", assignedRole: "Head of Department",
-        guideline: "Focus on closing Top 50 enterprise client accounts.", 
-        kpi_metric: "Enterprise Signups", frequency: "Monthly", 
-        target: 10, achieved: 4 
-      },
-      { 
-        id: 102, year: "2026", month: "April", workingDays: "22", sector: "Corporate", assignedBy: "Rajesh Kumar (HOD)", assignedRole: "Head of Department",
-        guideline: "Maximize revenue generation from existing B2B partnerships.", 
-        kpi_metric: "Corporate Revenue", frequency: "Monthly", 
-        target: 15000000, achieved: 6500000 
-      }
-  ];
-
   // --- MOCK DATA: TEAM TARGETS ASSIGNED BY CORP SM ---
   const dummyTeamTargets = [
     {
@@ -84,11 +69,49 @@ export default function SMCorporateTargetPage() {
     }
   ];
 
+  // Fetch my targets from API
+  const fetchMyTargets = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      
+      if (!token) return;
+      
+      const response = await fetch('/api/corporate/manager/my-targets', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        const mappedData = result.data.map(t => ({
+          id: t.id,
+          year: t.year,
+          month: t.month,
+          workingDays: t.workingDays,
+          assignedBy: t.assignedBy,
+          assignedRole: t.assignedRole,
+          guideline: t.guideline,
+          kpi_metric: t.kpi,
+          frequency: t.frequency,
+          target: t.totalTarget,
+          achieved: t.achieved || 0
+        }));
+        setMyTargetsData(mappedData);
+      }
+    } catch (error) {
+      console.error('Error fetching my targets:', error);
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setTeamTargets(dummyTeamTargets);
       setLoading(false);
     }, 500);
+    
+    fetchMyTargets();
+    
     return () => clearTimeout(timer);
   }, []);
 
