@@ -11,7 +11,7 @@ export default function HodTargetPage() {
   // --- STATES ---
   const [loading, setLoading] = useState(true);
   const [targets, setTargets] = useState([]);
-  
+  const [users, setUsers] = useState([]);
   const [activeDeptTab, setActiveDeptTab] = useState("Sales"); 
 
   // Filter States
@@ -20,7 +20,138 @@ export default function HodTargetPage() {
   const [filterSector, setFilterSector] = useState("All");
   const [filterRole, setFilterRole] = useState("All");
   const [filterName, setFilterName] = useState("All");
+const [sectors, setSectors] = useState([]);
+const [roles, setRoles] = useState([]);
 
+useEffect(() => {
+  fetchUsers();
+}, [activeDeptTab]);
+const fetchUsers = async () => {
+  try {
+    const session = JSON.parse(localStorage.getItem("session") || "{}");
+
+    // ✅ Dynamic API based on tab
+    const apiUrl =
+      activeDeptTab === "Sales"
+        ? "/api/hod/targets/get-sales-users"
+        : "/api/hod/targets/get-delivery-users";
+
+    const res = await fetch(apiUrl, {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
+
+    if (!res.ok) throw new Error("Failed to fetch users");
+
+    const data = await res.json();
+
+    if (data.success) {
+     const usersData = data.data.map((u) => {
+  let role = "";
+
+  if (Array.isArray(u.role)) {
+    // ✅ Department-based role selection
+    if (activeDeptTab === "Delivery") {
+      if (u.role.includes("CRM")) role = "CRM";
+      else if (u.role.includes("TL")) role = "Team Lead";
+      else role = u.role[0];
+    } 
+    
+    else if (activeDeptTab === "Sales") {
+      if (u.role.includes("MANAGER")) role = "Manager";
+      else role = u.role[0];
+    }
+  } else {
+    role = u.role || "";
+  }
+
+  return {
+    ...u,
+    role,
+    sector: u.sector || "",
+  };
+});
+
+      setUsers(usersData);
+
+
+      
+      const uniqueSectors = [
+        ...new Set(usersData.map((u) => u.sector).filter(Boolean)),
+      ];
+
+      const uniqueRoles = [
+        ...new Set(usersData.map((u) => u.role).filter(Boolean)),
+      ];
+
+      setRoles(uniqueRoles);
+
+     setSectors(uniqueSectors);
+    }
+  } catch (err) {
+    console.error("User fetch error:", err);
+  }
+};
+//   const handleEmployeeChange = (e) => {
+//     const selectedUserId = e.target.value;
+//     const selectedUser = users.find(u => u.user_id === selectedUserId);
+    
+//     if (selectedUser) {
+//       setForm({
+//         ...form,
+//         assignedTo: selectedUser.name,
+//         sector: selectedUser.sector || form.sector,
+//         role: selectedUser.role || form.role
+//       });
+//     } else {
+//       setForm({ ...form, assignedTo: "" });
+//     }
+//   };
+
+const handleEmployeeChange = (e) => {
+  const selectedId = e.target.value;
+
+  const user = users.find((u) => u.user_id === selectedId);
+  if (!user) return;
+
+  let autoKPIs = [];
+
+  switch (user.role) {
+    case "Head of Department (HOD)":
+      autoKPIs = [
+        { guideline: "", kpi_metric: "Team Revenue", frequency: "Monthly", target: "" }
+      ];
+      break;
+
+    case "Sales Manager (SM)":
+      autoKPIs = [
+        { guideline: "", kpi_metric: "CTC Generation", frequency: "Monthly", target: "" }
+      ];
+      break;
+
+    case "Account Manager (CRM)":
+      autoKPIs = [
+        { guideline: "", kpi_metric: "Client Retention", frequency: "Monthly", target: "" },
+        { guideline: "", kpi_metric: "Revenue Billed", frequency: "Monthly", target: "" }
+      ];
+      break;
+
+    default:
+      autoKPIs = [
+        { guideline: "", kpi_metric: "", frequency: "Monthly", target: "" }
+      ];
+  }
+
+  setForm((prev) => ({
+    ...prev,
+    assignedTo: user.user_id,   
+    assignedName: user.name,// store ID
+    role: user.role,
+    sector: user.sector,
+    targetList: autoKPIs
+  }));
+};
   // Modal & Form States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editId, setEditId] = useState(null); 
@@ -43,7 +174,7 @@ export default function HodTargetPage() {
 
   // --- DROPDOWN OPTIONS & LOGIC ---
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const sectors = ["Domestic", "Corporate", "Both"]; // ✅ Added "Both" for HOD
+//   const sectors = ["Domestic", "Corporate", "Both"]; // ✅ Added "Both" for HOD
   
   // ✅ Added HOD to both departments
   const rolesMap = {
@@ -51,18 +182,23 @@ export default function HodTargetPage() {
       "Delivery": ["Account Manager (CRM)", "Head of Department (HOD)"]
   };
 
-  const employeesMap = {
-      "Sales Manager (SM)": ["Rahul Sharma", "Vikram Singh", "Pooja Mehta"],
-      "Account Manager (CRM)": ["Aarti Desai", "Rohan Gupta", "Sanya Verma"],
-      "Head of Department (HOD)": ["Rajesh Kumar (HOD)"] // ✅ HOD Name
-  };
-
   const kpiMetrics = [
-      "CTC Generation", "Client Retention", "Revenue Billed", 
-      "New Client Acquisition", "Team Revenue", "Branch Visits", 
-      "Issue Resolutions", "Submissions", "Interviews", "Total Profit Margin"
-  ];
-
+  "CTC Generation",
+  "Leads",
+  "Contacts",
+  "Calls",
+  "Onboard",
+  "Franchise Accept",
+  "Sent To Manager",
+  "Acknowledge",
+  "Joining",
+  "CV Parse",
+  "Conversion",
+  "Tracker Sent",
+  "Interested",
+  "Visit",
+  "Accuracy"
+];
   // --- MOCK DATA ---
   const dummyTargets = [
     {
@@ -106,6 +242,7 @@ export default function HodTargetPage() {
   // --- HANDLERS ---
 
   const handleOpenModal = (item = null) => {
+     fetchUsers();
     if (item && item.id) {
         setEditId(item.id);
         setForm({
@@ -152,7 +289,8 @@ export default function HodTargetPage() {
           autoKPIs = [{ guideline: "", kpi_metric: "", frequency: "Monthly", target: "" }];
       }
 
-      setForm({ ...form, role: selectedRole, sector: autoSector, assignedTo: "", targetList: autoKPIs });
+      // Only reset role, sector, and KPIs - keep assignedTo if already selected
+      setForm({ ...form, role: selectedRole, sector: autoSector, targetList: autoKPIs });
   };
 
   const handleViewTarget = (item) => {
@@ -179,54 +317,127 @@ export default function HodTargetPage() {
       setForm({ ...form, targetList: newList });
   };
 
-  const handleSaveTarget = () => {
-    if(!form.month || !form.department || !form.sector || !form.role || !form.workingDays || !form.assignedTo) {
-        alert("Please fill all Target Scope details including Sector and Employee Name.");
-        return;
-    }
+//   const handleSaveTarget = () => {
+//     if(!form.month || !form.department || !form.sector || !form.role || !form.workingDays || !form.assignedTo) {
+//         alert("Please fill all Target Scope details including Sector and Employee Name.");
+//         return;
+//     }
 
-    if (editId) {
-        const t = form.targetList[0];
-        let mockCalc = t.frequency === "Daily" 
-            ? `(1 ${form.role.split(' ')[0]} × Y ${t.kpi_metric}/Day) × ${form.workingDays} Days` 
-            : `(1 ${form.role.split(' ')[0]} × Y ${t.kpi_metric}/Month)`;
+//     if (editId) {
+//         const t = form.targetList[0];
+//         let mockCalc = t.frequency === "Daily" 
+//             ? `(1 ${form.role.split(' ')[0]} × Y ${t.kpi_metric}/Day) × ${form.workingDays} Days` 
+//             : `(1 ${form.role.split(' ')[0]} × Y ${t.kpi_metric}/Month)`;
 
-        const updatedTargets = targets.map(item => {
-            if (item.id === editId) {
-                return {
-                    ...item,
-                    year: form.year, month: form.month, workingDays: form.workingDays, 
-                    department: form.department, sector: form.sector, role: form.role, assignedTo: form.assignedTo,
-                    guideline: t.guideline, kpi_metric: t.kpi_metric, frequency: t.frequency,
-                    target: parseInt(t.target) || 0,
-                    calculation: mockCalc
-                };
-            }
-            return item;
-        });
-        setTargets(updatedTargets);
-    } else {
-        const newEntries = form.targetList.map((t, idx) => {
-            let mockCalc = t.frequency === "Daily" 
-                ? `(1 ${form.role.split(' ')[0]} × Y ${t.kpi_metric}/Day) × ${form.workingDays} Days` 
-                : `(1 ${form.role.split(' ')[0]} × Y ${t.kpi_metric}/Month)`;
+//         const updatedTargets = targets.map(item => {
+//             if (item.id === editId) {
+//                 return {
+//                     ...item,
+//                     year: form.year, month: form.month, workingDays: form.workingDays, 
+//                     department: form.department, sector: form.sector, role: form.role, assignedTo: form.assignedTo,
+//                     guideline: t.guideline, kpi_metric: t.kpi_metric, frequency: t.frequency,
+//                     target: parseInt(t.target) || 0,
+//                     calculation: mockCalc
+//                 };
+//             }
+//             return item;
+//         });
+//         setTargets(updatedTargets);
+//     } else {
+//         const newEntries = form.targetList.map((t, idx) => {
+//             let mockCalc = t.frequency === "Daily" 
+//                 ? `(1 ${form.role.split(' ')[0]} × Y ${t.kpi_metric}/Day) × ${form.workingDays} Days` 
+//                 : `(1 ${form.role.split(' ')[0]} × Y ${t.kpi_metric}/Month)`;
 
-            return {
-                id: Date.now() + idx,
-                year: form.year, month: form.month, workingDays: form.workingDays, 
-                department: form.department, sector: form.sector, role: form.role, assignedTo: form.assignedTo,
-                guideline: t.guideline, kpi_metric: t.kpi_metric, frequency: t.frequency,
-                target: parseInt(t.target) || 0, achieved: 0,
-                calculation: mockCalc
-            };
-        });
-        setTargets([...newEntries, ...targets]);
-    }
+//             return {
+//                 id: Date.now() + idx,
+//                 year: form.year, month: form.month, workingDays: form.workingDays, 
+//                 department: form.department, sector: form.sector, role: form.role, assignedTo: form.assignedTo,
+//                 guideline: t.guideline, kpi_metric: t.kpi_metric, frequency: t.frequency,
+//                 target: parseInt(t.target) || 0, achieved: 0,
+//                 calculation: mockCalc
+//             };
+//         });
+//         setTargets([...newEntries, ...targets]);
+//     }
     
-    setIsModalOpen(false);
-    setEditId(null);
+//     setIsModalOpen(false);
+//     setEditId(null);
+//   };
+
+
+const handleSaveTarget = async () => {
+  if (!form.month || !form.department || !form.role || !form.assignedTo) {
+    alert("Please fill all required fields");
+    return;
+  }
+
+  const payload = {
+    year: form.year,
+    month: form.month,
+    working_days: Number(form.workingDays),
+    department: form.department,
+    sector: form.sector,
+    role: form.role,
+    user_id: form.assignedTo,
+    targets: form.targetList.map(t => ({
+      kpi_metric: t.kpi_metric,
+      frequency: t.frequency,
+      target: Number(t.target),
+      guideline: t.guideline
+    }))
   };
 
+  // ✅ Debug (optional - remove later)
+//   console.log("FINAL PAYLOAD 👉", payload);
+
+  try {
+    const session = JSON.parse(localStorage.getItem("session") || "{}");
+
+    const res = await fetch("/api/hod/targets/create", {
+      method: editId ? "PUT" : "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "API failed");
+    }
+
+    // ✅ SUCCESS
+    alert(editId ? "Target updated successfully" : "Target created successfully");
+
+    // Close modal
+    setIsModalOpen(false);
+    setEditId(null);
+
+    // ✅ Reset form (important)
+    setForm({
+      year: new Date().getFullYear().toString(),
+      month: "",
+      workingDays: "",
+      department: activeDeptTab,
+      sector: "",
+      role: "",
+      assignedTo: "",
+      targetList: [
+        { guideline: "", kpi_metric: "", frequency: "Monthly", target: "" }
+      ]
+    });
+
+    // ✅ Refresh table (if API exists)
+    // await fetchTargets();
+
+  } catch (err) {
+    console.error("Save error:", err);
+    alert(err.message || "Something went wrong");
+  }
+};
   const handleClearFilters = () => {
     setFilterMonth("All"); setFilterDept("All"); setFilterSector("All"); setFilterRole("All"); setFilterName("All");
   };
@@ -323,11 +534,9 @@ export default function HodTargetPage() {
             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Name</label>
             <select value={filterName} onChange={(e) => setFilterName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-3 rounded-lg text-xs font-bold outline-none cursor-pointer">
                 <option value="All">All Leaders</option>
-                {rolesMap[activeDeptTab]
-                    .flatMap(role => employeesMap[role] || [])
-                    .filter((value, index, self) => self.indexOf(value) === index)
-                    .map((emp) => <option key={emp} value={emp}>{emp}</option>)
-                }
+                {users.map((user) => (
+                    <option key={user.user_id} value={user.name}>{user.name}</option>
+                ))}
             </select>
         </div>
 
@@ -469,17 +678,24 @@ export default function HodTargetPage() {
                             
                             <div>
                                 <label className="text-[10px] font-bold text-blue-600 uppercase">Role</label>
-                                <select value={form.role} onChange={handleRoleChange} className="w-full border border-blue-200 p-2 rounded-lg text-sm outline-none bg-blue-50 focus:border-blue-500">
-                                    <option value="">- Select Role -</option>
-                                    {rolesMap[form.department].map(r => <option key={r} value={r}>{r}</option>)}
-                                </select>
+                              <select 
+  value={form.role || ""}   // ✅ prevent null error
+  onChange={handleRoleChange} 
+  className="w-full border border-blue-200 p-2 rounded-lg text-sm outline-none bg-blue-50 focus:border-blue-500"
+>
+  <option value="">- Select Role -</option>
+
+  {roles.map((r) => (
+    <option key={r} value={r}>{r}</option>
+  ))}
+</select>
                             </div>
                             
                             {/* ✅ Sector dropdown is disabled if Role is HOD */}
                             <div>
                                 <label className="text-[10px] font-bold text-gray-500 uppercase">Sector</label>
                                 <select 
-                                    value={form.sector} 
+                                      value={form.sector || ""} 
                                     onChange={e => setForm({...form, sector: e.target.value})} 
                                     disabled={form.role === "Head of Department (HOD)"}
                                     className={`w-full border p-2 rounded-lg text-sm outline-none ${form.role === "Head of Department (HOD)" ? "bg-gray-100 border-gray-200 opacity-70" : "bg-white border-gray-200 focus:border-[#103c7f]"}`}
@@ -489,17 +705,22 @@ export default function HodTargetPage() {
                                 </select>
                             </div>
                             
-                            <div>
+<div>
                                 <label className="text-[10px] font-bold text-purple-600 uppercase">Employee Name</label>
-                                <select 
-                                    value={form.assignedTo} 
-                                    onChange={e => setForm({...form, assignedTo: e.target.value})} 
-                                    disabled={!form.role} 
-                                    className="w-full border border-purple-200 p-2 rounded-lg text-sm outline-none bg-purple-50 focus:border-purple-500 disabled:opacity-50"
-                                >
-                                    <option value="">- Select Name -</option>
-                                    {form.role && employeesMap[form.role]?.map(emp => <option key={emp} value={emp}>{emp}</option>)}
-                                </select>
+                              <select 
+  value={form.assignedTo || ""} 
+  onChange={handleEmployeeChange} 
+  disabled={users.length === 0} 
+  className="w-full border border-purple-200 p-2 rounded-lg text-sm outline-none bg-purple-50 focus:border-purple-500 disabled:opacity-50"
+>
+  <option value="">- Select Name -</option>
+
+  {users.map((user) => (
+    <option key={user.user_id} value={user.user_id}>
+      {user.name} ({user.role})
+    </option>
+  ))}
+</select>
                             </div>
                         </div>
                     </div>
