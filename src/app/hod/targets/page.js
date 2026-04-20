@@ -23,7 +23,61 @@ export default function HodTargetPage() {
 const [sectors, setSectors] = useState([]);
 const [roles, setRoles] = useState([]);
 
+
+const fetchTargets = async () => {
+  try {
+    setLoading(true);
+
+    const session = JSON.parse(localStorage.getItem("session") || "{}");
+
+   const apiUrl =
+      activeDeptTab === "Sales"
+        ? "/api/hod/targets/list/salelist"
+        : "/api/hod/targets/list/deliverylist";
+
+    const res = await fetch(apiUrl, {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
+
+    const data = await res.json();
+    console.log('data:',data);
+    if (data.success) {
+const normalizedTargets = data.data.map((t) => ({
+  id: t.id || t.target_id,
+
+  year: t.year,
+  month: t.month,
+  workingDays: t.working_days,
+
+  department: t.dept,
+  sector: t.sector,
+  role: t.role,
+
+  // ✅ from backend
+  assignedTo: t.assigned_name,
+
+  guideline: t.guideline,
+  kpi_metric: t.kpi,
+  frequency: t.frequency,
+
+  target: t.total_target,
+  achieved: t.achieved || 0,
+
+  user_id: t.assigned_to,
+  created_at: t.created_at,
+}));
+     setTargets(normalizedTargets);
+    }
+  } catch (err) {
+    console.error("Fetch targets error:", err);
+  } finally {
+    setLoading(false);
+  }
+};
 useEffect(() => {
+    fetchTargets();
   fetchUsers();
 }, [activeDeptTab]);
 const fetchUsers = async () => {
@@ -178,8 +232,8 @@ const handleEmployeeChange = (e) => {
   
   // ✅ Added HOD to both departments
   const rolesMap = {
-      "Sales": ["Sales Manager (SM)", "Head of Department (HOD)"],
-      "Delivery": ["Account Manager (CRM)", "Head of Department (HOD)"]
+      "Sales": ["Manager", "HOD"],
+      "Delivery": ["CRM"]
   };
 
   const kpiMetrics = [
@@ -231,13 +285,7 @@ const handleEmployeeChange = (e) => {
     }
   ];
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setTargets(dummyTargets);
-      setLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []);
+ 
 
   // --- HANDLERS ---
 
@@ -247,7 +295,7 @@ const handleEmployeeChange = (e) => {
         setEditId(item.id);
         setForm({
             year: item.year, month: item.month, workingDays: item.workingDays || "", 
-            department: item.department || activeDeptTab, sector: item.sector, role: item.role, assignedTo: item.assignedTo || "",
+            department: item.department || activeDeptTab, sector: item.sector, role: item.role, assignedTo: item.user_id || "",
             targetList: [{ 
                 guideline: item.guideline, kpi_metric: item.kpi_metric, 
                 frequency: item.frequency, target: item.target.toString() 
@@ -373,6 +421,7 @@ const handleSaveTarget = async () => {
   }
 
   const payload = {
+    ...(editId && { id: editId }),
     year: form.year,
     month: form.month,
     working_days: Number(form.workingDays),
@@ -431,7 +480,7 @@ const handleSaveTarget = async () => {
     });
 
     // ✅ Refresh table (if API exists)
-    // await fetchTargets();
+    await fetchTargets();
 
   } catch (err) {
     console.error("Save error:", err);

@@ -84,3 +84,90 @@ export async function POST(request) {
     )
   }
 }
+
+// ✅ UPDATE TARGET
+export async function PUT(request) {
+  try {
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+
+    const { data: { user }, error: authError } =
+      await supabaseServer.auth.getUser(token)
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    const body = await request.json()
+
+    const {
+      id,
+      year,
+      month,
+      working_days,
+      department,
+      sector,
+      role,
+      user_id,
+      targets
+    } = body
+
+    if (!id) {
+      return NextResponse.json({ error: 'Target ID is required' }, { status: 400 })
+    }
+
+    if (!month || !department || !role || !user_id) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
+
+    const targetData = {
+      year,
+      month,
+      working_days: Number(working_days),
+      dept: department,
+      sector,
+      role,
+      assigned_to: user_id,
+    }
+
+    if (targets && targets.length > 0) {
+      targetData.kpi = targets[0].kpi_metric
+      targetData.frequency = targets[0].frequency
+      targetData.total_target = Number(targets[0].target)
+      targetData.guideline = targets[0].guideline
+    }
+
+    const { error } = await supabaseServer
+      .from('hod_targets')
+      .update(targetData)
+      .eq('target_id', id)
+
+    if (error) {
+      console.error('Update error:', error)
+      return NextResponse.json(
+        { error: 'Failed to update target', details: error.message },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Target updated successfully'
+    })
+
+  } catch (err) {
+    console.error('PUT API error:', err)
+
+    return NextResponse.json(
+      { error: 'Internal server error', details: err.message },
+      { status: 500 }
+    )
+  }
+}
