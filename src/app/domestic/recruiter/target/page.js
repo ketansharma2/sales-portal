@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Calendar, Briefcase, X, Target, 
   BarChart2, Percent, Eye, User, CheckCircle
@@ -8,6 +8,9 @@ import {
 export default function RCDomesticTargetPage() {
   
   // --- STATES ---
+  const [loading, setLoading] = useState(true);
+  const [myTargetsData, setMyTargetsData] = useState([]);
+  
   // My Targets State (Assigned by Domestic TL)
   const [myTargetMonth, setMyTargetMonth] = useState("April");
 
@@ -17,28 +20,33 @@ export default function RCDomesticTargetPage() {
 
   // --- OPTIONS & LOGIC ---
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  
-  // --- MOCK DATA: TL ASSIGNED TARGETS TO RC ---
-  const myTargetsData = [
-      { 
-        id: 101, year: "2026", month: "April", workingDays: "24", sector: "Domestic", assignedBy: "Rahul Verma (TL)", assignedRole: "Team Leader",
-        guideline: "Focus on sourcing L1 support and domestic voice profiles from portals.", 
-        kpi_metric: "Bulk Submissions", frequency: "Daily", 
-        target: 120, achieved: 85 
-      },
-      { 
-        id: 102, year: "2026", month: "April", workingDays: "24", sector: "Domestic", assignedBy: "Rahul Verma (TL)", assignedRole: "Team Leader",
-        guideline: "Coordinate and line up candidates for weekend walk-in drives.", 
-        kpi_metric: "Walk-in Interviews", frequency: "Daily", 
-        target: 30, achieved: 22 
-      },
-      { 
-        id: 103, year: "2026", month: "March", workingDays: "22", sector: "Domestic", assignedBy: "Rahul Verma (TL)", assignedRole: "Team Leader",
-        guideline: "Maintain daily calling volume to build active candidate pipeline.", 
-        kpi_metric: "Sourcing Calls", frequency: "Daily", 
-        target: 1500, achieved: 1650 
+
+  // Fetch my targets from API
+  const fetchMyTargets = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      
+      if (!token) return;
+      
+      const response = await fetch('/api/domestic/recruiter/my-targets', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setMyTargetsData(result.data);
       }
-  ];
+    } catch (error) {
+      console.error('Error fetching my targets:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchMyTargets();
+    setLoading(false);
+  }, []);
 
   // Filters
   const filteredMyTargets = myTargetsData.filter(t => t.month === myTargetMonth);
@@ -122,8 +130,8 @@ export default function RCDomesticTargetPage() {
                                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${item.frequency === 'Daily' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-purple-50 text-purple-600 border-purple-200'}`}>{item.frequency}</span>
                              </td>
                              
-                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.target.toLocaleString('en-IN')}</span></td>
-                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-emerald-700">{item.achieved.toLocaleString('en-IN')}</span></td>
+<td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.totalTarget?.toLocaleString('en-IN')}</span></td>
+                              <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-emerald-700">{item.achieved?.toLocaleString('en-IN')}</span></td>
                              
                              <td className="p-3 border-r border-gray-100 text-center align-middle">
                                  <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
