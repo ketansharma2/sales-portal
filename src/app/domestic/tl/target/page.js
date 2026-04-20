@@ -27,9 +27,9 @@ export default function TLDomesticTargetPage() {
     year: new Date().getFullYear().toString(),
     month: "",
     workingDays: "",
-    department: "Delivery", // Locked to Delivery
-    sector: "Domestic",    // Locked to Domestic
-    role: "Recruiter (RC)", // Only RC is available
+    department: "Delivery",
+    sector: "Domestic",
+    role: "RC",
     assignedTo: "",
     targetList: [{ guideline: "", kpi_metric: "", frequency: "Monthly", target: "" }]
   });
@@ -40,56 +40,106 @@ export default function TLDomesticTargetPage() {
   // --- OPTIONS & LOGIC ---
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   
-  // ✅ Specific to TL Sector (Only RC now)
-  const teamRoles = ["Recruiter (RC)"];
-  const teamEmployees = {
-      "Recruiter (RC)": ["Amit Patel", "Neha Singh", "Priya Das", "Ravi Kumar"]
+  const teamRoles = ["RC"];
+  const [teamEmployees, setTeamEmployees] = useState({});
+
+  const fetchTeamUsers = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      if (!token) return;
+      
+      const response = await fetch('/api/domestic/tl/team-users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        const rcUsers = result.data.filter(u => {
+          const roles = Array.isArray(u.role) ? u.role : [u.role];
+          const roleStr = roles.join(' ').toUpperCase();
+          return roleStr.includes('RC');
+        }).map(u => u.name);
+        
+        setTeamEmployees({
+          "RC": rcUsers
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching team users:', error);
+    }
   };
 
   const kpiMetrics = [
-      "Bulk Submissions", "Walk-in Interviews", "Offer Rollouts", 
-      "Final Joinings", "Sourcing Calls", "Candidate Pipelines"
+    "CTC Generation", "Leads", "Contacts", "Calls", "Onboard", 
+    "Franchise Accept", "Sent To Manager", "Acknowledge", 
+    "Joining", "CV Parse", "Conversion", "Tracker Sent", 
+    "Interested", "Visit", "Accuracy"
   ];
 
-  // --- MOCK DATA: CRM ASSIGNED TARGETS TO TL ---
-  const myTargetsData = [
-      { 
-        id: 101, year: "2026", month: "April", workingDays: "24", sector: "Domestic", assignedBy: "Kiran Gupta (CRM)", assignedRole: "Account Manager",
-        guideline: "Ensure team hits 100% of their bulk hiring submission targets.", 
-        kpi_metric: "Team Revenue Target", frequency: "Monthly", 
-        target: 4000000, achieved: 3200000 
-      },
-      { 
-        id: 102, year: "2026", month: "April", workingDays: "24", sector: "Domestic", assignedBy: "Kiran Gupta (CRM)", assignedRole: "Account Manager",
-        guideline: "Maintain strict control over candidate backouts before joining.", 
-        kpi_metric: "Final Joinings (Team)", frequency: "Monthly", 
-        target: 150, achieved: 110 
+  // Fetch my targets from API
+  const fetchMyTargets = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      
+      if (!token) return;
+      
+      const response = await fetch('/api/domestic/tl/my-targets', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setMyTargetsData(result.data);
       }
-  ];
-
-  // --- MOCK DATA: TEAM TARGETS ASSIGNED BY TL (Only to RCs) ---
-  const dummyTeamTargets = [
-    {
-      id: 1, year: "2026", month: "April", workingDays: "24", department: "Delivery", sector: "Domestic", role: "Recruiter (RC)", assignedTo: "Amit Patel",
-      guideline: "Focus on sourcing L1 support and domestic voice profiles.",
-      kpi_metric: "Bulk Submissions", frequency: "Daily",
-      target: 120, achieved: 80
-    },
-    {
-      id: 2, year: "2026", month: "April", workingDays: "24", department: "Delivery", sector: "Domestic", role: "Recruiter (RC)", assignedTo: "Neha Singh",
-      guideline: "Coordinate and line up candidates for weekend walk-in drives.",
-      kpi_metric: "Walk-in Interviews", frequency: "Daily",
-      target: 30, achieved: 22
+    } catch (error) {
+      console.error('Error fetching my targets:', error);
     }
-  ];
+  };
+
+  // State for my targets
+  const [myTargetsData, setMyTargetsData] = useState([]);
+
+  // Fetch team targets from API
+  const fetchTeamTargets = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      
+      if (!token) return;
+      
+      const params = new URLSearchParams();
+      if (filterMonth !== 'All') params.set('month', filterMonth);
+      if (filterName !== 'All') params.set('name', filterName);
+      
+      const response = await fetch(`/api/domestic/tl/team-targets?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setTeamTargets(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching team targets:', error);
+    }
+  };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setTeamTargets(dummyTeamTargets);
-      setLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    fetchMyTargets();
+    fetchTeamUsers();
+    fetchTeamTargets();
+    setLoading(false);
   }, []);
+
+  // Refetch team targets when filters change
+  useEffect(() => {
+    fetchTeamTargets();
+  }, [filterMonth, filterName]);
 
   // --- HANDLERS ---
 
@@ -98,7 +148,7 @@ export default function TLDomesticTargetPage() {
         setEditId(item.id);
         setForm({
             year: item.year, month: item.month, workingDays: item.workingDays || "", 
-            department: "Delivery", sector: "Domestic", role: "Recruiter (RC)", assignedTo: item.assignedTo || "",
+            department: "Delivery", sector: "Domestic", role: "RC", assignedTo: item.assignedTo || "",
             targetList: [{ 
                 guideline: item.guideline, kpi_metric: item.kpi_metric, 
                 frequency: item.frequency, target: item.target.toString() 
@@ -108,7 +158,7 @@ export default function TLDomesticTargetPage() {
         setEditId(null);
         setForm({
             year: new Date().getFullYear().toString(), month: "", workingDays: "", 
-            department: "Delivery", sector: "Domestic", role: "Recruiter (RC)", assignedTo: "",
+            department: "Delivery", sector: "Domestic", role: "RC", assignedTo: "",
             targetList: [{ guideline: "", kpi_metric: "Bulk Submissions", frequency: "Daily", target: "" }]
         });
     }
@@ -137,6 +187,8 @@ export default function TLDomesticTargetPage() {
       setForm({ ...form, targetList: newList });
   };
 
+  const [savingTarget, setSavingTarget] = useState(false);
+
   const handleSaveTarget = () => {
     if(!form.month || !form.role || !form.workingDays || !form.assignedTo) {
         alert("Please fill all details including Employee Name.");
@@ -145,30 +197,120 @@ export default function TLDomesticTargetPage() {
 
     if (editId) {
         const t = form.targetList[0];
-        const updatedTargets = teamTargets.map(item => {
-            if (item.id === editId) {
-                return {
-                    ...item,
-                    year: form.year, month: form.month, workingDays: form.workingDays, 
-                    role: form.role, assignedTo: form.assignedTo,
-                    guideline: t.guideline, kpi_metric: t.kpi_metric, frequency: t.frequency,
-                    target: parseInt(t.target) || 0
-                };
+        
+        const updateInAPI = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) {
+                    alert('Session expired. Please login again.');
+                    return;
+                }
+
+                setSavingTarget(true);
+
+                const response = await fetch('/api/domestic/tl/team-targets', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        target_id: editId,
+                        year: form.year,
+                        month: form.month,
+                        working_days: form.workingDays,
+                        role: form.role,
+                        guideline: t.guideline,
+                        kpi: t.kpi_metric,
+                        frequency: t.frequency,
+                        total_target: t.target
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Target updated successfully!');
+                    fetchTeamTargets();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error updating target:', error);
+                alert('Failed to update target');
+            } finally {
+                setSavingTarget(false);
             }
-            return item;
-        });
-        setTeamTargets(updatedTargets);
+        };
+
+        updateInAPI();
     } else {
-        const newEntries = form.targetList.map((t, idx) => {
-            return {
-                id: Date.now() + idx,
-                year: form.year, month: form.month, workingDays: form.workingDays, 
-                department: "Delivery", sector: "Domestic", role: form.role, assignedTo: form.assignedTo,
-                guideline: t.guideline, kpi_metric: t.kpi_metric, frequency: t.frequency,
-                target: parseInt(t.target) || 0, achieved: 0
-            };
-        });
-        setTeamTargets([...newEntries, ...teamTargets]);
+        const saveToAPI = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) {
+                    alert('Session expired. Please login again.');
+                    return;
+                }
+
+                const userResponse = await fetch('/api/domestic/tl/team-users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const userResult = await userResponse.json();
+                const selectedUser = userResult.data?.find(u => u.name === form.assignedTo);
+                
+                if (!selectedUser) {
+                    alert('User not found');
+                    return;
+                }
+
+                const targets = form.targetList.map(t => ({
+                    kpi_metric: t.kpi_metric,
+                    frequency: t.frequency,
+                    target: t.target,
+                    guideline: t.guideline
+                }));
+
+                setSavingTarget(true);
+
+                const response = await fetch('/api/domestic/tl/team-targets', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        year: form.year,
+                        month: form.month,
+                        working_days: form.workingDays,
+                        role: form.role,
+                        assigned_to: selectedUser.user_id,
+                        targets: targets
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Targets saved successfully!');
+                    fetchMyTargets();
+                    fetchTeamTargets();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error saving targets:', error);
+                alert('Failed to save targets');
+            } finally {
+                setSavingTarget(false);
+            }
+        };
+
+        saveToAPI();
     }
     
     setIsModalOpen(false);
@@ -268,8 +410,8 @@ export default function TLDomesticTargetPage() {
                                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${item.frequency === 'Daily' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-purple-50 text-purple-600 border-purple-200'}`}>{item.frequency}</span>
                              </td>
                              
-                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.target.toLocaleString('en-IN')}</span></td>
-                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-emerald-700">{item.achieved.toLocaleString('en-IN')}</span></td>
+<td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.totalTarget?.toLocaleString('en-IN')}</span></td>
+                              <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-emerald-700">{item.achieved?.toLocaleString('en-IN')}</span></td>
                              
                              <td className="p-3 border-r border-gray-100 text-center align-middle">
                                  <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
@@ -330,7 +472,7 @@ export default function TLDomesticTargetPage() {
             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Role</label>
             <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-3 rounded-lg text-xs font-bold outline-none cursor-pointer" disabled>
                 {/* Only RC is available */}
-                <option value="Recruiter (RC)">Recruiter (RC)</option>
+                <option value="RC">RC</option>
             </select>
         </div>
         <div className="w-48 shrink-0">
@@ -407,8 +549,8 @@ export default function TLDomesticTargetPage() {
                             <td className="p-3 border-r border-gray-100 text-center align-middle">
                                 <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${item.frequency === 'Daily' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-purple-50 text-purple-600 border-purple-200'}`}>{item.frequency}</span>
                             </td>
-                            <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.target.toLocaleString('en-IN')}</span></td>
-                            <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-emerald-700">{item.achieved.toLocaleString('en-IN')}</span></td>
+<td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.target?.toLocaleString('en-IN')}</span></td>
+                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-emerald-700">{item.achieved?.toLocaleString('en-IN')}</span></td>
                             <td className="p-3 border-r border-gray-100 text-center align-middle">
                                 <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
                             </td>
@@ -475,7 +617,7 @@ export default function TLDomesticTargetPage() {
                                 <label className="text-[10px] font-bold text-emerald-600 uppercase">Role</label>
                                 <select value={form.role} onChange={handleRoleChange} className="w-full border border-emerald-200 p-2 rounded-lg text-sm outline-none bg-emerald-50 focus:border-emerald-500" disabled>
                                     {/* ✅ Only RC is available */}
-                                    <option value="Recruiter (RC)">Recruiter (RC)</option>
+                                    <option value="RC">RC</option>
                                 </select>
                             </div>
                             
@@ -483,12 +625,18 @@ export default function TLDomesticTargetPage() {
                                 <label className="text-[10px] font-bold text-purple-600 uppercase">Employee Name</label>
                                 <select 
                                     value={form.assignedTo} 
-                                    onChange={e => setForm({...form, assignedTo: e.target.value})} 
-                                    disabled={!form.role} 
-                                    className="w-full border border-purple-200 p-2 rounded-lg text-sm outline-none bg-purple-50 focus:border-purple-500 disabled:opacity-50"
+                                    onChange={e => {
+                                        const selectedName = e.target.value;
+                                        setForm({...form, assignedTo: selectedName});
+                                        const empRole = Object.entries(teamEmployees).find(([role, names]) => names.includes(selectedName))?.[0];
+                                        if (empRole) setForm(prev => ({...prev, role: empRole}));
+                                    }}
+                                    className="w-full border border-purple-200 p-2 rounded-lg text-sm outline-none bg-purple-50 focus:border-purple-500"
                                 >
                                     <option value="">- Select Name -</option>
-                                    {form.role && teamEmployees[form.role]?.map(emp => <option key={emp} value={emp}>{emp}</option>)}
+                                    {Object.values(teamEmployees).flat().map(emp => (
+                                        <option key={emp} value={emp}>{emp}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
@@ -542,8 +690,8 @@ export default function TLDomesticTargetPage() {
                     )}
 
                     <div className="pt-4 border-t border-gray-100 mt-auto">
-                        <button onClick={handleSaveTarget} className="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl font-black uppercase tracking-widest text-white shadow-md flex items-center justify-center gap-2 transition-colors text-xs">
-                            <Save size={16}/> {editId ? "Update Target" : `Save & Assign Target`}
+                        <button onClick={handleSaveTarget} disabled={savingTarget} className="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl font-black uppercase tracking-widest text-white shadow-md flex items-center justify-center gap-2 transition-colors text-xs disabled:opacity-60 disabled:cursor-not-allowed">
+                            <Save size={16}/> {savingTarget ? "Saving..." : editId ? "Update Target" : "Save & Assign Target"}
                         </button>
                     </div>
                 </div>

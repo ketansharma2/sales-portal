@@ -146,6 +146,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       { name: "Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "My Workbench", href: `${roleBaseHref}/workbench`, icon: <KanbanSquare size={20} /> },
       { name: "Team Tracker", href: `${roleBaseHref}/tracker`, icon: <Activity size={20} /> },
+      { name: "Target", href: `${roleBaseHref}/target`, icon: <Target size={20} /> },
     ];
   }
 
