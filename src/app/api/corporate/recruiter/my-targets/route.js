@@ -61,7 +61,7 @@ export async function GET(request) {
       achieved: target.achieved || 0,
       guideline: target.guideline || '',
       assignedBy: creatorNames[target.user_id] || '',
-      assignedRole: target.role || 'RC'
+      assignedRole: 'TL'
     }))
 
     return NextResponse.json({ success: true, data: transformedTargets })

@@ -19,9 +19,10 @@ export async function GET(request) {
     const currentUserId = user.user_id || user.id
 
     let query = supabaseServer
-      .from('tl_targets')
+      .from('manager_targets')
       .select('*')
       .eq('assigned_to', currentUserId)
+      .eq('role', 'FSE')
       .eq('sector', 'Domestic')
       .order('month', { ascending: false })
 
@@ -32,7 +33,7 @@ export async function GET(request) {
     const { data: targets, error: targetsError } = await query
 
     if (targetsError) {
-      console.error('Recruiter targets fetch error:', targetsError)
+      console.error('FSE targets fetch error:', targetsError)
       return NextResponse.json({ error: 'Failed to fetch targets', details: targetsError.message }, { status: 500 })
     }
 
@@ -61,13 +62,13 @@ export async function GET(request) {
       achieved: target.achieved || 0,
       guideline: target.guideline || '',
       assignedBy: creatorNames[target.user_id] || '',
-      assignedRole: 'TL'
+      assignedRole: 'MANAGER'
     }))
 
     return NextResponse.json({ success: true, data: transformedTargets })
 
   } catch (error) {
-    console.error('Recruiter targets GET error:', error)
+    console.error('FSE targets GET error:', error)
     return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 })
   }
 }

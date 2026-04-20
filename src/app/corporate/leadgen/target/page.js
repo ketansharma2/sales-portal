@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Calendar, Briefcase, X, Target, 
   BarChart2, Percent, Eye, User, CheckCircle
@@ -8,6 +8,9 @@ import {
 export default function LeadgenCorporateTargetPage() {
   
   // --- STATES ---
+  const [loading, setLoading] = useState(true);
+  const [myTargetsData, setMyTargetsData] = useState([]);
+  
   // My Targets State (Assigned by Corporate SM)
   const [myTargetMonth, setMyTargetMonth] = useState("April");
 
@@ -17,28 +20,33 @@ export default function LeadgenCorporateTargetPage() {
 
   // --- OPTIONS & LOGIC ---
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  
-  // --- MOCK DATA: SM ASSIGNED TARGETS TO LEADGEN ---
-  const myTargetsData = [
-      { 
-        id: 101, year: "2026", month: "April", workingDays: "22", sector: "Corporate", assignedBy: "Siddharth Rao (SM)", assignedRole: "Sales Manager",
-        guideline: "Targeted LinkedIn Navigator outreach for SaaS product companies.", 
-        kpi_metric: "LinkedIn Outreach", frequency: "Daily", 
-        target: 1100, achieved: 450 
-      },
-      { 
-        id: 102, year: "2026", month: "April", workingDays: "22", sector: "Corporate", assignedBy: "Siddharth Rao (SM)", assignedRole: "Sales Manager",
-        guideline: "Focus on converting cold leads to warm B2B meetings.", 
-        kpi_metric: "Qualified B2B Leads", frequency: "Monthly", 
-        target: 40, achieved: 12 
-      },
-      { 
-        id: 103, year: "2026", month: "March", workingDays: "21", sector: "Corporate", assignedBy: "Siddharth Rao (SM)", assignedRole: "Sales Manager",
-        guideline: "Initial pipeline building via cold calling enterprise databases.", 
-        kpi_metric: "Cold Calls", frequency: "Daily", 
-        target: 2100, achieved: 2150 
+
+  // Fetch my targets from API
+  const fetchMyTargets = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      
+      if (!token) return;
+      
+      const response = await fetch('/api/corporate/leadgen/my-targets', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setMyTargetsData(result.data);
       }
-  ];
+    } catch (error) {
+      console.error('Error fetching my targets:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchMyTargets();
+    setLoading(false);
+  }, []);
 
   // Filters
   const filteredMyTargets = myTargetsData.filter(t => t.month === myTargetMonth);
@@ -122,8 +130,8 @@ export default function LeadgenCorporateTargetPage() {
                                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${item.frequency === 'Daily' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-purple-50 text-purple-600 border-purple-200'}`}>{item.frequency}</span>
                              </td>
                              
-                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.target.toLocaleString('en-IN')}</span></td>
-                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-indigo-700">{item.achieved.toLocaleString('en-IN')}</span></td>
+<td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.totalTarget?.toLocaleString('en-IN')}</span></td>
+                              <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-indigo-700">{item.achieved?.toLocaleString('en-IN')}</span></td>
                              
                              <td className="p-3 border-r border-gray-100 text-center align-middle">
                                  <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
