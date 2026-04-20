@@ -41,32 +41,50 @@ export default function SMCorporateTargetPage() {
   // --- OPTIONS & LOGIC ---
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   
-  // Specific to Corporate Sector
-  const teamRoles = ["Key Account Exec. (KAE)", "B2B Lead Generation"];
-  const teamEmployees = {
-      "Key Account Exec. (KAE)": ["Siddharth Rao", "Kavya Menon", "Aman Trivedi"],
-      "B2B Lead Generation": ["Meera Kapoor", "Varun Bhatia"]
+  const teamRoles = ["FSE", "LeadGen"];
+  const [teamEmployees, setTeamEmployees] = useState({});
+
+  const fetchTeamUsers = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      if (!token) return;
+      
+      const response = await fetch('/api/corporate/manager/team-users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const result = await response.json();
+      console.log('Corporate team users response:', result);
+      
+      if (result.success && result.data) {
+        const fseUsers = result.data.filter(u => {
+          const roles = Array.isArray(u.role) ? u.role : [u.role];
+          const roleStr = roles.join(' ').toUpperCase();
+          return roleStr.includes('FSE');
+        }).map(u => u.name);
+        
+        const leadGenUsers = result.data.filter(u => {
+          const roles = Array.isArray(u.role) ? u.role : [u.role];
+          const roleStr = roles.join(' ').toUpperCase();
+          return roleStr.includes('LEADGEN');
+        }).map(u => u.name);
+        
+        setTeamEmployees({
+          "FSE": fseUsers,
+          "LeadGen": leadGenUsers
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching team users:', error);
+    }
   };
 
   const kpiMetrics = [
-      "Enterprise Signups", "CXO Meetings", "High-Value Deals", 
-      "LinkedIn Outreach", "Qualified B2B Leads", "Corporate Revenue"
-  ];
-
-  // --- MOCK DATA: TEAM TARGETS ASSIGNED BY CORP SM ---
-  const dummyTeamTargets = [
-    {
-      id: 1, year: "2026", month: "April", workingDays: "22", department: "Sales", sector: "Corporate", role: "Key Account Exec. (KAE)", assignedTo: "Siddharth Rao",
-      guideline: "Secure physical meetings with IT Directors and CXOs.",
-      kpi_metric: "CXO Meetings", frequency: "Daily",
-      target: 44, achieved: 18
-    },
-    {
-      id: 2, year: "2026", month: "April", workingDays: "22", department: "Sales", sector: "Corporate", role: "B2B Lead Generation", assignedTo: "Meera Kapoor",
-      guideline: "Targeted LinkedIn Navigator outreach for SaaS companies.",
-      kpi_metric: "LinkedIn Outreach", frequency: "Daily",
-      target: 1100, achieved: 450
-    }
+    "CTC Generation", "Leads", "Contacts", "Calls", "Onboard", 
+    "Franchise Accept", "Sent To Manager", "Acknowledge", 
+    "Joining", "CV Parse", "Conversion", "Tracker Sent", 
+    "Interested", "Visit", "Accuracy"
   ];
 
   // Fetch my targets from API
@@ -104,16 +122,44 @@ export default function SMCorporateTargetPage() {
     }
   };
 
+  // Fetch team targets from API
+  const fetchTeamTargets = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+      
+      if (!token) return;
+      
+      const params = new URLSearchParams();
+      if (filterMonth !== 'All') params.set('month', filterMonth);
+      if (filterRole !== 'All') params.set('role', filterRole);
+      if (filterName !== 'All') params.set('name', filterName);
+      
+      const response = await fetch(`/api/corporate/manager/team-targets?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setTeamTargets(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching team targets:', error);
+    }
+  };
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setTeamTargets(dummyTeamTargets);
-      setLoading(false);
-    }, 500);
-    
     fetchMyTargets();
-    
-    return () => clearTimeout(timer);
+    fetchTeamUsers();
+    fetchTeamTargets();
+    setLoading(false);
   }, []);
+
+  // Refetch team targets when filters change
+  useEffect(() => {
+    fetchTeamTargets();
+  }, [filterMonth, filterRole, filterName]);
 
   // --- HANDLERS ---
 
@@ -143,10 +189,10 @@ export default function SMCorporateTargetPage() {
       const selectedRole = e.target.value;
       let autoKPIs = [];
 
-      if (selectedRole === "Key Account Exec. (KAE)") {
-          autoKPIs = [{ guideline: "", kpi_metric: "CXO Meetings", frequency: "Daily", target: "" }];
-      } else if (selectedRole === "B2B Lead Generation") {
-          autoKPIs = [{ guideline: "", kpi_metric: "LinkedIn Outreach", frequency: "Daily", target: "" }];
+      if (selectedRole === "FSE") {
+          autoKPIs = [{ guideline: "", kpi_metric: "Branch Visits", frequency: "Daily", target: "" }];
+      } else if (selectedRole === "LeadGen") {
+          autoKPIs = [{ guideline: "", kpi_metric: "Cold Calls", frequency: "Daily", target: "" }];
       } else {
           autoKPIs = [{ guideline: "", kpi_metric: "", frequency: "Monthly", target: "" }];
       }
@@ -169,6 +215,8 @@ export default function SMCorporateTargetPage() {
       setForm({ ...form, targetList: newList });
   };
 
+  const [savingTarget, setSavingTarget] = useState(false);
+
   const handleSaveTarget = () => {
     if(!form.month || !form.role || !form.workingDays || !form.assignedTo) {
         alert("Please fill all details including Employee Name.");
@@ -177,30 +225,120 @@ export default function SMCorporateTargetPage() {
 
     if (editId) {
         const t = form.targetList[0];
-        const updatedTargets = teamTargets.map(item => {
-            if (item.id === editId) {
-                return {
-                    ...item,
-                    year: form.year, month: form.month, workingDays: form.workingDays, 
-                    role: form.role, assignedTo: form.assignedTo,
-                    guideline: t.guideline, kpi_metric: t.kpi_metric, frequency: t.frequency,
-                    target: parseInt(t.target) || 0
-                };
+        
+        const updateInAPI = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) {
+                    alert('Session expired. Please login again.');
+                    return;
+                }
+
+                setSavingTarget(true);
+
+                const response = await fetch('/api/corporate/manager/team-targets', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        target_id: editId,
+                        year: form.year,
+                        month: form.month,
+                        working_days: form.workingDays,
+                        role: form.role,
+                        guideline: t.guideline,
+                        kpi: t.kpi_metric,
+                        frequency: t.frequency,
+                        total_target: t.target
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Target updated successfully!');
+                    fetchTeamTargets();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error updating target:', error);
+                alert('Failed to update target');
+            } finally {
+                setSavingTarget(false);
             }
-            return item;
-        });
-        setTeamTargets(updatedTargets);
+        };
+
+        updateInAPI();
     } else {
-        const newEntries = form.targetList.map((t, idx) => {
-            return {
-                id: Date.now() + idx,
-                year: form.year, month: form.month, workingDays: form.workingDays, 
-                department: "Sales", sector: "Corporate", role: form.role, assignedTo: form.assignedTo,
-                guideline: t.guideline, kpi_metric: t.kpi_metric, frequency: t.frequency,
-                target: parseInt(t.target) || 0, achieved: 0
-            };
-        });
-        setTeamTargets([...newEntries, ...teamTargets]);
+        const saveToAPI = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) {
+                    alert('Session expired. Please login again.');
+                    return;
+                }
+
+                const userResponse = await fetch('/api/corporate/manager/team-users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const userResult = await userResponse.json();
+                const selectedUser = userResult.data?.find(u => u.name === form.assignedTo);
+                
+                if (!selectedUser) {
+                    alert('User not found');
+                    return;
+                }
+
+                const targets = form.targetList.map(t => ({
+                    kpi_metric: t.kpi_metric,
+                    frequency: t.frequency,
+                    target: t.target,
+                    guideline: t.guideline
+                }));
+
+                setSavingTarget(true);
+
+                const response = await fetch('/api/corporate/manager/team-targets', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        year: form.year,
+                        month: form.month,
+                        working_days: form.workingDays,
+                        role: form.role,
+                        assigned_to: selectedUser.user_id,
+                        targets: targets
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Targets saved successfully!');
+                    fetchMyTargets();
+                    fetchTeamTargets();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error saving targets:', error);
+                alert('Failed to save targets');
+            } finally {
+                setSavingTarget(false);
+            }
+        };
+
+        saveToAPI();
     }
     
     setIsModalOpen(false);
@@ -520,12 +658,18 @@ export default function SMCorporateTargetPage() {
                                 <label className="text-[10px] font-bold text-purple-600 uppercase">Employee Name</label>
                                 <select 
                                     value={form.assignedTo} 
-                                    onChange={e => setForm({...form, assignedTo: e.target.value})} 
-                                    disabled={!form.role} 
-                                    className="w-full border border-purple-200 p-2 rounded-lg text-sm outline-none bg-purple-50 focus:border-purple-500 disabled:opacity-50"
+                                    onChange={e => {
+                                        const selectedName = e.target.value;
+                                        setForm({...form, assignedTo: selectedName});
+                                        const empRole = Object.entries(teamEmployees).find(([role, names]) => names.includes(selectedName))?.[0];
+                                        if (empRole) setForm(prev => ({...prev, role: empRole}));
+                                    }}
+                                    className="w-full border border-purple-200 p-2 rounded-lg text-sm outline-none bg-purple-50 focus:border-purple-500"
                                 >
                                     <option value="">- Select Name -</option>
-                                    {form.role && teamEmployees[form.role]?.map(emp => <option key={emp} value={emp}>{emp}</option>)}
+                                    {Object.values(teamEmployees).flat().map(emp => (
+                                        <option key={emp} value={emp}>{emp}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
@@ -579,8 +723,8 @@ export default function SMCorporateTargetPage() {
                     )}
 
                     <div className="pt-4 border-t border-gray-100 mt-auto">
-                        <button onClick={handleSaveTarget} className="w-full bg-blue-700 hover:bg-blue-800 py-3 rounded-xl font-black uppercase tracking-widest text-white shadow-md flex items-center justify-center gap-2 transition-colors text-xs">
-                            <Save size={16}/> {editId ? "Update Target" : `Save & Assign Target`}
+                        <button onClick={handleSaveTarget} disabled={savingTarget} className="w-full bg-blue-700 hover:bg-blue-800 py-3 rounded-xl font-black uppercase tracking-widest text-white shadow-md flex items-center justify-center gap-2 transition-colors text-xs disabled:opacity-60 disabled:cursor-not-allowed">
+                            <Save size={16}/> {savingTarget ? "Saving..." : editId ? "Update Target" : "Save & Assign Target"}
                         </button>
                     </div>
                 </div>

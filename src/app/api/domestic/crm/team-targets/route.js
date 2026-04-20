@@ -25,6 +25,7 @@ export async function GET(request) {
       .select('*')
       .eq('user_id', currentUserId)
       .eq('sector', 'Domestic')
+      .eq('dept', 'Delivery')
       .order('created_at', { ascending: false })
 
     if (monthFilter && monthFilter !== 'All') {
@@ -38,7 +39,6 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Failed to fetch targets', details: targetsError.message }, { status: 500 })
     }
 
-    // Get assigned_to user names
     const assignedToUserIds = [...new Set((targets || []).map(t => t.assigned_to).filter(Boolean))]
     
     let assignedToNames = {}
@@ -112,7 +112,7 @@ export async function POST(request) {
       year: parseInt(year),
       month: month,
       working_days: parseInt(working_days) || 0,
-      dept: 'Sales',
+      dept: 'Delivery',
       sector: 'Domestic',
       role: role || '',
       assigned_to: assigned_to,

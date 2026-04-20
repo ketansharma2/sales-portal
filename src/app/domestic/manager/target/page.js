@@ -239,24 +239,55 @@ export default function SMDomesticTargetPage() {
 
     if (editId) {
         const t = form.targetList[0];
-        let mockCalc = t.frequency === "Daily" 
-            ? `(1 ${form.role.split(' ')[0]} × Y ${t.kpi_metric}/Day) × ${form.workingDays} Days` 
-            : `(1 ${form.role.split(' ')[0]} × Y ${t.kpi_metric}/Month)`;
+        
+        const updateInAPI = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+                const token = session.access_token;
+                
+                if (!token) {
+                    alert('Session expired. Please login again.');
+                    return;
+                }
 
-        const updatedTargets = teamTargets.map(item => {
-            if (item.id === editId) {
-                return {
-                    ...item,
-                    year: form.year, month: form.month, workingDays: form.workingDays, 
-                    role: form.role, assignedTo: form.assignedTo,
-                    guideline: t.guideline, kpi_metric: t.kpi_metric, frequency: t.frequency,
-                    target: parseInt(t.target) || 0,
-                    calculation: mockCalc
-                };
+                setSavingTarget(true);
+
+                const response = await fetch('/api/domestic/manager/team-targets', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        target_id: editId,
+                        year: form.year,
+                        month: form.month,
+                        working_days: form.workingDays,
+                        role: form.role,
+                        guideline: t.guideline,
+                        kpi: t.kpi_metric,
+                        frequency: t.frequency,
+                        total_target: t.target
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Target updated successfully!');
+                    fetchTeamTargets();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error updating target:', error);
+                alert('Failed to update target');
+            } finally {
+                setSavingTarget(false);
             }
-            return item;
-        });
-        setTeamTargets(updatedTargets);
+        };
+
+        updateInAPI();
     } else {
         // Save to API
         const saveToAPI = async () => {
