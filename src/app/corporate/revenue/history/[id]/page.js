@@ -200,73 +200,8 @@ export default function CandidateHistoryPage() {
       setIsPiModalOpen(true);
   };
 
-  const handleGeneratePI = () => {
-      setPiData({
-          ...piForm,
-          base_amount: revenueForm.base_invoice,
-          total_amount: revenueForm.total_amount
-      });
-      setIsPiModalOpen(false);
-      alert("Proforma Invoice Generated!");
-  };
 
-  const handlePrintPI = async () => {
-    try {
-      const [{ jsPDF }] = await Promise.all([import('jspdf')]);
-      const doc = new jsPDF();
-      
-      doc.setFontSize(20);
-      doc.setTextColor(16, 60, 127);
-      doc.text("PROFORMA INVOICE", 105, 20, { align: 'center' });
-      
-      doc.setFontSize(10);
-      doc.setTextColor(100);
-      doc.text("Recruitment Services", 105, 28, { align: 'center' });
-      
-      doc.setFontSize(11);
-      doc.setTextColor(0);
-      doc.text(`Date: ${piData.pi_date}`, 150, 40);
-      doc.text(`Invoice No: ${piData.invoice_no}`, 150, 48);
-      
-      doc.setFontSize(10);
-      doc.setTextColor(100);
-      doc.text("Bill To:", 20, 60);
-      doc.setTextColor(0);
-      doc.text(piData.bill_to || "", 20, 68);
-      
-      doc.setTextColor(100);
-      doc.text("Description", 20, 85);
-      doc.text("HSN/SAC", 130, 85);
-      doc.text("Amount", 170, 85);
-      
-      doc.setDrawColor(200);
-      doc.line(20, 90, 190, 90);
-      
-      doc.setTextColor(0);
-      doc.text(piData.description || "", 20, 100);
-      doc.text(piData.hsn_code || "", 130, 100);
-      doc.text(`₹ ${piData.base_amount || 0}`, 170, 100);
-      
-      doc.line(20, 110, 190, 110);
-      
-      doc.text("Subtotal:", 140, 120);
-      doc.text(`₹ ${piData.base_amount || 0}`, 170, 120);
-      
-      doc.text("IGST (18%):", 140, 128);
-      const baseAmount = parseInt(piData.base_amount?.replace(/,/g,'') || 0);
-      doc.text(`₹ ${(baseAmount * 0.18).toLocaleString('en-IN')}`, 170, 128);
-      
-      doc.setFontSize(12);
-      doc.setTextColor(16, 60, 127);
-      doc.text("Total:", 140, 140);
-      doc.text(`₹ ${piData.total_amount || 0}`, 170, 140);
-      
-      doc.save(`PI-${piData.invoice_no}.pdf`);
-    } catch (err) {
-      console.error("PDF generation failed:", err);
-      window.print();
-    }
-  };
+ 
   // Calculate total received from history logs
 const totalReceived = data?.payment_history?.reduce((acc, curr) => 
     acc + (parseInt(curr.amount_received) || 0), 0) || 0;
@@ -524,26 +459,7 @@ const remainingBalance = totalExpected - totalReceived;
               </div>
           </div>
 
-          {/* PI Action Row */}
-          <div className="mt-5 pt-4 border-t border-indigo-100 flex flex-wrap gap-3">
-              {!piData ? (
-                  <button onClick={handleOpenPIModal} className="bg-white border-2 border-indigo-600 text-indigo-700 hover:bg-indigo-600 hover:text-white px-5 py-2.5 rounded-lg font-black uppercase tracking-widest text-[10px] transition-colors flex items-center gap-2 shadow-sm">
-                      <FileCheck size={14} /> Create Proforma Invoice (PI)
-                  </button>
-              ) : (
-                  <>
-                      <button onClick={() => setIsPiModalOpen(true)} className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 px-4 py-2 rounded-lg font-black uppercase tracking-widest text-[10px] transition-colors flex items-center gap-2 shadow-sm">
-                          <Edit size={14} /> Edit PI
-                      </button>
-                     <button 
-      onClick={() => setIsViewPiModalOpen(true)} 
-      className="bg-indigo-100 border border-indigo-200 text-indigo-700 hover:bg-indigo-200 px-4 py-2 rounded-lg font-black uppercase tracking-widest text-[10px] transition-colors flex items-center gap-2 shadow-sm"
-  >
-      <Eye size={14} /> View Generated PI
-  </button>
-                  </>
-              )}
-          </div>
+         
       </div>
       {/* --- SECTION 2: THE THREE TIMELINES --- */}
       <h2 className="text-lg font-black text-[#103c7f] uppercase tracking-tight mb-4 mt-8">Lifecycle Action Center</h2>

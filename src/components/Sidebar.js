@@ -161,13 +161,13 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     menuItems = [
       { name: "Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "Job Posting", href: `${roleBaseHref}/post`, icon: <FileText size={20} /> },
+      { name: "CV Parsing", href: `${roleBaseHref}/parsing`, icon: <UploadCloud size={20} /> },
     ];
   }
   else if (currentRole === "revenue") {
     menuItems = [
       { name: "Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "Revenue Tracker", href: `${roleBaseHref}/history`, icon: <IndianRupee size={20} /> }, 
-      { name: "Proforma Invoice", href: `${roleBaseHref}/pi`, icon: <Receipt size={20} /> }
     ];
   }
   // DEFAULT
