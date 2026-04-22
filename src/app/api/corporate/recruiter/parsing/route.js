@@ -169,7 +169,7 @@ export async function POST(request) {
     
     // Use Gemini 1.5 with direct PDF input
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
     // Create inline data for the file
     let inlineData;
