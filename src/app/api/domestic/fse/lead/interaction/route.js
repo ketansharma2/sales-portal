@@ -194,3 +194,49 @@ export async function GET(request) {
     }, { status: 500 })
   }
 }
+
+export async function DELETE(request) {
+  try {
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const interaction_id = searchParams.get('interaction_id')
+
+    if (!interaction_id) {
+      return NextResponse.json({ error: 'interaction_id is required' }, { status: 400 })
+    }
+
+    const { error: deleteError } = await supabaseServer
+      .from('domestic_clients_interaction')
+      .delete()
+      .eq('interaction_id', interaction_id)
+
+    if (deleteError) {
+      console.error('Delete error:', deleteError)
+      return NextResponse.json({
+        error: 'Failed to delete interaction',
+        details: deleteError.message
+      }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Interaction deleted successfully'
+    })
+
+  } catch (error) {
+    console.error('API error:', error)
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: error.message
+    }, { status: 500 })
+  }
+}

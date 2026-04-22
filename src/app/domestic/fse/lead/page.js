@@ -341,6 +341,36 @@ export default function LeadsMasterPage() {
     }
   };
 
+  const deleteInteraction = async (interaction) => {
+    const confirmed = confirm(`Are you sure you want to delete this interaction?\n\nDate: ${interaction.contact_date}\nThis action cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      setSaving(true);
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+
+      const response = await fetch(`/api/domestic/fse/lead/interaction?interaction_id=${interaction.interaction_id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('Interaction deleted successfully');
+        // Trigger refresh
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('refreshInteractionHistory'));
+        }
+      } else {
+        alert('Error: ' + (data.error || 'Failed to delete interaction'));
+      }
+    } catch (err) {
+      alert('Error deleting interaction');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // const handleSendToManager = async (lead) => {
   //   console.log("data:",lead);
   //   const confirmed = confirm(`Send "${lead.company_name}" to manager?`);
@@ -907,6 +937,8 @@ export default function LeadsMasterPage() {
         setEditingInteraction(interaction);
         setIsEditInteractionModalOpen(true);
       }}
+      onDelete={() => deleteLead(selectedLead)}
+      onDeleteInteraction={deleteInteraction}
     />
   )}
 
@@ -1630,7 +1662,7 @@ export default function LeadsMasterPage() {
    );
  }
 
- function ClientFullViewModal({ lead, onClose, onEditInteraction }) {
+ function ClientFullViewModal({ lead, onClose, onEditInteraction, onDelete, onDeleteInteraction }) {
    const [history, setHistory] = useState([]);
    const [loading, setLoading] = useState(true);
 
@@ -1680,33 +1712,35 @@ export default function LeadsMasterPage() {
        <div className="bg-[#f8fafc] rounded-[2rem] shadow-2xl w-full max-w-6xl max-h-[95dvh] overflow-hidden flex flex-col border border-white/50">
          
          {/* 1. HEADER */}
-         <div className="px-8 py-6 bg-white border-b border-gray-100 flex justify-between items-start shrink-0">
-           <div>
-             <div className="flex items-center gap-3">
-               <div className="bg-blue-100 p-2 rounded-lg">
-                 <Building2 size={24} className="text-[#103c7f]" />
-               </div>
-               <div>
-                 <h2 className="text-2xl font-black text-[#103c7f] uppercase italic tracking-tight leading-none">
-                   {lead?.company_name}
-                 </h2>
-                 <div className="flex items-center gap-2 mt-1.5">
-                   <span className="flex items-center gap-1 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-                     <MapPin size={10} /> {lead?.location}, {lead?.state}
-                   </span>
-                   {lead?.client_type === 'Premium' && (
-                     <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-[9px] font-black uppercase flex items-center gap-1 border border-yellow-200">
-                       <Star size={9} fill="currentColor" /> Premium Client
-                     </span>
-                   )}
-                 </div>
-               </div>
-             </div>
-           </div>
-           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition hover:text-red-500">
-             <X size={26}/>
-           </button>
-         </div>
+<div className="px-8 py-6 bg-white border-b border-gray-100 flex justify-between items-start shrink-0">
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-100 p-2 rounded-lg">
+                  <Building2 size={24} className="text-[#103c7f]" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-[#103c7f] uppercase italic tracking-tight leading-none">
+                    {lead?.company_name}
+                  </h2>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className="flex items-center gap-1 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                      <MapPin size={10} /> {lead?.location}, {lead?.state}
+                    </span>
+                    {lead?.client_type === 'Premium' && (
+                      <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-[9px] font-black uppercase flex items-center gap-1 border border-yellow-200">
+                        <Star size={9} fill="currentColor" /> Premium Client
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition hover:text-red-500">
+                <X size={26}/>
+              </button>
+            </div>
+          </div>
 
          {/* SCROLLABLE CONTENT (Main Modal Body) */}
          <div className="overflow-y-auto custom-scrollbar flex-1 p-6 md:p-8 space-y-6">
@@ -1809,17 +1843,28 @@ export default function LeadsMasterPage() {
                              </div>
                            </td>
 
-                           <td className="px-4 py-4 align-top">
-                             {index === 0 && (
-                               <button
-                                 onClick={() => onEditInteraction(item)}
-                                 className="p-2 bg-blue-50 text-[#103c7f] rounded-lg hover:bg-blue-100 hover:shadow-md transition-all border border-blue-100 active:scale-95"
-                                 title="Edit Latest Interaction"
-                               >
-                                 <Pencil size={14} strokeWidth={2.5} />
-                               </button>
-                             )}
-                           </td>
+<td className="px-4 py-4 align-top">
+                              <div className="flex items-center gap-2">
+                                {index === 0 && (
+                                  <button
+                                    onClick={() => onEditInteraction(item)}
+                                    className="p-2 bg-blue-50 text-[#103c7f] rounded-lg hover:bg-blue-100 hover:shadow-md transition-all border border-blue-100 active:scale-95"
+                                    title="Edit Latest Interaction"
+                                  >
+                                    <Pencil size={14} strokeWidth={2.5} />
+                                  </button>
+                                )}
+                                {onDeleteInteraction && (
+                                  <button
+                                    onClick={() => onDeleteInteraction(item)}
+                                    className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 hover:shadow-md transition-all border border-red-100 active:scale-95"
+                                    title="Delete Interaction"
+                                  >
+                                    <Trash2 size={14} strokeWidth={2.5} />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
 
                        </tr>
                      ))
