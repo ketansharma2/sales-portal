@@ -156,69 +156,85 @@ export async function GET(request) {
       const branchClientId = req?.branch_id ? branchesMap.get(req.branch_id) : null
       const clientName = branchClientId ? clientsMap.get(branchClientId) || '' : ''
 
-      let conversationStats = { conversion: 0, asset: 0, tracker_sent: 0, cv_sourced: 0, cv_naukri: 0, cv_indeed: 0, cv_other: 0 }
+let conversationStats = { conversion: 0, asset: 0, tracker_sent: 0, cv_sourced: 0, cv_naukri: 0, cv_indeed: 0, cv_other: 0 }
       
       if (item.req_id && item.date) {
         const convQuery = supabaseServer
           .from('candidates_conversation')
-          .select('candidate_status')
+          .select('candidate_status, sent_to_tl, calling_date, parsing_id, sent_date')
           .eq('req_id', item.req_id)
           .eq('user_id', item.sent_to_rc)
           .eq('calling_date', item.date)
-          
-      const { data: getTrackerData, error } = await supabaseServer
-  .from('candidates_conversation')
-  .select('candidate_status, sent_to_tl, calling_date, sent_date')
-  .eq('req_id', item.req_id)
-  .eq('user_id', item.sent_to_rc)
-  .eq('calling_date', item.date)
-  .not('sent_to_tl', 'is', null);
 
-if (error) {
-  console.log(error);
-}
-
-const tracker_sent = (getTrackerData || []).filter(
-  (row) => row.sent_date === row.calling_date
-).length;
- 
         const { data: convData } = await convQuery
-        
+
         if (convData && convData.length > 0) {
+          const filteredConvData = convData.filter(conv => {
+            if (!conv.sent_to_tl) return false
+            if (!conv.calling_date || !conv.sent_date) return false
+            const callingDateStr = conv.calling_date.split('T')[0]
+            const sentDateStr = conv.sent_date.split('T')[0]
+            return callingDateStr === sentDateStr
+          })
+
           conversationStats = {
-            conversion: convData.filter(c => c.candidate_status === 'Conversion').length,
-            asset: convData.filter(c => c.candidate_status === 'Asset').length,
-            tracker_sent: tracker_sent,
+            conversion: filteredConvData.filter(c => c.candidate_status === 'Conversion').length,
+            asset: filteredConvData.filter(c => c.candidate_status === 'Asset').length,
+            tracker_sent: filteredConvData.length,
             cv_sourced: 0,
             cv_naukri: 0,
             cv_indeed: 0,
             cv_other: 0
           }
         }
-        
-        const cvParsingQuery = supabaseServer
-          .from('cv_parsing')
-          .select('portal')
-          .eq('req_id', item.req_id)
-          .eq('user_id', item.sent_to_rc)
-          .eq('portal_date', item.date)
-        
-        const { data: cvParsingData } = await cvParsingQuery
-        
-        if (cvParsingData && cvParsingData.length > 0) {
-          const portalCounts = cvParsingData.reduce((acc, row) => {
-            const portal = row.portal?.toLowerCase() || ''
-            if (portal.includes('naukri')) {
-              acc.cv_naukri++
-            } else if (portal.includes('indeed')) {
-              acc.cv_indeed++
-            } else {
-              acc.cv_other++
-            }
-            acc.cv_sourced++
-            return acc
-          }, { cv_sourced: 0, cv_naukri: 0, cv_indeed: 0, cv_other: 0 })
-          
+
+        const parsingIds = [
+          ...new Set(
+            (convData || [])
+              .map(c => c.parsing_id)
+              .filter(id => id)
+          )
+        ]
+
+        let parsingData = []
+
+        if (parsingIds.length > 0) {
+          const { data, error } = await supabaseServer
+            .from('cv_parsing')
+            .select('id, portal, portal_date')
+            .in('id', parsingIds)
+
+          if (error) console.log(error)
+
+          parsingData = data || []
+        }
+
+        const matchedData = (convData || []).map(conv => {
+          const match = parsingData.find(p => {
+            const pDate = p.portal_date?.split('T')[0]
+            const cDate = conv.calling_date?.split('T')[0]
+            return p.id === conv.parsing_id && pDate === cDate
+          })
+          return match
+            ? { ...conv, portal: match.portal }
+            : null
+        }).filter(Boolean)
+
+        if (matchedData.length > 0) {
+          const uniqueMatchedData = [...new Map(matchedData.map(item => [item.parsing_id, item])).values()]
+
+          const portalCounts = uniqueMatchedData.reduce(
+            (acc, row) => {
+              const portal = row.portal?.toLowerCase() || ''
+              if (portal.includes('naukri')) acc.cv_naukri++
+              else if (portal.includes('indeed')) acc.cv_indeed++
+              else acc.cv_other++
+              acc.cv_sourced++
+              return acc
+            },
+            { cv_sourced: 0, cv_naukri: 0, cv_indeed: 0, cv_other: 0 }
+          )
+
           conversationStats = {
             ...conversationStats,
             ...portalCounts
