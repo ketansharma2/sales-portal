@@ -5,7 +5,7 @@ import { Link } from "next/link";
 import {
   Users, CheckCircle, MapPin, Target,
   TrendingUp, Calendar, Filter,
-  ArrowRight, Search, Activity,Phone, Ghost, AlertCircle,Copy
+  ArrowRight, Search, Activity,Phone, Ghost, AlertCircle,Copy, X, Calculator
 } from "lucide-react";
 
 export default function FSEDashboard() {
@@ -14,6 +14,7 @@ export default function FSEDashboard() {
   const [toDate, setToDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [latestDate, setLatestDate] = useState("");
+  const [avgVisitModal, setAvgVisitModal] = useState(false);
   const router = useRouter();
 
   useEffect(() => { setMounted(true); }, []);
@@ -24,7 +25,7 @@ export default function FSEDashboard() {
   // Initial stats with defaults
   const [stats, setStats] = useState({
     global: { totalClients: 0, totalOnboard: 0, totalVisits: 0, onboardCall: 0, onboardVisit: 0, untouched: 0, noStatus: 0, duplicate: 0 },
-    monthly: { visitTarget: 0 , individualVisits: 0, onboardMtd: "0/0", avgVisit: 0, visitGoal: 0, onboardGoal: 0 },
+    monthly: { visitTarget: 0 , individualVisits: 0, onboardMtd: "0/0", avgVisit: 0, visitGoal: 0, onboardGoal: 0, workingDays: 0, leavesCount: 0, leavesDetail: [] },
     projections: { mpLess50: 0, mpGreater50: 0, wpLess50: 0, wpGreater50: 0 },
     dynamicMetrics: { total: 0, individual: 0, repeat: 0, interested: 0, notInterested: 0, reachedOut: 0, onboard: 0 },
     clients: []
@@ -128,7 +129,10 @@ export default function FSEDashboard() {
             visitTarget: data.data.monthlyStats.totalVisits,
             individualVisits: data.data.monthlyStats.individualVisits,
             onboardMtd: data.data.monthlyStats.mtdMp,
-            avgVisit: data.data.monthlyStats.avg
+            avgVisit: data.data.monthlyStats.avg,
+            workingDays: data.data.monthlyStats.workingDays,
+            leavesCount: data.data.monthlyStats.leavesCount,
+            leavesDetail: data.data.monthlyStats.leavesDetail || []
           },
           projections: {
             mpLess50: data.data.projections.mpLess50,
@@ -372,13 +376,17 @@ export default function FSEDashboard() {
             />
 
             {/* CARD 4: Avg Visit (Fixed "Pending") */}
-            <CompactMonthCard
-                label="Avg Visit"
-                value={stats.monthly.avgVisit || "0.0"}
-                icon={<Activity size={16} />}
-                target={null}
-                // No progress passed here as per request
-            />
+            <button
+                onClick={() => setAvgVisitModal(true)}
+                className="text-left hover:bg-gray-50 rounded-xl transition p-1"
+            >
+                <CompactMonthCard
+                    label="Avg Visit"
+                    value={stats.monthly.avgVisit || "0.0"}
+                    icon={<Activity size={16} />}
+                    target={null}
+                />
+            </button>
           </div>
 
           {/* 3. Projection Card */}
@@ -462,6 +470,20 @@ export default function FSEDashboard() {
         </div>
 
       </div>
+
+      {/* Avg Visit Modal */}
+      <AvgVisitModal
+        isOpen={avgVisitModal}
+        onClose={() => setAvgVisitModal(false)}
+        data={{
+          totalVisits: stats.monthly.visitTarget,
+          workingDays: stats.monthly.workingDays,
+          leavesCount: stats.monthly.leavesCount,
+          leavesDetail: stats.monthly.leavesDetail,
+          avg: stats.monthly.avgVisit,
+          month: new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }).toUpperCase()
+        }}
+      />
     </div>
   );
 }
@@ -594,4 +616,77 @@ function DateInput({ label, value, onChange }) {
             />
         </div>
     )
+}
+
+// Avg Visit Modal
+function AvgVisitModal({ isOpen, onClose, data }) {
+    if (!isOpen) return null;
+
+    const { totalVisits, workingDays, leavesCount, leavesDetail, avg, month } = data;
+    const netWorkingDays = workingDays - leavesCount;
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4" onClick={onClose}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+                <div className="bg-[#103c7f] px-6 py-4 flex justify-between items-center">
+                    <h3 className="text-white font-black uppercase flex items-center gap-2">
+                        <Calculator size={18} /> Avg Visit Calculation
+                    </h3>
+                    <button onClick={onClose} className="text-white/70 hover:text-white">
+                        <X size={20} />
+                    </button>
+                </div>
+                <div className="p-6 space-y-4">
+                    <div className="text-center pb-4 border-b border-gray-100">
+                        <p className="text-xs font-bold text-gray-400 uppercase">{month}</p>
+                        <p className="text-4xl font-black text-[#103c7f]">{avg}</p>
+                        <p className="text-xs font-bold text-gray-400 uppercase">Average Visits</p>
+                    </div>
+
+                    <div className="space-y-3">
+                        <div className="flex justify-between items-center p-3 bg-blue-50 rounded-xl">
+                            <span className="text-sm font-bold text-gray-600">Total Visits (This Month)</span>
+                            <span className="text-lg font-black text-blue-600">{totalVisits}</span>
+                        </div>
+
+                        <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                            <span className="text-sm font-bold text-gray-600">Working Days (Excl. Sunday)</span>
+                            <span className="text-lg font-black text-gray-700">{workingDays}</span>
+                        </div>
+
+                        <div className="flex justify-between items-center p-3 bg-orange-50 rounded-xl">
+                            <span className="text-sm font-bold text-gray-600">Less: Leaves Taken</span>
+                            <span className="text-lg font-black text-orange-600">- {leavesCount}</span>
+                        </div>
+
+                        <div className="flex justify-between items-center p-3 bg-gray-100 rounded-xl border border-gray-200">
+                            <span className="text-sm font-bold text-gray-700">Net Working Days</span>
+                            <span className="text-lg font-black text-gray-900">{netWorkingDays}</span>
+                        </div>
+
+                        <div className="text-center p-3 bg-green-50 rounded-xl border border-green-100">
+                            <p className="text-sm font-bold text-green-700">Formula</p>
+                            <p className="text-lg font-black text-green-800">{totalVisits} / {netWorkingDays} = {avg}</p>
+                        </div>
+                    </div>
+
+                    {leavesDetail && leavesDetail.length > 0 && (
+                        <div className="mt-4">
+                            <p className="text-xs font-bold text-gray-400 uppercase mb-2">Leave Details</p>
+                            <div className="max-h-32 overflow-y-auto space-y-1">
+                                {leavesDetail.map((leave, idx) => (
+                                    <div key={idx} className="flex justify-between text-xs p-2 bg-gray-50 rounded">
+                                        <span className="font-medium">{leave.date}</span>
+                                        <span className={`font-bold ${leave.leave_type === 'Full Day' ? 'text-orange-600' : 'text-blue-600'}`}>
+                                            {leave.leave_type}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
 }

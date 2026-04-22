@@ -124,6 +124,28 @@ export async function POST(request) {
       }
     }
 
+    // Subtract non-working days (leaves) taken this month
+    const { data: nonWorkingDays, error: nonWorkingError } = await supabaseServer
+      .from('domestic_non_working')
+      .select('date, leave_type')
+      .eq('user_id', user.id)
+      .gte('date', startDate)
+      .lte('date', today)
+
+    let leavesCount = 0
+    if (nonWorkingDays && nonWorkingDays.length > 0) {
+      nonWorkingDays.forEach(leave => {
+        if (leave.leave_type === 'Full Day') {
+          leavesCount += 1
+        } else if (leave.leave_type === 'Half Day') {
+          leavesCount += 0.5
+        }
+      })
+    }
+
+    // Subtract leaves from working days
+    workingDays = workingDays - leavesCount
+
     const monthlyAvg = workingDays > 0 ? (totalVisits / workingDays).toFixed(2) : '0.00'
 
     // Get latest DWR record
@@ -577,7 +599,10 @@ export async function POST(request) {
         individualVisits: monthlyIndividualVisits,
         totalOnboarded: monthlyOnboarded,
         mtdMp: `${monthlyOnboarded}/12`,
-        avg: monthlyAvg
+        avg: monthlyAvg,
+        workingDays: workingDays + leavesCount,
+        leavesCount: leavesCount,
+        leavesDetail: nonWorkingDays || []
       },
       latestActivity: {
         date: latestContactDate ? new Date(latestContactDate).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'), // DD/MM/YYYY format
