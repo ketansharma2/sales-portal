@@ -165,14 +165,30 @@ export async function GET(request) {
           .eq('req_id', item.req_id)
           .eq('user_id', item.sent_to_rc)
           .eq('calling_date', item.date)
-        
+          
+      const { data: getTrackerData, error } = await supabaseServer
+  .from('candidates_conversation')
+  .select('candidate_status, sent_to_tl, calling_date, sent_date')
+  .eq('req_id', item.req_id)
+  .eq('user_id', item.sent_to_rc)
+  .eq('calling_date', item.date)
+  .not('sent_to_tl', 'is', null);
+
+if (error) {
+  console.log(error);
+}
+
+const tracker_sent = (getTrackerData || []).filter(
+  (row) => row.sent_date === row.calling_date
+).length;
+ 
         const { data: convData } = await convQuery
         
         if (convData && convData.length > 0) {
           conversationStats = {
             conversion: convData.filter(c => c.candidate_status === 'Conversion').length,
             asset: convData.filter(c => c.candidate_status === 'Asset').length,
-            tracker_sent: convData.length,
+            tracker_sent: tracker_sent,
             cv_sourced: 0,
             cv_naukri: 0,
             cv_indeed: 0,
