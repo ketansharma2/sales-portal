@@ -178,8 +178,8 @@ let conversationStats = { conversion: 0, asset: 0, tracker_sent: 0, cv_sourced: 
           })
 
           conversationStats = {
-            conversion: filteredConvData.filter(c => c.candidate_status === 'Conversion').length,
-            asset: filteredConvData.filter(c => c.candidate_status === 'Asset').length,
+            conversion: convData.filter(c => c.candidate_status === 'Conversion').length,
+            asset: convData.filter(c => c.candidate_status === 'Asset').length,
             tracker_sent: filteredConvData.length,
             cv_sourced: 0,
             cv_naukri: 0,
