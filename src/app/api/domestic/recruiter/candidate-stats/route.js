@@ -123,7 +123,7 @@ export async function GET(request) {
 
     let assetQuery = supabaseServer
       .from('candidates_conversation')
-      .select('calling_date, sent_date')
+      .select('calling_date')
       .eq('user_id', currentUserId)
       .eq('candidate_status', 'Asset')
 
@@ -132,14 +132,14 @@ export async function GET(request) {
     }
 
     const { data: assetData } = await assetQuery
-    
+     
     const totalAssets = (assetData || []).filter(conv => {
-      if (!conv.calling_date || !conv.sent_date) return false
+      if (!conv.calling_date ) return false
       const callingDateStr = conv.calling_date.split('T')[0]
-      const sentDateStr = conv.sent_date.split('T')[0]
-      return callingDateStr === sentDateStr
+    
+      return callingDateStr
     }).length
-
+    
     let conversionQuery = supabaseServer
       .from('candidates_conversation')
       .select('calling_date, sent_date')
