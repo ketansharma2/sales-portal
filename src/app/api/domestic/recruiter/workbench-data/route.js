@@ -45,7 +45,7 @@ export async function GET(request) {
     if (reqIds.length > 0) {
       const { data: requirements, error: reqError } = await supabaseServer
         .from('domestic_crm_reqs')
-        .select('req_id, branch_id, job_title, package, experience, openings')
+        .select('req_id, branch_id, job_title, package, experience, openings, location, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers, contact_details')
         .in('req_id', reqIds)
       
       if (reqError) {
@@ -123,7 +123,7 @@ export async function GET(request) {
       if (item.req_id && item.date) {
         const convQuery = supabaseServer
           .from('candidates_conversation')
-          .select('candidate_status')
+          .select('candidate_status, sent_to_tl, calling_date, sent_date')
           .eq('req_id', item.req_id)
           .eq('user_id', currentUserId)
           .eq('calling_date', item.date)
@@ -131,10 +131,18 @@ export async function GET(request) {
         const { data: convData } = await convQuery
         
         if (convData && convData.length > 0) {
+          const filteredConvData = convData.filter(conv => {
+            if (!conv.sent_to_tl) return false
+            if (!conv.calling_date || !conv.sent_date) return false
+            const callingDateStr = conv.calling_date.split('T')[0]
+            const sentDateStr = conv.sent_date.split('T')[0]
+            return callingDateStr === sentDateStr
+          })
+          
           conversationStats = {
-            conversion: convData.filter(c => c.candidate_status === 'Conversion').length,
-            asset: convData.filter(c => c.candidate_status === 'Asset').length,
-            tracker_sent: convData.length,
+            conversion: filteredConvData.filter(c => c.candidate_status === 'Conversion').length,
+            asset: filteredConvData.filter(c => c.candidate_status === 'Asset').length,
+            tracker_sent: filteredConvData.length,
             cv_sourced: 0,
             cv_naukri: 0,
             cv_indeed: 0,
@@ -192,7 +200,18 @@ export async function GET(request) {
         cv_naukri: conversationStats.cv_naukri,
         cv_indeed: conversationStats.cv_indeed,
         cv_other: conversationStats.cv_other,
-        experience: req?.experience || ''
+        experience: req?.experience || '',
+        location: req?.location || '',
+        employment_type: req?.employment_type || '',
+        working_days: req?.working_days || '',
+        timings: req?.timings || '',
+        tool_requirement: req?.tool_req || '',
+        job_summary: req?.job_summary || '',
+        rnr: req?.rnr || '',
+        req_skills: req?.req_skills || '',
+        preferred_qual: req?.preferred_qual || '',
+        company_offers: req?.company_offers || '',
+        contact_details: req?.contact_details || ''
       }
     }))
 

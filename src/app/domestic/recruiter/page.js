@@ -492,17 +492,13 @@ export default function RecruiterWorkbenchReport() {
 
                                             {/* JD Link / View */}
                                             <td className="p-3 border-r border-gray-200 text-center">
-                                                {row.jd_link ? (
-                                                    <button 
-                                                        onClick={() => setJdPreviewData(row)}
-                                                        className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-2 rounded transition-colors"
-                                                        title="View JD PDF"
-                                                    >
-                                                        <File size={18} />
-                                                    </button>
-                                                ) : (
-                                                    <span className="text-gray-400 text-[10px] italic">N/A</span>
-                                                )}
+                                                <button 
+                                                    onClick={() => setJdPreviewData(row)}
+                                                    className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-2 rounded transition-colors"
+                                                    title="View JD PDF"
+                                                >
+                                                    <File size={18} />
+                                                </button>
                                             </td>
 
                                             {/* Assigned By (TL) */}
