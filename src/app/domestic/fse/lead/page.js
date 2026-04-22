@@ -4,7 +4,7 @@ import {
   Pencil, Plus, X, Search, Loader2, Eye, Star,
   Calendar, Phone, MapPin, User, Building2, CheckCircle,
   ArrowRight, MessageSquarePlus, Mail, Zap,CalendarOff,
-  HistoryIcon, Send, Lock, AlertCircle, FileText
+  HistoryIcon, Send, Lock, AlertCircle, FileText, Trash2
 } from "lucide-react";
 
 export default function LeadsMasterPage() {
@@ -309,6 +309,33 @@ export default function LeadsMasterPage() {
       }
     } catch (err) {
       alert('Error updating interaction');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteLead = async (lead) => {
+    const confirmed = confirm(`Are you sure you want to delete "${lead.company_name}"?\n\nThis action cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      setSaving(true);
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+
+      const response = await fetch(`/api/domestic/fse/lead?client_id=${lead.client_id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('Client deleted successfully');
+        fetchLeads();
+      } else {
+        alert('Error: ' + (data.error || 'Failed to delete client'));
+      }
+    } catch (err) {
+      alert('Error deleting client');
     } finally {
       setSaving(false);
     }
@@ -796,6 +823,13 @@ export default function LeadsMasterPage() {
                             title="Send to Manager"
                           >
                             <Send size={14} strokeWidth={2.5} />
+                          </button>
+                          <button
+                            onClick={() => deleteLead(lead)}
+                            className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 hover:shadow-md transition-all border border-red-100 active:scale-95"
+                            title="Delete Client"
+                          >
+                            <Trash2 size={14} strokeWidth={2.5} />
                           </button>
                         </div>
                       )}

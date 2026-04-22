@@ -386,3 +386,49 @@ export async function PUT(request) {
     }, { status: 500 })
   }
 }
+
+export async function DELETE(request) {
+  try {
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const client_id = searchParams.get('client_id')
+
+    if (!client_id) {
+      return NextResponse.json({ error: 'client_id is required' }, { status: 400 })
+    }
+
+    const { error: deleteError } = await supabaseServer
+      .from('domestic_clients')
+      .delete()
+      .eq('client_id', client_id)
+
+    if (deleteError) {
+      console.error('Delete error:', deleteError)
+      return NextResponse.json({
+        error: 'Failed to delete client',
+        details: deleteError.message
+      }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Client deleted successfully'
+    })
+
+  } catch (error) {
+    console.error('API error:', error)
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: error.message
+    }, { status: 500 })
+  }
+}
