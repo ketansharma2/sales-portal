@@ -6,7 +6,7 @@ import {
   Users, Wallet, LayoutGrid, ShieldCheck, Store ,Briefcase,HelpCircle,Receipt,
   Settings, FileText, Target, Search, BarChart, Phone,Calendar,MapPin,Truck,UserPlus,IndianRupee,UserCheck,Edit,Plus,
   Package,PhoneCall,ClipboardList,KanbanSquare,TableProperties, SunMedium, UploadCloud,Activity,History,LayoutDashboard,  Building2,
-  House,ShoppingCart
+  House,ShoppingCart, CalendarOff
 
 } from "lucide-react";
 
@@ -94,6 +94,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     menuItems = [
       { name: "My Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "My Leads", href: `${roleBaseHref}/lead`, icon: <Users size={20} /> },
+      { name: "Non-Visit Days", href: `${roleBaseHref}/leaves`, icon: <CalendarOff size={20} /> },
       //{ name: "My Weekly Plan", href: `${roleBaseHref}/weekly-plan`, icon: <Calendar size={20} /> },
       { name: "Targets", href: `${roleBaseHref}/target`, icon: <Target size={20} /> },
       { name: "My Expenses", href: `${roleBaseHref}/expenses`, icon: <Wallet size={20} /> },

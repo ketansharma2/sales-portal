@@ -412,8 +412,9 @@ export default function LeadsMasterPage() {
     setTncText('');
   };
   // 👇 ADD THIS FUNCTION (Missing)
-  const handleSaveLeave = async (date, reason, remarks) => { // <--- Added remarks here
+  const handleSaveLeave = async (date, reason, remarks, leaveType) => {
     try {
+      setSaving(true);
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const response = await fetch('/api/domestic/fse/non-working', {
         method: 'POST',
@@ -421,12 +422,12 @@ export default function LeadsMasterPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify({ date, reason })
+        body: JSON.stringify({ date, reason, leave_type: leaveType, remarks })
       });
 
       const data = await response.json();
       if (data.success) {
-        alert(`Marked ${date} as Non-Visit.\nReason: ${reason}\nRemarks: ${remarks}`);
+        alert(`Marked ${date} as Non-Visit.\nLeave Type: ${leaveType}\nReason: ${reason}\nRemarks: ${remarks}`);
         setNonFieldDays(prev => [...prev, date]);
         setIsLeaveModalOpen(false);
       } else {
@@ -435,6 +436,8 @@ export default function LeadsMasterPage() {
     } catch (error) {
       console.error('Error saving non-visit day:', error);
       alert('Error saving non-visit day. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -926,7 +929,8 @@ export default function LeadsMasterPage() {
       {isLeaveModalOpen && (
         <LeaveModal 
           onClose={() => setIsLeaveModalOpen(false)} 
-          onSave={handleSaveLeave} 
+          onSave={handleSaveLeave}
+          saving={saving}
         />
       )}
   {isFullViewOpen && (
@@ -1880,20 +1884,23 @@ export default function LeadsMasterPage() {
    );
  }
 
- function LeaveModal({ onClose, onSave }) {
-   const [date, setDate] = useState(new Date().toISOString().split('T')[0]); 
-   const [reason, setReason] = useState('Office Work');
-   const [remarks, setRemarks] = useState(''); // New State for Remarks
+function LeaveModal({ onClose, onSave, saving }) {
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]); 
+    const [reason, setReason] = useState('Office Work');
+    const [leaveType, setLeaveType] = useState('Full Day');
+    const [remarks, setRemarks] = useState('');
 
-   const reasons = [
-     "Office Work", 
-     "Training / Meeting", 
-     "Leave / Absent", 
-     "Public Holiday", 
-     "Vehicle Breakdown", 
-     "Rain / Bad Weather",
-     "Other"
-   ];
+    const reasons = [
+      "Office Work", 
+      "Training / Meeting", 
+      "Leave / Absent", 
+      "Public Holiday", 
+      "Vehicle Breakdown", 
+      "Rain / Bad Weather",
+      "Other"
+    ];
+
+    const leaveTypes = ["Full Day", "Half Day"];
 
    return (
      <div className="fixed inset-0 bg-[#103c7f]/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 font-['Calibri']">
@@ -1920,16 +1927,33 @@ export default function LeadsMasterPage() {
              </p>
            </div>
 
-           {/* 1. Date Selector */}
-           <div className="space-y-1.5">
-             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Select Date</label>
-             <input 
-               type="date" 
-               value={date} 
-               onChange={(e) => setDate(e.target.value)} 
-               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-[#103c7f] outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer transition-all"
-             />
-           </div>
+{/* 1. Date Selector */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Select Date</label>
+              <input 
+                type="date" 
+                value={date} 
+                onChange={(e) => setDate(e.target.value)} 
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-[#103c7f] outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer transition-all"
+              />
+            </div>
+
+            {/* Leave Type Selector */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Leave Type</label>
+              <div className="relative">
+                <select 
+                  value={leaveType} 
+                  onChange={(e) => setLeaveType(e.target.value)} 
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-800 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer appearance-none transition-all"
+                >
+                  {leaveTypes.map(type => <option key={type} value={type}>{type}</option>)}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+              </div>
+            </div>
 
            {/* 2. Reason Selector */}
            <div className="space-y-1.5">
@@ -1969,13 +1993,21 @@ export default function LeadsMasterPage() {
            >
              Cancel
            </button>
-           <button 
-             // Updated to pass remarks
-             onClick={() => onSave(date, reason, remarks)} 
-             className="flex-1 py-3 bg-[#103c7f] text-white font-black uppercase text-xs rounded-xl shadow-lg shadow-blue-900/20 hover:bg-blue-900 transition active:scale-95 flex justify-center items-center gap-2"
-           >
-             <CheckCircle size={16} strokeWidth={2.5} /> Confirm
-           </button>
+<button 
+              onClick={() => onSave(date, reason, remarks, leaveType)} 
+              disabled={saving}
+              className="flex-1 py-3 bg-[#103c7f] text-white font-black uppercase text-xs rounded-xl shadow-lg shadow-blue-900/20 hover:bg-blue-900 transition active:scale-95 flex justify-center items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {saving ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Saving...
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={16} strokeWidth={2.5} /> Confirm
+                </>
+              )}
+            </button>
          </div>
 
        </div>
