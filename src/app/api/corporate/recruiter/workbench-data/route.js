@@ -135,61 +135,86 @@ export async function GET(request) {
       let conversationStats = { conversion: 0, asset: 0, tracker_sent: 0, cv_sourced: 0, cv_naukri: 0, cv_indeed: 0, cv_other: 0 }
       
       if (item.req_id && item.date) {
-        // Get conversation stats
         const convQuery = supabaseServer
           .from('candidates_conversation')
-          .select('candidate_status')
+          .select('candidate_status, sent_to_tl, calling_date, parsing_id, sent_date')
           .eq('req_id', item.req_id)
           .eq('user_id', currentUserId)
           .eq('calling_date', item.date)
-          .not('sent_to_tl', 'is', null)
-          .eq('sent_date', item.date)
-        
+
         const { data: convData } = await convQuery
-        
+
         if (convData && convData.length > 0) {
+          const filteredConvData = convData.filter(conv => {
+            if (!conv.sent_to_tl) return false
+            if (!conv.calling_date || !conv.sent_date) return false
+            const callingDateStr = conv.calling_date.split('T')[0]
+            const sentDateStr = conv.sent_date.split('T')[0]
+            return callingDateStr === sentDateStr
+          })
+
           conversationStats = {
-            conversion: convData.filter(c => c.candidate_status === 'Conversion').length,
-            asset: convData.filter(c => c.candidate_status === 'Asset').length,
-            tracker_sent: convData.length,
+            conversion: filteredConvData.filter(c => c.candidate_status === 'Conversion').length,
+            asset: filteredConvData.filter(c => c.candidate_status === 'Asset').length,
+            tracker_sent: filteredConvData.length,
             cv_sourced: 0,
             cv_naukri: 0,
             cv_indeed: 0,
             cv_other: 0
           }
         }
-        
-        // Get CV sourced: use same logic as corporate/crm - get parsing_ids from conversation first
-        const { data: trackerRows } = await supabaseServer
-          .from('candidates_conversation')
-          .select('parsing_id')
-          .eq('req_id', item.req_id)
-          .eq('user_id', currentUserId)
-          .eq('calling_date', item.date)
-          .not('sent_to_tl', 'is', null)
-          .eq('sent_date', item.date)
-          .not('parsing_id', 'is', null)
 
-        const parsingIds = [...new Set(trackerRows?.map(r => r.parsing_id).filter(Boolean))] || []
+        const parsingIds = [
+          ...new Set(
+            (convData || [])
+              .map(c => c.parsing_id)
+              .filter(id => id)
+          )
+        ]
 
-        let cv_naukri = 0, cv_indeed = 0, cv_other = 0
+        let parsingData = []
+
         if (parsingIds.length > 0) {
-          const { data: cvData } = await supabaseServer
+          const { data, error } = await supabaseServer
             .from('cv_parsing')
-            .select('portal')
+            .select('id, portal, portal_date')
             .in('id', parsingIds)
 
-          cv_naukri = cvData?.filter(c => c.portal === 'Naukri').length || 0
-          cv_indeed = cvData?.filter(c => c.portal === 'Indeed').length || 0
-          cv_other = cvData?.filter(c => c.portal === 'Other').length || 0
+          if (error) console.log(error)
+
+          parsingData = data || []
         }
 
-        conversationStats = {
-          ...conversationStats,
-          cv_sourced: cv_naukri + cv_indeed + cv_other,
-          cv_naukri,
-          cv_indeed,
-          cv_other
+        const matchedData = (convData || []).map(conv => {
+          const match = parsingData.find(p => {
+            const pDate = p.portal_date?.split('T')[0]
+            const cDate = conv.calling_date?.split('T')[0]
+            return p.id === conv.parsing_id && pDate === cDate
+          })
+          return match
+            ? { ...conv, portal: match.portal }
+            : null
+        }).filter(Boolean)
+
+        if (matchedData.length > 0) {
+          const uniqueMatchedData = [...new Map(matchedData.map(item => [item.parsing_id, item])).values()]
+
+          const portalCounts = uniqueMatchedData.reduce(
+            (acc, row) => {
+              const portal = row.portal?.toLowerCase() || ''
+              if (portal.includes('naukri')) acc.cv_naukri++
+              else if (portal.includes('indeed')) acc.cv_indeed++
+              else acc.cv_other++
+              acc.cv_sourced++
+              return acc
+            },
+            { cv_sourced: 0, cv_naukri: 0, cv_indeed: 0, cv_other: 0 }
+          )
+
+          conversationStats = {
+            ...conversationStats,
+            ...portalCounts
+          }
         }
       }
 
