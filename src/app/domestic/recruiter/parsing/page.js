@@ -277,7 +277,10 @@ export default function CVParsingPage() {
                     is_shared: item.is_shared || false,
                     latest_status: item.latest_status || '-',
                     latest_user: item.latest_user || '-',
-                    latest_date: item.latest_date || '-'
+                    latest_date: item.latest_date || '-',
+                    latest_remarks: item.latest_remarks || '-',
+                    latest_profile: item.latest_profile || '-',
+                    latest_profile: item.latest_profile || '-',
                 }));
                 setParsedData(transformedData);
             }
@@ -672,21 +675,23 @@ export default function CVParsingPage() {
                         <div className="overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar pb-4 relative">
                             <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1700px]">
                                 
-                                {/* Sticky Header */}
-                                <thead className="sticky top-0 z-20">
-                                    <tr className="bg-white border-b-2 border-slate-100">
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest sticky left-0 bg-white z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] w-16 text-center">CV</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Latest Status</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Portal Info</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Candidate Details</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Location / Gender</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Qualification</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Experience / Company</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Top Skills</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest max-w-[200px]">All Skills & Companies</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest sticky right-0 bg-slate-50 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] text-center border-l border-slate-200 w-28">Actions</th>
-                                    </tr>
-                                </thead>
+                                 {/* Sticky Header */}
+                                 <thead className="sticky top-0 z-20">
+                                     <tr className="bg-white border-b-2 border-slate-100">
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest sticky left-0 bg-white z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] w-16 text-center">CV</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Latest Status</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Latest Profile</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Remarks</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Portal Info</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Candidate Details</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Location / Gender</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Qualification</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Experience / Company</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Top Skills</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest max-w-[200px]">All Skills & Companies</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest sticky right-0 bg-slate-50 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] text-center border-l border-slate-200 w-28">Actions</th>
+                                     </tr>
+                                 </thead>
 
                                 <tbody className="divide-y divide-slate-100 bg-white">
                                     {filteredParsedData.map((row) => (
@@ -717,17 +722,29 @@ export default function CVParsingPage() {
                                                 </button>
                                             </td>
 
-                                            {/* 2. Latest Candidate Status */}
-                                            <td className="py-3 px-4">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] font-bold text-indigo-600 uppercase">{row.latest_status || '-'}</span>
-                                                    <span className="text-[9px] font-medium text-slate-500 mt-0.5">{row.latest_user || '-'}</span>
-                                                    <span className="text-[8px] font-medium text-slate-400 mt-0.5">{row.latest_date || '-'}</span>
-                                                </div>
-                                            </td>
+                                             {/* 2. Latest Candidate Status */}
+                                             <td className="py-3 px-4">
+                                                 <div className="flex flex-col">
+                                                     <span className="text-[10px] font-bold text-indigo-600 uppercase">{row.latest_status || '-'}</span>
+                                                     <span className="text-[9px] font-medium text-slate-500 mt-0.5">{row.latest_user || '-'}</span>
+                                                     <span className="text-[8px] font-medium text-slate-400 mt-0.5">{row.latest_date || '-'}</span>
+                                                 </div>
+                                             </td>
 
-                                            {/* 2 & 3. Portal & Portal Date */}
-                                            <td className="py-3 px-4">
+                                             {/* 2a. Latest Profile (Job Title) */}
+                                             <td className="py-3 px-4">
+                                                 <p className="text-[10px] font-bold text-slate-700">{row.latest_profile || '-'}</p>
+                                             </td>
+
+                                             {/* 2b. Remarks */}
+                                             <td className="py-3 px-4 max-w-[200px]">
+                                                 <p className="text-[9px] text-slate-600 italic truncate" title={row.latest_remarks}>
+                                                     {row.latest_remarks ? `"${row.latest_remarks}"` : 'No remarks'}
+                                                 </p>
+                                             </td>
+
+                                             {/* 3. Portal & Portal Date */}
+                                             <td className="py-3 px-4">
                                                 <p className="text-[11px] font-black text-[#103c7f] uppercase">{row.portal}</p>
                                                 <p className="text-[10px] font-bold text-slate-500 mt-0.5">{row.portalDate}</p>
                                             </td>
