@@ -175,14 +175,13 @@ export async function GET(request) {
       // Tracker Shared - from corporate_crm_emails
       let trackerShared = 0;
       if (conversationIds.length > 0) {
-        const { count: sharedCount } = await supabaseServer
-          .from('corporate_crm_emails')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', currentUserId)
-          .eq('req_id', item.req_id)
-          .in('conversation_id', conversationIds)
-          .gte('shared_date', item.date)
-          .lte('shared_date', item.date);
+         const { count: sharedCount } = await supabaseServer
+           .from('corporate_crm_emails')
+           .select('id', { count: 'exact', head: true })
+           .eq('user_id', currentUserId)
+           .in('conversation_id', conversationIds)
+           .gte('shared_date', item.date)
+           .lte('shared_date', item.date);
         
         trackerShared = sharedCount || 0;
       }
