@@ -514,35 +514,31 @@ export default function CRMWorkbenchReport() {
                                                     </span>
                                                     <div className="flex items-center justify-between w-full gap-2">
                                                         <span className="font-bold text-gray-600 leading-tight truncate">{row.job_title}</span>
-                                                        {row.job_summary ? (
-                                                            <button 
-                                                                onClick={() => {
-                                                                    setJdModalData(row);
-                                                                    setCurrentJdView({
-                                                                        title: row.job_title,
-                                                                        summary: row.job_summary,
-                                                                        skills: row.req_skills || '',
-                                                                        location: row.location || '',
-                                                                        experience: row.experience || '',
-                                                                        employment_type: row.employment_type || '',
-                                                                        working_days: row.working_days || '',
-                                                                        timings: row.timings || '',
-                                                                        package_salary: row.package || '',
-                                                                        tool_requirement: row.tool_requirement || '',
-                                                                        rnr: row.rnr || '',
-                                                                        preferred_qual: row.preferred_qual || '',
-                                                                        company_offers: row.company_offers || '',
-                                                                        contact_details: row.contact_details || ''
-                                                                    });
-                                                                    setIsJdViewModalOpen(true);
-                                                                }}
-                                                                className="text-blue-600 hover:text-white hover:bg-blue-600 font-black text-[8px] uppercase tracking-widest bg-blue-50 px-1.5 py-0.5 rounded transition-colors border border-blue-200 shrink-0"
-                                                            >
-                                                                View JD
-                                                            </button>
-                                                        ) : (
-                                                            <span className="text-gray-400 text-[8px] italic uppercase tracking-widest shrink-0">No JD</span>
-                                                        )}
+                                                        <button
+                                                            onClick={() => {
+                                                                setJdModalData(row);
+                                                                setCurrentJdView({
+                                                                    title: row.job_title,
+                                                                    summary: row.job_summary,
+                                                                    skills: row.req_skills || '',
+                                                                    location: row.location || '',
+                                                                    experience: row.experience || '',
+                                                                    employment_type: row.employment_type || '',
+                                                                    working_days: row.working_days || '',
+                                                                    timings: row.timings || '',
+                                                                    package_salary: row.package || '',
+                                                                    tool_requirement: row.tool_requirement || '',
+                                                                    rnr: row.rnr || '',
+                                                                    preferred_qual: row.preferred_qual || '',
+                                                                    company_offers: row.company_offers || '',
+                                                                    contact_details: row.contact_details || ''
+                                                                });
+                                                                setIsJdViewModalOpen(true);
+                                                            }}
+                                                            className="text-blue-600 hover:text-white hover:bg-blue-600 font-black text-[8px] uppercase tracking-widest bg-blue-50 px-1.5 py-0.5 rounded transition-colors border border-blue-200 shrink-0"
+                                                        >
+                                                            View JD
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </td>

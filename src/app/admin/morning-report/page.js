@@ -32,11 +32,13 @@ export default function MorningReportPage() {
     // --- DELIVERY WORKBENCH REPORT STATES & MOCK DATA ---
     const [cvModalData, setCvModalData] = useState(null);
     const [jdModalData, setJdModalData] = useState(null);
-    const [wbFromDate, setWbFromDate] = useState("2026-04-09");
-    const [wbToDate, setWbToDate] = useState("2026-04-09");
-    const [wbLoading, setWbLoading] = useState(false);
+     const [wbFromDate, setWbFromDate] = useState("2026-04-09");
+     const [wbToDate, setWbToDate] = useState("2026-04-09");
+     const [wbLoading, setWbLoading] = useState(false);
+     const [domesticWbLoading, setDomesticWbLoading] = useState(false);
 
-    const [reportData, setReportData] = useState([]);
+     const [reportData, setReportData] = useState([]);
+     const [domesticReportData, setDomesticReportData] = useState([]);
 
     // --- LOAD FROM LOCALSTORAGE ON MOUNT ---
     useEffect(() => {
@@ -354,31 +356,57 @@ export default function MorningReportPage() {
         fetchCorporateCrmData();
     }, []);
 
-    // --- FETCH CORPORATE WORKBENCH DATA ---
-    useEffect(() => {
-        const fetchWorkbenchData = async () => {
-            setWbLoading(true);
-            try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                if (!token) return;
+     // --- FETCH CORPORATE WORKBENCH DATA ---
+     useEffect(() => {
+         const fetchWorkbenchData = async () => {
+             setWbLoading(true);
+             try {
+                 const session = JSON.parse(localStorage.getItem('session') || '{}');
+                 const token = session.access_token;
+                 if (!token) return;
 
-                const response = await fetch(`/api/admin/morning-report/corporate/workbench?from_date=${wbFromDate}&to_date=${wbToDate}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await response.json();
-                if (data.success) {
-                    setReportData(data.data || []);
-                }
-            } catch (error) {
-                console.error('Error fetching workbench data:', error);
-            } finally {
-                setWbLoading(false);
-            }
-        };
+                 const response = await fetch(`/api/admin/morning-report/corporate/workbench?from_date=${wbFromDate}&to_date=${wbToDate}`, {
+                     headers: { 'Authorization': `Bearer ${token}` }
+                 });
+                 const data = await response.json();
+                 if (data.success) {
+                     setReportData(data.data || []);
+                 }
+             } catch (error) {
+                 console.error('Error fetching workbench data:', error);
+             } finally {
+                 setWbLoading(false);
+             }
+         };
 
-        fetchWorkbenchData();
-    }, [wbFromDate, wbToDate]);
+         fetchWorkbenchData();
+     }, [wbFromDate, wbToDate]);
+
+     // --- FETCH DOMESTIC WORKBENCH DATA ---
+     useEffect(() => {
+         const fetchDomesticWorkbenchData = async () => {
+             setDomesticWbLoading(true);
+             try {
+                 const session = JSON.parse(localStorage.getItem('session') || '{}');
+                 const token = session.access_token;
+                 if (!token) return;
+
+                 const response = await fetch(`/api/admin/morning-report/domestic/workbench?from_date=${wbFromDate}&to_date=${wbToDate}`, {
+                     headers: { 'Authorization': `Bearer ${token}` }
+                 });
+                 const data = await response.json();
+                 if (data.success) {
+                     setDomesticReportData(data.data || []);
+                 }
+             } catch (error) {
+                 console.error('Error fetching domestic workbench data:', error);
+             } finally {
+                 setDomesticWbLoading(false);
+             }
+         };
+
+         fetchDomesticWorkbenchData();
+     }, [wbFromDate, wbToDate]);
 
     // --- FETCH JOB POSTING DATA ---
 
@@ -1081,147 +1109,177 @@ export default function MorningReportPage() {
                                         
                                     </div>
 
-                                  {/*  <div className="overflow-x-auto custom-scrollbar">
-                                        <table className="w-full text-left border-collapse min-w-[1250px] text-xs">
-                                            <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-10">
-                                                <tr>    
-                                                    <th className="p-2.5 border-r border-blue-800 w-8 text-center">#</th>
-                                                    <th className="p-2.5 border-r border-blue-800 min-w-[110px]"><div className="flex items-center gap-1.5"><Calendar size={12}/> Date & Slot</div></th>
-                                                    <th className="p-2.5 border-r border-blue-800 min-w-[120px]"><div className="flex items-center gap-1.5 text-yellow-300"><Users size={12}/> CRM, TL & RC</div></th>                                                    <th className="p-2.5 border-r border-blue-800 min-w-[180px]"><div className="flex items-center gap-1.5"><Briefcase size={12}/> Client, Profile & JD</div></th>
-                                                    <th className="p-2.5 border-r border-blue-800 text-center min-w-[100px]"><div className="flex items-center justify-center gap-1.5"><IndianRupee size={12}/> Pkg / Req</div></th>
-                                                    <th className="p-2.5 border-r border-blue-800 text-center bg-blue-600"><div className="flex items-center justify-center gap-1.5"><FileText size={12}/> CVs</div></th>
-                                                    <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> Adv STI</div></th>
-                                                    <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><TrendingUp size={12}/> Conv.</div></th>
-                                                    <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Database size={12}/> Asset</div></th>
-                                                    <th className="p-2.5 border-r border-blue-800 text-center bg-gray-700/50"><div className="flex items-center justify-center gap-1.5"><UserCheck size={12}/> T. Rcvd</div></th>
-                                                    <th className="p-2.5 border-r border-blue-800 text-center bg-indigo-600/50"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> T.Sent By TL</div></th>
-                                                    <th className="p-2.5 border-r border-blue-800 text-center bg-indigo-700/50"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> T. Shared</div></th>
-                                                    <th className="p-2.5 border-r border-blue-800 min-w-[160px]"><div className="flex items-center gap-1.5"><MessageSquare size={12}/> RC Notes</div></th>
-                                                    <th className="p-2.5 min-w-[160px] bg-[#0d316a] text-yellow-300"><div className="flex items-center gap-1.5"><Settings size={12}/> TL Remarks</div></th>
-                                                </tr>
-                                            </thead>
-                                        <tbody className="font-medium divide-y divide-gray-200">
-                                                {wbLoading ? (
-                                                    <tr>
-                                                        <td colSpan="13" className="p-12 text-center bg-white align-middle">
-                                                            <div className="flex items-center justify-center gap-2">
-                                                                <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                                                                <span className="text-sm font-bold text-indigo-600">Loading...</span>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ) : reportData && reportData.length > 0 ? (
-                                                    reportData.map((row, index) => {
-                                                        return (
-                                                            <tr key={row.workbench_id} className="hover:bg-indigo-50/50 transition">
-                                                                
-                                                                <td className="p-2.5 border-r border-gray-200 text-center text-gray-400 font-bold bg-gray-50 align-middle">{index + 1}</td>
-                                                                
-                                                                <td className="p-2.5 border-r border-gray-200 bg-gray-50 align-middle text-center">
-                                                                    <div className="flex flex-col items-center justify-center gap-1 h-full">
-                                                                        <span className="font-bold text-gray-800">{row.date}</span>
-                                                                        <span className="text-[9px] font-bold text-orange-500 flex items-center justify-center gap-1 leading-tight"><Clock size={9}/> {row.slot}</span>
-                                                                    </div>
-                                                                </td>
-                                                                
-                                                                <td className="p-2.5 border-r border-gray-200 align-middle text-center">
-                                                                    <div className="flex flex-col items-center justify-center gap-1.5 w-full h-full">
-                                                                        <span className="text-[9px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded shadow-sm w-max max-w-full truncate" title={row.Crm_name}>
-                                                                            CRM: {row.Crm_name || "N/A"}
-                                                                        </span>
-                                                                        <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded shadow-sm w-max max-w-full truncate" title={row.TL_name}>
-                                                                            TL: {row.TL_name || "N/A"}
-                                                                        </span>
-                                                                        <span className="text-[9px] font-black text-blue-800 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded uppercase tracking-wider w-max max-w-full truncate" title={row.RC_name}>
-                                                                            RC: {row.RC_name || "N/A"}
-                                                                        </span>
-                                                                    </div>
-                                                                </td>
-                                                                
-                                                                <td className="p-2.5 border-r border-gray-200 align-middle text-center">
-                                                                    <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
-                                                                        <span className="font-black text-[#103c7f] text-[11px] uppercase tracking-wide w-full break-words leading-tight" title={row.company_name}>{row.company_name}</span>
-                                                                        <span className="font-bold text-gray-600 leading-tight w-full break-words">{row.job_title}</span>
-                                                                    </div>
-                                                                </td>
-                                                                
-                                                                <td className="p-2.5 border-r border-gray-200 text-center align-middle">
-                                                                    <div className="flex items-center justify-center gap-1.5"><span className="text-green-700 font-bold">{row.package}</span><span className="text-gray-300">|</span><span className="text-gray-800 font-black">{row.requirement}</span></div>
-                                                                </td>
-                                                                
-                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-blue-700 bg-blue-50/20 align-middle">
-                                                                    {row.cv_sourced || 0}
-                                                                </td>
-                                                                
-                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-purple-700 bg-purple-50/20 align-middle">
-                                                                    {row.advance_sti || 0}
-                                                                </td>
-                                                                
-                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-green-700 bg-green-50/20 align-middle">
-                                                                    {row.conversion || 0}
-                                                                </td>
-                                                                
-                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-orange-600 bg-orange-50/20 align-middle">
-                                                                    {row.asset || 0}
-                                                                </td>
-                                                                
-                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-gray-700 bg-gray-50/50 align-middle">
-                                                                    {row.tracker_sent_by_rc || 0}
-                                                                </td>
-                                                                
-<td className="p-2.5 border-r border-gray-200 text-center font-black text-indigo-700 bg-indigo-50/20 align-middle">
-                                                                    {row.tracker_sent_by_tl || 0}
-                                                                </td>
-                                                                
-                                                                <td className="p-2.5 border-r border-gray-200 text-center font-black text-indigo-600 bg-indigo-50/30 align-middle">
-                                                                    {row.tracker_shared_to_client || 0}
-                                                                </td>
-                                                                
-                                                                <td className="p-2.5 border-r border-gray-300 align-middle text-center w-48 bg-yellow-50/30">
-                                                                    <div className="text-[10px] text-gray-600 italic whitespace-normal break-words" title={row.rc_remarks}>{row.rc_remarks ? `"${row.rc_remarks}"` : <span className="text-gray-400 not-italic">No notes</span>}</div>
-                                                                </td>
-                                                                
-                                                                <td className="p-2.5 align-middle text-center w-48 bg-blue-50/20">
-                                                                    <div className="text-[10px] font-bold text-[#103c7f] whitespace-normal break-words" title={row.tl_remarks}>{row.tl_remarks ? row.tl_remarks : <span className="text-gray-400 font-normal italic">No remark added</span>}</div>
-                                                                </td>
-                                                            </tr>
-                                                        )
-                                                    })
-                                                ) : (
-                                                    <tr>
-                                                        <td colSpan="16" className="p-12 text-center bg-white align-middle">
-                                                            <Calendar size={40} className="text-indigo-200 mx-auto mb-3" />
-                                                            <h4 className="text-lg font-black text-indigo-400 uppercase tracking-widest">No Corporate Data</h4>
-                                                            <p className="text-sm font-bold text-gray-400 mt-1">No activities found for the corporate delivery team.</p>
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </tbody>
-                                            {reportData && reportData.length > 0 && (
-                                                <tfoot className="bg-slate-100 border-t-2 border-slate-300">
-                                                    <tr>
-                                                        <td colSpan="3" className="p-3 text-right font-black text-slate-700 uppercase tracking-widest">
-                                                            Total Summary
-                                                        </td>
-                                                        <td className="p-3 border-r border-slate-300 text-center align-middle">
-                                                            <div className="flex flex-col gap-1 items-center justify-center">
-                                                                <span className="text-[10px] font-bold text-slate-500 uppercase">Unique</span>
-                                                                <div className="flex gap-2 text-sm font-black text-[#103c7f]">
-                                                                    <span>{new Set(reportData.map(r => r.company_name)).size} Clients</span>
-                                                                    <span>|</span>
-                                                                    <span>{new Set(reportData.map(r => r.job_title)).size} Profiles</span>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="p-3 border-r border-slate-300 text-center align-middle bg-slate-200/50">
-                                                            <span className="text-sm font-black text-slate-500">-</span>
-                                                        </td>
-                                                        <td colSpan="11" className="bg-slate-100"></td>
-                                                    </tr>
-                                                </tfoot>
-                                            )}
-                                        </table>
-                                    </div>*/}
+                                 </div>
+
+                                 {/* --- DOMESTIC DELIVERY REPORT --- */}
+                                 <div className="bg-white border border-orange-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
+                                     <div className="bg-orange-50 p-4 border-b border-orange-100 flex justify-between items-center">
+                                         <div className="flex items-center gap-2">
+                                             <Home size={18} className="text-orange-600"/>
+                                             <h3 className="text-sm font-black text-orange-900 uppercase tracking-widest">
+                                                 Domestic Workbench
+                                             </h3>
+                                         </div>
+                                         <div className="flex items-center gap-2">
+                                             <label className="text-[9px] font-bold text-slate-500 uppercase">From:</label>
+                                             <input
+                                                 type="date"
+                                                 value={wbFromDate}
+                                                 onChange={(e) => setWbFromDate(e.target.value)}
+                                                 className="text-xs font-bold text-slate-700 bg-white border border-slate-300 rounded px-2 py-1.5 outline-none focus:border-orange-500"
+                                             />
+                                             <label className="text-[9px] font-bold text-slate-500 uppercase">To:</label>
+                                             <input
+                                                 type="date"
+                                                 value={wbToDate}
+                                                 onChange={(e) => setWbToDate(e.target.value)}
+                                                 className="text-xs font-bold text-slate-700 bg-white border border-slate-300 rounded px-2 py-1.5 outline-none focus:border-orange-500"
+                                             />
+                                         </div>
+                                     </div>
+
+                                     <div className="overflow-x-auto custom-scrollbar">
+                                         <table className="w-full text-left border-collapse min-w-[1250px] text-xs">
+                                             <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-10">
+                                                 <tr>
+                                                     <th className="p-2.5 border-r border-blue-800 w-8 text-center">#</th>
+                                                     <th className="p-2.5 border-r border-blue-800 min-w-[110px]"><div className="flex items-center gap-1.5"><Calendar size={12}/> Date & Slot</div></th>
+                                                     <th className="p-2.5 border-r border-blue-800 min-w-[120px]"><div className="flex items-center gap-1.5 text-yellow-300"><Users size={12}/> CRM, TL & RC</div></th>
+                                                     <th className="p-2.5 border-r border-blue-800 min-w-[180px]"><div className="flex items-center gap-1.5"><Briefcase size={12}/> Client, Profile & JD</div></th>
+                                                     <th className="p-2.5 border-r border-blue-800 text-center min-w-[100px]"><div className="flex items-center justify-center gap-1.5"><IndianRupee size={12}/> Pkg / Req</div></th>
+                                                     <th className="p-2.5 border-r border-blue-800 text-center bg-blue-600"><div className="flex items-center justify-center gap-1.5"><FileText size={12}/> CVs</div></th>
+                                                     <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> Adv STI</div></th>
+                                                     <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><TrendingUp size={12}/> Conv.</div></th>
+                                                     <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Database size={12}/> Asset</div></th>
+                                                     <th className="p-2.5 border-r border-blue-800 text-center bg-gray-700/50"><div className="flex items-center justify-center gap-1.5"><UserCheck size={12}/> T. Rcvd</div></th>
+                                                     <th className="p-2.5 border-r border-blue-800 text-center bg-indigo-600/50"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> T.Sent By TL</div></th>
+                                                     <th className="p-2.5 border-r border-blue-800 text-center bg-indigo-700/50"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> T. Shared</div></th>
+                                                     <th className="p-2.5 border-r border-blue-800 min-w-[160px]"><div className="flex items-center gap-1.5"><MessageSquare size={12}/> RC Notes</div></th>
+                                                     <th className="p-2.5 min-w-[160px] bg-[#0d316a] text-yellow-300"><div className="flex items-center gap-1.5"><Settings size={12}/> TL Remarks</div></th>
+                                                 </tr>
+                                             </thead>
+                                         <tbody className="font-medium divide-y divide-gray-200">
+                                                 {domesticWbLoading ? (
+                                                     <tr>
+                                                         <td colSpan="13" className="p-12 text-center bg-white align-middle">
+                                                             <div className="flex items-center justify-center gap-2">
+                                                                 <div className="w-4 h-4 border-2 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
+                                                                 <span className="text-sm font-bold text-orange-600">Loading...</span>
+                                                             </div>
+                                                         </td>
+                                                     </tr>
+                                                 ) : domesticReportData && domesticReportData.length > 0 ? (
+                                                     domesticReportData.map((row, index) => {
+                                                         return (
+                                                             <tr key={row.workbench_id} className="hover:bg-orange-50/50 transition">
+
+                                                                 <td className="p-2.5 border-r border-gray-200 text-center text-gray-400 font-bold bg-gray-50 align-middle">{index + 1}</td>
+
+                                                                 <td className="p-2.5 border-r border-gray-200 bg-gray-50 align-middle text-center">
+                                                                     <div className="flex flex-col items-center justify-center gap-1 h-full">
+                                                                         <span className="font-bold text-gray-800">{row.date}</span>
+                                                                         <span className="text-[9px] font-bold text-orange-500 flex items-center justify-center gap-1 leading-tight"><Clock size={9}/> {row.slot}</span>
+                                                                     </div>
+                                                                 </td>
+
+                                                                 <td className="p-2.5 border-r border-gray-200 align-middle text-center">
+                                                                     <div className="flex flex-col items-center justify-center gap-1.5 w-full h-full">
+                                                                         <span className="text-[9px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded shadow-sm w-max max-w-full truncate" title={row.Crm_name}>
+                                                                             CRM: {row.Crm_name || "N/A"}
+                                                                         </span>
+                                                                         <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded shadow-sm w-max max-w-full truncate" title={row.TL_name}>
+                                                                             TL: {row.TL_name || "N/A"}
+                                                                         </span>
+                                                                         <span className="text-[9px] font-black text-blue-800 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded uppercase tracking-wider w-max max-w-full truncate" title={row.RC_name}>
+                                                                             RC: {row.RC_name || "N/A"}
+                                                                         </span>
+                                                                     </div>
+                                                                 </td>
+
+                                                                 <td className="p-2.5 border-r border-gray-200 align-middle text-center">
+                                                                     <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
+                                                                         <span className="font-black text-[#103c7f] text-[11px] uppercase tracking-wide w-full break-words leading-tight" title={row.company_name}>{row.company_name}</span>
+                                                                         <span className="font-bold text-gray-600 leading-tight w-full break-words">{row.job_title}</span>
+                                                                     </div>
+                                                                 </td>
+
+                                                                 <td className="p-2.5 border-r border-gray-200 text-center align-middle">
+                                                                     <div className="flex items-center justify-center gap-1.5"><span className="text-green-700 font-bold">{row.package}</span><span className="text-gray-300">|</span><span className="text-gray-800 font-black">{row.requirement}</span></div>
+                                                                 </td>
+
+                                                                 <td className="p-2.5 border-r border-gray-200 text-center font-black text-blue-700 bg-blue-50/20 align-middle">
+                                                                     {row.cv_sourced || 0}
+                                                                 </td>
+
+                                                                 <td className="p-2.5 border-r border-gray-200 text-center font-black text-purple-700 bg-purple-50/20 align-middle">
+                                                                     {row.advance_sti || 0}
+                                                                 </td>
+
+                                                                 <td className="p-2.5 border-r border-gray-200 text-center font-black text-green-700 bg-green-50/20 align-middle">
+                                                                     {row.conversion || 0}
+                                                                 </td>
+
+                                                                 <td className="p-2.5 border-r border-gray-200 text-center font-black text-orange-600 bg-orange-50/20 align-middle">
+                                                                     {row.asset || 0}
+                                                                 </td>
+
+                                                                 <td className="p-2.5 border-r border-gray-200 text-center font-black text-gray-700 bg-gray-50/50 align-middle">
+                                                                     {row.tracker_sent_by_rc || 0}
+                                                                 </td>
+
+                                                                 <td className="p-2.5 border-r border-gray-200 text-center font-black text-indigo-700 bg-indigo-50/20 align-middle">
+                                                                     {row.tracker_sent_by_tl || 0}
+                                                                 </td>
+
+                                                                 <td className="p-2.5 border-r border-gray-200 text-center font-black text-orange-600 bg-orange-50/30 align-middle">
+                                                                     {row.tracker_shared_to_client || 0}
+                                                                 </td>
+
+                                                                 <td className="p-2.5 border-r border-gray-300 align-middle text-center w-48 bg-yellow-50/30">
+                                                                     <div className="text-[10px] text-gray-600 italic whitespace-normal break-words" title={row.rc_remarks}>{row.rc_remarks ? `"${row.rc_remarks}"` : <span className="text-gray-400 not-italic">No notes</span>}</div>
+                                                                 </td>
+
+                                                                 <td className="p-2.5 align-middle text-center w-48 bg-blue-50/20">
+                                                                     <div className="text-[10px] font-bold text-[#103c7f] whitespace-normal break-words" title={row.tl_remarks}>{row.tl_remarks ? row.tl_remarks : <span className="text-gray-400 font-normal italic">No remark added</span>}</div>
+                                                                 </td>
+                                                             </tr>
+                                                         )
+                                                     })
+                                                 ) : (
+                                                     <tr>
+                                                         <td colSpan="14" className="p-12 text-center bg-white align-middle">
+                                                             <Calendar size={40} className="text-orange-200 mx-auto mb-3" />
+                                                             <h4 className="text-lg font-black text-orange-400 uppercase tracking-widest">No Domestic Data</h4>
+                                                             <p className="text-sm font-bold text-gray-400 mt-1">No activities found for the domestic delivery team.</p>
+                                                         </td>
+                                                     </tr>
+                                                 )}
+                                             </tbody>
+                                             {domesticReportData && domesticReportData.length > 0 && (
+                                                 <tfoot className="bg-slate-100 border-t-2 border-slate-300">
+                                                     <tr>
+                                                         <td colSpan="3" className="p-3 text-right font-black text-slate-700 uppercase tracking-widest">
+                                                             Total Summary
+                                                         </td>
+                                                         <td className="p-3 border-r border-slate-300 text-center align-middle">
+                                                             <div className="flex flex-col gap-1 items-center justify-center">
+                                                                 <span className="text-[10px] font-bold text-slate-500 uppercase">Unique</span>
+                                                                 <div className="flex gap-2 text-sm font-black text-[#103c7f]">
+                                                                     <span>{new Set(domesticReportData.map(r => r.company_name)).size} Clients</span>
+                                                                     <span>|</span>
+                                                                     <span>{new Set(domesticReportData.map(r => r.job_title)).size} Profiles</span>
+                                                                 </div>
+                                                             </div>
+                                                         </td>
+                                                         <td className="p-3 border-r border-slate-300 text-center align-middle bg-slate-200/50">
+                                                             <span className="text-sm font-black text-slate-500">-</span>
+                                                         </td>
+                                                         <td colSpan="11" className="bg-slate-100"></td>
+                                                     </tr>
+                                                 </tfoot>
+                                             )}
+                                         </table>
+                                     </div>
 
                                     {/* --- DOMESTIC CLIENT HANDLING KPI CARDS & TABLE --- */}
                                     <div className="p-4 bg-orange-50/20 border-t border-orange-100">
