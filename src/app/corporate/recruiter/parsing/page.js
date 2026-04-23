@@ -211,6 +211,7 @@ export default function CVParsingPage() {
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
+    const [profileQuery, setProfileQuery] = useState("");
 
     // Fixed status options
     const statusOptions = [
@@ -238,6 +239,14 @@ export default function CVParsingPage() {
             );
         }
         
+        // Profile filter (latest_profile / job_title)
+        if (profileQuery) {
+            const query = profileQuery.toLowerCase();
+            filtered = filtered.filter(row =>
+                row.latest_profile?.toLowerCase().includes(query)
+            );
+        }
+        
         if (statusFilter) {
             filtered = filtered.filter(row => row.latest_status === statusFilter);
         }
@@ -261,7 +270,7 @@ export default function CVParsingPage() {
         }
         
         return filtered;
-    }, [parsedData, statusFilter, fromDate, toDate, searchQuery]);
+    }, [parsedData, statusFilter, fromDate, toDate, searchQuery, profileQuery]);
 
     // Fetch CV parsing data on component mount
     useEffect(() => {
@@ -315,7 +324,9 @@ export default function CVParsingPage() {
                     is_shared: item.is_shared || false,
                     latest_status: item.latest_status || '-',
                     latest_user: item.latest_user || '-',
-                    latest_date: item.latest_date || '-'
+                    latest_date: item.latest_date || '-',
+                    latest_remarks: item.latest_remarks || '-',
+                    latest_profile: item.latest_profile || '-'
                 }));
                 setParsedData(transformedData);
             }
@@ -700,6 +711,17 @@ export default function CVParsingPage() {
                                         className="text-[10px] font-bold text-slate-700 bg-white border border-slate-200 rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer w-40"
                                     />
                                 </div>
+                                {/* Profile Search */}
+                                <div className="flex items-center gap-1">
+                                    <User size={12} className="text-slate-400"/>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Search profile/job title"
+                                        value={profileQuery}
+                                        onChange={(e) => setProfileQuery(e.target.value)}
+                                        className="text-[10px] font-bold text-slate-700 bg-white border border-slate-200 rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer w-40"
+                                    />
+                                </div>
                                 {/* From Date */}
                                 <div className="flex items-center gap-1">
                                     <Calendar size={12} className="text-slate-400"/>
@@ -740,20 +762,22 @@ export default function CVParsingPage() {
                             <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1300px]">
                                 
                                 {/* Sticky Header */}
-                                <thead className="sticky top-0 z-20">
-                                    <tr className="bg-white border-b-2 border-slate-100">
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest sticky left-0 bg-white z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] w-[40px] min-w-[40px] max-w-[40px] text-center">CV</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[60px] min-w-[60px]">Latest Status</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[60px] min-w-[60px]">Portal Info</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[90px] min-w-[90px]">Candidate Details</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[100px] min-w-[100px]">Location / Gender</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[80px] min-w-[80px]">Qualification</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[100px] min-w-[100px]">Experience / Company</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[100px] min-w-[100px]">Top Skills</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[100px] min-w-[100px]">All Skills & Companies</th>
-                                        <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest sticky right-0 bg-slate-50 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] text-center border-l border-slate-200 w-[100px] min-w-[100px] max-w-[100px]">Actions</th>
-                                    </tr>
-                                </thead>
+                                 <thead className="sticky top-0 z-20">
+                                     <tr className="bg-white border-b-2 border-slate-100">
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest sticky left-0 bg-white z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] w-[40px] min-w-[40px] max-w-[40px] text-center">CV</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[60px] min-w-[60px]">Latest Status</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[80px] min-w-[80px]">Latest Profile</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[120px] min-w-[120px]">Remarks</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[60px] min-w-[60px]">Portal Info</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[90px] min-w-[90px]">Candidate Details</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[100px] min-w-[100px]">Location / Gender</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[80px] min-w-[80px]">Qualification</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[100px] min-w-[100px]">Experience / Company</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[100px] min-w-[100px]">Top Skills</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[100px] min-w-[100px]">All Skills & Companies</th>
+                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest sticky right-0 bg-slate-50 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] text-center border-l border-slate-200 w-[100px] min-w-[100px] max-w-[100px]">Actions</th>
+                                     </tr>
+                                 </thead>
 
                               <tbody className="divide-y divide-slate-100 bg-white">
                                     {filteredParsedData.map((row) => (
@@ -791,9 +815,21 @@ export default function CVParsingPage() {
                                                     <span className="text-[9px] font-medium text-slate-500 mt-0.5 truncate" title={row.latest_user}>{row.latest_user || '-'}</span>
                                                     <span className="text-[8px] font-medium text-slate-400 mt-0.5 truncate">{row.latest_date || '-'}</span>
                                                 </div>
-                                            </td>
+                                             </td>
 
-                                            {/* 2 & 3. Portal & Portal Date */}
+                                             {/* 2a. Latest Profile (Job Title) */}
+                                             <td className="py-3 px-4 w-[80px] min-w-[80px] max-w-[80px]">
+                                                 <p className="text-[10px] font-bold text-slate-700 truncate" title={row.latest_profile}>{row.latest_profile || '-'}</p>
+                                             </td>
+
+                                             {/* 2b. Remarks */}
+                                             <td className="py-3 px-4 w-[120px] min-w-[120px] max-w-[120px]">
+                                                 <p className="text-[9px] text-slate-600 italic truncate" title={row.latest_remarks}>
+                                                     {row.latest_remarks ? `"${row.latest_remarks}"` : 'No remarks'}
+                                                 </p>
+                                             </td>
+
+                                             {/* 2 & 3. Portal & Portal Date */}
                                             <td className="py-3 px-4 w-[80px] min-w-[60px] max-w-[60px]">
                                                 <p className="text-[11px] font-black text-[#103c7f] uppercase truncate" title={row.portal}>{row.portal}</p>
                                                 <p className="text-[10px] font-bold text-slate-500 mt-0.5 truncate">{row.portalDate}</p>

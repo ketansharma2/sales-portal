@@ -207,6 +207,10 @@ export default function CVParsingPage() {
     // --- PARSED DATA ---
     const [parsedData, setParsedData] = useState([]);
     const [statusFilter, setStatusFilter] = useState("");
+    const [fromDate, setFromDate] = useState("");
+    const [toDate, setToDate] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [profileQuery, setProfileQuery] = useState("");
 
     // Fixed status options
     const statusOptions = [
@@ -220,11 +224,52 @@ export default function CVParsingPage() {
         "Other"
     ];
 
-    // Filter data based on status
+    // Filter data based on status, date range, search, and profile
     const filteredParsedData = useMemo(() => {
-        if (!statusFilter) return parsedData;
-        return parsedData.filter(row => row.latest_status === statusFilter);
-    }, [parsedData, statusFilter]);
+        let filtered = parsedData;
+        
+        // Search filter (name, email, mobile)
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter(row => 
+                row.name?.toLowerCase().includes(query) ||
+                row.email?.toLowerCase().includes(query) ||
+                row.mobile?.includes(query)
+            );
+        }
+        
+        // Profile filter (latest_profile / job_title)
+        if (profileQuery) {
+            const query = profileQuery.toLowerCase();
+            filtered = filtered.filter(row =>
+                row.latest_profile?.toLowerCase().includes(query)
+            );
+        }
+        
+        if (statusFilter) {
+            filtered = filtered.filter(row => row.latest_status === statusFilter);
+        }
+        
+        if (fromDate) {
+            const from = new Date(fromDate);
+            filtered = filtered.filter(row => {
+                if (!row.portal_date) return true;
+                const rowDate = new Date(row.portal_date);
+                return !isNaN(rowDate) && rowDate >= from;
+            });
+        }
+        
+        if (toDate) {
+            const to = new Date(toDate);
+            filtered = filtered.filter(row => {
+                if (!row.portal_date) return true;
+                const rowDate = new Date(row.portal_date);
+                return !isNaN(rowDate) && rowDate <= to;
+            });
+        }
+        
+        return filtered;
+    }, [parsedData, statusFilter, fromDate, toDate, searchQuery, profileQuery]);
 
     // Fetch CV parsing data on component mount
     useEffect(() => {
@@ -649,11 +694,51 @@ export default function CVParsingPage() {
                     </div>
                 ) : (
                     <>
-                        <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/80 flex justify-between items-center">
+                         <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/80 flex justify-between items-center">
                             <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                                 <CheckCircle2 size={16} className="text-emerald-500"/> Parsed Candidates Queue
                             </h3>
                             <div className="flex items-center gap-3">
+                                {/* Search */}
+                                <div className="flex items-center gap-1">
+                                    <Search size={12} className="text-slate-400"/>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Search name/email/mobile"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="text-[10px] font-bold text-slate-700 bg-white border border-slate-200 rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer w-40"
+                                    />
+                                </div>
+                                {/* Profile Search */}
+                                <div className="flex items-center gap-1">
+                                    <User size={12} className="text-slate-400"/>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Search profile/job title"
+                                        value={profileQuery}
+                                        onChange={(e) => setProfileQuery(e.target.value)}
+                                        className="text-[10px] font-bold text-slate-700 bg-white border border-slate-200 rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer w-40"
+                                    />
+                                </div>
+                                {/* From Date */}
+                                <div className="flex items-center gap-1">
+                                    <Calendar size={12} className="text-slate-400"/>
+                                    <input 
+                                        type="date" 
+                                        value={fromDate}
+                                        onChange={(e) => setFromDate(e.target.value)}
+                                        className="text-[10px] font-bold text-slate-700 bg-white border border-slate-200 rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                    />
+                                </div>
+                                <span className="text-slate-400 text-xs">to</span>
+                                {/* To Date */}
+                                <input 
+                                    type="date" 
+                                    value={toDate}
+                                    onChange={(e) => setToDate(e.target.value)}
+                                    className="text-[10px] font-bold text-slate-700 bg-white border border-slate-200 rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                />
                                 {/* Status Filter */}
                                 <select 
                                     className="text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"

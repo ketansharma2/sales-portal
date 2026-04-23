@@ -50,10 +50,11 @@ export async function GET(request) {
 
     // Get all candidate IDs for fetching latest status
     const candidateIds = uniqueData.map(item => item.id)
-    console.log('Candidate IDs for status fetch:', candidateIds.length)
 
-    // Fetch latest status from candidates_conversation
+    // Fetch conversations with req_id and remarks
     let latestStatusMap = new Map()
+    let reqIdToJobTitle = new Map()
+    
     if (candidateIds.length > 0) {
       const { data: conversations, error: convError } = await supabaseServer
         .from('candidates_conversation')
@@ -62,36 +63,64 @@ export async function GET(request) {
           candidate_status,
           calling_date,
           created_at,
+          remarks,
+          req_id,
           user_id,
           users!inner(name)
         `)
         .in('parsing_id', candidateIds)
         .order('created_at', { ascending: false })
 
-      console.log('Conversations fetched:', conversations?.length || 0, 'Error:', convError)
-      
-      if (!convError && conversations) {
-        // For each candidate, get the latest conversation
-        conversations.forEach(conv => {
-          if (!latestStatusMap.has(conv.parsing_id)) {
-            latestStatusMap.set(conv.parsing_id, {
-              latest_status: conv.candidate_status || '-',
-              latest_user: conv.users?.name || conv.user_id || '-',
-              latest_date: conv.calling_date || '-'
-            })
-          }
-        })
+      if (convError) {
+        console.error('[ERROR] Conversations fetch failed:', convError.message)
       }
+
+      // Build req_id → job_title lookup
+      if (conversations && conversations.length > 0) {
+        const allReqIds = [...new Set(conversations.map(c => c.req_id).filter(id => id != null))]
+        
+        if (allReqIds.length > 0) {
+          const { data: reqData, error: reqError } = await supabaseServer
+            .from('corporate_crm_reqs')
+            .select('req_id, job_title')
+            .in('req_id', allReqIds)
+
+          if (!reqError && reqData) {
+            reqData.forEach(req => reqIdToJobTitle.set(req.req_id, req.job_title))
+          }
+        }
+      }
+
+      // Build latest conversation data map per candidate
+      conversations?.forEach(conv => {
+        if (!latestStatusMap.has(conv.parsing_id)) {
+          latestStatusMap.set(conv.parsing_id, {
+            latest_status: conv.candidate_status || '-',
+            latest_user: conv.users?.name || conv.user_id || '-',
+            latest_date: conv.calling_date || '-',
+            latest_remarks: conv.remarks || '-',
+            latest_profile: reqIdToJobTitle.get(conv.req_id) || '-'
+          })
+        }
+      })
     }
 
     const processedData = uniqueData.map(item => {
-      const statusInfo = latestStatusMap.get(item.id) || { latest_status: '-', latest_user: '-', latest_date: '-' }
+      const statusInfo = latestStatusMap.get(item.id) || { 
+        latest_status: '-', 
+        latest_user: '-', 
+        latest_date: '-',
+        latest_remarks: '-',
+        latest_profile: '-'
+      }
       return {
         ...item,
         is_shared: item.other_users && item.other_users.includes(userId) && item.user_id !== userId,
         latest_status: statusInfo.latest_status,
         latest_user: statusInfo.latest_user,
-        latest_date: statusInfo.latest_date
+        latest_date: statusInfo.latest_date,
+        latest_remarks: statusInfo.latest_remarks,
+        latest_profile: statusInfo.latest_profile
       }
     })
 
