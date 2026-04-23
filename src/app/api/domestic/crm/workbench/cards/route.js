@@ -56,7 +56,7 @@ export async function GET(request) {
       for (const rcId of recruiterIds) {
         let rcQuery = supabaseServer
           .from('candidates_conversation')
-          .select('candidate_status')
+          .select('candidate_status, sent_to_crm')
           .eq('user_id', rcId)
           .gte('calling_date', fromDate)
           .lte('calling_date', toDate)

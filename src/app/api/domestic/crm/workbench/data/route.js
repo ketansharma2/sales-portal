@@ -127,8 +127,8 @@ export async function GET(request) {
         .eq('calling_date', item.date);
       
       const conversationIds = conversationData?.map(c => c.conversation_id).filter(Boolean) || [];
-      
-      const { count: trackerCount } = await supabaseServer
+
+       const { count: trackerCount } = await supabaseServer
         .from('candidates_conversation')
         .select('*', { count: 'exact', head: true })
         .eq('req_id', item.req_id)
@@ -153,16 +153,15 @@ export async function GET(request) {
         .eq('calling_date', item.date)
         .eq('candidate_status', 'Conversion');
       
-      let trackerShared = 0;
-      if (conversationIds.length > 0) {
-        const { count: sharedCount } = await supabaseServer
-          .from('domestic_crm_emails')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', currentUserId)
-          .eq('req_id', item.req_id)
-          .in('conversation_id', conversationIds)
-          .gte('shared_date', item.date)
-          .lte('shared_date', item.date);
+       let trackerShared = 0;
+       if (conversationIds.length > 0) {
+       const { count: sharedCount } = await supabaseServer
+        .from('domestic_crm_emails')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', currentUserId)
+        .in('conversation_id', conversationIds)
+        .gte('shared_date', item.date)
+        .lte('shared_date', item.date);
         
         trackerShared = sharedCount || 0;
       }
