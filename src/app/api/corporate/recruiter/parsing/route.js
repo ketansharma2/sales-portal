@@ -321,49 +321,36 @@ IMPORTANT: Return ONLY the JSON object, nothing else. No markdown, no code block
     };
     
     // Helper function to extract fields manually if JSON parsing fails
-    const extractFieldsManually = (text) => {
-      const fields = {
-        name: "NA",
-        email: "NA",
-        mobile: "NA",
-        location: "NA",
-        gender: "NA",
-        highest_qualification: "NA",
-        experience: "NA",
-        company_names: "NA",
-        designation: "NA",
-        skills: "NA",
-        college: "NA",
-        top_skills: "NA",
-        recent_company: "NA"
-      };
-      
-      // Try to extract each field using regex patterns (handles both JSON and plain text formats)
-      const patterns = {
-        name: /["']?Name["']?\s*:\s*["']([^"']+)["']/i,
-        email: /["']?Email["']?\s*:\s*["']([^"']+)["']/i,
-        mobile: /["']?Mobile["']?\s*:\s*["']([^"']+)["']/i,
-        location: /["']?Location["']?\s*:\s*["']([^"']+)["']/i,
-        gender: /["']?Gender["']?\s*:\s*["']([^"']+)["']/i,
-        highest_qualification: /["']?Highest Qualification["']?\s*:\s*["']([^"']+)["']/i,
-        experience: /["']?Years of Experience["']?\s*:\s*["']([^"']+)["']/i,
-        company_names: /["']?Company Names["']?\s*:\s*["']([^"']+)["']/i,
-        designation: /["']?Latest Designation["']?\s*:\s*["']([^"']+)["']/i,
-        skills: /["']?Skills["']?\s*:\s*["']([^"']+)["']/i,
-        college: /["']?College Name["']?\s*:\s*["']([^"']+)["']/i,
-        top_skills: /["']?Top Skills["']?\s*:\s*["']([^"']+)["']/i,
-        recent_company: /["']?Recent Company["']?\s*:\s*["']([^"']+)["']/i
-      };
-      
-      for (const [key, pattern] of Object.entries(patterns)) {
-        const match = text.match(pattern);
-        if (match && match[1]) {
-          fields[key] = match[1].trim();
-        }
-      }
-      
-      return fields;
-    };
+     const extractFieldsManually = (text) => {
+       // Match Gemini's exact output format
+       const patterns = {
+         "Name": /["']?Name["']?\s*:\s*["']([^"']+)["']/i,
+         "Email ID": /["']?Email\s*ID["']?\s*:\s*["']([^"']+)["']/i,
+         "Mobile No": /["']?Mobile\s*No["']?\s*:\s*["']([^"']+)["']/i,
+         "Location": /["']?Location["']?\s*:\s*["']([^"']+)["']/i,
+         "Gender": /["']?Gender["']?\s*:\s*["']([^"']+)["']/i,
+         "Highest Qualification": /["']?Highest\s*Qualification["']?\s*:\s*["']([^"']+)["']/i,
+         "Years of Experience": /["']?Years\s*of\s*Experience["']?\s*:\s*["']([^"']+)["']/i,
+         "Company Names": /["']?Company\s*Names["']?\s*:\s*["']([^"']+)["']/i,
+         "Latest Designation": /["']?Latest\s*Designation["']?\s*:\s*["']([^"']+)["']/i,
+         "Skills": /["']?Skills["']?\s*:\s*["']([^"']+)["']/i,
+         "College Name": /["']?College\s*Name["']?\s*:\s*["']([^"']+)["']/i,
+         "Top Skills": /["']?Top\s*Skills["']?\s*:\s*["']([^"']+)["']/i,
+         "Recent Company": /["']?Recent\s*Company["']?\s*:\s*["']([^"']+)["']/i
+       };
+       
+       const result = {};
+       for (const [key, pattern] of Object.entries(patterns)) {
+         const match = text.match(pattern);
+         if (match && match[1]) {
+           result[key] = match[1].trim();
+         } else {
+           result[key] = "NA";
+         }
+       }
+       
+       return result;
+     };
     
     try {
       // Clean the response text
