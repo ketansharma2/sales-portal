@@ -118,19 +118,59 @@ export async function GET(request) {
     const assetMap = new Map(assetResults.map(r => [r.workbench_id, r.asset]))
 
     // Fetch CV sourced counts from candidates_conversation
-    const cvPromises = workbenchData.map(async (item) => {
-      if (!item.req_id || !item.date) {
-        return { workbench_id: item.workbench_id, cv_sourced: 0 }
-      }
-      
-      const { count } = await supabaseServer
-        .from('candidates_conversation')
-        .select('*', { count: 'exact', head: true })
-        .eq('req_id', item.req_id)
-        .eq('portal_date', item.date)
-      
-      return { workbench_id: item.workbench_id, cv_sourced: count || 0 }
-    })
+ const cvPromises = workbenchData.map(async (item) => {
+  let conversationStats = {
+    cv_sourced: 0,
+  };
+
+  if (!item.req_id || !item.date) {
+    return { workbench_id: item.workbench_id, cv_sourced: 0 };
+  }
+
+  const { data: convData } = await supabaseServer
+    .from('candidates_conversation')
+    .select('parsing_id, calling_date')
+    .eq('req_id', item.req_id)
+    .eq('user_id', item.sent_to_rc)
+    .eq('calling_date', item.date);
+
+  if (!convData || convData.length === 0) {
+    return { workbench_id: item.workbench_id, cv_sourced: 0 };
+  }
+
+  const parsingIds = [
+    ...new Set(convData.map(c => c.parsing_id).filter(Boolean))
+  ];
+
+  if (parsingIds.length === 0) {
+    return { workbench_id: item.workbench_id, cv_sourced: 0 };
+  }
+
+  const { data: parsingData } = await supabaseServer
+    .from('cv_parsing')
+    .select('id, portal, portal_date')
+    .in('id', parsingIds);
+
+  const matched = convData.filter(conv => {
+    const p = parsingData?.find(p => p.id === conv.parsing_id);
+    if (!p) return false;
+
+    const pDate = p.portal_date?.split("T")[0];
+    const cDate = conv.calling_date?.split("T")[0];
+
+    return pDate === cDate;
+  });
+
+  // remove duplicates
+  const unique = [...new Map(matched.map(m => [m.parsing_id, m])).values()];
+
+  conversationStats.cv_sourced = unique.length;
+
+  return {
+    workbench_id: item.workbench_id,
+    cv_sourced: conversationStats.cv_sourced,
+  };
+});
 
     const cvResults = await Promise.all(cvPromises)
     const cvMap = new Map(cvResults.map(r => [r.workbench_id, r.cv_sourced]))
