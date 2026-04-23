@@ -185,6 +185,7 @@ export async function GET(request) {
         .from('candidates_conversation')
         .select('*', { count: 'exact', head: true })
         .eq('req_id', item.req_id)
+        .eq('user_id', item.sent_to_rc)
         .gte('calling_date', item.date)
         .lte('calling_date', item.date)
         .not('sent_to_tl', 'is', null)
@@ -217,33 +218,35 @@ export async function GET(request) {
     const trackerSentToTlResults = await Promise.all(trackerSentToTlPromises)
     const trackerSentToTlMap = new Map(trackerSentToTlResults.map(r => [r.workbench_id, r.tracker_sent_by_tl]))
 
-    // Fetch tracker_shared_to_client counts
+    // Fetch tracker_shared_to_client counts (matching Domestic logic: exact date + current CRM user)
     const trackerSharedPromises = workbenchData.map(async (item) => {
       if (!item.req_id || !item.date) {
         return { workbench_id: item.workbench_id, tracker_shared_to_client: 0 }
       }
-      
+
+      // Step 1: Get conversation_ids for this assignment (same as Domestic)
       const { data: conversationData } = await supabaseServer
         .from('candidates_conversation')
         .select('conversation_id')
         .eq('req_id', item.req_id)
-        .not('sent_to_crm', 'is', null)
-        .gte('crm_sent_date', from_date)
-        .lte('crm_sent_date', to_date)
-      
+        .eq('user_id', item.sent_to_rc)
+        .eq('calling_date', item.date)
+
       if (!conversationData || conversationData.length === 0) {
         return { workbench_id: item.workbench_id, tracker_shared_to_client: 0 }
       }
-      
+
       const conversationIds = conversationData.map(c => c.conversation_id)
-      
+
+      // Step 2: Count emails shared by current CRM user on that exact date
       const { count } = await supabaseServer
         .from('corporate_crm_emails')
         .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.user_id || user.id)
         .in('conversation_id', conversationIds)
-        .gte('shared_date', from_date)
-        .lte('shared_date', to_date)
-      
+        .gte('shared_date', item.date)
+        .lte('shared_date', item.date)
+
       return { workbench_id: item.workbench_id, tracker_shared_to_client: count || 0 }
     })
 

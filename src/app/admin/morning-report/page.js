@@ -1,39 +1,58 @@
-"use client";
-import { useState, useEffect } from "react";
-import { useRouter } from 'next/navigation';
-import {
-    FileText, ArrowLeft, Briefcase, Users,Search,Calendar,Send,UserCheck,MessageSquare,Settings,Clock,Eye,Printer,
-    Laptop, SunMedium , TrendingUp, Building2, Home, Rocket,IndianRupee, CheckCircle2, Globe2, Store, FileSpreadsheet, Database, PhoneCall, File, X
-} from "lucide-react";
-import Image from "next/image";
+ "use client";
+ import { useState, useEffect } from "react";
+ import { useRouter } from 'next/navigation';
+ import {
+     FileText, ArrowLeft, Briefcase, Users,Search,Calendar,Send,UserCheck,MessageSquare,Settings,Clock,Eye,Printer,
+     Laptop, SunMedium , TrendingUp, Building2, Home, Rocket,IndianRupee, CheckCircle2, Globe2, Store, FileSpreadsheet, Database, PhoneCall, File, X
+ } from "lucide-react";
+ import Image from "next/image";
 
-export default function MorningReportPage() {
-    const router = useRouter();
-    // --- STATE FOR TABS ---
-    const [activeTab, setActiveTab] = useState("Sales & Delivery");
+ // Helper to get yesterday's date (if yesterday was Sunday, return Saturday)
+ const getYesterdayDate = () => {
+     const today = new Date();
+     const yesterday = new Date(today);
+     yesterday.setDate(yesterday.getDate() - 1);
 
-    // --- GET CURRENT MONTH ---
-    const [currentMonth, setCurrentMonth] = useState('');
-    
-    useEffect(() => {
-        setCurrentMonth(new Date().toLocaleString('en-US', { month: 'long' }));
-    }, []);
+     // If yesterday was Sunday (0), go back one more day to Saturday
+     if (yesterday.getDay() === 0) {
+         yesterday.setDate(yesterday.getDate() - 1);
+     }
 
-    // --- STATE FOR INPUT VALUES (from localStorage) ---
-    const [inputValues, setInputValues] = useState({
-        masterUnionProfiles: '',
-        masterUnionCalling: '',
-        totalCtc: '',
-        corporateRemarks: '',
-        domesticRemarks: '',
-        jobPostRemarks: ''
-    });
+     // Format as YYYY-MM-DD using local time (avoid UTC shift)
+     const year = yesterday.getFullYear();
+     const month = String(yesterday.getMonth() + 1).padStart(2, '0');
+     const day = String(yesterday.getDate()).padStart(2, '0');
+     return `${year}-${month}-${day}`;
+ };
 
-    // --- DELIVERY WORKBENCH REPORT STATES & MOCK DATA ---
-    const [cvModalData, setCvModalData] = useState(null);
-    const [jdModalData, setJdModalData] = useState(null);
-     const [wbFromDate, setWbFromDate] = useState("2026-04-09");
-     const [wbToDate, setWbToDate] = useState("2026-04-09");
+ export default function MorningReportPage() {
+     const router = useRouter();
+     // --- STATE FOR TABS ---
+     const [activeTab, setActiveTab] = useState("Sales & Delivery");
+
+     // --- GET CURRENT MONTH ---
+     const [currentMonth, setCurrentMonth] = useState('');
+
+     useEffect(() => {
+         setCurrentMonth(new Date().toLocaleString('en-US', { month: 'long' }));
+     }, []);
+
+     // --- STATE FOR INPUT VALUES (from localStorage) ---
+     const [inputValues, setInputValues] = useState({
+         masterUnionProfiles: '',
+         masterUnionCalling: '',
+         totalCtc: '',
+         corporateRemarks: '',
+         domesticRemarks: '',
+         jobPostRemarks: ''
+     });
+
+     // --- DELIVERY WORKBENCH REPORT STATES & MOCK DATA ---
+     const [cvModalData, setCvModalData] = useState(null);
+     const [jdModalData, setJdModalData] = useState(null);
+     const defaultDate = getYesterdayDate();
+     const [wbFromDate, setWbFromDate] = useState(defaultDate);
+     const [wbToDate, setWbToDate] = useState(defaultDate);
      const [wbLoading, setWbLoading] = useState(false);
      const [domesticWbLoading, setDomesticWbLoading] = useState(false);
 
@@ -1151,9 +1170,9 @@ export default function MorningReportPage() {
                                                      <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> Adv STI</div></th>
                                                      <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><TrendingUp size={12}/> Conv.</div></th>
                                                      <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Database size={12}/> Asset</div></th>
-                                                     <th className="p-2.5 border-r border-blue-800 text-center bg-gray-700/50"><div className="flex items-center justify-center gap-1.5"><UserCheck size={12}/> T. Rcvd</div></th>
+                                                     <th className="p-2.5 border-r border-blue-800 text-center bg-gray-700/50"><div className="flex items-center justify-center gap-1.5"><UserCheck size={12}/> T. Sent BY RC</div></th>
                                                      <th className="p-2.5 border-r border-blue-800 text-center bg-indigo-600/50"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> T.Sent By TL</div></th>
-                                                     <th className="p-2.5 border-r border-blue-800 text-center bg-indigo-700/50"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> T. Shared</div></th>
+                                                     <th className="p-2.5 border-r border-blue-800 text-center bg-indigo-700/50"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> T. Shared To Client</div></th>
                                                      <th className="p-2.5 border-r border-blue-800 min-w-[160px]"><div className="flex items-center gap-1.5"><MessageSquare size={12}/> RC Notes</div></th>
                                                      <th className="p-2.5 min-w-[160px] bg-[#0d316a] text-yellow-300"><div className="flex items-center gap-1.5"><Settings size={12}/> TL Remarks</div></th>
                                                  </tr>
