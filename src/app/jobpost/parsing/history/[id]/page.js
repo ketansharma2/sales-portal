@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { 
-    ArrowLeft, History, User, Plus, Send, Trash2, 
+    ArrowLeft, History, User, Plus, Send, Trash2, Building2,
     Calendar, Phone, Briefcase, MapPin, IndianRupee, Clock,
     FileText, CheckCircle2, MessageSquareText, AlertCircle, Bookmark,X , Edit
 } from "lucide-react";
@@ -11,18 +11,18 @@ import {
 const MOCK_TL_DETAILS = { user_id: "tl123", name: "Gurmeet Aneja", email: "gurmeet@mavenjobs.in" };
 
 const MOCK_WORKBENCH_OPTIONS = [
-    { value: "req1", label: "Frontend Developer • 10:00 - 11:30 (TechNova)" },
-    { value: "req2", label: "Backend Engineer • 12:00 - 01:30 (Global Finance)" },
-    { value: "req3", label: "UI/UX Designer • 02:00 - 03:30 (Urban Builders)" }
+    { id: "req1", date: "2026-04-10", client: "TechNova Solutions", profile: "Frontend Developer" },
+    { id: "req2", date: "2026-04-10", client: "Google", profile: "Backend Engineer" },
+    { id: "req3", date: "2026-04-05", client: "Global Finance", profile: "Backend Engineer" },
+    { id: "req4", date: "2026-04-12", client: "Urban Builders", profile: "UI/UX Designer" }
 ];
 
 const MOCK_FOLLOWUPS = [
     {
         id: 1,
-        req_id: "req1",
+        company_name: "TechNova Solutions", // company_name की जगह client_name
         profile: "Frontend Developer",
-        company_name: "TechNova",
-        slot: "10:00 - 11:30",
+        postDate: "2026-04-08",          // slot की जगह postDate
         applyDate: "2026-04-10",
         callingDate: "2026-04-12",
         relExp: "2 Yrs",
@@ -31,16 +31,14 @@ const MOCK_FOLLOWUPS = [
         status: "Shortlisted",
         feedback: "Good communication, technically strong.",
         isTracker: false,
-        tl_name: "",
         rc_name: "Neha Gupta",
         rc_id: "user1"
     },
     {
         id: 2,
-        req_id: "req2",
+        company_name: "Global Finance",     // company_name की जगह client_name
         profile: "Backend Engineer",
-        company_name: "Global Finance",
-        slot: "12:00 - 01:30",
+        postDate: "2026-04-01",          // slot की जगह postDate
         applyDate: "2026-04-05",
         callingDate: "2026-04-06",
         relExp: "4 Yrs",
@@ -49,7 +47,6 @@ const MOCK_FOLLOWUPS = [
         status: "Interview",
         feedback: "Scheduled for technical round next week.",
         isTracker: true,
-        tl_name: "Gurmeet Aneja",
         rc_name: "Neha Gupta",
         rc_id: "user1" // Assume current user is "user1"
     }
@@ -125,8 +122,12 @@ export default function CandidateHistoryPage() {
     const slotOptions = ["10:00 - 11:30", "12:00 - 01:30", "02:00 - 03:30", "Other"];
 
     const initialForm = {
-        req_id: "", profile: "", slot: "",
-        applyDate: getToday(), callingDate: getToday(),
+        postDate: getToday(), // By default today's date
+        req_id: "",           // We'll still keep req_id internally
+        client_name: "", 
+        profile: "",
+        applyDate: getToday(), 
+        callingDate: getToday(),
         relExp: "", currCtc: "", expCtc: "",
         status: "", feedback: ""
     };
@@ -241,7 +242,7 @@ export default function CandidateHistoryPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-6">
+        <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-2 md:p-3">
             
             {/* Header with Back Button */}
             <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
@@ -283,43 +284,57 @@ export default function CandidateHistoryPage() {
 
                 <div className="overflow-x-auto custom-scrollbar min-h-[300px] max-h-[70vh]">
                     <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1200px]">
-                        <thead className="sticky top-0 bg-white shadow-sm z-10">
+                       <thead className="sticky top-0 bg-white shadow-sm z-10">
                             <tr className="border-b-2 border-slate-100">
                                 <th className="py-3 px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-10">#</th>
                                 <th className="py-3 px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest w-24">RC Name</th>
-                                <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Assigned Client/Profile & Slot</th>
+                                <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-24">Post Date</th>
+                                <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Client & Profile</th>                                
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Dates</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Relevant Exp</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Curr CTC/Exp CTC</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest max-w-[200px]">Feedback</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Candidate Status</th>
-                                <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center border-l border-slate-200 w-36">Actions</th>
-                                <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center border-l border-slate-200 w-32 sticky right-0 bg-slate-50">Tracker Status</th>
+                                <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center border-l border-slate-200 w-36 sticky right-0 bg-slate-50">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
                             {isLoadingFollowups ? (
-                                <tr><td colSpan="10" className="text-center py-10 text-slate-400 font-bold">Loading...</td></tr>
+                                <tr><td colSpan="9" className="text-center py-10 text-slate-400 font-bold">Loading...</td></tr>
                             ) : followups.length > 0 ? followups.map((row, idx) => (
                                 <tr key={row.id} className={`transition-colors ${row.isTracker ? 'bg-emerald-50/20 hover:bg-emerald-50/40' : 'hover:bg-blue-50/30'}`}>
                                     <td className="py-3 px-3 text-center text-xs font-bold text-slate-400">{idx + 1}</td>
                                     
-                                    {/* RC Name */}
                                     <td className="py-3 px-3">
                                         <span className="text-[10px] font-black text-slate-600 uppercase">{row.rc_name || '-'}</span>
                                     </td>
                                     
-                                    {/* Display Profile & Slot */}
+                                    {/* 1st Split Column: Post Date */}
                                     <td className="py-3 px-4">
-                                        <div className="flex items-center">
-                                            <p className="text-xs font-black text-slate-800 whitespace-normal min-w-[150px]">{row.profile}</p>
-                                            {row.company_name && row.company_name !== '-' && (
-                                                <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">{row.company_name}</span>
-                                            )}
-                                        </div>
-                                        {row.slot && row.slot !== '-' && (
-                                            <p className="text-[11px] font-bold text-blue-600 mt-0.5">{row.slot}</p>
+                                        {row.postDate && row.postDate !== '-' ? (
+                                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded w-fit border border-slate-100">
+                                                <Calendar size={10} className="text-blue-500" />
+                                                <span>{row.postDate}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-[10px] text-slate-400 font-medium">-</span>
                                         )}
+                                    </td>
+
+                                    {/* 2nd Split Column: Client & Profile */}
+                                    <td className="py-3 px-4">
+                                        <div className="flex flex-col gap-1">
+                                            {row.company_name && row.company_name !== '-' && (
+                                                <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded w-fit uppercase tracking-wider">
+                                                    <Building2 size={8} className="inline mr-1" />
+                                                    {row.company_name}
+                                                </span>
+                                            )}
+                                            <p className="text-xs font-black text-slate-800 flex items-center gap-1.5 mt-0.5">
+                                                <Briefcase size={12} className="text-slate-400" />
+                                                {row.profile}
+                                            </p>
+                                        </div>
                                     </td>
 
                                     <td className="py-3 px-4">
@@ -360,31 +375,35 @@ export default function CandidateHistoryPage() {
                                         })()}
                                     </td>
 
-                                    {/* Action Buttons (Edit, Delete, Send) - Only show for own conversations */}
-                                    <td className="py-3 px-4 text-center border-l border-slate-200">
-                                        {row.rc_id === currentUserId ? (
+                                    {/* Action Buttons & Sent Status */}
+                                    <td className="py-3 px-4 text-center border-l border-slate-200 sticky right-0 bg-white group-hover:bg-blue-50/30 transition-colors">
+                                        {row.isTracker ? (
+                                            /* Show SENT status instead of buttons */
+                                            <div className="flex items-center justify-center gap-1 text-emerald-600 font-black text-xs uppercase tracking-widest">
+                                                <CheckCircle2 size={14} /> Sent
+                                            </div>
+                                        ) : row.rc_id === currentUserId ? (
+                                            /* Show Action Buttons */
                                             <div className="flex items-center justify-center gap-1.5">
                                                 <button 
                                                     onClick={() => handleEditOpen(row)}
-                                                    disabled={row.isTracker}
-                                                    className={`w-7 h-7 rounded border flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${row.isTracker ? 'bg-slate-50 text-slate-300 border-slate-200' : 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100'}`}
-                                                    title={row.isTracker ? "Cannot edit - already sent to TL" : "Edit Followup"}
+                                                    className="w-7 h-7 rounded border flex items-center justify-center transition-colors bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                                                    title="Edit Followup"
                                                 >
                                                     <Edit size={12} />
                                                 </button>
                                                 <button 
                                                     onClick={() => handleSendToTL(row.id)}
-                                                    disabled={row.isTracker}
-                                                    className="w-7 h-7 rounded bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    title={row.isTracker ? "Already Sent" : "Send to TL"}
+                                                    className="w-7 h-7 rounded bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 flex items-center justify-center transition-colors"
+                                                    title="Send to TL"
                                                 >
-                                                    <Send size={12} className={row.isTracker ? "" : "ml-0.5"} />
+                                                    <Send size={12} className="ml-0.5" />
                                                 </button>
                                                 <button 
                                                     onClick={() => handleDelete(row.id)}
-                                                    disabled={isDeleting || row.isTracker}
-                                                    className={`w-7 h-7 rounded flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${row.isTracker ? 'bg-slate-50 text-slate-300 border border-slate-200' : 'bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100'}`}
-                                                    title={row.isTracker ? "Cannot delete - already sent to TL" : "Delete Followup"}
+                                                    disabled={isDeleting}
+                                                    className="w-7 h-7 rounded flex items-center justify-center transition-colors bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 disabled:opacity-50"
+                                                    title="Delete Followup"
                                                 >
                                                     <Trash2 size={13} />
                                                 </button>
@@ -393,26 +412,10 @@ export default function CandidateHistoryPage() {
                                             <span className="text-[9px] font-bold text-slate-400 italic">Other's</span>
                                         )}
                                     </td>
-
-                                    {/* Tracker Status Column */}
-                                    <td className="py-3 px-4 sticky right-0 bg-white border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] w-32 text-center">
-                                        {row.isTracker ? (
-                                            <div>
-                                                <span className="bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1 w-max mx-auto">
-                                                    <CheckCircle2 size={10}/> Sent to TL
-                                                </span>
-                                                <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wider">{row.tl_name || 'Unknown'}</p>
-                                            </div>
-                                        ) : (
-                                            <span className="bg-slate-100 text-slate-500 border border-slate-200 px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest">
-                                                Not Sent
-                                            </span>
-                                        )}
-                                    </td>
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan="10" className="py-10 text-center text-slate-400">
+                                    <td colSpan="9" className="py-10 text-center text-slate-400">
                                         <AlertCircle size={24} className="mx-auto mb-2 opacity-50"/>
                                         <p className="text-xs font-bold uppercase tracking-widest">No followups available</p>
                                     </td>
@@ -443,53 +446,81 @@ export default function CandidateHistoryPage() {
                         {/* Form Body - Grid Layout */}
                         <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 custom-scrollbar bg-slate-50/30">
                             
-                             {/* Combined Profile & Slot Dropdown */}
-                             <div className="md:col-span-2">
+                             {/* --- NEW: Dependent Dropdown Logic --- */}
+                             
+                             {/* Step 1: Select Post Date */}
+                             <div>
                                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">
-                                     Select Assigned Profile & Slot <span className="text-red-500">*</span>
+                                     Post Date <span className="text-red-500">*</span>
+                                 </label>
+                                 <div className="relative">
+                                     <Calendar size={14} className="absolute left-3 top-2.5 text-slate-400" />
+                                     <input 
+                                         type="date" 
+                                         className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg pl-9 pr-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                                         value={formData.postDate} 
+                                         onChange={(e) => {
+                                             // Update postDate and reset client/profile since the date changed
+                                             setFormData({
+                                                 ...formData, 
+                                                 postDate: e.target.value,
+                                                 req_id: "",
+                                                 client_name: "",
+                                                 profile: ""
+                                             });
+                                         }}
+                                     />
+                                 </div>
+                             </div>
+
+                             {/* Step 2: Select Client & Profile based on Post Date */}
+                             <div>
+                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">
+                                     Select Client & Profile <span className="text-red-500">*</span>
                                  </label>
                                   <select 
-                                      className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer"
+                                      className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer disabled:opacity-50 disabled:bg-slate-50"
                                       value={formData.req_id} 
+                                      disabled={!formData.postDate}
                                       onChange={(e) => {
-                                          const selectedOption = workbenchOptions.find(opt => opt.value === e.target.value);
-                                          if (selectedOption) {
-                                              const label = selectedOption.label;
-                                              const slotPart = label.split(' • ')[1] || '';
-                                              const firstParenIndex = slotPart.indexOf('(');
-                                              const slot = firstParenIndex > -1 ? slotPart.substring(0, firstParenIndex).trim() : slotPart.trim();
+                                          const selectedJob = workbenchOptions.find(job => job.id === e.target.value);
+                                          if (selectedJob) {
                                               setFormData({
                                                   ...formData,
-                                                  req_id: e.target.value,
-                                                  profile: label.split(' • ')[0] || '',
-                                                  slot: slot
+                                                  req_id: selectedJob.id,
+                                                  client_name: selectedJob.client,
+                                                  profile: selectedJob.profile
                                               });
                                           } else {
                                               setFormData({
                                                   ...formData,
                                                   req_id: "",
-                                                  profile: "",
-                                                  slot: ""
+                                                  client_name: "",
+                                                  profile: ""
                                               });
                                           }
                                       }}
                                   >
-                                     <option value="">-- Choose Profile & Slot --</option>
+                                     <option value="">-- Choose Profile --</option>
                                      {isLoadingWorkbench ? (
                                          <option value="" disabled>Loading...</option>
                                      ) : (
-                                         workbenchOptions.length > 0 ? (
-                                             workbenchOptions.map(option => (
-                                                 <option key={option.value} value={option.value}>
-                                                     {option.label}
+                                         // FILTER options based on selected postDate
+                                         workbenchOptions
+                                            .filter(job => job.date === formData.postDate)
+                                            .map(job => (
+                                                 <option key={job.id} value={job.id}>
+                                                     {job.client} • {job.profile}
                                                  </option>
                                              ))
-                                         ) : (
-                                             <option value="" disabled>No profiles available</option>
-                                         )
+                                     )}
+                                     {/* Show message if no jobs found for that date */}
+                                     {!isLoadingWorkbench && formData.postDate && workbenchOptions.filter(job => job.date === formData.postDate).length === 0 && (
+                                         <option value="" disabled>No postings found on this date</option>
                                      )}
                                  </select>
                              </div>
+                             {/* --- END NEW LOGIC --- */}
 
                             <div>
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Apply Date <span className="text-red-500">*</span></label>
