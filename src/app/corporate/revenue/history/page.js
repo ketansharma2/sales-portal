@@ -35,7 +35,7 @@ export default function RevenuePage() {
   };
   // --- DUMMY DATA ---
   const CLIENT_DB = [
-  { id: 1, name: "TechNova Solutions", address: "123 Tech Park, Phase 1", gstin: "07AAABCTECH1Z", state: "Delhi", defaultBillingPercent: 8.33 },
+  { id: 1, name: "ZARIA", address: "C-58/2, PHASE-II, OKHLA INDUSTRIAL AREA, South East Delhi,Delhi, 110020", gstin: "07BUPPS7530B1ZF", state: "Delhi", defaultBillingPercent: 6.33 },
   { id: 2, name: "Global Finance", address: "45 Business Hub, Sector 62", gstin: "09AAABCGLOB2Z", state: "UP", defaultBillingPercent: 10.0 },
   { id: 3, name: "Urban Builders", address: "78 City Center", gstin: "06AAABCURBN3Z", state: "Haryana", defaultBillingPercent: 8.33 },
 ];
@@ -67,8 +67,8 @@ const STATES = ["Haryana", "Delhi", "Punjab", "UP", "Rajasthan", "Maharashtra", 
       crm_name: "Neha Gupta",
       payment_from: "Client", 
       client_name: "TechNova Solutions",
-      candidate_name: "Amit Verma",
-      position: "Frontend Developer",
+      candidate_name: "Kanchan",
+      position: "Telecaller",
       joining_date: "2026-04-15",
       candidate_status: "Working",
       payment_status: "Invoice Sent",
@@ -77,11 +77,11 @@ const STATES = ["Haryana", "Delhi", "Punjab", "UP", "Rajasthan", "Maharashtra", 
       id: 2,
       entry_date: "2026-03-25",
       submitted_date: "2026-03-28", // Changed from invoice_sent_date
-      crm_name: "Rohan Patel",
+      crm_name: "Rimjhim",
       payment_from: "Candidate",
       client_name: "Global Finance",
-      candidate_name: "Sneha Patil",
-      position: "Data Analyst",
+      candidate_name: "Rimjhim",
+      position: "Telecaller",
       joining_date: "2026-03-01",
       candidate_status: "Working",
       payment_status: "Received",
@@ -90,11 +90,11 @@ const STATES = ["Haryana", "Delhi", "Punjab", "UP", "Rajasthan", "Maharashtra", 
       id: 3,
       entry_date: "2026-04-05",
       submitted_date: "", // Not submitted to revenue yet
-      crm_name: "Neha Gupta",
+      crm_name: "kajal",
       payment_from: "Client",
       client_name: "Urban Builders",
-      candidate_name: "Ravi Teja",
-      position: "Civil Engineer",
+      candidate_name: "Kajal",
+      position: "Telecaller",
       joining_date: "2026-04-20",
       candidate_status: "Pending Join",
       payment_status: "Pending",
@@ -221,7 +221,7 @@ const STATES = ["Haryana", "Delhi", "Punjab", "UP", "Rajasthan", "Maharashtra", 
     const grandTotal = Math.round(taxableValue + cgst + sgst + igst); // <-- पहले टोटल निकालें
     
     setGeneratedPi({
-      invoiceNo: `SAVVI/PI/${new Date().toISOString().split('T')[0].replace(/-/g, '')}/${Math.floor(Math.random() * 100)}`,
+      invoiceNo: `SAVVI/PI/${new Date().toISOString().split('T')[0].replace(/-/g, '')}/11`,
       date: new Date().toISOString().split('T')[0],
       ...piForm, 
       taxableValue, 
@@ -663,27 +663,40 @@ const STATES = ["Haryana", "Delhi", "Punjab", "UP", "Rajasthan", "Maharashtra", 
             <div className="p-4 text-black flex flex-col"> 
               
               {/* --- Header --- */}
-              <div className="flex justify-between items-center border-b-4 border-[#103c7f] pb-6 mb-8">
-                <div className="flex items-center gap-2">
-                  <img src="/Savvi-Logo.png" alt="Savvi Logo" className="h-30 w-auto object-contain" />
-                  <div className="text-[11px] font-bold leading-tight text-gray-600 uppercase border-l-2 border-gray-200 pl-5 py-2">
-                    <p className="text-black text-sm mb-1">{COMPANY_DATA.name}</p>
-                    <p>{COMPANY_DATA.address}</p>
-                    <p>EMAIL: {COMPANY_DATA.email}</p>
-                    <p className="text-black mt-1">GSTIN: {COMPANY_DATA.gstin}</p>
+              <div className="border-b-4 border-[#103c7f] pb-1 mb-8">
+                
+                {/* --- 2. Details and Logos below the heading --- */}
+                <div className="flex justify-between items-start">
+                  
+                  {/* Left side */}
+                  <div className="flex items-center gap-2">
+                    <img src="/Savvi-Logo.png" alt="Savvi Logo" className="h-30 w-auto object-contain" />
+                    <div className="text-[11px] font-bold leading-tight text-gray-600 uppercase border-l-2 border-gray-200 pl-5 py-2">
+                      <p className="text-black text-sm mb-1">{COMPANY_DATA.name}</p>
+                      <p>{COMPANY_DATA.address}</p>
+                      <p>EMAIL: {COMPANY_DATA.email}</p>
+                      <p className="text-black mt-1">GSTIN: {COMPANY_DATA.gstin}</p>
+                    </div>
                   </div>
+                  {/* Right side */}
+                  <div className="flex flex-col items-end text-right mt-1"> 
+                    <div className="flex flex-col items-end mb-3">
+                      <img src="/maven-logo.png" alt="Maven Logo" className="h-8 w-auto object-contain" />
+                    </div>
+                    <div className="text-xs space-y-1.5">
+                      {/* Heading removed from here and moved to the top */}
+                      <p><b>PI NO:</b> {generatedPi.invoiceNo}</p>
+                      <p><b>DATE:</b> {generatedPi.date}</p>
+                      {generatedPi.fromDate && <p><b>FROM:</b> {generatedPi.fromDate} <span className="mx-1">|</span> <b>TO:</b> {generatedPi.toDate}</p>}
+                    </div>
+                  </div>
+                  {/*heading*/}
+                  
                 </div>
-                <div className="flex flex-col items-end text-right"> 
-                  <div className="flex flex-col items-end mb-2">
-                    <img src="/maven-logo.png" alt="Maven Logo" className="h-8 w-auto object-contain" />
-                  </div>
-                  <div className="text-xs space-y-1">
-                    <h1 className="text-3xl font-black uppercase mb-1 text-[#103c7f] tracking-tight">Proforma Invoice</h1>
-                    <p><b>PI NO:</b> {generatedPi.invoiceNo}</p>
-                    <p><b>DATE:</b> {generatedPi.date}</p>
-                    {generatedPi.fromDate && <p><b>FROM:</b> {generatedPi.fromDate} <b>TO:</b> {generatedPi.toDate}</p>}
-                  </div>
-                </div>
+                {/* --- 1. Centered Heading at the top --- */}
+                <h1 className="text-center text-3xl font-black uppercase mb-0 text-[#103c7f] tracking-tight w-full">
+                  Proforma Invoice
+                </h1>
               </div>
 
               {/* --- Billed To & Bank Details --- */}
@@ -739,9 +752,9 @@ const STATES = ["Haryana", "Delhi", "Punjab", "UP", "Rajasthan", "Maharashtra", 
                   <table className="w-full border-collapse border border-gray-300">
                     <thead>
                       <tr className="bg-gray-100 text-gray-600">
-                        <th className="p-2 border border-gray-300 text-center text-[9px] font-bold uppercase tracking-wider w-10">Sr No</th>
+                        <th className="p-2 border border-gray-300 text-center text-[9px] font-bold uppercase tracking-wider w-12">Sr No</th>
+                        <th className="p-2 border border-gray-300 text-center text-[9px] font-bold uppercase tracking-wider">Candidate Name</th>
                         <th className="p-2 border border-gray-300 text-left text-[9px] font-bold uppercase tracking-wider">Job Role</th>
-                        <th className="p-2 border border-gray-300 text-left text-[9px] font-bold uppercase tracking-wider">Candidate Name</th>
                         <th className="p-2 border border-gray-300 text-right text-[9px] font-bold uppercase tracking-wider">CTC (Annual)</th>
                         <th className="p-2 border border-gray-300 text-center text-[9px] font-bold uppercase tracking-wider w-16">Billing %</th>
                         <th className="p-2 border border-gray-300 text-right text-[9px] font-bold uppercase tracking-wider">Fee Amount</th>
@@ -753,8 +766,8 @@ const STATES = ["Haryana", "Delhi", "Punjab", "UP", "Rajasthan", "Maharashtra", 
                         return (
                           <tr key={c.id}>
                             <td className="p-2 border-r border-gray-300 text-center text-gray-500">{idx + 1}</td>
-                            <td className="p-2 border-r border-gray-300 text-gray-700">{c.role}</td>
-                            <td className="p-2 border-r border-gray-300 font-bold uppercase text-[#103c7f]">{c.name}</td>
+                            <td className="p-2 border-r border-gray-300 text-center font-bold uppercase text-[#103c7f]">{c.name}</td>
+                            <td className="p-2 border-r border-gray-300 text-left text-gray-700">{c.role}</td>
                             <td className="p-2 border-r border-gray-300 text-right text-gray-700">₹{Number(c.ctc).toLocaleString('en-IN')}</td>
                             <td className="p-2 border-r border-gray-300 text-center text-gray-700">{c.billingPercent}%</td>
                             <td className="p-2 text-right font-bold text-gray-900">₹{feeAmt.toLocaleString('en-IN', {maximumFractionDigits: 2})}</td>
