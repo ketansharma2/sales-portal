@@ -44,7 +44,7 @@ export default function JobPosterPanel() {
 
    // New Link Form State
    const getTodayDate = () => new Date().toISOString().split('T')[0];
-   const initialLinkForm = { platform: "Indeed", live_url: "", stage: "Active", postedOn: getTodayDate() };
+   const initialLinkForm = { platform: "Indeed", live_url: "", postedOn: getTodayDate() };
    const [newLink, setNewLink] = useState(initialLinkForm);
    const [isSavingLink, setIsSavingLink] = useState(false);
 
@@ -115,14 +115,14 @@ export default function JobPosterPanel() {
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${session.access_token}`
               },
-              body: JSON.stringify({
-                  jd_id: selectedJD.jd_id,
-                  user_id: userId,
-                  platform: newLink.platform,
-                  live_url: newLink.live_url,
-                  current_stage: newLink.stage,
-                  posted_on: newLink.postedOn
-              })
+               body: JSON.stringify({
+                   jd_id: selectedJD.jd_id,
+                   user_id: userId,
+                   platform: newLink.platform,
+                   live_url: newLink.live_url,
+                   current_stage: "Open",
+                   posted_on: newLink.postedOn
+               })
           });
 
           const result = await response.json();
@@ -460,7 +460,7 @@ export default function JobPosterPanel() {
   // --- HELPERS ---
   const getActiveCount = (details) => {
     if (!details || !Array.isArray(details)) return 0;
-    return details.filter(d => d.stage === 'Active').length;
+    return details.filter(d => d.stage === 'Active' || d.stage === 'Open').length;
   };
   const getTotalCVs = (logs) => {
     if (!logs || !Array.isArray(logs)) return 0;
@@ -480,35 +480,74 @@ export default function JobPosterPanel() {
          </div>
          
          {/* Simple Stats Card */}
-         <div className="flex gap-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-             <div className="text-center px-4 border-r border-gray-100">
-                 <p className="text-[10px] font-bold text-gray-400 uppercase">Pending</p>
-                 <p className="text-xl font-black text-orange-500">
-                    {postings.filter(p => (p.jdStatus || 'Sent') === 'Sent').length}
-                 </p>
-             </div>
-             <div className="text-center px-4 border-r border-gray-100">
-                 <p className="text-[10px] font-bold text-gray-400 uppercase">Live</p>
-                 <p className="text-xl font-black text-green-600">
-                    {postings.filter(p => (p.jdStatus || 'Sent') === 'Live').length}
-                 </p>
-             </div>
-             <div className="text-center px-4 border-r border-gray-100">
-                 <p className="text-[10px] font-bold text-gray-400 uppercase">Paused</p>
-                 <p className="text-xl font-black text-gray-500">
-                    {postings.filter(p => (p.jdStatus || 'Sent') === 'Paused').length}
-                 </p>
-             </div>
-             <div className="text-center px-4">
-                 <p className="text-[10px] font-bold text-gray-400 uppercase">Deleted</p>
-                 <p className="text-xl font-black text-red-500">
-                    {postings.filter(p => (p.jdStatus || 'Sent') === 'Deleted').length}
-                 </p>
-             </div>
-         </div>
-      </div>
+          <div className="flex gap-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex-wrap">
+              {/* TOTAL POSTS */}
+              <div className="text-center px-4 border-r border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase">Total Posts</p>
+                  <p className="text-xl font-black text-slate-800">
+                     {postings.length}
+                  </p>
+              </div>
 
-      {/* 2. TABLE */}
+              {/* PENDING */}
+              <div className="text-center px-4 border-r border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase">Pending</p>
+                  <p className="text-xl font-black text-orange-500">
+                     {postings.filter(p => p.jdStatus === 'Sent' || p.jdStatus === 'Pending' || !p.jdStatus).length}
+                  </p>
+              </div>
+
+              {/* OPEN */}
+              <div className="text-center px-4 border-r border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase">Open</p>
+                  <p className="text-xl font-black text-green-600">
+                     {postings.filter(p => p.jdStatus === 'Open' || p.jdStatus === 'Live').length}
+                  </p>
+              </div>
+
+              {/* PAUSED */}
+              <div className="text-center px-4 border-r border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase">Paused</p>
+                  <p className="text-xl font-black text-gray-500">
+                     {postings.filter(p => p.jdStatus === 'Paused').length}
+                  </p>
+              </div>
+
+              {/* FLAGGED */}
+              <div className="text-center px-4 border-r border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase">Flagged</p>
+                  <p className="text-xl font-black text-yellow-600">
+                     {postings.filter(p => p.jdStatus === 'Flagged').length}
+                  </p>
+              </div>
+
+              {/* CLOSED */}
+              <div className="text-center px-4 border-r border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase">Closed</p>
+                  <p className="text-xl font-black text-red-500">
+                     {postings.filter(p => p.jdStatus === 'Closed' || p.jdStatus === 'Deleted').length}
+                  </p>
+              </div>
+
+              {/* TOTAL CVs */}
+              <div className="text-center px-4 border-r border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase">CVs</p>
+                  <p className="text-xl font-black text-indigo-600">
+                     {postings.reduce((sum, p) => sum + (p.cvLogs?.reduce((s, log) => s + Number(log.count || 0), 0) || 0), 0)}
+                  </p>
+              </div>
+
+              {/* TOTAL CALLS */}
+              <div className="text-center px-4">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase">Calls</p>
+                  <p className="text-xl font-black text-emerald-600">
+                     {postings.reduce((sum, p) => sum + (p.cvLogs?.reduce((s, log) => s + Number(log.callingCount || 0), 0) || 0), 0)}
+                  </p>
+              </div>
+          </div>
+       </div>
+
+       {/* 2. TABLE */}
       <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm print:hidden">
          <div className="overflow-x-auto">
              <table className="w-full text-left border-collapse min-w-[1000px]">
@@ -573,19 +612,27 @@ export default function JobPosterPanel() {
                             <td className="p-2 border-r border-gray-100 text-center">
                                 {/* Always show dropdown but default to current status */}
                                 <select 
-                                    value={post.jdStatus || 'Sent'}
+                                    value={
+                                      post.jdStatus === 'Sent' ? 'Pending' :
+                                      post.jdStatus === 'Live' ? 'Open' :
+                                      post.jdStatus === 'Deleted' ? 'Closed' :
+                                      post.jdStatus || 'Pending'
+                                    }
                                     onChange={(e) => handleStatusChange(post.jd_id, e.target.value)}
                                     className={`text-[9px] font-black uppercase border rounded px-2 py-1 cursor-pointer ${
-                                        (post.jdStatus || 'Sent') === 'Sent' ? 'bg-orange-50 text-orange-600 border-orange-200' :
-                                        (post.jdStatus || 'Sent') === 'Live' ? 'bg-green-50 text-green-700 border-green-200' :
-                                        (post.jdStatus || 'Sent') === 'Paused' ? 'bg-gray-100 text-gray-500 border-gray-200' :
-                                        'bg-red-50 text-red-600 border-red-200'
+                                        (post.jdStatus === 'Sent' || (post.jdStatus || 'Pending') === 'Pending') ? 'bg-orange-50 text-orange-600 border-orange-200' :
+                                        post.jdStatus === 'Open' || post.jdStatus === 'Live' ? 'bg-green-50 text-green-700 border-green-200' :
+                                        post.jdStatus === 'Paused' ? 'bg-gray-100 text-gray-500 border-gray-200' :
+                                        post.jdStatus === 'Closed' || post.jdStatus === 'Deleted' ? 'bg-red-50 text-red-600 border-red-200' :
+                                        post.jdStatus === 'Flagged' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                        'bg-gray-100 text-gray-600 border-gray-200'
                                     }`}
                                 >
-                                    <option value="Sent">Pending</option>
-                                    <option value="Live">Live</option>
+                                    <option value="Pending">Pending</option>
+                                    <option value="Open">Open</option>
+                                    <option value="Closed">Closed</option>
                                     <option value="Paused">Paused</option>
-                                    <option value="Deleted">Deleted</option>
+                                    <option value="Flagged">Flagged</option>
                                 </select>
                             </td>
 
@@ -745,28 +792,21 @@ export default function JobPosterPanel() {
                                         <LinkIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
                                         <input type="url" placeholder="https://..." className="w-full border border-gray-300 rounded-lg p-2 pl-8 text-sm font-medium outline-none focus:border-[#103c7f]" value={newLink.live_url} onChange={(e) => setNewLink({...newLink, live_url: e.target.value})}/>
                                     </div>
-                                </div>
-                                <div className="w-full md:w-1/4">
-                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Current Stage</label>
-                                    <select className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold outline-none focus:border-[#103c7f] bg-green-50 text-green-700" value={newLink.stage} onChange={(e) => setNewLink({...newLink, stage: e.target.value})}>
-                                        <option value="Active">Active</option>
-                                        <option value="Paused">Paused</option>
-                                    </select>
-                                </div>
-                                <button
-                                    onClick={handleAddLink}
-                                    disabled={isSavingLink}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-5 py-2 rounded-lg transition shadow-md w-full md:w-auto shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                    {isSavingLink ? (
-                                        <>
-                                            <Loader2 size={16} className="animate-spin" />
-                                            Saving...
-                                        </>
-                                    ) : (
-                                        'Save Link'
-                                    )}
-                                </button>
+                                 </div>
+                                 <button
+                                     onClick={handleAddLink}
+                                     disabled={isSavingLink}
+                                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-5 py-2 rounded-lg transition shadow-md w-full md:w-auto shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                 >
+                                     {isSavingLink ? (
+                                         <>
+                                             <Loader2 size={16} className="animate-spin" />
+                                             Saving...
+                                         </>
+                                     ) : (
+                                         'Save Link'
+                                     )}
+                                 </button>
                             </div>
                         </div>
 
