@@ -24,6 +24,7 @@ export default function CRMDashboard() {
   const [nonActiveClients, setNonActiveClients] = useState('-');
   const [expiringClients, setExpiringClients] = useState({ expired: 0, expiringSoon: 0, list: [] });
   const [totalReqs, setTotalReqs] = useState(0);
+  const [totalRequirements, setTotalRequirements] = useState(0);
   const [trackerShared, setTrackerShared] = useState(0);
   const [reqsWorked, setReqsWorked] = useState(0);
   const [pipelineClients, setPipelineClients] = useState(0);
@@ -433,38 +434,72 @@ export default function CRMDashboard() {
     fetchCallsMade();
   }, [dateRange.from, dateRange.to, allDatabaseActive]);
 
-  useEffect(() => {
-    const fetchTotalReqs = async () => {
-      try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
+   useEffect(() => {
+     const fetchTotalReqs = async () => {
+       try {
+         const session = JSON.parse(localStorage.getItem('session') || '{}');
+         const token = session.access_token;
+         if (!token) return;
 
-        const params = new URLSearchParams();
-        if (allDatabaseActive) {
-          params.set('allDatabase', 'true');
-        } else {
-          params.set('fromDate', dateRange.from);
-          params.set('toDate', dateRange.to);
-        }
+         const params = new URLSearchParams();
+         if (allDatabaseActive) {
+           params.set('allDatabase', 'true');
+         } else {
+           params.set('fromDate', dateRange.from);
+           params.set('toDate', dateRange.to);
+         }
 
-        const response = await fetch(`/api/domestic/crm/total-reqs?${params.toString()}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+         const response = await fetch(`/api/domestic/crm/total-reqs?${params.toString()}`, {
+           headers: {
+             'Authorization': `Bearer ${token}`
+           }
+         });
 
-        if (response.ok) {
-          const data = await response.json();
-          setTotalReqs(data.data?.totalReqs || 0);
-        }
-      } catch (error) {
-        console.error('Error fetching total reqs:', error);
-      }
-    };
+         if (response.ok) {
+           const data = await response.json();
+           setTotalReqs(data.data?.totalReqs || 0);
+         }
+       } catch (error) {
+         console.error('Error fetching total reqs:', error);
+       }
+     };
 
-fetchTotalReqs();
-  }, [dateRange.from, dateRange.to, allDatabaseActive]);
+     fetchTotalReqs();
+   }, [dateRange.from, dateRange.to, allDatabaseActive]);
+
+   // --- FETCH TOTAL REQUIREMENTS (SUM OF OPENINGS) ---
+   useEffect(() => {
+     const fetchTotalRequirements = async () => {
+       try {
+         const session = JSON.parse(localStorage.getItem('session') || '{}');
+         const token = session.access_token;
+         if (!token) return;
+
+         const params = new URLSearchParams();
+         if (allDatabaseActive) {
+           params.set('allDatabase', 'true');
+         } else {
+           params.set('fromDate', dateRange.from);
+           params.set('toDate', dateRange.to);
+         }
+
+         const response = await fetch(`/api/domestic/crm/total-requirements?${params.toString()}`, {
+           headers: {
+             'Authorization': `Bearer ${token}`
+           }
+         });
+
+         if (response.ok) {
+           const data = await response.json();
+           setTotalRequirements(data.data?.totalRequirements || 0);
+         }
+       } catch (error) {
+         console.error('Error fetching total requirements:', error);
+       }
+     };
+
+     fetchTotalRequirements();
+   }, [dateRange.from, dateRange.to, allDatabaseActive]);
 
   // --- FETCH TRACKER SHARED ---
   useEffect(() => {
@@ -592,8 +627,9 @@ fetchTotalReqs();
     { label: "Acknowledged", value: acknowledged, icon: Mail, color: "text-green-600", bg: "bg-green-50" },
     { label: "Active Clients", value: activeClients, icon: Briefcase, color: "text-emerald-600", bg: "bg-emerald-50" },
     { label: "Non-Active Clients", value: nonActiveClients, icon: Clock, color: "text-rose-600", bg: "bg-rose-50" },
-    { label: "Total Reqs Added", value: totalReqs, icon: FileText, color: "text-purple-600", bg: "bg-purple-50" },
-    { label: "Total Package", value: "-", icon: Award, color: "text-orange-600", bg: "bg-orange-50" },
+     { label: "TOTAL PROFILE ADDED", value: totalReqs, icon: FileText, color: "text-purple-600", bg: "bg-purple-50" },
+     { label: "TOTAL REQUIREMENTS", value: totalRequirements, icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
+     { label: "Total Package", value: "-", icon: Award, color: "text-orange-600", bg: "bg-orange-50" },
     { label: "Trackers Shared", value: trackerShared, icon: Share2, color: "text-indigo-600", bg: "bg-indigo-50" },
     { label: "Reqs Worked", value: reqsWorked, icon: Briefcase, color: "text-violet-600", bg: "bg-violet-50" },
     { label: "Calls Made", value: callsMade, icon: Phone, color: "text-green-600", bg: "bg-green-50" },
