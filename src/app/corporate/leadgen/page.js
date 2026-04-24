@@ -726,7 +726,7 @@ export default function LeadGenHome() {
     fetchInterestedCount();
     fetchOnboardCount();
     fetchContractCount();
-    fetchFranchiseDiscussCount();
+      fetchFranchiseDiscussedCount();
     fetchFranchiseFormAskCount();
     fetchFranchiseFormSharedCount();
     fetchFranchiseAcceptedCount();
