@@ -126,21 +126,14 @@ function CVPreview({ url, name }) {
                    fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
     if (isWord) {
+        const googleDocsUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
         return (
-            <div className="flex flex-col items-center justify-center w-full h-full bg-slate-50 rounded-lg p-4">
-                <FileText size={64} className="text-blue-500 mb-4" />
-                <p className="text-sm font-bold text-slate-700 mb-2">Word Document</p>
-                <p className="text-xs text-slate-500 mb-4 text-center">
-                    Preview not available for Word documents.<br/>Please download to view.
-                </p>
-                <a 
-                    href={url} 
-                    download={name + '_CV.docx'}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"
-                >
-                    Download CV
-                </a>
-            </div>
+            <iframe
+                src={googleDocsUrl}
+                className="w-full h-full border-0 rounded-lg"
+                title={`Word Document Preview: ${name}`}
+                onError={() => setError('Failed to load preview. The file may not be publicly accessible.')}
+            />
         );
     }
 
