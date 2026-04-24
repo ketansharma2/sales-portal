@@ -25,6 +25,7 @@ export default function CRMDashboard() {
   const [expiringClients, setExpiringClients] = useState({ expired: 0, expiringSoon: 0, list: [] });
   const [totalReqs, setTotalReqs] = useState(0);
   const [totalRequirements, setTotalRequirements] = useState(0);
+  const [totalPackage, setTotalPackage] = useState(0);
   const [trackerShared, setTrackerShared] = useState(0);
   const [reqsWorked, setReqsWorked] = useState(0);
   const [pipelineClients, setPipelineClients] = useState(0);
@@ -498,10 +499,44 @@ export default function CRMDashboard() {
        }
      };
 
-     fetchTotalRequirements();
-   }, [dateRange.from, dateRange.to, allDatabaseActive]);
+      fetchTotalRequirements();
+    }, [dateRange.from, dateRange.to, allDatabaseActive]);
 
-  // --- FETCH TRACKER SHARED ---
+    // --- FETCH TOTAL PACKAGE ---
+    useEffect(() => {
+      const fetchTotalPackage = async () => {
+        try {
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const token = session.access_token;
+          if (!token) return;
+
+          const params = new URLSearchParams();
+          if (allDatabaseActive) {
+            params.set('allDatabase', 'true');
+          } else {
+            params.set('fromDate', dateRange.from);
+            params.set('toDate', dateRange.to);
+          }
+
+          const response = await fetch(`/api/domestic/crm/total-package?${params.toString()}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setTotalPackage(data.data?.totalPackage || 0);
+          }
+        } catch (error) {
+          console.error('Error fetching total package:', error);
+        }
+      };
+
+      fetchTotalPackage();
+    }, [dateRange.from, dateRange.to, allDatabaseActive]);
+
+    // --- FETCH TRACKER SHARED ---
   useEffect(() => {
     const fetchTrackerShared = async () => {
       try {
@@ -629,7 +664,7 @@ export default function CRMDashboard() {
     { label: "Non-Active Clients", value: nonActiveClients, icon: Clock, color: "text-rose-600", bg: "bg-rose-50" },
      { label: "TOTAL PROFILE ADDED", value: totalReqs, icon: FileText, color: "text-purple-600", bg: "bg-purple-50" },
      { label: "TOTAL REQUIREMENTS", value: totalRequirements, icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
-     { label: "Total Package", value: "-", icon: Award, color: "text-orange-600", bg: "bg-orange-50" },
+     { label: "Total Package", value: totalPackage ? `${totalPackage} Lakh` : '-', icon: Award, color: "text-orange-600", bg: "bg-orange-50" },
     { label: "Trackers Shared", value: trackerShared, icon: Share2, color: "text-indigo-600", bg: "bg-indigo-50" },
     { label: "Reqs Worked", value: reqsWorked, icon: Briefcase, color: "text-violet-600", bg: "bg-violet-50" },
     { label: "Calls Made", value: callsMade, icon: Phone, color: "text-green-600", bg: "bg-green-50" },
