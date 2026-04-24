@@ -1,11 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { 
-  Calendar, User, Briefcase, FileText, CheckCircle, 
+import {
+  Calendar, User, Briefcase, FileText, CheckCircle,
   X, ExternalLink, Clock, Building2, MapPin, Download,
   Globe, Link as LinkIcon, PlusCircle, Trash2, PlayCircle, PauseCircle,
-  Database, BarChart2, Edit2 // Naye icons CV tracking ke liye
+  Database, BarChart2, Edit2, Loader2 // Naye icons CV tracking ke liye + Loader2
 } from "lucide-react";
 
 export default function JobPosterPanel() {
@@ -42,10 +42,11 @@ export default function JobPosterPanel() {
   const [isDataModalOpen, setIsDataModalOpen] = useState(false); // Modal state for CV tracking
   const [editingLog, setEditingLog] = useState(null); // For editing CV log
 
-  // New Link Form State
-  const getTodayDate = () => new Date().toISOString().split('T')[0];
-  const initialLinkForm = { platform: "Indeed", live_url: "", stage: "Active", postedOn: getTodayDate() };
-  const [newLink, setNewLink] = useState(initialLinkForm);
+   // New Link Form State
+   const getTodayDate = () => new Date().toISOString().split('T')[0];
+   const initialLinkForm = { platform: "Indeed", live_url: "", stage: "Active", postedOn: getTodayDate() };
+   const [newLink, setNewLink] = useState(initialLinkForm);
+   const [isSavingLink, setIsSavingLink] = useState(false);
 
   // New CV Log Form State
   const initialLogForm = { date: getTodayDate(), platform: "Indeed", count: "", callingCount: "" };
@@ -78,12 +79,13 @@ export default function JobPosterPanel() {
   // Add new link to a JD
   const handleAddLink = async () => {
       if(!newLink.live_url) return alert("Please enter the proof link!");
-      
+      setIsSavingLink(true);
+
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      
+
       // Get user_id from session or decode from token
       let userId = session.user_id || session.id;
-      
+
       // If not in session, try to get from API
       if (!userId && session.access_token) {
           try {
@@ -96,27 +98,16 @@ export default function JobPosterPanel() {
               console.error('Error getting user:', e);
           }
       }
-      
+
       if (!userId) {
           alert('User not found. Please login again.');
+          setIsSavingLink(false);
           return;
       }
-      
+
       // Determine API base based on sector
       const apiBase = selectedJD.sector === 'Corporate' ? '/api/corporate/crm/jd' : '/api/domestic/crm/jd';
-      
-      console.log('Session:', session);
-      console.log('User ID being used:', userId);
-      
-      console.log('Saving posting:', {
-          jd_id: selectedJD.jd_id,
-          user_id: userId,
-          platform: newLink.platform,
-          live_url: newLink.live_url,
-          current_stage: newLink.stage,
-          posted_on: newLink.postedOn
-      });
-      
+
       try {
           const response = await fetch(`${apiBase}/job-postings`, {
               method: 'POST',
@@ -133,35 +124,31 @@ export default function JobPosterPanel() {
                   posted_on: newLink.postedOn
               })
           });
-          
+
           const result = await response.json();
-          console.log('Save result:', result);
-          
+
           if (result.error) {
               alert('Error saving posting: ' + result.error);
+              setIsSavingLink(false);
               return;
           }
-          
+
           // Refresh the job postings list
           fetchJDs();
-          
+
           // Reset form and show success
-          setNewLink(initialLinkForm); 
+          setNewLink(initialLinkForm);
           alert('Posting saved successfully!');
-          console.log('Posting saved, refreshing data...');
-          
+
           // Close the modal and reopen to refresh
           setIsManageModalOpen(false);
           setTimeout(async () => {
-              // Fetch fresh data and update selectedJD
               const session = JSON.parse(localStorage.getItem('session') || '{}');
               const response = await fetch('/api/jobpost/jds', {
                   headers: { 'Authorization': `Bearer ${session.access_token}` }
               });
               const freshData = await response.json();
-              console.log('Fresh data received:', freshData);
               const updatedPost = freshData.find(p => p.jd_id === selectedJD.jd_id);
-              console.log('Updated post:', updatedPost);
               if (updatedPost) {
                   setSelectedJD(updatedPost);
                   setPostings(freshData);
@@ -171,6 +158,8 @@ export default function JobPosterPanel() {
       } catch (error) {
           console.error('Error saving posting:', error);
           alert('Error saving posting');
+      } finally {
+          setIsSavingLink(false);
       }
   };
 
@@ -764,8 +753,19 @@ export default function JobPosterPanel() {
                                         <option value="Paused">Paused</option>
                                     </select>
                                 </div>
-                                <button onClick={handleAddLink} className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-5 py-2 rounded-lg transition shadow-md w-full md:w-auto shrink-0">
-                                    Save Link
+                                <button
+                                    onClick={handleAddLink}
+                                    disabled={isSavingLink}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-5 py-2 rounded-lg transition shadow-md w-full md:w-auto shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {isSavingLink ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        'Save Link'
+                                    )}
                                 </button>
                             </div>
                         </div>
