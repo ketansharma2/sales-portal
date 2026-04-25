@@ -1116,7 +1116,7 @@
 
 
                                 {/* --- DOMESTIC DELIVERY REPORT --- */}
-                                <div className="bg-white border border-orange-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
+                                {/* <div className="bg-white border border-orange-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
                                     <div className="bg-orange-50 p-4 border-b border-orange-100 flex justify-between items-center">
                                         <div className="flex items-center gap-2">
                                             <Home size={18} className="text-orange-600"/>
@@ -1128,7 +1128,7 @@
                                         
                                     </div>
 
-                                 </div>
+                                 </div> */}
 
                                  {/* --- DOMESTIC DELIVERY REPORT --- */}
                                  <div className="bg-white border border-orange-200 rounded-xl overflow-hidden shadow-sm flex flex-col">

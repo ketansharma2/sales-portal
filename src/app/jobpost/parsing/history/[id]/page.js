@@ -551,13 +551,13 @@ useEffect(() => {
                                                 >
                                                     <Edit size={12} />
                                                 </button>
-                                                <button 
+                                                {/* <button 
                                                     onClick={() => handleSendToTL(row.id)}
                                                     className="w-7 h-7 rounded bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 flex items-center justify-center transition-colors"
                                                     title="Send to TL"
                                                 >
                                                     <Send size={12} className="ml-0.5" />
-                                                </button>
+                                                </button> */}
                                                 <button 
                                                     onClick={() => handleDelete(row.id)}
                                                     disabled={isDeleting}
