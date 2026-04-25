@@ -8,61 +8,136 @@ import {
 } from "lucide-react";
 
 // --- MOCK DATA ---
-const MOCK_TL_DETAILS = { user_id: "tl123", name: "Gurmeet Aneja", email: "gurmeet@mavenjobs.in" };
 
-const MOCK_WORKBENCH_OPTIONS = [
-    { id: "req1", date: "2026-04-10", client: "TechNova Solutions", profile: "Frontend Developer" },
-    { id: "req2", date: "2026-04-10", client: "Google", profile: "Backend Engineer" },
-    { id: "req3", date: "2026-04-05", client: "Global Finance", profile: "Backend Engineer" },
-    { id: "req4", date: "2026-04-12", client: "Urban Builders", profile: "UI/UX Designer" }
-];
 
-const MOCK_FOLLOWUPS = [
-    {
-        id: 1,
-        company_name: "TechNova Solutions", // company_name की जगह client_name
-        profile: "Frontend Developer",
-        postDate: "2026-04-08",          // slot की जगह postDate
-        applyDate: "2026-04-10",
-        callingDate: "2026-04-12",
-        relExp: "2 Yrs",
-        currCtc: "5 LPA",
-        expCtc: "8 LPA",
-        status: "Shortlisted",
-        feedback: "Good communication, technically strong.",
-        isTracker: false,
-        rc_name: "Neha Gupta",
-        rc_id: "user1"
-    },
-    {
-        id: 2,
-        company_name: "Global Finance",     // company_name की जगह client_name
-        profile: "Backend Engineer",
-        postDate: "2026-04-01",          // slot की जगह postDate
-        applyDate: "2026-04-05",
-        callingDate: "2026-04-06",
-        relExp: "4 Yrs",
-        currCtc: "8 LPA",
-        expCtc: "12 LPA",
-        status: "Interview",
-        feedback: "Scheduled for technical round next week.",
-        isTracker: true,
-        rc_name: "Neha Gupta",
-        rc_id: "user1" // Assume current user is "user1"
-    }
-];
 
 
 export default function CandidateHistoryPage() {
     const params = useParams();
     const router = useRouter();
     const candidateId = params.id;
+    const [jobOptions, setJobOptions] = useState([]);
 
     // --- STATE ---
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isTLModalOpen, setIsTLModalOpen] = useState(false);
     const [selectedFollowupId, setSelectedFollowupId] = useState(null);
-    const [tlDetails, setTlDetails] = useState(null);
+     const [tlDetails, setTlDetails] = useState(null);
+
+   // Fetch current user ID on mount
+   useEffect(() => {
+     const fetchCurrentUser = async () => {
+       try {
+         const session = JSON.parse(localStorage.getItem('session') || '{}');
+         const token = session.access_token;
+         if (!token) return;
+
+         const res = await fetch('/api/auth/get-current-user', {
+           headers: { 'Authorization': `Bearer ${token}` }
+         });
+         const data = await res.json();
+         if (data.user_id) {
+           setCurrentUserId(data.user_id);
+         }
+       } catch (err) {
+         console.error('Error fetching current user:', err);
+       }
+     };
+     fetchCurrentUser();
+   }, []);
+    useEffect(() => {
+  const fetchFollowupHistory = async () => {
+    try {
+      setIsLoadingFollowups(true);
+
+      const session = JSON.parse(localStorage.getItem("session") || "{}");
+      const token = session.access_token;
+
+      if (!token) {
+        alert("Please login first");
+        return;
+      }
+
+      const res = await fetch(
+        `/api/jobpost/parsing/history?parsing_id=${candidateId}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const result = await res.json();
+      console.log('result',result);
+      if (!res.ok) {
+         console.error("API ERROR FULL:", result);
+        throw new Error(result.error || "Failed to fetch followups");
+       
+
+      }
+       
+      // 🔥 Use API response directly (already formatted)
+       const formattedData = result.data.map((item) => ({
+         ...item,
+       
+       
+       }));
+
+      setFollowups(formattedData);
+
+    } catch (err) {
+      console.error(err);
+      alert("Error loading followups");
+    } finally {
+      setIsLoadingFollowups(false);
+    }
+  };
+
+   fetchFollowupHistory();
+   }, [candidateId]);
+
+    
+useEffect(() => {
+    console.log("candidateId",candidateId);
+  const fetchFollowups = async () => {
+    try {
+      setIsLoadingFollowups(true);
+
+        const session = JSON.parse(localStorage.getItem('session') || '{}')
+            const token = session.access_token
+
+            if (!token) {
+                alert("Please login first")
+                return
+            }
+
+      const res = await fetch("/api/jobpost/parsing/history/client_profile", {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      const result = await res.json();
+    
+
+      if (!res.ok) {
+        throw new Error(result.error || "Failed to fetch");
+      }
+
+
+      setJobOptions(result.data); // ✅ store jobs
+
+     
+    } catch (err) {
+      console.error(err);
+      alert("Error loading data");
+    } 
+  };
+
+   fetchFollowups();
+}, [candidateId]);
     
     // --- EDIT STATE & HANDLERS ---
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -77,42 +152,85 @@ export default function CandidateHistoryPage() {
             return;
         }
         
-        setFormData({
-            req_id: row.req_id || '',
-            profile: row.profile,
-            slot: row.slot || '',
-            applyDate: row.applyDate,
-            callingDate: row.callingDate,
-            relExp: row.relExp || '',
-            currCtc: row.currCtc || '',
-            expCtc: row.expCtc || '',
-            status: row.status,
-            feedback: row.feedback
-        });
+         setFormData({
+             req_id: row.req_id || '',
+             profile: row.profile,
+             client_name: row.company_name || '',
+             slot: row.slot || '',
+             parsing_id: candidateId,
+             postDate: row.postDate && row.postDate !== '-' ? row.postDate.split('T')[0] : '',
+             applyDate: row.applyDate,
+             callingDate: row.callingDate,
+             relExp: row.relExp || '',
+             currCtc: row.currCtc || '',
+             expCtc: row.expCtc || '',
+             status: row.status,
+             feedback: row.feedback
+         });
         setEditId(row.id);
         setIsEditModalOpen(true);
     };
 
     const [isUpdatingFollowup, setIsUpdatingFollowup] = useState(false);
 
-    const handleUpdateFollowup = () => {
-        if (!formData.status || !formData.applyDate || !formData.callingDate || 
-            !formData.relExp || !formData.currCtc || !formData.expCtc || !formData.feedback) {
-            alert("Please fill all mandatory fields marked with *");
-            return;
-        }
+     const handleUpdateFollowup = async () => {
+         if (!formData.status || !formData.applyDate || !formData.callingDate || 
+             !formData.relExp || !formData.currCtc || !formData.expCtc || !formData.feedback) {
+             alert("Please fill all mandatory fields marked with *");
+             return;
+         }
 
-        setIsUpdatingFollowup(true);
-        
-        // MOCK API Call
-        setTimeout(() => {
-            setFollowups(followups.map(f => f.id === editId ? { ...f, ...formData } : f));
-            setIsEditModalOpen(false);
-            setEditId(null);
-            setIsUpdatingFollowup(false);
-            alert("Followup updated successfully! (Mock)");
-        }, 800);
-    };
+         setIsUpdatingFollowup(true);
+         
+         try {
+           const session = JSON.parse(localStorage.getItem("session") || "{}");
+           const token = session.access_token;
+
+           const res = await fetch("/api/jobpost/parsing/history/followup", {
+             method: "PUT",
+             headers: {
+               "Content-Type": "application/json",
+               "Authorization": `Bearer ${token}`
+             },
+             body: JSON.stringify({
+               conversation_id: editId,
+               ...formData
+             })
+           });
+
+           const result = await res.json();
+
+           if (!res.ok) {
+             throw new Error(result.error || "Failed to update followup");
+           }
+
+           // Update UI with returned data or merge
+           setFollowups(prev => prev.map(f => 
+             f.id === editId 
+               ? { ...f, 
+                   req_id: formData.req_id,
+                   profile: formData.profile,
+                   company_name: formData.client_name,
+                   applyDate: formData.applyDate,
+                   callingDate: formData.callingDate,
+                   relExp: formData.relExp,
+                   currCtc: formData.currCtc,
+                   expCtc: formData.expCtc,
+                   status: formData.status,
+                   feedback: formData.feedback,
+                   slot: formData.slot
+                 } 
+               : f
+           ));
+           setIsEditModalOpen(false);
+           setEditId(null);
+         } catch (err) {
+           console.error(err);
+           alert("Error: " + err.message);
+         } finally {
+           setIsUpdatingFollowup(false);
+         }
+     };
 
     const statusOptions = [
         "Shortlisted", "Conversion", "Asset", "Not Picked", 
@@ -121,49 +239,33 @@ export default function CandidateHistoryPage() {
 
     const slotOptions = ["10:00 - 11:30", "12:00 - 01:30", "02:00 - 03:30", "Other"];
 
-    const initialForm = {
-        postDate: getToday(), // By default today's date
-        req_id: "",           // We'll still keep req_id internally
-        client_name: "", 
-        profile: "",
-        applyDate: getToday(), 
-        callingDate: getToday(),
-        relExp: "", currCtc: "", expCtc: "",
-        status: "", feedback: ""
-    };
+     const initialForm = {
+         postDate: getToday(), // By default today's date
+         req_id: "",           // We'll still keep req_id internally
+         client_name: "", 
+         profile: "",
+         slot: "",
+         applyDate: getToday(), 
+         callingDate: getToday(),
+         relExp: "", currCtc: "", expCtc: "",
+         status: "", feedback: ""
+     };
     const [formData, setFormData] = useState(initialForm);
 
-    const [workbenchOptions, setWorkbenchOptions] = useState([]);
-    const [isLoadingWorkbench, setIsLoadingWorkbench] = useState(false);
-    const [currentUserId, setCurrentUserId] = useState("user1"); // Mock current user ID
+     const [workbenchOptions, setWorkbenchOptions] = useState([]);
+     const [isLoadingWorkbench, setIsLoadingWorkbench] = useState(false);
+     const [currentUserId, setCurrentUserId] = useState(null);
 
     // Fetch workbench data on mount (MOCK)
-    useEffect(() => {
-        setIsLoadingWorkbench(true);
-        setTimeout(() => {
-            setWorkbenchOptions(MOCK_WORKBENCH_OPTIONS);
-            setIsLoadingWorkbench(false);
-        }, 500);
-    }, []);
-
+   
     // --- FOLLOWUPS STATE ---
     const [followups, setFollowups] = useState([]);
     const [isLoadingFollowups, setIsLoadingFollowups] = useState(true);
 
     // Fetch existing followups (MOCK)
-    useEffect(() => {
-        setIsLoadingFollowups(true);
-        setTimeout(() => {
-            setFollowups(MOCK_FOLLOWUPS);
-            setIsLoadingFollowups(false);
-        }, 800);
-    }, [candidateId]);
+  
 
-    // Fetch TL details on page load (MOCK)
-    useEffect(() => {
-        setTlDetails(MOCK_TL_DETAILS);
-    }, []);
-
+ 
     // --- HANDLERS ---
     const handleAddOpen = () => {
         setFormData(initialForm);
@@ -172,44 +274,101 @@ export default function CandidateHistoryPage() {
 
     const [isSavingFollowup, setIsSavingFollowup] = useState(false);
 
-    const handleSaveFollowup = () => {
-        if (!formData.profile || !formData.status || !formData.applyDate || !formData.callingDate || 
-            !formData.relExp || !formData.currCtc || !formData.expCtc || !formData.feedback) {
-            alert("Please fill all mandatory fields marked with *");
-            return;
-        }
+    const handleSaveFollowup = async () => {
+  if (!formData.req_id || !formData.status || !formData.applyDate || !formData.callingDate ||
+      !formData.relExp || !formData.currCtc || !formData.expCtc || !formData.feedback) {
+    alert("Please fill all mandatory fields");
+    return;
+  }
 
-        setIsSavingFollowup(true);
-        
-        // MOCK API Call
-        setTimeout(() => {
-            const newFollowup = {
-                ...formData,
-                id: Date.now(), // Generate mock ID
-                isTracker: false,
-                rc_id: currentUserId,
-                rc_name: "Neha Gupta" // Mock current user name
-            };
-            setFollowups([newFollowup, ...followups]);
-            setIsAddModalOpen(false);
-            setIsSavingFollowup(false);
-            alert("Followup added successfully! (Mock)");
-        }, 1000);
-    };
+  try {
+    setIsSavingFollowup(true);
+
+    const session = JSON.parse(localStorage.getItem("session") || "{}");
+    const token = session.access_token;
+
+    const res = await fetch("/api/jobpost/parsing/history/followup", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        candidate_id: candidateId,
+        ...formData
+      })
+    });
+
+     const result = await res.json();
+
+     if (!res.ok) {
+       throw new Error(result.error || "Failed to save");
+     }
+
+     // ✅ Update UI instantly - map response to UI format
+     const newFollowup = {
+       id: result.data.conversation_id,
+       req_id: formData.req_id,
+       profile: formData.profile,
+       company_name: formData.client_name,
+       applyDate: formData.applyDate,
+       callingDate: formData.callingDate,
+       relExp: formData.relExp,
+       currCtc: formData.currCtc,
+       expCtc: formData.expCtc,
+       status: formData.status,
+       feedback: formData.feedback,
+       slot: formData.slot || null,
+       rc_id: result.data.user_id,
+       rc_name: "You",
+       isTracker: false
+     };
+
+     setFollowups(prev => [newFollowup, ...prev]);
+    
+     setIsAddModalOpen(false);
+     setFormData(initialForm);
+
+    alert("Followup added successfully");
+
+  } catch (err) {
+    console.error(err);
+    alert(err.message);
+  } finally {
+    setIsSavingFollowup(false);
+  }
+};
 
     const [isDeleting, setIsDeleting] = useState(false);
 
-    const handleDelete = (id) => {
-        if(window.confirm("Are you sure you want to delete this followup?")) {
-            setIsDeleting(true);
-            
-            // MOCK API Call
-            setTimeout(() => {
-                setFollowups(followups.filter(f => f.id !== id));
-                setIsDeleting(false);
-            }, 600);
-        }
-    };
+     const handleDelete = async (id) => {
+         if (!window.confirm("Are you sure you want to delete this followup?")) return;
+         setIsDeleting(true);
+         try {
+           const session = JSON.parse(localStorage.getItem("session") || "{}");
+           const token = session.access_token;
+
+           const res = await fetch(`/api/jobpost/parsing/history/followup?conversation_id=${id}`, {
+             method: "DELETE",
+             headers: {
+               "Authorization": `Bearer ${token}`
+             }
+           });
+
+           const result = await res.json();
+
+           if (!res.ok) {
+             throw new Error(result.error || "Failed to delete");
+           }
+
+           setFollowups(prev => prev.filter(f => f.id !== id));
+         } catch (err) {
+           console.error(err);
+           alert("Error: " + err.message);
+         } finally {
+           setIsDeleting(false);
+         }
+     };
 
     const handleSendToTL = (id) => {
         if (tlDetails) {
@@ -288,7 +447,7 @@ export default function CandidateHistoryPage() {
                             <tr className="border-b-2 border-slate-100">
                                 <th className="py-3 px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-10">#</th>
                                 <th className="py-3 px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest w-24">RC Name</th>
-                                <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-24">Post Date</th>
+                                <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-24">Calling Date</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Client & Profile</th>                                
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Dates</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Relevant Exp</th>
@@ -311,10 +470,10 @@ export default function CandidateHistoryPage() {
                                     
                                     {/* 1st Split Column: Post Date */}
                                     <td className="py-3 px-4">
-                                        {row.postDate && row.postDate !== '-' ? (
+                                        {row.callingDate && row.callingDate !== '-' ? (
                                             <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded w-fit border border-slate-100">
                                                 <Calendar size={10} className="text-blue-500" />
-                                                <span>{row.postDate}</span>
+                                                <span>{row.callingDate}</span>
                                             </div>
                                         ) : (
                                             <span className="text-[10px] text-slate-400 font-medium">-</span>
@@ -482,42 +641,51 @@ export default function CandidateHistoryPage() {
                                       className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer disabled:opacity-50 disabled:bg-slate-50"
                                       value={formData.req_id} 
                                       disabled={!formData.postDate}
-                                      onChange={(e) => {
-                                          const selectedJob = workbenchOptions.find(job => job.id === e.target.value);
-                                          if (selectedJob) {
-                                              setFormData({
-                                                  ...formData,
-                                                  req_id: selectedJob.id,
-                                                  client_name: selectedJob.client,
-                                                  profile: selectedJob.profile
-                                              });
-                                          } else {
-                                              setFormData({
-                                                  ...formData,
-                                                  req_id: "",
-                                                  client_name: "",
-                                                  profile: ""
-                                              });
-                                          }
-                                      }}
+                                       onChange={(e) => {
+                                          const selectedJob = jobOptions.find(
+     job => String(job.id) === String(e.target.value)
+   );
+                                           if (selectedJob) {
+                                               setFormData({
+                                                   ...formData,
+                                                   req_id: selectedJob.id,
+                                                   client_name: selectedJob.client_name,
+                                                   profile: selectedJob.job_title
+                                               });
+                                           } else {
+                                               setFormData({
+                                                   ...formData,
+                                                   req_id: "",
+                                                   client_name: "",
+                                                   profile: ""
+                                               });
+                                           }
+                                       }}
                                   >
                                      <option value="">-- Choose Profile --</option>
                                      {isLoadingWorkbench ? (
                                          <option value="" disabled>Loading...</option>
                                      ) : (
-                                         // FILTER options based on selected postDate
-                                         workbenchOptions
-                                            .filter(job => job.date === formData.postDate)
-                                            .map(job => (
-                                                 <option key={job.id} value={job.id}>
-                                                     {job.client} • {job.profile}
-                                                 </option>
-                                             ))
+                                          // FILTER options based on selected postDate
+                                       jobOptions
+   .filter(job => {
+     const jobDate = new Date(job.posted_date).toISOString().split('T')[0];
+     return jobDate === formData.postDate;
+   })
+   .map(job => (
+     <option key={job.id} value={job.id}>
+       {job.client_name} • {job.job_title}• {job.sector}
+     </option>
+   ))
                                      )}
-                                     {/* Show message if no jobs found for that date */}
-                                     {!isLoadingWorkbench && formData.postDate && workbenchOptions.filter(job => job.date === formData.postDate).length === 0 && (
-                                         <option value="" disabled>No postings found on this date</option>
-                                     )}
+                                      {/* Show message if no jobs found for that date */}
+                                      {!isLoadingWorkbench && formData.postDate && jobOptions
+   .filter(job => {
+     const jobDate = new Date(job.posted_date).toISOString().split('T')[0];
+     return jobDate === formData.postDate;
+   }).length === 0 && (
+                                          <option value="" disabled>No postings found on this date</option>
+                                      )}
                                  </select>
                              </div>
                              {/* --- END NEW LOGIC --- */}
@@ -641,48 +809,51 @@ export default function CandidateHistoryPage() {
                         {/* Form Body - Grid Layout */}
                         <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 custom-scrollbar bg-slate-50/30">
                             
-                            {/* Combined Profile & Slot Dropdown */}
-                            <div className="md:col-span-2">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Select Assigned Profile & Slot</label>
-                                <select 
-                                    className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer"
-                                    value={formData.req_id} 
-                                    onChange={(e) => {
-                                        const selectedOption = workbenchOptions.find(opt => opt.value === e.target.value);
-                                        if (selectedOption) {
-                                            const labelParts = selectedOption.label.split(' • ');
-                                            setFormData({
-                                                ...formData,
-                                                req_id: e.target.value,
-                                                profile: labelParts[0] || '',
-                                                slot: labelParts[1] || ''
-                                            });
-                                        } else {
-                                            setFormData({
-                                                ...formData,
-                                                req_id: "",
-                                                profile: "",
-                                                slot: ""
-                                            });
-                                        }
-                                    }}
-                                >
-                                    <option value="">-- Choose Profile & Slot --</option>
-                                    {isLoadingWorkbench ? (
-                                        <option value="" disabled>Loading...</option>
-                                    ) : (
-                                        workbenchOptions.length > 0 ? (
-                                            workbenchOptions.map(option => (
-                                                <option key={option.value} value={option.value}>
-                                                    {option.label}
-                                                </option>
-                                            ))
-                                        ) : (
-                                            <option value="" disabled>No profiles available</option>
-                                        )
-                                    )}
-                                </select>
-                            </div>
+                             {/* Combined Profile & Slot Dropdown */}
+                             <div className="md:col-span-2">
+                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Select Assigned Profile & Slot</label>
+                                <select
+   className="w-full bg-white border border-slate-200 text-sm font-bold rounded-lg px-3 py-2.5"
+   value={formData.req_id || ""}
+   disabled={!formData.postDate}
+   onChange={(e) => {
+     const selectedJob = jobOptions.find(j => String(j.id) === String(e.target.value));
+
+     if (selectedJob) {
+       setFormData({
+         ...formData,
+         req_id: selectedJob.id,
+         client_name: selectedJob.client_name,
+         profile: selectedJob.job_title,
+         sector: selectedJob.sector
+       });
+     }
+   }}
+>
+   <option value="">-- Choose Profile --</option>
+
+    {jobOptions
+      .filter(job => {
+        const jobDate = new Date(job.posted_date).toISOString().split('T')[0];
+        return jobDate === formData.postDate;
+      })
+      .map(job => (
+        <option key={job.id} value={job.id}>
+          {job.client_name} • {job.job_title} • ({job.sector})
+        </option>
+      ))
+    }
+
+    {!isLoadingWorkbench &&
+      formData.postDate &&
+      jobOptions.filter(j => {
+        const jobDate = new Date(j.posted_date).toISOString().split('T')[0];
+        return jobDate === formData.postDate;
+      }).length === 0 && (
+        <option disabled>No postings found</option>
+      )}
+</select>
+                             </div>
 
                             <div>
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Apply Date <span className="text-red-500">*</span></label>

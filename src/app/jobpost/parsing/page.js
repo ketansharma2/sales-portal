@@ -571,7 +571,7 @@ export default function CVParsingPage() {
     // NAVIGATE TO NEW PAGE ON ROW/BUTTON CLICK
     const navigateToHistory = (candidateId) => {
         // Redirects to /recruiter/candidate-history/[id]
-        router.push(`/corporate/recruiter/candidate-history/${candidateId}`);
+        router.push(`/jobpost/parsing/history/${candidateId}`);
     };
 
     return (
