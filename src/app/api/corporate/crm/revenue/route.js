@@ -19,7 +19,7 @@ export async function GET(request) {
 
     // Build query - filter by crm_id if provided, otherwise get all for this user
     let query = supabaseServer
-      .from('corporate_crm_revenue')
+      .from('corporate_revenue')
       .select('*')
       .order('created_at', { ascending: false })
 
@@ -144,24 +144,20 @@ export async function POST(request) {
 
     const body = await request.json()
     const {
-      candidate_name,
+      user_id,
+      client_id,
       client_name,
-      position,
-      recruiter_id,
-      recruiter_name,
-      account_email,
-      offer_salary,
-      payment_terms,
-      payment_days,
-      base_invoice,
-      total_amount,
-      joining_date,
-      payment_due_date,
-      payment_client_follow_date,
-      candidate_status,
-      kyc_link,
+      client_email,
+      client_mobile,
+      parsing_id,
+      candidate_name,
+      candidate_email,
+      candidate_mobile,
       kyc_doc,
-      crm_id
+      offer_salary,
+      terms,
+      payment_days,
+      sent_to_revenue
     } = body
 
     // Validate required fields
@@ -172,29 +168,28 @@ export async function POST(request) {
       }, { status: 400 })
     }
 
-    // Insert revenue record - let Supabase handle type conversion
+    // Insert revenue record
     const insertData = {
-      candidate_name,
+      user_id: user_id || user.id,
+      client_id,
       client_name,
-      position,
-      recruiter_id: recruiter_id || null,
-      account_email,
+      client_email,
+      client_mobile,
+      parsing_id,
+      candidate_name,
+      candidate_email,
+      candidate_mobile,
+      kyc_doc,
       offer_salary: offer_salary || null,
-      payment_terms,
+      terms,
       payment_days: payment_days || null,
-      base_invoice: base_invoice || null,
-      total_amount: total_amount || null,
-      joining_date,
-      payment_due_date: payment_due_date || payment_client_follow_date || null,
-      candidate_status: candidate_status || 'Joined',
-      kyc_link: kyc_link || null,
-      crm_id: crm_id || user.id
+      sent_to_revenue: sent_to_revenue || null
     }
 
     console.log('Insert data:', insertData)
 
     const { data: revenue, error } = await supabaseServer
-      .from('corporate_crm_revenue')
+      .from('corporate_revenue')
       .insert(insertData)
       .select()
       .single()
@@ -272,7 +267,7 @@ export async function PUT(request) {
 
     // Update revenue record
     const { data: revenue, error } = await supabaseServer
-      .from('corporate_crm_revenue')
+      .from('corporate_revenue')
       .update(parsedData)
       .eq('id', id)
       .select()

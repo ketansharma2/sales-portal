@@ -27,12 +27,12 @@ export async function GET(request) {
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 })
     }
 
-    // Fetch revenue data where recruiter_id matches current user
-    const { data: revenue, error } = await supabaseServer
-      .from('corporate_crm_revenue')
-      .select('*')
-      .eq('recruiter_id', recruiterId)
-      .order('created_at', { ascending: false })
+     // Fetch revenue data where recruiter_id matches current user
+     const { data: revenue, error } = await supabaseServer
+       .from('corporate_revenue')
+       .select('*')
+       .eq('recruiter_id', recruiterId)
+       .order('created_at', { ascending: false })
 
     if (error) {
       console.error('Fetch revenue error:', error)

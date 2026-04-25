@@ -51,12 +51,12 @@ export async function GET(request) {
       })
     }
 
-    // Fetch revenue data where recruiter_id matches any of the recruiters under this TL
-    const { data: revenue, error } = await supabaseServer
-      .from('corporate_crm_revenue')
-      .select('*')
-      .in('recruiter_id', recruiterIds)
-      .order('created_at', { ascending: false })
+     // Fetch revenue data where recruiter_id matches any of the recruiters under this TL
+     const { data: revenue, error } = await supabaseServer
+       .from('corporate_revenue')
+       .select('*')
+       .in('recruiter_id', recruiterIds)
+       .order('created_at', { ascending: false })
 
     if (error) {
       console.error('Fetch revenue error:', error)

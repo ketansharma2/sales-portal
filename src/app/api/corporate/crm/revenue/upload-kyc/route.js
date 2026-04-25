@@ -66,39 +66,39 @@ export async function POST(request) {
       uploadedUrls.push(publicUrl)
     }
 
-    // If revenue_id is provided, update the revenue record with the URLs
-    if (revenueId) {
-      // Get existing kyc_link array
-      const { data: existingRecord, error: fetchError } = await supabaseServer
-        .from('corporate_crm_revenue')
-        .select('kyc_link')
-        .eq('id', revenueId)
-        .single()
+     // If revenue_id is provided, update the revenue record with the URLs
+     if (revenueId) {
+       // Get existing kyc_doc array
+       const { data: existingRecord, error: fetchError } = await supabaseServer
+         .from('corporate_revenue')
+         .select('kyc_doc')
+         .eq('id', revenueId)
+         .single()
 
-      let newKycLinks = uploadedUrls
-      if (!fetchError && existingRecord && existingRecord.kyc_link) {
-        // Append new URLs to existing array
-        newKycLinks = [...existingRecord.kyc_link, ...uploadedUrls]
-      }
+       let newKycDocs = uploadedUrls
+       if (!fetchError && existingRecord && existingRecord.kyc_doc) {
+         // Append new URLs to existing array
+         newKycDocs = [...existingRecord.kyc_doc, ...uploadedUrls]
+       }
 
-      const { data: updatedRevenue, error: updateError } = await supabaseServer
-        .from('corporate_crm_revenue')
-        .update({ kyc_link: newKycLinks })
-        .eq('id', revenueId)
-        .select()
-        .single()
+       const { data: updatedRevenue, error: updateError } = await supabaseServer
+         .from('corporate_revenue')
+         .update({ kyc_doc: newKycDocs })
+         .eq('id', revenueId)
+         .select()
+         .single()
 
       if (updateError) {
         console.error('Update revenue error:', updateError)
         // Still return the URLs even if update fails
       }
       
-      return NextResponse.json({
-        success: true,
-        urls: uploadedUrls,
-        all_kyc_links: newKycLinks,
-        revenue: updatedRevenue
-      })
+       return NextResponse.json({
+         success: true,
+         urls: uploadedUrls,
+         all_kyc_docs: newKycDocs,
+         revenue: updatedRevenue
+       })
     }
 
     return NextResponse.json({
@@ -137,51 +137,51 @@ export async function DELETE(request) {
       return NextResponse.json({ error: 'revenue_id and url are required' }, { status: 400 })
     }
 
-    // Get existing kyc_link array
-    const { data: existingRecord, error: fetchError } = await supabaseServer
-      .from('corporate_crm_revenue')
-      .select('kyc_link')
-      .eq('id', revenueId)
-      .single()
+     // Get existing kyc_doc array
+     const { data: existingRecord, error: fetchError } = await supabaseServer
+       .from('corporate_revenue')
+       .select('kyc_doc')
+       .eq('id', revenueId)
+       .single()
 
-    if (fetchError) {
-      return NextResponse.json({ error: 'Failed to fetch record', details: fetchError.message }, { status: 500 })
-    }
+     if (fetchError) {
+       return NextResponse.json({ error: 'Failed to fetch record', details: fetchError.message }, { status: 500 })
+     }
 
-    // Handle both string and array formats for backward compatibility
-    let existingLinks = existingRecord.kyc_link
-    if (typeof existingLinks === 'string') {
-      // Convert single string to array
-      existingLinks = existingLinks ? [existingLinks] : []
-    } else if (!Array.isArray(existingLinks)) {
-      existingLinks = []
-    }
+     // Handle both string and array formats for backward compatibility
+     let existingDocs = existingRecord.kyc_doc
+     if (typeof existingDocs === 'string') {
+       // Convert single string to array
+       existingDocs = existingDocs ? [existingDocs] : []
+     } else if (!Array.isArray(existingDocs)) {
+       existingDocs = []
+     }
 
-    // Filter out the URL to remove (handle URL encoding)
-    const decodedUrlToRemove = decodeURIComponent(urlToRemove)
-    const newKycLinks = existingLinks.filter(link => {
-      const decodedLink = decodeURIComponent(link)
-      return decodedLink !== decodedUrlToRemove && link !== urlToRemove
-    })
+     // Filter out the URL to remove (handle URL encoding)
+     const decodedUrlToRemove = decodeURIComponent(urlToRemove)
+     const newKycDocs = existingDocs.filter(doc => {
+       const decodedDoc = decodeURIComponent(doc)
+       return decodedDoc !== decodedUrlToRemove && doc !== urlToRemove
+     })
 
-    // Update the record
-    const { data: updatedRevenue, error: updateError } = await supabaseServer
-      .from('corporate_crm_revenue')
-      .update({ kyc_link: newKycLinks })
-      .eq('id', revenueId)
-      .select()
-      .single()
+     // Update the record
+     const { data: updatedRevenue, error: updateError } = await supabaseServer
+       .from('corporate_revenue')
+       .update({ kyc_doc: newKycDocs })
+       .eq('id', revenueId)
+       .select()
+       .single()
 
     if (updateError) {
       console.error('Update revenue error:', updateError)
       return NextResponse.json({ error: 'Failed to remove KYC document' }, { status: 500 })
     }
 
-    return NextResponse.json({
-      success: true,
-      all_kyc_links: newKycLinks,
-      revenue: updatedRevenue
-    })
+     return NextResponse.json({
+       success: true,
+       all_kyc_docs: newKycDocs,
+       revenue: updatedRevenue
+     })
 
   } catch (error) {
     console.error('KYC delete API error:', error)
