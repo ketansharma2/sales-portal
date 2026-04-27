@@ -15,14 +15,65 @@ export default function AdminFranchiseDashboard() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
-  // --- MOCK DATA FOR FRANCHISE (LEADGEN GENERATED) ---
-const [pipeline, setPipeline] = useState({
-  discussed: 0,
-  formAsk: 0,
-  formShared: 0,
-  accepted: 0
-});
+  const [pipeline, setPipeline] = useState({
+    discussed: 0,
+    formAsk: 0,
+    formShared: 0,
+    accepted: 0
+  });
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    fetchPipelineCounts();
+  }, [fromDate, toDate]); // Refetch when date filters change
+
+    const fetchPipelineCounts = async () => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams();
+        if (fromDate && toDate) {
+          params.append('fromDate', fromDate);
+          params.append('toDate', toDate);
+          params.append('dateRange', 'specific');
+        } else {
+          params.append('dateRange', 'all');
+        }
+
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const authHeaders = {
+          'Authorization': `Bearer ${session.access_token}`
+        };
+
+        // Fetch all 4 franchise pipeline counts - same as corporate leadgen but WITHOUT user_id filter
+        const [discussedRes, formAskRes, formSharedRes, acceptedRes] = await Promise.all([
+          fetch(`/api/admin/franchise/franchise-discussed?${params.toString()}`, { headers: authHeaders }),
+          fetch(`/api/admin/franchise/franchise-count?${params.toString()}&status=application form share`, { headers: authHeaders }),
+          fetch(`/api/admin/franchise/franchise-count?${params.toString()}&status=application form share`, { headers: authHeaders }),
+          fetch(`/api/admin/franchise/franchise-accepted?${params.toString()}`, { headers: authHeaders }),
+        ]);
+
+        const discussedData = await discussedRes.json();
+        const formAskData = await formAskRes.json();
+        const formSharedData = await formSharedRes.json();
+        const acceptedData = await acceptedRes.json();
+          
+        setPipeline({
+          discussed: discussedData.success ? discussedData.data?.franchise?.total || 0 : 0,
+          formAsk: formAskData.success ? formAskData.data?.franchise?.total || 0 : 0,
+          formShared: formSharedData.success ? formSharedData.data?.franchise?.total || 0 : 0,
+          accepted: acceptedData.success ? acceptedData.data?.franchiseAccepted?.total || 0 : 0,
+        });
+      } catch (error) {
+        console.error('Failed to fetch pipeline counts:', error);
+      } finally {
+        setLoading(false);
+      }
+     };
+
+  // Mock client data - replace with real API data when available
   const franchiseClients = [
     { 
       id: "FR-101", date: "02 Mar 2026", time: "11:30 AM", company: "EduTech Panipat", 
@@ -49,37 +100,6 @@ const [pipeline, setPipeline] = useState({
       remarks: "Asked for the application form, follow up tomorrow.", color: "bg-purple-100 text-purple-800" 
     },
   ];
-
-useEffect(() => {
-  setMounted(true);
-
-  const fetchDashboard = async () => {
-    try {
-const token = localStorage.getItem("token");
-
-const res = await fetch("/api/admin/franchise", {
-  headers: {
-    Authorization: `Bearer ${token}`,
-  },
-});
-      const data = await res.json();
- console.log("check data:",data);
-setPipeline(data?.pipeline || {
-      discussed: 0,
-      formAsk: 0,
-      formShared: 0,
-      accepted: 0
-    });
-    //   setFranchiseClients(data.clients);
-    } catch (error) {
-      console.error("API Error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchDashboard();
-}, []);
 
   if (!mounted) return null;
 
