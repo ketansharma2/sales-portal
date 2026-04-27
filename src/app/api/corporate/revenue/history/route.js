@@ -78,38 +78,79 @@ export async function GET(request) {
       })
     }
 
-    // List fetch - all records filtered by sent_to_revenue
-    const { data: revenueList, error: listError } = await supabaseServer
-      .from('corporate_revenue')
-      .select('*')
-      .eq('sent_to_revenue', currentUserId)
-      .order('created_at', { ascending: false })
-
-    if (listError) {
-      return NextResponse.json({ error: 'Failed to fetch revenue data', details: listError.message }, { status: 500 })
-    }
-
-    // Get unique user_ids to fetch CRM names
-    const uniqueUserIds = [...new Set((revenueList || []).map(r => r.user_id).filter(Boolean))]
-
-    let userMap = {}
-    if (uniqueUserIds.length > 0) {
-      const { data: users } = await supabaseServer
-        .from('users')
-        .select('user_id, name')
-        .in('user_id', uniqueUserIds)
-
-      if (users) {
-        users.forEach(u => { userMap[u.user_id] = u.name })
-      }
-    }
-
-    const transformedData = (revenueList || []).map(record => ({
-      ...record,
-      crm_name: userMap[record.user_id] || 'Unknown'
-    }))
-
-    return NextResponse.json({ success: true, data: transformedData })
+     // List fetch - all records filtered by sent_to_revenue
+     const { data: revenueList, error: listError } = await supabaseServer
+       .from('corporate_revenue')
+       .select('*')
+       .eq('sent_to_revenue', currentUserId)
+       .order('created_at', { ascending: false })
+ 
+     if (listError) {
+       return NextResponse.json({ error: 'Failed to fetch revenue data', details: listError.message }, { status: 500 })
+     }
+ 
+     // Get unique user_ids to fetch CRM names
+     const uniqueUserIds = [...new Set((revenueList || []).map(r => r.user_id).filter(Boolean))]
+     const uniqueRevenueIds = [...new Set((revenueList || []).map(r => r.revenue_id).filter(Boolean))]
+ 
+     let userMap = {}
+     if (uniqueUserIds.length > 0) {
+       const { data: users } = await supabaseServer
+         .from('users')
+         .select('user_id, name')
+         .in('user_id', uniqueUserIds)
+ 
+       if (users) {
+         users.forEach(u => { userMap[u.user_id] = u.name })
+       }
+     }
+ 
+     // Fetch latest candidate_status for each revenue_id from corporate_candidate_track
+     let candidateStatusMap = {}
+     if (uniqueRevenueIds.length > 0) {
+       const { data: candidateTracks } = await supabaseServer
+         .from('corporate_candidate_track')
+         .select('revenue_id, candidate_status, created_at')
+         .in('revenue_id', uniqueRevenueIds)
+         .order('created_at', { ascending: false })
+ 
+       if (candidateTracks) {
+         // For each revenue_id, take the latest (first when sorted desc)
+         candidateTracks.forEach(track => {
+           if (track.candidate_status && !candidateStatusMap[track.revenue_id]) {
+             candidateStatusMap[track.revenue_id] = track.candidate_status
+           }
+         })
+       }
+     }
+ 
+     // Fetch latest payment_status for each revenue_id from corporate_payment_track
+     let paymentStatusMap = {}
+     if (uniqueRevenueIds.length > 0) {
+       const { data: paymentTracks } = await supabaseServer
+         .from('corporate_payment_track')
+         .select('revenue_id, payment_status, created_at')
+         .in('revenue_id', uniqueRevenueIds)
+         .order('created_at', { ascending: false })
+ 
+       if (paymentTracks) {
+         paymentTracks.forEach(track => {
+           if (track.payment_status && !paymentStatusMap[track.revenue_id]) {
+             paymentStatusMap[track.revenue_id] = track.payment_status
+           }
+         })
+       }
+     }
+ 
+     const transformedData = (revenueList || []).map(record => ({
+       ...record,
+       crm_name: userMap[record.user_id] || 'Unknown',
+       // Override with latest status from track tables if available, otherwise keep existing
+       candidate_status: candidateStatusMap[record.revenue_id] || record.candidate_status || 'Pending Join',
+       payment_status: paymentStatusMap[record.revenue_id] || record.payment_status || 'Pending'
+     }))
+ 
+     return NextResponse.json({ success: true, data: transformedData })
 
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 })

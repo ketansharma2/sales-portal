@@ -14,9 +14,9 @@ export default function CandidateHistoryPage() {
   const params = useParams();
   const router = useRouter();
   
-  // 1. Basic States
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState(null);
+   // 1. Basic States
+   const [loading, setLoading] = useState(true);
+   const [data, setData] = useState({ candidate_history: [], client_history: [], payment_history: [] });
 
    // 2. UI & Modal States
    const [isEditingCRMData, setIsEditingCRMData] = useState(false);
@@ -46,9 +46,13 @@ export default function CandidateHistoryPage() {
       offer_salary: "", payment_terms: "", joining_date: "", payment_days: "",
   });
   
-  const [revenueForm, setRevenueForm] = useState({
-      base_invoice: "", total_amount: "", payment_due_date: "", payment_followup_date: "" , pi_date: "" // Naya field add kiya
-  });
+   const [revenueForm, setRevenueForm] = useState({
+       base_invoice: "",
+       total_with_gst: "",
+       payment_due_date: "",
+       payment_follow_up: "" ,
+       pi_date: ""
+   });
 
    const [candForm, setCandForm] = useState({ followup_date: "", next_followup_date: "", conversation: "", candidate_status: "Working" });
    const [clientForm, setClientForm] = useState({ followup_date: "", next_followup_date: "", conversation: "" });
@@ -96,14 +100,14 @@ export default function CandidateHistoryPage() {
                payment_days: record.payment_days ? String(record.payment_days) : ''
            });
 
-           // Populate revenue form fields
-           setRevenueForm({
-               base_invoice: record.base_invoice || '',
-               total_amount: record.total_amount || '',
-               payment_due_date: record.payment_due_date || '',
-               payment_followup_date: record.payment_client_follow_date || '',
-               pi_date: record.pi_date || ''
-           });
+             // Populate revenue form fields
+             setRevenueForm({
+                 base_invoice: record.base_invoice || '',
+                 total_with_gst: record.total_with_gst || '',
+                 payment_due_date: record.payment_due_date || '',
+                 payment_follow_up: record.payment_follow_up || '',
+                 pi_date: record.pi_date || ''
+             });
 
             setMainForm({
                 entry_date: record.sent_date || '',
@@ -127,22 +131,25 @@ export default function CandidateHistoryPage() {
             // Populate revenue form fields
             setRevenueForm({
                 base_invoice: record.base_invoice || '',
-                total_amount: record.total_amount || '',
+                total_with_gst: record.total_with_gst || '',
                 payment_due_date: record.payment_due_date || '',
-                payment_followup_date: record.payment_client_follow_date || '',
+                payment_follow_up: record.payment_follow_up || '',
                 pi_date: record.pi_date || ''
             });
 
-            // Set basic data
-            const uiData = {
-                ...record,
-                position: record.profile,
-                rc_name: record.rc_name || '',
-                tl_name: record.tl_name || '',
-                candidate_status: record.candidate_status || 'Working'
-            };
-
-            setData(uiData);
+             // Set basic data
+             const uiData = {
+                 ...record,
+                 position: record.profile,
+                 rc_name: record.rc_name || '',
+                 tl_name: record.tl_name || '',
+                 candidate_status: record.candidate_status || 'Working',
+                 candidate_history: [],
+                 client_history: [],
+                 payment_history: []
+             };
+ 
+             setData(uiData);
 
             // Fetch all track histories in parallel
             try {
@@ -206,14 +213,14 @@ export default function CandidateHistoryPage() {
                 payment_history: []
               }));
             }
-         } else {
-           setData(null);
-         }
-       } catch (error) {
-         console.error('Error fetching revenue detail:', error);
-         setData(null);
-       } finally {
-         setLoading(false);
+          } else {
+            setData({ candidate_history: [], client_history: [], payment_history: [] });
+          }
+        } catch (error) {
+          console.error('Error fetching revenue detail:', error);
+          setData({ candidate_history: [], client_history: [], payment_history: [] });
+        } finally {
+          setLoading(false);
        }
      };
      fetchData();
@@ -229,16 +236,16 @@ export default function CandidateHistoryPage() {
       setIsModalOpen(true);
   };
 
-  const handleBaseInvoiceChange = (val) => {
-      const baseNum = parseInt(val) || 0;
-      const gstNum = baseNum * 0.18;
-      const totalNum = baseNum + gstNum;
-      setRevenueForm(prev => ({ 
-          ...prev, 
-          base_invoice: val, 
-          total_amount: totalNum > 0 ? totalNum.toString() : "" 
-      }));
-  };
+   const handleBaseInvoiceChange = (val) => {
+       const baseNum = parseInt(val) || 0;
+       const gstNum = Math.round(baseNum * 0.18);
+       const totalNum = baseNum + gstNum;
+       setRevenueForm(prev => ({ 
+           ...prev, 
+           base_invoice: val, 
+           total_with_gst: totalNum > 0 ? totalNum.toString() : "" 
+       }));
+   };
 
    const handleSaveCRMDetails = async () => {
      try {
@@ -286,9 +293,47 @@ export default function CandidateHistoryPage() {
      }
    };
 
-    const handleSaveRevenueDetails = () => {
-      alert("Revenue Financials Saved Successfully!");
-    };
+     const handleSaveRevenueDetails = async () => {
+       const revenueId = params.id;
+       if (!revenueId) {
+         alert('Revenue ID not found');
+         return;
+       }
+
+       try {
+         const session = JSON.parse(localStorage.getItem('session') || '{}');
+         const token = session.access_token;
+
+         const response = await fetch(`/api/corporate/revenue/${revenueId}`, {
+           method: 'PUT',
+           headers: {
+             'Content-Type': 'application/json',
+             'Authorization': `Bearer ${token}`
+           },
+           body: JSON.stringify({
+             revenue_id: revenueId,
+             base_invoice: revenueForm.base_invoice,
+             total_with_gst: revenueForm.total_with_gst,
+             payment_due_date: revenueForm.payment_due_date,
+             payment_follow_up: revenueForm.payment_follow_up,
+             pi_date: revenueForm.pi_date,
+           })
+         });
+
+         const result = await response.json();
+
+         if (response.ok) {
+           alert('Revenue financials saved successfully!');
+           // Refresh data
+           fetchRevenueData();
+         } else {
+           alert(`Save failed: ${result.error || 'Unknown error'}`);
+         }
+       } catch (error) {
+         console.error('Save error:', error);
+         alert('Failed to save: ' + error.message);
+       }
+     };
 
     const handleSaveLog = async () => {
      try {
@@ -423,21 +468,19 @@ export default function CandidateHistoryPage() {
 const totalReceived = data?.payment_history?.reduce((acc, curr) => 
     acc + (parseInt(curr.amount_received) || 0), 0) || 0;
 
-const totalExpected = parseInt(revenueForm.total_amount) || 0;
+ const totalExpected = parseInt(revenueForm.total_with_gst) || 0;
 const remainingBalance = totalExpected - totalReceived;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center text-[#103c7f]">
-        <div className="w-12 h-12 border-4 border-blue-200 border-t-[#103c7f] rounded-full animate-spin mb-4"></div>
-      </div>
-    );
-  }
-  
-  if (!data) return <div className="p-6 text-center text-red-500 font-bold">Error: Record not found.</div>;
-
-  return (
-    <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-6 pb-20 relative hide-on-print">
+   if (loading) {
+     return (
+       <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center text-[#103c7f]">
+         <div className="w-12 h-12 border-4 border-blue-200 border-t-[#103c7f] rounded-full animate-spin mb-4"></div>
+       </div>
+     );
+   }
+ 
+   return (
+     <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-6 pb-20 relative hide-on-print">
       
       {/* --- TOP NAVIGATION --- */}
       <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-500 hover:text-[#103c7f] transition-colors font-bold text-sm mb-6 w-fit">
@@ -674,30 +717,30 @@ const remainingBalance = totalExpected - totalReceived;
                   <label className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">Base Invoice (₹)</label>
                   <input type="number" value={revenueForm.base_invoice} onChange={e => handleBaseInvoiceChange(e.target.value)} placeholder="0.00" className="w-full border border-indigo-200 p-2.5 rounded-lg text-sm font-black text-[#103c7f] outline-none focus:border-indigo-500 bg-white shadow-sm"/>
               </div>
-              <div>
-                  <label className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1 block">Total with 18% GST (₹)</label>
-                  <input type="number" value={revenueForm.total_amount} readOnly placeholder="0.00" className="w-full border border-emerald-200 p-2.5 rounded-lg text-sm font-black text-emerald-700 outline-none bg-emerald-50 cursor-not-allowed shadow-sm"/>
-              </div>
-              <div>
-                  <label className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">Payment Due Date</label>
-                  <input type="date" value={revenueForm.payment_due_date} onChange={e => setRevenueForm({...revenueForm, payment_due_date: e.target.value})} className="w-full border border-indigo-200 p-2.5 rounded-lg text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 bg-white shadow-sm"/>
-              </div>
-              <div>
-                  <label className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">Payment Follow-up</label>
-                  <input type="date" value={revenueForm.payment_followup_date} onChange={e => setRevenueForm({...revenueForm, payment_followup_date: e.target.value})} className="w-full border border-indigo-200 p-2.5 rounded-lg text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 bg-white shadow-sm"/>
-              </div>
-              {/* PI Date - Ab ye editable hai */}
-              <div className="flex items-center gap-2">
-                  <div className="flex-1">
-                      <label className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">PI Date</label>
-                      <input 
-                        type="date" 
-                        value={revenueForm.pi_date} 
-                        onChange={e => setRevenueForm({...revenueForm, pi_date: e.target.value})} 
-                        className="w-full border border-indigo-200 p-2.5 rounded-lg text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 bg-white shadow-sm"
-                      />
-                  </div>
-              </div>
+               <div>
+                   <label className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1 block">Total with 18% GST (₹)</label>
+                   <input type="number" value={revenueForm.total_with_gst || ""} readOnly placeholder="0.00" className="w-full border border-emerald-200 p-2.5 rounded-lg text-sm font-black text-emerald-700 outline-none bg-emerald-50 cursor-not-allowed shadow-sm"/>
+               </div>
+               <div>
+                   <label className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">Payment Due Date</label>
+                   <input type="date" value={revenueForm.payment_due_date} onChange={e => setRevenueForm({...revenueForm, payment_due_date: e.target.value})} className="w-full border border-indigo-200 p-2.5 rounded-lg text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 bg-white shadow-sm"/>
+               </div>
+               <div>
+                   <label className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">Payment Follow-up</label>
+                    <input type="date" value={revenueForm.payment_follow_up || ""} onChange={e => setRevenueForm({...revenueForm, payment_follow_up: e.target.value})} className="w-full border border-indigo-200 p-2.5 rounded-lg text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 bg-white shadow-sm"/>
+               </div>
+               {/* PI Date */}
+               <div className="flex items-center gap-2">
+                   <div className="flex-1">
+                       <label className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">PI Date</label>
+                       <input 
+                         type="date" 
+                         value={revenueForm.pi_date} 
+                         onChange={e => setRevenueForm({...revenueForm, pi_date: e.target.value})} 
+                         className="w-full border border-indigo-200 p-2.5 rounded-lg text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 bg-white shadow-sm"
+                       />
+                   </div>
+               </div>
           </div>
 
          
@@ -714,7 +757,7 @@ const remainingBalance = totalExpected - totalReceived;
                   <button onClick={() => handleOpenModal('candidate')} className="bg-emerald-600 hover:bg-emerald-700 text-white p-1 rounded-lg shadow-sm transition-colors" title="Add Log"><Plus size={14}/></button>
               </div>
               <div className="p-3 space-y-2.5 overflow-y-auto max-h-[500px] custom-scrollbar flex-1">
-                  {data.candidate_history.map((log, idx) => (
+                   {data?.candidate_history?.map((log, idx) => (
                       <div key={idx} className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-sm relative">
                           <div className="flex justify-between items-center mb-1.5">
                               <span className="text-[11px] font-black text-gray-800 flex items-center gap-1">
@@ -736,88 +779,84 @@ const remainingBalance = totalExpected - totalReceived;
                               )}
                           </div>
                       </div>
-                  ))}
-                  {data.candidate_history.length === 0 && <p className="text-center text-[11px] text-gray-400 font-bold py-4 uppercase tracking-widest">No candidate logs.</p>}
-              </div>
-          </div>
-
-          {/* 2. CLIENT HISTORY */}
-          <div className="bg-indigo-50/30 rounded-2xl border border-indigo-200 shadow-sm overflow-hidden flex flex-col">
-              <div className="bg-indigo-100 px-4 py-3 border-b border-indigo-200 flex justify-between items-center shrink-0">
-                  <h3 className="text-sm font-black text-indigo-800 uppercase tracking-widest flex items-center gap-2"><Building2 size={16}/> Client Track</h3>
-                  <button onClick={() => handleOpenModal('client')} className="bg-indigo-600 hover:bg-indigo-700 text-white p-1 rounded-lg shadow-sm transition-colors" title="Add Log"><Plus size={14}/></button>
-              </div>
-              <div className="p-3 space-y-2.5 overflow-y-auto max-h-[500px] custom-scrollbar flex-1">
-                  {data.client_history.map((log, idx) => (
-                      <div key={idx} className="bg-white p-2.5 rounded-lg border border-indigo-100 shadow-sm relative">
-                          <div className="flex justify-between items-center mb-1.5">
-                              <span className="text-[11px] font-black text-gray-800 flex items-center gap-1">
-                                  <Calendar size={12} className="text-indigo-500"/> {log.followup_date}
-                              </span>
-                          </div>
-                          <p className="text-[11px] font-medium text-gray-700 bg-gray-50/50 p-2 rounded border border-gray-100 mb-2 leading-relaxed">
-                              {log.conversation}
-                          </p>
-                          <div className="flex justify-between items-center">
-                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">By: {log.loggedBy}</p>
-                              {log.next_followup_date && (
-                                  <p className="text-[9px] font-black text-indigo-600 flex items-center gap-1 bg-indigo-50 px-1.5 py-0.5 rounded">
-                                      <Clock size={10}/> Next: {log.next_followup_date}
-                                  </p>
-                              )}
-                          </div>
-                      </div>
-                  ))}
-                  {data.client_history.length === 0 && <p className="text-center text-[11px] text-gray-400 font-bold py-4 uppercase tracking-widest">No client logs.</p>}
-              </div>
-          </div>
-
-         {/* 3. PAYMENT HISTORY */}
-          <div className="bg-orange-50/30 rounded-2xl border border-orange-200 shadow-sm overflow-hidden flex flex-col">
-              <div className="bg-orange-100 px-4 py-3 border-b border-orange-200 flex justify-between items-center shrink-0">
-                  <h3 className="text-sm font-black text-orange-800 uppercase tracking-widest flex items-center gap-2"><CreditCard size={16}/> Payment Track</h3>
-                  <button onClick={() => handleOpenModal('payment')} className="bg-orange-600 hover:bg-orange-700 text-white p-1 rounded-lg shadow-sm transition-colors" title="Add Log"><Plus size={14}/></button>
-              </div>
-              <div className="p-3 space-y-2.5 overflow-y-auto max-h-[500px] custom-scrollbar flex-1">
-                  {data.payment_history.map((log, idx) => (
-                      <div key={idx} className="bg-white p-2.5 rounded-lg border border-orange-100 shadow-sm relative">
-                          
-                          {/* TOP ROW: Date & Status */}
-                          <div className="flex justify-between items-center mb-2 border-b border-gray-50 pb-1.5">
-                              <span className="text-[11px] font-black text-gray-800 flex items-center gap-1">
-                                  <Calendar size={12} className="text-orange-500"/> {log.date}
-                              </span>
-                              <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${log.payment_status === 'Received' || log.payment_status === 'Partial Payment' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-orange-50 text-orange-700 border border-orange-100'}`}>
-                                  {log.payment_status}
-                              </span>
-                          </div>
-                          
-                          {/* MIDDLE: Amount Highlight */}
-                          <div className="mb-2.5">
-                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Amount Received</p>
-                              <p className="text-sm font-mono font-black text-green-700 bg-green-50 px-2 py-1 rounded border border-green-100 flex items-center gap-1 w-fit shadow-sm">
-                                  <IndianRupee size={12}/> {log.amount_received || 0}
-                              </p>
-                          </div>
-
-                          {/* BOTTOM: Remarks & Logged By */}
-                          <p className="text-[11px] font-medium text-gray-700 bg-gray-50/50 p-2 rounded border border-gray-100 mb-2 leading-relaxed">
-                              {log.remark}
-                          </p>
-                          
-                          <div className="flex justify-between items-center mt-1">
-                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">By: {log.loggedBy}</p>
-                          </div>
-                          
-                      </div>
-                  ))}
-                  {data.payment_history.length === 0 && <p className="text-center text-[11px] text-gray-400 font-bold py-4 uppercase tracking-widest">No payment logs.</p>}
-              </div>
-          </div>
-
-      </div>
-
-    {/* --- PI CREATION MODAL --- */}
+                   ))}
+                     {(data?.candidate_history || []).length === 0 && <p className="text-center text-[11px] text-gray-400 font-bold py-4 uppercase tracking-widest">No candidate logs.</p>}
+               </div>
+           </div>
+ 
+           {/* 2. CLIENT HISTORY */}
+           <div className="bg-indigo-50/30 rounded-2xl border border-indigo-200 shadow-sm overflow-hidden flex flex-col">
+               <div className="bg-indigo-100 px-4 py-3 border-b border-indigo-200 flex justify-between items-center shrink-0">
+                   <h3 className="text-sm font-black text-indigo-800 uppercase tracking-widest flex items-center gap-2"><Building2 size={16}/> Client Track</h3>
+                   <button onClick={() => handleOpenModal('client')} className="bg-indigo-600 hover:bg-indigo-700 text-white p-1 rounded-lg shadow-sm transition-colors" title="Add Log"><Plus size={14}/></button>
+               </div>
+               <div className="p-3 space-y-2.5 overflow-y-auto max-h-[500px] custom-scrollbar flex-1">
+                   {data?.client_history?.map((log, idx) => (
+                       <div key={idx} className="bg-white p-2.5 rounded-lg border border-indigo-100 shadow-sm relative">
+                           <div className="flex justify-between items-center mb-1.5">
+                               <span className="text-[11px] font-black text-gray-800 flex items-center gap-1">
+                                   <Calendar size={12} className="text-indigo-500"/> {log.followup_date}
+                               </span>
+                           </div>
+                           <p className="text-[11px] font-medium text-gray-700 bg-gray-50/50 p-2 rounded border border-gray-100 mb-2 leading-relaxed">
+                               {log.conversation}
+                           </p>
+                           <div className="flex justify-between items-center">
+                               <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">By: {log.loggedBy}</p>
+                               {log.next_followup_date && (
+                                   <p className="text-[9px] font-black text-indigo-600 flex items-center gap-1 bg-indigo-50 px-1.5 py-0.5 rounded">
+                                       <Clock size={10}/> Next: {log.next_followup_date}
+                                   </p>
+                               )}
+                           </div>
+                       </div>
+                   ))}
+                     {(data?.client_history || []).length === 0 && <p className="text-center text-[11px] text-gray-400 font-bold py-4 uppercase tracking-widest">No client logs.</p>}
+               </div>
+           </div>
+ 
+           {/* 3. PAYMENT HISTORY */}
+           <div className="bg-orange-50/30 rounded-2xl border border-orange-200 shadow-sm overflow-hidden flex flex-col">
+               <div className="bg-orange-100 px-4 py-3 border-b border-orange-200 flex justify-between items-center shrink-0">
+                   <h3 className="text-sm font-black text-orange-800 uppercase tracking-widest flex items-center gap-2"><CreditCard size={16}/> Payment Track</h3>
+                   <button onClick={() => handleOpenModal('payment')} className="bg-orange-600 hover:bg-orange-700 text-white p-1 rounded-lg shadow-sm transition-colors" title="Add Log"><Plus size={14}/></button>
+               </div>
+               <div className="p-3 space-y-2.5 overflow-y-auto max-h-[500px] custom-scrollbar flex-1">
+                   {data?.payment_history?.map((log, idx) => (
+                       <div key={idx} className="bg-white p-2.5 rounded-lg border border-orange-100 shadow-sm relative">
+                           
+                           <div className="flex justify-between items-center mb-2 border-b border-gray-50 pb-1.5">
+                               <span className="text-[11px] font-black text-gray-800 flex items-center gap-1">
+                                   <Calendar size={12} className="text-orange-500"/> {log.date}
+                               </span>
+                               <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${log.payment_status === 'Received' || log.payment_status === 'Partial Payment' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-orange-50 text-orange-700 border border-orange-100'}`}>
+                                   {log.payment_status}
+                               </span>
+                           </div>
+                           
+                           <div className="mb-2.5">
+                               <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Amount Received</p>
+                               <p className="text-sm font-mono font-black text-green-700 bg-green-50 px-2 py-1 rounded border border-green-100 flex items-center gap-1 w-fit shadow-sm">
+                                   <IndianRupee size={12}/> {log.amount_received || 0}
+                               </p>
+                           </div>
+ 
+                           <p className="text-[11px] font-medium text-gray-700 bg-gray-50/50 p-2 rounded border border-gray-100 mb-2 leading-relaxed">
+                               {log.remark}
+                           </p>
+                           
+                           <div className="flex justify-between items-center mt-1">
+                               <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">By: {log.loggedBy}</p>
+                           </div>
+                       </div>
+                   ))}
+                     {(data?.payment_history || []).length === 0 && <p className="text-center text-[11px] text-gray-400 font-bold py-4 uppercase tracking-widest">No payment logs.</p>}
+               </div>
+           </div>
+ 
+       </div>
+ 
+     {/* --- PI CREATION MODAL --- */}
       {isPiModalOpen && (
           <div className="fixed inset-0 bg-[#103c7f]/70 backdrop-blur-sm flex justify-center items-center z-50 p-4 hide-on-print">
               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
@@ -853,7 +892,7 @@ const remainingBalance = totalExpected - totalReceived;
                           </div>
                           <div className="text-right">
                               <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Total (18% GST)</p>
-                              <p className="text-lg font-black text-emerald-700">₹ {revenueForm.total_amount || "0"}</p>
+                               <p className="text-lg font-black text-emerald-700">₹ {revenueForm.total_with_gst || "0"}</p>
                           </div>
                       </div>
                       <button onClick={handleGeneratePI} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-colors shadow-md mt-4">
@@ -1127,9 +1166,9 @@ const remainingBalance = totalExpected - totalReceived;
                </button>
              </div>
              <div className="p-5 overflow-y-auto max-h-[calc(85vh-60px)] custom-scrollbar">
-               {kycFiles.length > 0 ? (
+                {(kycFiles || []).length > 0 ? (
                  <div className="space-y-3">
-                   {kycFiles.map((fileUrl, idx) => (
+                    {(kycFiles || []).map((fileUrl, idx) => (
                      <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all group bg-gray-50">
                        <div className="flex items-center gap-3 min-w-0">
                          <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0">

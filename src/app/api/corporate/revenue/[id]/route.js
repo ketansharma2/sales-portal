@@ -14,9 +14,9 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    const currentUserId = user.user_id || user.id
-    const body = await request.json()
-    const revenueId = params.id
+     const currentUserId = user.user_id || user.id
+     const body = await request.json()
+     const revenueId = (await params).id
     const { ...updateFields } = body
 
     if (!revenueId) {
@@ -30,9 +30,9 @@ export async function PUT(request, { params }) {
       // Entity & Contact fields
       'payment_from', 'client_name', 'candidate_name', 'profile',
       'client_email', 'client_mobile', 'candidate_email', 'candidate_mobile',
-      // Financial fields
-      'offer_salary', 'terms', 'payment_days', 'joining_date',
-      'payment_due_date', 'payment_client_follow_date', 'base_invoice', 'total_amount', 'pi_date'
+       // Financial fields
+       'offer_salary', 'terms', 'payment_days', 'joining_date',
+       'payment_due_date', 'payment_follow_up', 'base_invoice', 'total_with_gst', 'pi_date'
     ]
 
     const updateData = {}
