@@ -1049,6 +1049,71 @@
                                             </div>
                                         </div>
 
+                                       
+
+                                        {/* ========================================================================= */}
+                                        {/* --- NEW SINGLE VALUE KPI CARDS ROW --- */}
+                                        {/* ========================================================================= */}
+                                        <div className="border-t border-indigo-100 pt-5 mt-2 mb-2">
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                                                
+                                                {/* 1. Client Onboard */}
+                                                <div className="border border-slate-200 rounded-lg bg-white p-3 text-center shadow-sm hover:border-indigo-400 transition-all flex flex-col justify-center h-[70px]">
+                                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate mb-1">Client Onboard</p>
+                                                    <p className="text-xl font-black text-slate-800 leading-none">-</p>
+                                                </div>
+
+                                                {/* 2. Current Client */}
+                                                <div className="border border-slate-200 rounded-lg bg-white p-3 text-center shadow-sm hover:border-indigo-400 transition-all flex flex-col justify-center h-[70px]">
+                                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate mb-1">Current Client</p>
+                                                    <p className="text-xl font-black text-slate-800 leading-none">-</p>
+                                                </div>
+
+                                                {/* 3. Total Requirement */}
+                                                <div className="border border-slate-200 rounded-lg bg-white p-3 text-center shadow-sm hover:border-indigo-400 transition-all flex flex-col justify-center h-[70px]">
+                                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate mb-1">Total Req</p>
+                                                    <p className="text-xl font-black text-slate-800 leading-none">-</p>
+                                                </div>
+
+                                                {/* 4. Total CTC (Highlighted) */}
+                                                <div className="border border-emerald-200 rounded-lg bg-emerald-50/30 p-3 text-center shadow-sm hover:border-emerald-400 transition-all flex flex-col justify-center h-[70px]">
+                                                    <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest truncate mb-1">Total CTC</p>
+                                                    <p className="text-xl font-black text-emerald-700 leading-none">-</p>
+                                                </div>
+
+                                                {/* 5. Tracker Share to Client */}
+                                                <div className="border border-slate-200 rounded-lg bg-white p-3 text-center shadow-sm hover:border-indigo-400 transition-all flex flex-col justify-center h-[70px]">
+                                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate mb-1">Tracker Shared to Client</p>
+                                                    <p className="text-xl font-black text-slate-800 leading-none">-</p>
+                                                </div>
+
+                                                {/* 6. Shortlist */}
+                                                <div className="border border-slate-200 rounded-lg bg-white p-3 text-center shadow-sm hover:border-indigo-400 transition-all flex flex-col justify-center h-[70px]">
+                                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate mb-1">Shortlisted</p>
+                                                    <p className="text-xl font-black text-slate-800 leading-none">-</p>
+                                                </div>
+
+                                                {/* 7. Interview */}
+                                                <div className="border border-slate-200 rounded-lg bg-white p-3 text-center shadow-sm hover:border-indigo-400 transition-all flex flex-col justify-center h-[70px]">
+                                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate mb-1">Interview</p>
+                                                    <p className="text-xl font-black text-slate-800 leading-none">-</p>
+                                                </div>
+
+                                                {/* 8. Select */}
+                                                <div className="border border-slate-200 rounded-lg bg-white p-3 text-center shadow-sm hover:border-indigo-400 transition-all flex flex-col justify-center h-[70px]">
+                                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate mb-1">Selected</p>
+                                                    <p className="text-xl font-black text-slate-800 leading-none">-</p>
+                                                </div>
+
+                                                {/* 9. Joining (Highlighted) */}
+                                                <div className="border border-slate-200 rounded-lg bg-white p-3 text-center shadow-sm hover:border-indigo-400 transition-all flex flex-col justify-center h-[70px]">
+                                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate mb-1">Joining</p>
+                                                    <p className="text-xl font-black text-emerald-600 leading-none">-</p>
+                                                </div>
+
+                                            </div>
+                                        </div>
+
                                         {/* CLIENT CONVERSATION LOG TABLE */}
                                         <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm flex flex-col">
                                             <div className="bg-slate-50 p-2.5 border-b border-slate-200 flex justify-between items-center">
@@ -1115,6 +1180,7 @@
 
 
 
+<<<<<<< HEAD
                                 {/* --- DOMESTIC DELIVERY REPORT --- */}
                                 {/* <div className="bg-white border border-orange-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
                                     <div className="bg-orange-50 p-4 border-b border-orange-100 flex justify-between items-center">
@@ -1129,6 +1195,9 @@
                                     </div>
 
                                  </div> */}
+=======
+                               
+>>>>>>> 2b0dd8508939147d2a963a909358937662dd2a9e
 
                                  {/* --- DOMESTIC DELIVERY REPORT --- */}
                                  <div className="bg-white border border-orange-200 rounded-xl overflow-hidden shadow-sm flex flex-col">

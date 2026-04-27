@@ -565,29 +565,16 @@ export default function AssignWorkPage() {
                     console.error('Error updating assignment:', error);
                     alert("Failed to update assignment. Please try again.");
                 }
-            } else {
-                // Find the selected requirement to get req_id
-                const selectedRequirement = requirementsList.find(r => r.job_title === formData.profile);
-                
-                if (!selectedRequirement) {
-                    alert("Please select a valid profile from the dropdown!");
-                    return;
-                }
+                } else {
+                    // Find the selected requirement to get req_id
+                    const selectedRequirement = requirementsList.find(r => r.job_title === formData.profile);
+                    
+                    if (!selectedRequirement) {
+                        alert("Please select a valid profile from the dropdown!");
+                        return;
+                    }
 
-                // Check for duplicate assignment (same date, client_id, req_id, and sent_to_tl)
-                const duplicateExists = assignments.some(item =>
-                    item.date === formData.date &&
-                    item.client === formData.client &&
-                    item.profile === formData.profile &&
-                    item.tl_assigned === formData.tl_assigned
-                );
-
-                if (duplicateExists) {
-                    alert("An assignment with the same Date, Client, Profile, and TL already exists!");
-                    return;
-                }
-
-                try {
+                    try {
                     const session = JSON.parse(localStorage.getItem('session') || '{}');
                     const response = await fetch('/api/domestic/crm/workbench', {
                         method: 'POST',

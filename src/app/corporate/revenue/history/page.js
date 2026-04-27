@@ -8,7 +8,7 @@ import {
 import { useRouter } from 'next/navigation';
 
 export default function RevenuePage() {
-  
+   
   // --- STATE ---
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("All");
@@ -17,8 +17,9 @@ export default function RevenuePage() {
   const [revenueData, setRevenueData] = useState([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const previewRef = useRef(null); 
-      // --- AMOUNT IN WORDS CONVERTER ---
+  const previewRef = useRef(null);
+
+  // --- AMOUNT IN WORDS CONVERTER ---
   const numberToWords = (num) => {
     const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
     const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
@@ -33,97 +34,37 @@ export default function RevenuePage() {
     str += (n[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) + 'Rupee Only' : 'Rupee Only';
     return str;
   };
-  // --- DUMMY DATA ---
-  const CLIENT_DB = [
-  { id: 1, name: "ZARIA", address: "C-58/2, PHASE-II, OKHLA INDUSTRIAL AREA, South East Delhi,Delhi, 110020", gstin: "07BUPPS7530B1ZF", state: "Delhi", defaultBillingPercent: 6.33 },
-  { id: 2, name: "Global Finance", address: "45 Business Hub, Sector 62", gstin: "09AAABCGLOB2Z", state: "UP", defaultBillingPercent: 10.0 },
-  { id: 3, name: "Urban Builders", address: "78 City Center", gstin: "06AAABCURBN3Z", state: "Haryana", defaultBillingPercent: 8.33 },
-];
-
-const COMPANY_DATA = {
-  name: "SAVVI SALES & SERVICES PVT LTD",
-  address: "331, GANDHI COLONY, SAMALKHA PANIPAT (HR)",
-  email: "savvisales@gmail.com",
-  gstin: "06AAZCS0495D1ZY",
-  bank: {
-    name: "STATE BANK OF INDIA",
-    account: "37085013734",
-    ifsc: "SBIN0050099",
-    branch: "SAMALKHA (CODE: 1073)" 
-  },
-  terms: [
-    "All disputes subject to Samalkha jurisdiction.",
-    "Our responsibility ceases as soon as goods/services leave our premises.",
-    "Payments by Account Payee Cheque/NEFT/RTGS only."
-  ]
-};
-const STATES = ["Haryana", "Delhi", "Punjab", "UP", "Rajasthan", "Maharashtra", "Karnataka"];
-  // --- DUMMY DATA ---
-  const dummyRevenueData = [
-    {
-      id: 1,
-      entry_date: "2026-04-10",
-      submitted_date: "2026-04-12", // Changed from invoice_sent_date
-      crm_name: "Neha Gupta",
-      payment_from: "Client", 
-      client_name: "TechNova Solutions",
-      candidate_name: "Kanchan",
-      position: "Telecaller",
-      joining_date: "2026-04-15",
-      candidate_status: "Working",
-      payment_status: "Invoice Sent",
-    },
-    {
-      id: 2,
-      entry_date: "2026-03-25",
-      submitted_date: "2026-03-28", // Changed from invoice_sent_date
-      crm_name: "Rimjhim",
-      payment_from: "Candidate",
-      client_name: "Global Finance",
-      candidate_name: "Rimjhim",
-      position: "Telecaller",
-      joining_date: "2026-03-01",
-      candidate_status: "Working",
-      payment_status: "Received",
-    },
-    {
-      id: 3,
-      entry_date: "2026-04-05",
-      submitted_date: "", // Not submitted to revenue yet
-      crm_name: "kajal",
-      payment_from: "Client",
-      client_name: "Urban Builders",
-      candidate_name: "Kajal",
-      position: "Telecaller",
-      joining_date: "2026-04-20",
-      candidate_status: "Pending Join",
-      payment_status: "Pending",
-    },
-    {
-      id: 4,
-      entry_date: "2026-02-15",
-      submitted_date: "", // Not submitted to revenue yet
-      crm_name: "Rohan Patel",
-      payment_from: "Client",
-      client_name: "Apex Retail",
-      candidate_name: "Kiran Rao",
-      position: "Store Manager",
-      joining_date: "2026-02-25",
-      candidate_status: "Absconded",
-      payment_status: "Pending Replacement",
-    }
-  ];
-
-  // --- MOCK API CALL ---
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setRevenueData(dummyRevenueData);
-      setLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
-  }, []);
 
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  useEffect(() => {
+    const fetchRevenueHistory = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        
+        const response = await fetch('/api/corporate/revenue/history', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          console.log('Revenue data keys:', result.data.map(r => r.id));
+          setRevenueData(result.data);
+        } else {
+          setRevenueData([]);
+        }
+      } catch (error) {
+        console.error('Error fetching revenue history:', error);
+        setRevenueData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRevenueHistory();
+  }, []);
 
   // --- HANDLERS ---
   const handleViewHistory = (id) => {
@@ -180,16 +121,16 @@ const STATES = ["Haryana", "Delhi", "Punjab", "UP", "Rajasthan", "Maharashtra", 
   });
 
   // --- SELECTION HANDLERS ---
-  const toggleRowSelection = (id) => {
-    setSelectedRowIds(prev => prev.includes(id) ? prev.filter(rowId => rowId !== id) : [...prev, id]);
+  const toggleRowSelection = (revenueId) => {
+    setSelectedRowIds(prev => prev.includes(revenueId) ? prev.filter(rowId => rowId !== revenueId) : [...prev, revenueId]);
   };
 
   const openPiModal = () => {
     // Selected rows से कैंडिडेट्स का डेटा निकालें (assuming ctc is available, else fallback to 0)
     const selectedCandidates = revenueData
-      .filter(item => selectedRowIds.includes(item.id))
+      .filter(item => selectedRowIds.includes(item.revenue_id))
       .map(item => ({
-        id: item.id,
+        id: item.revenue_id,
         role: item.position,
         name: item.candidate_name,
         ctc: item.ctc || 500000, // Replace with actual item.ctc from your DB
@@ -344,23 +285,23 @@ const STATES = ["Haryana", "Delhi", "Punjab", "UP", "Rajasthan", "Maharashtra", 
                   {loading ? (
                      <tr><td colSpan="10" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest">Loading Directory...</td></tr>
                   ) : filteredData.length > 0 ? (
-                     filteredData.map((item, index) => (
-                     <tr key={item.id} className="hover:bg-blue-50/30 transition group">
+                      filteredData.map((item, index) => (
+                      <tr key={item.revenue_id} className="hover:bg-blue-50/30 transition group">
                         
                         <td className="p-3 border-r border-gray-100 text-center font-bold text-gray-400">{index + 1}</td>
                         
                         {/* 1. Submitted Date & CRM */}
                         <td className="p-3 border-r border-gray-100 align-top">
-                           <div className="flex flex-col gap-1.5">
-                              {item.submitted_date ? (
-                                  <span className="font-bold text-gray-800 flex items-center gap-1.5"><Calendar size={12} className="text-emerald-500"/> {item.submitted_date}</span>
-                              ) : (
-                                  <span className="font-bold text-gray-400 flex items-center gap-1.5"><Calendar size={12} className="text-gray-300"/> Not Submitted</span>
-                              )}
-                              <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded w-fit border border-blue-100 uppercase flex items-center gap-1">
-                                  <User size={10} /> {item.crm_name}
-                              </span>
-                           </div>
+                            <div className="flex flex-col gap-1.5">
+                               {item.sent_date ? (
+                                   <span className="font-bold text-gray-800 flex items-center gap-1.5"><Calendar size={12} className="text-emerald-500"/> {item.sent_date}</span>
+                               ) : (
+                                   <span className="font-bold text-gray-400 flex items-center gap-1.5"><Calendar size={12} className="text-gray-300"/> Not Submitted</span>
+                               )}
+                               <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded w-fit border border-blue-100 uppercase flex items-center gap-1">
+                                   <User size={10} /> {item.crm_name}
+                               </span>
+                            </div>
                         </td>
 
                         {/* 2. Payment From */}
@@ -388,9 +329,9 @@ const STATES = ["Haryana", "Delhi", "Punjab", "UP", "Rajasthan", "Maharashtra", 
                            <div className="flex flex-col gap-1.5">
                               <span className="font-bold text-gray-900 text-sm flex items-center gap-1.5"><User size={14} className="text-gray-400"/> {item.candidate_name}</span>
                               <div className="flex items-center gap-3">
-                                  <span className="text-[10px] text-gray-500 flex items-center gap-1 font-bold"><Briefcase size={10}/> {item.position}</span>
+                                  <span className="text-[10px] text-gray-500 flex items-center gap-1 font-bold"><Briefcase size={10}/> {item.profile || item.position || '-'}</span>
                               </div>
-                           </div>
+                                                     </div>
                         </td>
 
                         {/* 5. Joining Date */}
@@ -425,26 +366,26 @@ const STATES = ["Haryana", "Delhi", "Punjab", "UP", "Rajasthan", "Maharashtra", 
                         {/* --- NEW: 8. PI Column (View / Edit) --- */}
                         <td className="p-3 border-r border-gray-100 text-center align-middle">
                             <div className="flex items-center justify-center gap-2">
-                                <button 
-                                    onClick={() => {
-                                        // TODO: Add logic to view existing PI
-                                        console.log("View PI for:", item.id);
-                                    }}
-                                    className="bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white p-1.5 rounded transition-colors border border-indigo-200"
-                                    title="View PI"
-                                >
-                                    <FileText size={14} />
-                                </button>
-                                <button 
-                                    onClick={() => {
-                                        // TODO: Add logic to edit existing PI
-                                        console.log("Edit PI for:", item.id);
-                                    }}
-                                    className="bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white p-1.5 rounded transition-colors border border-emerald-200"
-                                    title="Edit PI"
-                                >
-                                    <FileCheck size={14} /> {/* Using FileCheck as edit icon for now, you can use Edit3 if imported */}
-                                </button>
+                                 <button 
+                                     onClick={() => {
+                                         // TODO: Add logic to view existing PI
+                                         console.log("View PI for:", item.revenue_id);
+                                     }}
+                                     className="bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white p-1.5 rounded transition-colors border border-indigo-200"
+                                     title="View PI"
+                                 >
+                                     <FileText size={14} />
+                                 </button>
+                                 <button 
+                                     onClick={() => {
+                                         // TODO: Add logic to edit existing PI
+                                         console.log("Edit PI for:", item.revenue_id);
+                                     }}
+                                     className="bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white p-1.5 rounded transition-colors border border-emerald-200"
+                                     title="Edit PI"
+                                 >
+                                     <FileCheck size={14} /> {/* Using FileCheck as edit icon for now, you can use Edit3 if imported */}
+                                 </button>
                             </div>
                         </td>
 
@@ -453,17 +394,17 @@ const STATES = ["Haryana", "Delhi", "Punjab", "UP", "Rajasthan", "Maharashtra", 
       {/* flex-col हटाकर flex items-center और justify-center लगाया है */}
       <div className="flex items-center justify-center gap-2 w-full px-1">
           {/* CHECKBOX */}
-          <input 
-              type="checkbox" 
-              className="cursor-pointer accent-blue-600 w-4 h-4 rounded shrink-0"
-              checked={selectedRowIds.includes(item.id)}
-              onChange={() => toggleRowSelection(item.id)}
-          />
+           <input 
+               type="checkbox" 
+               className="cursor-pointer accent-blue-600 w-4 h-4 rounded shrink-0"
+               checked={selectedRowIds.includes(item.revenue_id)}
+               onChange={() => toggleRowSelection(item.revenue_id)}
+           />
           {/* बटन में w-full की जगह flex-1 लगाया है */}
-          <button 
-              onClick={() => handleViewHistory(item.id)}
-              className="flex-1 bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-600 hover:text-white px-2 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-1"
-          >
+           <button 
+               onClick={() => handleViewHistory(item.revenue_id)}
+               className="flex-1 bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-600 hover:text-white px-2 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-1"
+           >
               <History size={12} /> History
           </button>
       </div>

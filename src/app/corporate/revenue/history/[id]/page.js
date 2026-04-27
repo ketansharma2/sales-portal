@@ -5,7 +5,7 @@ import {
   ArrowLeft, User, Building2, Briefcase, Calendar, 
   IndianRupee, Phone, Mail, Clock, FileText, CreditCard, 
   Eye, Plus, X, Save, Edit, Users, PhoneCall, CheckCircle, AlertCircle,
-  FileCheck, Download, Printer
+  FileCheck, Download, Printer, ExternalLink
 } from "lucide-react";
 
 import { useParams, useRouter } from 'next/navigation';
@@ -18,11 +18,12 @@ export default function CandidateHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
 
-  // 2. UI & Modal States
-  const [isEditingCRMData, setIsEditingCRMData] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState(""); 
-  const [kycFiles, setKycFiles] = useState([]);
+   // 2. UI & Modal States
+   const [isEditingCRMData, setIsEditingCRMData] = useState(false);
+   const [isModalOpen, setIsModalOpen] = useState(false);
+   const [modalType, setModalType] = useState(""); 
+   const [kycFiles, setKycFiles] = useState([]);
+   const [isKycModalOpen, setIsKycModalOpen] = useState(false);
   
   // 3. PI Modal States
   const [isPiModalOpen, setIsPiModalOpen] = useState(false);
@@ -53,94 +54,79 @@ export default function CandidateHistoryPage() {
   const [clientForm, setClientForm] = useState({ followup_date: "", next_followup_date: "", conversation: "" });
   const [payForm, setPayForm] = useState({ date: "", amount_received: "", payment_status: "Pending", remark: "" });
 
-  useEffect(() => {
-    if (!params?.id) return;
-    const fetchData = async () => {
-      setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 600));
+   useEffect(() => {
+     if (!params?.id) return;
+     const fetchData = async () => {
+       setLoading(true);
 
-      const mockDossier = {
-        id: params.id,
-        candidate_name: "Amit Verma",
-        position: "Frontend Developer",
-        candidate_phone: "+91 9876543210",
-        candidate_email: "amit@example.com",
-        candidate_status: "Working",
-        client_name: "TechNova Solutions",
-        client_phone: "+91 8888888888",
-        client_email: "finance@technova.com",
-        entry_date: "2026-04-10",
-        joining_date: "2026-04-15",
-        entered_by_rc: "Pooja Singh",
-        tl_name: "Vikram Sharma",
-        crm_name: "Neha Gupta",
-        payment_from: "Client",
-        offer_salary: "12,00,000",
-        payment_terms: "8.33",
-        payment_days: "30",
-        base_invoice: "1,00,000",
-        gst_amount: "18,000",
-        total_amount: "1,18,000",
-        payment_status: "Invoice Sent",
-        payment_due_date: "2026-05-15",
-        payment_followup_date: "2026-05-10",
-        kyc_documents: 2,
-        // Track 1: Candidate History (By Recruiter/TL)
-        candidate_history: [
-          { followup_date: "2026-05-20", next_followup_date: "2026-06-20", conversation: "One month completion check-in. Amit is performing very well and has integrated into the frontend team smoothly.", candidate_status: "Working", loggedBy: "Pooja Singh" },
-          { followup_date: "2026-04-20", next_followup_date: "2026-05-20", conversation: "Candidate is settling in well. Reached office on time and completed induction.", candidate_status: "Working", loggedBy: "Pooja Singh" },
-          { followup_date: "2026-04-15", next_followup_date: "2026-04-20", conversation: "First day completed successfully. IT assets assigned.", candidate_status: "Working", loggedBy: "Pooja Singh" },
-          { followup_date: "2026-04-14", next_followup_date: "2026-04-15", conversation: "Called to remind about joining documents and reporting time for tomorrow.", candidate_status: "Pending Join", loggedBy: "Vikram Sharma" },
-          { followup_date: "2026-04-05", next_followup_date: "2026-04-14", conversation: "All exit formalities from previous employer completed.", candidate_status: "Pending Join", loggedBy: "Pooja Singh" },
-          { followup_date: "2026-03-25", next_followup_date: "2026-04-05", conversation: "Regular notice period check-in. Serving notice smoothly without issues.", candidate_status: "Pending Join", loggedBy: "Pooja Singh" },
-          { followup_date: "2026-03-10", next_followup_date: "2026-03-25", conversation: "Offer accepted. Expected joining date finalized for 15th April.", candidate_status: "Pending Join", loggedBy: "Vikram Sharma" }
-        ],
+       try {
+         const session = JSON.parse(localStorage.getItem('session') || '{}');
+         const token = session.access_token;
 
-        // Track 2: Client History (By CRM)
-        client_history: [
-          { followup_date: "2026-05-15", next_followup_date: "2026-05-20", conversation: "Spoke to Finance Head. They promised to process the invoice by next week.", loggedBy: "Neha Gupta" },
-          { followup_date: "2026-05-01", next_followup_date: "2026-05-15", conversation: "Followed up on invoice. HR confirmed it is in queue for approval.", loggedBy: "Neha Gupta" },
-          { followup_date: "2026-04-18", next_followup_date: "2026-05-01", conversation: "Checked with Hiring Manager. They are happy with Amit's first week.", loggedBy: "Neha Gupta" },
-          { followup_date: "2026-04-15", next_followup_date: "2026-04-18", conversation: "HR confirmed candidate has reported and collected the laptop.", loggedBy: "Neha Gupta" },
-          { followup_date: "2026-04-10", next_followup_date: "2026-04-15", conversation: "Background check cleared. Seating arranged for joining day.", loggedBy: "Neha Gupta" },
-          { followup_date: "2026-04-01", next_followup_date: "2026-04-10", conversation: "Initiated BGV process with external agency.", loggedBy: "Neha Gupta" },
-          { followup_date: "2026-03-10", next_followup_date: "2026-04-01", conversation: "Offer released to Amit as per client's approval.", loggedBy: "Neha Gupta" }
-        ],
+         // Fetch revenue record by ID
+         const response = await fetch(`/api/corporate/revenue/history?revenue_id=${params.id}`, {
+           headers: { 'Authorization': `Bearer ${token}` }
+         });
 
-        // Track 3: Payment History (By Finance/Revenue Team)
-        payment_history: [
-          { date: "2026-05-18", amount_received: "50000", payment_status: "Partial Payment", remark: "Received partial payment via NEFT. Remainder promised next week.", loggedBy: "Finance System" },
-          { date: "2026-05-16", amount_received: "0", payment_status: "Pending", remark: "Payment overdue. Sent reminder email with late fee clause details.", loggedBy: "Finance System" },
-          { date: "2026-05-10", amount_received: "0", payment_status: "Pending", remark: "Automated reminder sent 5 days before due date.", loggedBy: "Finance System" },
-          { date: "2026-05-02", amount_received: "0", payment_status: "Invoice Sent", remark: "Client acknowledged the invoice. Pushed to their internal accounting system.", loggedBy: "Finance System" },
-          { date: "2026-04-20", amount_received: "0", payment_status: "Invoice Sent", remark: "Hard copy of invoice dispatched via courier.", loggedBy: "Finance System" },
-          { date: "2026-04-16", amount_received: "0", payment_status: "Invoice Sent", remark: "Invoice #INV-2026-042 generated and sent to finance@technova.com", loggedBy: "Finance System" }
-        ]
+         const result = await response.json();
 
-        
-      };
+         if (response.ok && result.success && result.data) {
+           const record = result.data;
 
-      setData(mockDossier);
-      
-      setMainForm({
-          entry_date: mockDossier.entry_date || "", crm_name: mockDossier.crm_name || "", tl_name: mockDossier.tl_name || "", entered_by_rc: mockDossier.entered_by_rc || "",
-          payment_from: mockDossier.payment_from || "", client_name: mockDossier.client_name || "", candidate_name: mockDossier.candidate_name || "", position: mockDossier.position || "",
-          client_email: mockDossier.client_email || "", client_phone: mockDossier.client_phone || "", candidate_email: mockDossier.candidate_email || "", candidate_phone: mockDossier.candidate_phone || "",
-          offer_salary: mockDossier.offer_salary ? mockDossier.offer_salary.replace(/,/g, '') : "", payment_terms: mockDossier.payment_terms ? mockDossier.payment_terms.replace('%', '') : "", joining_date: mockDossier.joining_date || "", payment_days: mockDossier.payment_days ? mockDossier.payment_days.replace(' Days', '') : "",
-      });
+           // Set main form data from revenue record
+           setMainForm({
+               entry_date: record.sent_date || '',
+               crm_name: record.crm_name || '',
+               tl_name: record.tl_name || '',
+               entered_by_rc: record.rc_name || '',
+               payment_from: record.payment_from || '',
+               client_name: record.client_name || '',
+               candidate_name: record.candidate_name || '',
+               position: record.profile || '',
+               client_email: record.client_email || '',
+               client_phone: record.client_mobile || '',
+               candidate_email: record.candidate_email || '',
+               candidate_phone: record.candidate_mobile || '',
+               offer_salary: record.offer_salary ? String(record.offer_salary).replace(/,/g, '') : '',
+               payment_terms: record.terms ? String(record.terms).replace('%', '') : '',
+               joining_date: record.joining_date || '',
+               payment_days: record.payment_days ? String(record.payment_days) : ''
+           });
 
-      // Revenue form should start completely blank for the Revenue user to fill
-      setRevenueForm({
-          base_invoice: "",
-          total_amount: "",
-          payment_due_date: "",
-          payment_followup_date: ""
-      });
+           // Populate revenue form fields
+           setRevenueForm({
+               base_invoice: record.base_invoice || '',
+               total_amount: record.total_amount || '',
+               payment_due_date: record.payment_due_date || '',
+               payment_followup_date: record.payment_client_follow_date || '',
+               pi_date: record.pi_date || ''
+           });
 
-      setLoading(false);
-    };
-    fetchData();
-  }, [params.id]);
+           // Prepare data object for UI
+           const uiData = {
+               ...record,
+               position: record.profile, // alias for display
+               rc_name: record.rc_name || '',
+               tl_name: record.tl_name || '',
+               candidate_history: record.candidate_history || [],
+               client_history: record.client_history || [],
+               payment_history: record.payment_history || [],
+               candidate_status: record.candidate_status || 'Working'
+           };
+
+           setData(uiData);
+         } else {
+           setData(null);
+         }
+       } catch (error) {
+         console.error('Error fetching revenue detail:', error);
+         setData(null);
+       } finally {
+         setLoading(false);
+       }
+     };
+     fetchData();
+   }, [params.id]);
 
   // --- HANDLERS ---
   const handleOpenModal = (type) => {
@@ -163,16 +149,45 @@ export default function CandidateHistoryPage() {
       }));
   };
 
-  const handleSaveCRMDetails = () => {
-      // Toggle edit mode off
-      setIsEditingCRMData(false);
-      alert("CRM Details Updated Successfully!");
-      // Logic to save to backend would go here
-  };
+   const handleSaveCRMDetails = async () => {
+     try {
+       const session = JSON.parse(localStorage.getItem('session') || '{}');
+       const token = session.access_token;
 
-  const handleSaveRevenueDetails = () => {
+       const updatePayload = {
+         revenue_id: params.id,
+         entry_date: mainForm.entry_date || null,
+         crm_name: mainForm.crm_name || null,
+         tl_name: mainForm.tl_name || null,
+         entered_by_rc: mainForm.entered_by_rc || null
+       };
+
+       const response = await fetch('/api/corporate/revenue/history', {
+         method: 'PUT',
+         headers: {
+           'Authorization': `Bearer ${token}`,
+           'Content-Type': 'application/json'
+         },
+         body: JSON.stringify(updatePayload)
+       });
+
+       const result = await response.json();
+
+       if (response.ok && result.success) {
+         setIsEditingCRMData(false);
+         alert('CRM details updated successfully!');
+       } else {
+         alert(result.error || 'Failed to update CRM details');
+       }
+     } catch (error) {
+       console.error('Error saving CRM details:', error);
+       alert('Error saving CRM details');
+     }
+    };
+
+    const handleSaveRevenueDetails = () => {
       alert("Revenue Financials Saved Successfully!");
-  };
+    };
 
   const handleSaveLog = () => {
       const updatedData = { ...data };
@@ -274,31 +289,32 @@ const remainingBalance = totalExpected - totalReceived;
           
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
               
-              {/* CARD 1: TEAM & SOURCE */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex flex-col hover:border-blue-300 transition-colors group">
-                  <div className="flex items-center gap-2.5 mb-4 border-b border-gray-100 pb-3">
-                      <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Users size={16} /></div>
-                      <h4 className="text-xs font-black text-gray-800 uppercase tracking-widest">Team & Source</h4>
-                  </div>
-                  <div className="space-y-3 flex-1">
-                      <div>
-                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Entry Date</label>
-                          {isEditingCRMData ? <input type="date" value={mainForm.entry_date} onChange={e => setMainForm({...mainForm, entry_date: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] bg-white"/> : <p className="text-sm font-bold text-gray-800">{mainForm.entry_date || "N/A"}</p>}
-                      </div>
-                      <div>
-                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">CRM Name</label>
-                          {isEditingCRMData ? <input type="text" value={mainForm.crm_name} onChange={e => setMainForm({...mainForm, crm_name: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] bg-white"/> : <p className="text-sm font-bold text-gray-800">{mainForm.crm_name || "N/A"}</p>}
-                      </div>
-                      <div>
-                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">TL Name</label>
-                          {isEditingCRMData ? <input type="text" value={mainForm.tl_name} onChange={e => setMainForm({...mainForm, tl_name: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] bg-white"/> : <p className="text-sm font-bold text-gray-800">{mainForm.tl_name || "N/A"}</p>}
-                      </div>
-                      <div>
-                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">RC Name</label>
-                          {isEditingCRMData ? <input type="text" value={mainForm.entered_by_rc} onChange={e => setMainForm({...mainForm, entered_by_rc: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] bg-white"/> : <p className="text-sm font-bold text-gray-800">{mainForm.entered_by_rc || "N/A"}</p>}
-                      </div>
-                  </div>
-              </div>
+               {/* CARD 1: TEAM & SOURCE (Always Read-Only) */}
+               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex flex-col hover:border-blue-300 transition-colors group opacity-75">
+                   <div className="flex items-center gap-2.5 mb-4 border-b border-gray-100 pb-3">
+                       <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Users size={16} /></div>
+                       <h4 className="text-xs font-black text-gray-800 uppercase tracking-widest">Team & Source</h4>
+                       <span className="ml-auto text-[9px] font-black text-gray-400 uppercase tracking-widest bg-gray-100 px-2 py-0.5 rounded">View Only</span>
+                   </div>
+                   <div className="space-y-3 flex-1">
+                       <div>
+                           <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Entry Date</label>
+                           <p className="text-sm font-bold text-gray-800">{mainForm.entry_date || "N/A"}</p>
+                       </div>
+                       <div>
+                           <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">CRM Name</label>
+                           <p className="text-sm font-bold text-gray-800">{mainForm.crm_name || "N/A"}</p>
+                       </div>
+                       <div>
+                           <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">TL Name</label>
+                           <p className="text-sm font-bold text-gray-800">{mainForm.tl_name || "N/A"}</p>
+                       </div>
+                       <div>
+                           <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">RC Name</label>
+                           <p className="text-sm font-bold text-gray-800">{mainForm.entered_by_rc || "N/A"}</p>
+                       </div>
+                   </div>
+               </div>
 
               {/* CARD 2: ENTITY DETAILS */}
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex flex-col hover:border-purple-300 transition-colors group">
@@ -385,12 +401,26 @@ const remainingBalance = totalExpected - totalReceived;
                               {isEditingCRMData ? <input type="number" value={mainForm.payment_days} onChange={e => setMainForm({...mainForm, payment_days: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-emerald-500 bg-white"/> : <p className="text-sm font-bold text-gray-800">{mainForm.payment_days ? `${mainForm.payment_days} Days` : "N/A"}</p>}
                           </div>
                       </div>
-                      <div className="pt-2">
-                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">KYC Documents</label>
-                          <button onClick={() => alert("View KYC Docs Logic")} className="bg-blue-50 hover:bg-blue-100 text-[#103c7f] border border-blue-200 w-full py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 shadow-sm">
-                              <Eye size={12} /> View Uploaded Docs
-                          </button>
-                      </div>
+                       <div className="pt-2">
+                           <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">KYC Documents</label>
+                           <button onClick={() => {
+                               const files = data.kyc_doc
+                               if (files) {
+                                 // Handle both string (single file) and array formats
+                                 const filesArray = Array.isArray(files) ? files : (files ? [files] : [])
+                                 if (filesArray.length > 0) {
+                                   setKycFiles(filesArray)
+                                   setIsKycModalOpen(true)
+                                 } else {
+                                   alert('No KYC documents uploaded')
+                                 }
+                               } else {
+                                 alert('No KYC documents uploaded')
+                               }
+                             }} className="bg-blue-50 hover:bg-blue-100 text-[#103c7f] border border-blue-200 w-full py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                               <Eye size={12} /> View Uploaded Docs
+                           </button>
+                       </div>
                   </div>
               </div>
 
@@ -851,10 +881,75 @@ const remainingBalance = totalExpected - totalReceived;
                         </button>
                     </div>
 
-                </div>
-            </div>
-        </div>
-      )}
-    </div>
-  );
-}
+                 </div>
+             </div>
+         </div>
+       )}
+
+       {/* ================= KYC DOCUMENTS MODAL ================= */}
+       {isKycModalOpen && (
+         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden">
+             <div className="bg-[#103c7f] text-white p-4 flex justify-between items-center shrink-0">
+               <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                 <FileText size={16} /> KYC Documents
+               </h2>
+               <button onClick={() => setIsKycModalOpen(false)} className="hover:text-red-300 transition-colors">
+                 <X size={18} />
+               </button>
+             </div>
+             <div className="p-5 overflow-y-auto max-h-[calc(85vh-60px)] custom-scrollbar">
+               {kycFiles.length > 0 ? (
+                 <div className="space-y-3">
+                   {kycFiles.map((fileUrl, idx) => (
+                     <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all group bg-gray-50">
+                       <div className="flex items-center gap-3 min-w-0">
+                         <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0">
+                           <FileText size={18} />
+                         </div>
+                         <div className="min-w-0">
+                           <p className="text-xs font-bold text-gray-800 truncate" title={fileUrl}>
+                             Document {idx + 1}
+                           </p>
+                           <p className="text-[10px] text-gray-500 truncate" title={fileUrl}>
+                             {fileUrl.length > 50 ? fileUrl.substring(0, 50) + '...' : fileUrl}
+                           </p>
+                         </div>
+                       </div>
+                       <div className="flex items-center gap-2 shrink-0">
+                         <a 
+                           href={fileUrl} 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-600 hover:text-white text-[10px] font-bold rounded transition-colors flex items-center gap-1"
+                           title="View Document"
+                         >
+                           <Eye size={12} /> View
+                         </a>
+                         <a 
+                           href={fileUrl} 
+                           download
+                           className="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white text-[10px] font-bold rounded transition-colors flex items-center gap-1"
+                           title="Download Document"
+                         >
+                           <Download size={12} /> Download
+                         </a>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               ) : (
+                 <div className="text-center py-10 text-gray-400">
+                   <FileText size={32} className="mx-auto mb-3 opacity-20" />
+                   <p className="text-sm font-bold text-gray-600">No KYC documents</p>
+                   <p className="text-xs">This record does not have any KYC files uploaded.</p>
+                 </div>
+               )}
+             </div>
+           </div>
+         </div>
+       )}
+      </div>
+
+    );
+  }
