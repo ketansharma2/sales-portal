@@ -1180,24 +1180,7 @@
 
 
 
-<<<<<<< HEAD
-                                {/* --- DOMESTIC DELIVERY REPORT --- */}
-                                {/* <div className="bg-white border border-orange-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
-                                    <div className="bg-orange-50 p-4 border-b border-orange-100 flex justify-between items-center">
-                                        <div className="flex items-center gap-2">
-                                            <Home size={18} className="text-orange-600"/>
-                                            <h3 className="text-sm font-black text-orange-900 uppercase tracking-widest">
-                                                Domestic Workbench
-                                            </h3>
-                                        </div>
-                                        
-                                        
-                                    </div>
-
-                                 </div> */}
-=======
                                
->>>>>>> 2b0dd8508939147d2a963a909358937662dd2a9e
 
                                  {/* --- DOMESTIC DELIVERY REPORT --- */}
                                  <div className="bg-white border border-orange-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
