@@ -1249,29 +1249,53 @@ return (
                   <MessageSquare size={16} className="text-orange-500"/> Conversation Tab
                </h3>
             </div>
-            <div className="flex gap-2">
-               <button onClick={() => setIsContactModalOpen(true)} className="flex items-center gap-1 bg-white border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-gray-50 shadow-sm transition-all hover:border-orange-200 hover:text-orange-600">
-                  <Plus size={12}/> Contact
-               </button>
-               <button 
-                  onClick={() => setIsConversationModalOpen(true)} 
-                  className="flex items-center gap-1 bg-[#103c7f] text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-900 shadow-md transition-all"
-               >
-                  <Plus size={12}/> Conversation
-               </button>
-            </div>
+             <div className="flex gap-2">
+                <button 
+                   onClick={() => {
+                     if (!selectedBranchId) {
+                       alert('Please select a branch first');
+                       return;
+                     }
+                     setIsContactModalOpen(true);
+                   }}
+                   className="flex items-center gap-1 bg-white border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-gray-50 shadow-sm transition-all hover:border-orange-200 hover:text-orange-600"
+                >
+                   <Plus size={12}/> Contact
+                </button>
+                <button 
+                   onClick={() => {
+                     if (!selectedBranchId) {
+                       alert('Please select a branch first');
+                       return;
+                     }
+                     setIsConversationModalOpen(true);
+                   }} 
+                   className="flex items-center gap-1 bg-[#103c7f] text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-900 shadow-md transition-all"
+                >
+                   <Plus size={12}/> Conversation
+                </button>
+             </div>
          </div>
 
          {/* Content */}
          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
             {/* 1. Activity Timeline */}
             <div className="flex-1 flex flex-col min-h-0">
-               <div className="flex justify-between items-end mb-3">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block tracking-wider">Conversation History</label>
-                  <button onClick={() => setIsAllContactsOpen(true)} className="text-[10px] font-bold text-[#103c7f] hover:underline flex items-center gap-1">
-                     View All Contact <ChevronRight size={10} />
-                  </button>
-               </div>
+                <div className="flex justify-between items-end mb-3">
+                   <label className="text-[10px] font-bold text-gray-400 uppercase block tracking-wider">Conversation History</label>
+                   <button 
+                     onClick={() => {
+                       if (!selectedBranchId) {
+                         alert('Please select a branch first');
+                         return;
+                       }
+                       setIsAllContactsOpen(true);
+                     }}
+                     className="text-[10px] font-bold text-[#103c7f] hover:underline flex items-center gap-1"
+                   >
+                      View All Contact <ChevronRight size={10} />
+                   </button>
+                </div>
                
                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar"> 
                   <div className="space-y-4 pb-10">
@@ -1337,31 +1361,52 @@ return (
                   <Briefcase size={16} className="text-[#103c7f]"/> Operations Tab
                </h3>
             </div>
-            <div className="flex gap-2">
-               <button 
-                  onClick={() => setIsTrackerModalOpen(true)} 
-                  className="flex items-center gap-1 bg-white border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-gray-50 shadow-sm transition-all hover:border-blue-200 hover:text-blue-600"
-               >
-                  <Plus size={12}/> Tracker
-               </button>
-               <button 
-                  onClick={() => setIsReqModalOpen(true)} 
-                  className="flex items-center gap-1 bg-[#103c7f] text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-900 shadow-md transition-all"
-               >
-                  <Plus size={12}/> Req
-               </button>
-            </div>
+             <div className="flex gap-2">
+                <button 
+                   onClick={() => {
+                     if (!selectedBranchId) {
+                       alert('Please select a branch first');
+                       return;
+                     }
+                     setIsTrackerModalOpen(true);
+                   }} 
+                   className="flex items-center gap-1 bg-white border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-gray-50 shadow-sm transition-all hover:border-blue-200 hover:text-blue-600"
+                >
+                   <Plus size={12}/> Tracker
+                </button>
+                <button 
+                   onClick={() => {
+                     if (!selectedBranchId) {
+                       alert('Please select a branch first');
+                       return;
+                     }
+                     setIsReqModalOpen(true);
+                   }} 
+                   className="flex items-center gap-1 bg-[#103c7f] text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-900 shadow-md transition-all"
+                >
+                   <Plus size={12}/> Req
+                </button>
+             </div>
          </div>
 
          {/* Content */}
          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-8">
             <section className="flex-1 flex flex-col min-h-0">
-               <div className="flex justify-between items-end mb-3">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tracker History</label>
-                  <button onClick={() => setIsAllReqsOpen(true)} className="text-[10px] font-bold text-[#103c7f] hover:underline flex items-center gap-1">
-                     View All Requirement <ChevronRight size={10} />
-                  </button>
-               </div>
+                <div className="flex justify-between items-end mb-3">
+                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tracker History</label>
+                   <button 
+                     onClick={() => {
+                       if (!selectedBranchId) {
+                         alert('Please select a branch first');
+                         return;
+                       }
+                       setIsAllReqsOpen(true);
+                     }}
+                     className="text-[10px] font-bold text-[#103c7f] hover:underline flex items-center gap-1"
+                   >
+                      View All Requirement <ChevronRight size={10} />
+                   </button>
+                </div>
                
                <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar max-h-[500px]">
                   <div className="grid grid-cols-1 gap-4 pb-10">
