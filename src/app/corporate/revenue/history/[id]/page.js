@@ -50,9 +50,12 @@ export default function CandidateHistoryPage() {
       base_invoice: "", total_amount: "", payment_due_date: "", payment_followup_date: "" , pi_date: "" // Naya field add kiya
   });
 
-  const [candForm, setCandForm] = useState({ followup_date: "", next_followup_date: "", conversation: "", candidate_status: "Working" });
-  const [clientForm, setClientForm] = useState({ followup_date: "", next_followup_date: "", conversation: "" });
-  const [payForm, setPayForm] = useState({ date: "", amount_received: "", payment_status: "Pending", remark: "" });
+   const [candForm, setCandForm] = useState({ followup_date: "", next_followup_date: "", conversation: "", candidate_status: "Working" });
+   const [clientForm, setClientForm] = useState({ followup_date: "", next_followup_date: "", conversation: "" });
+   const [payForm, setPayForm] = useState({ date: "", amount_received: "", payment_status: "Pending", remark: "" });
+   const [isSavingCandidate, setIsSavingCandidate] = useState(false);
+   const [isSavingClient, setIsSavingClient] = useState(false);
+   const [isSavingPayment, setIsSavingPayment] = useState(false);
 
    useEffect(() => {
      if (!params?.id) return;
@@ -102,19 +105,107 @@ export default function CandidateHistoryPage() {
                pi_date: record.pi_date || ''
            });
 
-           // Prepare data object for UI
-           const uiData = {
-               ...record,
-               position: record.profile, // alias for display
-               rc_name: record.rc_name || '',
-               tl_name: record.tl_name || '',
-               candidate_history: record.candidate_history || [],
-               client_history: record.client_history || [],
-               payment_history: record.payment_history || [],
-               candidate_status: record.candidate_status || 'Working'
-           };
+            setMainForm({
+                entry_date: record.sent_date || '',
+                crm_name: record.crm_name || '',
+                tl_name: record.tl_name || '',
+                entered_by_rc: record.rc_name || '',
+                payment_from: record.payment_from || '',
+                client_name: record.client_name || '',
+                candidate_name: record.candidate_name || '',
+                position: record.profile || '',
+                client_email: record.client_email || '',
+                client_phone: record.client_mobile || '',
+                candidate_email: record.candidate_email || '',
+                candidate_phone: record.candidate_mobile || '',
+                offer_salary: record.offer_salary ? String(record.offer_salary).replace(/,/g, '') : '',
+                payment_terms: record.terms ? String(record.terms).replace('%', '') : '',
+                joining_date: record.joining_date || '',
+                payment_days: record.payment_days ? String(record.payment_days) : ''
+            });
 
-           setData(uiData);
+            // Populate revenue form fields
+            setRevenueForm({
+                base_invoice: record.base_invoice || '',
+                total_amount: record.total_amount || '',
+                payment_due_date: record.payment_due_date || '',
+                payment_followup_date: record.payment_client_follow_date || '',
+                pi_date: record.pi_date || ''
+            });
+
+            // Set basic data
+            const uiData = {
+                ...record,
+                position: record.profile,
+                rc_name: record.rc_name || '',
+                tl_name: record.tl_name || '',
+                candidate_status: record.candidate_status || 'Working'
+            };
+
+            setData(uiData);
+
+            // Fetch all track histories in parallel
+            try {
+              const session = JSON.parse(localStorage.getItem('session') || '{}');
+              const token = session.access_token;
+
+              const [candidateRes, clientRes, paymentRes] = await Promise.all([
+                fetch(`/api/corporate/revenue/candidate-track?revenue_id=${params.id}`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                }),
+                fetch(`/api/corporate/revenue/client-track?revenue_id=${params.id}`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                }),
+                fetch(`/api/corporate/revenue/payment-track?revenue_id=${params.id}`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                })
+              ]);
+
+              // Safely parse responses with error handling
+              const [candidateResult, clientResult, paymentResult] = await Promise.all([
+                candidateRes.ok ? candidateRes.json() : Promise.resolve({ success: false, data: [] }),
+                clientRes.ok ? clientRes.json() : Promise.resolve({ success: false, data: [] }),
+                paymentRes.ok ? paymentRes.json() : Promise.resolve({ success: false, data: [] })
+              ]);
+
+              // Update data with fetched histories
+              setData(prev => ({
+                ...prev,
+                candidate_history: candidateResult.success ? candidateResult.data.map(t => ({
+                  id: t.track_id,
+                  followup_date: t.date,
+                  next_followup_date: t.next_follow_up || '',
+                  conversation: t.remarks || '',
+                  candidate_status: t.candidate_status || '',
+                  loggedBy: t.loggedBy || 'Unknown'
+                })) : [],
+                client_history: clientResult.success ? clientResult.data.map(t => ({
+                  id: t.track_id,
+                  followup_date: t.date,
+                  next_followup_date: t.next_follow_up || '',
+                  conversation: t.remarks || '',
+                  loggedBy: t.loggedBy || 'Unknown'
+                })) : [],
+                payment_history: paymentResult.success ? paymentResult.data.map(t => ({
+                  id: t.track_id,
+                  date: t.date,
+                  amount_received: t.amount_received || 0,
+                  payment_status: t.payment_status || '',
+                  remark: t.remarks || '',
+                  loggedBy: t.loggedBy || 'Unknown'
+                })) : []
+              }));
+
+            } catch (err) {
+              console.error('Failed to fetch track histories:', err);
+              // Set empty arrays on error
+              setData(prev => ({
+                ...prev,
+                candidate_history: [],
+                client_history: [],
+                payment_history: []
+              }));
+            }
          } else {
            setData(null);
          }
@@ -156,10 +247,20 @@ export default function CandidateHistoryPage() {
 
        const updatePayload = {
          revenue_id: params.id,
-         entry_date: mainForm.entry_date || null,
-         crm_name: mainForm.crm_name || null,
-         tl_name: mainForm.tl_name || null,
-         entered_by_rc: mainForm.entered_by_rc || null
+         // Candidate & Client contact details
+         candidate_name: mainForm.candidate_name || null,
+         candidate_email: mainForm.candidate_email || null,
+         candidate_mobile: mainForm.candidate_phone || null,
+         profile: mainForm.position || null,
+         client_name: mainForm.client_name || null,
+         client_email: mainForm.client_email || null,
+         client_mobile: mainForm.client_phone || null,
+         // Onboarding & financial fields
+         joining_date: mainForm.joining_date || null,
+         offer_salary: mainForm.offer_salary || null,
+         terms: mainForm.payment_terms || null,
+         payment_days: mainForm.payment_days ? parseInt(mainForm.payment_days) : null,
+         payment_from: mainForm.payment_from || null
        };
 
        const response = await fetch('/api/corporate/revenue/history', {
@@ -183,27 +284,128 @@ export default function CandidateHistoryPage() {
        console.error('Error saving CRM details:', error);
        alert('Error saving CRM details');
      }
-    };
+   };
 
     const handleSaveRevenueDetails = () => {
       alert("Revenue Financials Saved Successfully!");
     };
 
-  const handleSaveLog = () => {
-      const updatedData = { ...data };
-      const userName = "Current User";
-      if (modalType === 'candidate') {
-          updatedData.candidate_history.unshift({ ...candForm, loggedBy: userName });
-          updatedData.candidate_status = candForm.candidate_status;
-      } else if (modalType === 'client') {
-          updatedData.client_history.unshift({ ...clientForm, loggedBy: userName });
-      } else if (modalType === 'payment') {
-          updatedData.payment_history.unshift({ ...payForm, loggedBy: userName });
-          updatedData.payment_status = payForm.payment_status;
-      }
-      setData(updatedData);
-      setIsModalOpen(false);
-  };
+    const handleSaveLog = async () => {
+     try {
+       const session = JSON.parse(localStorage.getItem('session') || '{}');
+       const token = session.access_token;
+
+       if (modalType === 'candidate') {
+         setIsSavingCandidate(true);
+         const response = await fetch('/api/corporate/revenue/candidate-track', {
+           method: 'POST',
+           headers: {
+             'Authorization': `Bearer ${token}`,
+             'Content-Type': 'application/json'
+           },
+           body: JSON.stringify({
+             revenue_id: params.id,
+             date: candForm.followup_date,
+             next_follow_up: candForm.next_followup_date || null,
+             candidate_status: candForm.candidate_status,
+             remarks: candForm.conversation
+           })
+         });
+
+         const result = await response.json();
+
+         if (response.ok && result.success) {
+           const updatedData = { ...data };
+           const userName = session.user?.name || 'Current User';
+           updatedData.candidate_history.unshift({
+             id: result.data.track_id,
+             followup_date: candForm.followup_date,
+             next_followup_date: candForm.next_followup_date,
+             conversation: candForm.conversation,
+             candidate_status: candForm.candidate_status,
+             loggedBy: userName
+           });
+           updatedData.candidate_status = candForm.candidate_status;
+           setData(updatedData);
+           setIsModalOpen(false);
+         } else {
+           alert(result.error || 'Failed to save candidate log');
+         }
+         setIsSavingCandidate(false);
+       }
+       else if (modalType === 'client') {
+         setIsSavingClient(true);
+         const response = await fetch('/api/corporate/revenue/client-track', {
+           method: 'POST',
+           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+           body: JSON.stringify({
+             revenue_id: params.id,
+             date: clientForm.followup_date,
+             next_follow_up: clientForm.next_followup_date || null,
+             remarks: clientForm.conversation
+           })
+         });
+         const result = await response.json();
+         if (response.ok && result.success) {
+           const updatedData = { ...data };
+           const userName = session.user?.name || 'Current User';
+           updatedData.client_history.unshift({
+             id: result.data.track_id,
+             followup_date: clientForm.followup_date,
+             next_followup_date: clientForm.next_followup_date,
+             conversation: clientForm.conversation,
+             loggedBy: userName
+           });
+           setData(updatedData);
+           setIsModalOpen(false);
+         } else {
+           alert(result.error || 'Failed to save client log');
+         }
+         setIsSavingClient(false);
+       }
+       else if (modalType === 'payment') {
+         setIsSavingPayment(true);
+         const response = await fetch('/api/corporate/revenue/payment-track', {
+           method: 'POST',
+           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+           body: JSON.stringify({
+             revenue_id: params.id,
+             date: payForm.date,
+             amount_received: payForm.amount_received || null,
+             payment_status: payForm.payment_status,
+             remarks: payForm.remark
+           })
+         });
+         const result = await response.json();
+         if (response.ok && result.success) {
+           const updatedData = { ...data };
+           const userName = session.user?.name || 'Current User';
+           updatedData.payment_history.unshift({
+             id: result.data.track_id,
+             date: payForm.date,
+             amount_received: payForm.amount_received,
+             payment_status: payForm.payment_status,
+             remark: payForm.remark,
+             loggedBy: userName
+           });
+           if (payForm.payment_status) {
+             updatedData.payment_status = payForm.payment_status;
+           }
+           setData(updatedData);
+           setIsModalOpen(false);
+         } else {
+           alert(result.error || 'Failed to save payment log');
+         }
+         setIsSavingPayment(false);
+       }
+     } catch (error) {
+       console.error('Error saving log:', error);
+       alert('Error saving log');
+       setIsSavingCandidate(false);
+       setIsSavingClient(false);
+       setIsSavingPayment(false);
+     }
+   };
 
   const handleOpenPIModal = () => {
       setPiForm(prev => ({
@@ -391,16 +593,25 @@ const remainingBalance = totalExpected - totalReceived;
                               {isEditingCRMData ? <input type="text" value={mainForm.payment_terms} onChange={e => setMainForm({...mainForm, payment_terms: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-emerald-500 bg-white"/> : <p className="text-sm font-bold text-gray-800">{mainForm.payment_terms ? `${mainForm.payment_terms}%` : "0%"}</p>}
                           </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                          <div>
-                              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Joining Date</label>
-                              {isEditingCRMData ? <input type="date" value={mainForm.joining_date} onChange={e => setMainForm({...mainForm, joining_date: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-emerald-500 bg-white"/> : <p className="text-sm font-bold text-gray-800">{mainForm.joining_date || "N/A"}</p>}
-                          </div>
-                          <div>
-                              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Payment Days</label>
-                              {isEditingCRMData ? <input type="number" value={mainForm.payment_days} onChange={e => setMainForm({...mainForm, payment_days: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-emerald-500 bg-white"/> : <p className="text-sm font-bold text-gray-800">{mainForm.payment_days ? `${mainForm.payment_days} Days` : "N/A"}</p>}
-                          </div>
-                      </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div>
+                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Joining Date</label>
+                                {isEditingCRMData ? (
+                                    <input 
+                                        type="date" 
+                                        value={mainForm.joining_date}
+                                        onChange={(e) => setMainForm({...mainForm, joining_date: e.target.value})}
+                                        className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-emerald-500 bg-white"
+                                    />
+                                ) : (
+                                    <p className="text-sm font-bold text-gray-800">{mainForm.joining_date || "N/A"}</p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Payment Days</label>
+                                {isEditingCRMData ? <input type="number" value={mainForm.payment_days} onChange={e => setMainForm({...mainForm, payment_days: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-emerald-500 bg-white"/> : <p className="text-sm font-bold text-gray-800">{mainForm.payment_days ? `${mainForm.payment_days} Days` : "N/A"}</p>}
+                            </div>
+                        </div>
                        <div className="pt-2">
                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">KYC Documents</label>
                            <button onClick={() => {
@@ -874,10 +1085,27 @@ const remainingBalance = totalExpected - totalReceived;
                     )}
 
                     <div className="pt-3 mt-1 border-t border-gray-100">
-                        <button onClick={handleSaveLog} className={`w-full py-2.5 rounded-lg font-black uppercase tracking-widest text-white shadow-sm flex items-center justify-center gap-2 text-xs transition-colors ${
-                            modalType === 'candidate' ? 'bg-emerald-600 hover:bg-emerald-700' : modalType === 'client' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-orange-600 hover:bg-orange-700'
-                        }`}>
-                            <Save size={14}/> Save Log
+                        <button 
+                          onClick={handleSaveLog} 
+                          disabled={(modalType === 'candidate' && isSavingCandidate) ||
+                                     (modalType === 'client' && isSavingClient) ||
+                                     (modalType === 'payment' && isSavingPayment)}
+                          className={`w-full py-2.5 rounded-lg font-black uppercase tracking-widest text-white shadow-sm flex items-center justify-center gap-2 text-xs transition-colors ${
+                            modalType === 'candidate' ? 'bg-emerald-600 hover:bg-emerald-700' : 
+                            modalType === 'client' ? 'bg-indigo-600 hover:bg-indigo-700' : 
+                            'bg-orange-600 hover:bg-orange-700'
+                          } ${(modalType === 'candidate' && isSavingCandidate) ||
+                               (modalType === 'client' && isSavingClient) ||
+                               (modalType === 'payment' && isSavingPayment) 
+                               ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        >
+                          {(modalType === 'candidate' && isSavingCandidate) ||
+                           (modalType === 'client' && isSavingClient) ||
+                           (modalType === 'payment' && isSavingPayment) ? (
+                            <span>Saving...</span>
+                          ) : (
+                            <><Save size={14}/> Save Log</>
+                          )}
                         </button>
                     </div>
 
