@@ -170,12 +170,15 @@ export default function EmailHistoryPage() {
           paymentFrom: '',
           tlName: '',
           rcName: '',
+          tlId: '',
+          rcId: '',
           offerSalary: '',
           terms: '',
           paymentDays: '',
           kycDoc: '',
           revenueTeamId: '',
           revenueTeamName: '',
+          reqId: '',
           // Client/Candidate Details
           clientId: '',
           clientName: '',
@@ -267,6 +270,7 @@ export default function EmailHistoryPage() {
                            cv_url: row.cv_url || '',
                            email_draft_id: row.id,
                            client_id: row.client_id || '',
+                           sent_to_revenue: row.sent_to_revenue || '',
                            // New fields from enhanced API
                            candidate_email: row.candidate_email || '',
                            candidate_mobile: row.candidate_mobile || '',
@@ -277,7 +281,8 @@ export default function EmailHistoryPage() {
                            client_email: row.client_email || '',
                            client_phone: row.client_phone || '',
                            kyc_doc: row.kyc_doc || '',
-                           parsing_id: row.parsing_id || ''
+                           parsing_id: row.parsing_id || '',
+                           req_id: row.req_id || ''
                        }));
                      setEmailData(transformedData);
                  }
@@ -375,12 +380,15 @@ export default function EmailHistoryPage() {
                paymentFrom: '',
                tlName: row.tl_name || '',
                rcName: row.rc_name || '',
+               tlId: row.tl_id || '',
+               rcId: row.rc_id || '',
                offerSalary: '',
                terms: '',
                paymentDays: '',
                kycDoc: row.kyc_doc || '',
                revenueTeamId: '',
                revenueTeamName: '',
+               reqId: row.req_id || '',
                // Client/Candidate Details (available from row)
                clientId: row.client_id || '',
                clientName: row.clientCompany || '',
@@ -562,12 +570,21 @@ export default function EmailHistoryPage() {
                                                 >
                                                     <Eye size={12}/> View Journey
                                                 </button>
-                                                <button 
-                                                    onClick={() => sendToRevenueTeam(row)}
-                                                    className="w-full py-2 px-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white flex items-center justify-center gap-1.5 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
-                                                >
-                                                    <Send size={12}/> Send to Revenue
-                                                </button>
+                                                 <button 
+                                                     onClick={() => sendToRevenueTeam(row)}
+                                                     disabled={row.sent_to_revenue}
+                                                     className="w-full py-2 px-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
+                                                 >
+                                                     {row.sent_to_revenue ? (
+                                                         <>
+                                                             <CheckCircle2 size={12}/> Sent
+                                                         </>
+                                                     ) : (
+                                                         <>
+                                                             <Send size={12}/> Send to Revenue
+                                                         </>
+                                                     )}
+                                                 </button>
                                             </div>
                                         </td>
 
@@ -766,27 +783,69 @@ export default function EmailHistoryPage() {
                                                </div>
                                            </div>
 
-                                         {/* Payment Days */}
-                                         <div>
-                                             <div className="flex items-center justify-between mb-1.5">
-                                                 <label className="text-[10px] font-black text-emerald-600 uppercase">Payment Days</label>
-                                                 {revenueForm.paymentDays !== '' && revenueForm.paymentDays !== null && revenueForm.paymentDays !== undefined ? (
-                                                     <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-                                                         {revenueForm.paymentDays}
-                                                     </span>
-                                                 ) : null}
-                                             </div>
-                                             <div className="relative">
-                                                 <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400"/>
-                                                 <input 
-                                                     type="number" 
-                                                     className="w-full border border-emerald-200 rounded-lg p-2.5 pl-9 text-sm font-bold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 bg-white/70"
-                                                     value={revenueForm.paymentDays}
-                                                     onChange={(e) => setRevenueForm({...revenueForm, paymentDays: e.target.value})}
-                                                     placeholder="e.g. 30"
-                                                 />
-                                             </div>
-                                         </div>
+                                          {/* Payment Days */}
+                                          <div>
+                                              <div className="flex items-center justify-between mb-1.5">
+                                                  <label className="text-[10px] font-black text-emerald-600 uppercase">Payment Days</label>
+                                                  {revenueForm.paymentDays !== '' && revenueForm.paymentDays !== null && revenueForm.paymentDays !== undefined ? (
+                                                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                                                          {revenueForm.paymentDays}
+                                                      </span>
+                                                  ) : null}
+                                              </div>
+                                              <div className="relative">
+                                                  <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400"/>
+                                                  <input 
+                                                      type="number" 
+                                                      className="w-full border border-emerald-200 rounded-lg p-2.5 pl-9 text-sm font-bold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 bg-white/70"
+                                                      value={revenueForm.paymentDays}
+                                                      onChange={(e) => setRevenueForm({...revenueForm, paymentDays: e.target.value})}
+                                                      placeholder="e.g. 30"
+                                                  />
+                                              </div>
+                                          </div>
+
+                                          {/* Joining Date */}
+                                          <div>
+                                              <div className="flex items-center justify-between mb-1.5">
+                                                  <label className="text-[10px] font-black text-emerald-600 uppercase">Joining Date</label>
+                                                  {revenueForm.joiningDate ? (
+                                                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                                                          {new Date(revenueForm.joiningDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                      </span>
+                                                  ) : null}
+                                              </div>
+                                              <div className="relative">
+                                                  <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400"/>
+                                                  <input 
+                                                      type="date" 
+                                                      className="w-full border border-emerald-200 rounded-lg p-2.5 pl-9 text-sm font-bold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 bg-white/70"
+                                                      value={revenueForm.joiningDate}
+                                                      onChange={(e) => setRevenueForm({...revenueForm, joiningDate: e.target.value})}
+                                                  />
+                                              </div>
+                                          </div>
+
+                                          {/* Payment From */}
+                                          <div>
+                                              <div className="flex items-center justify-between mb-1.5">
+                                                  <label className="text-[10px] font-black text-emerald-600 uppercase">Payment From</label>
+                                                  {revenueForm.paymentFrom ? (
+                                                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                                                          {revenueForm.paymentFrom}
+                                                      </span>
+                                                  ) : null}
+                                              </div>
+                                              <select 
+                                                  className="w-full border border-emerald-200 rounded-lg p-2.5 text-sm font-bold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 bg-white/70"
+                                                  value={revenueForm.paymentFrom}
+                                                  onChange={(e) => setRevenueForm({...revenueForm, paymentFrom: e.target.value})}
+                                              >
+                                                  <option value="">Select...</option>
+                                                  <option value="Client">Client</option>
+                                                  <option value="Candidate">Candidate</option>
+                                              </select>
+                                          </div>
 
                                           {/* KYC Doc */}
                                           <div>
@@ -1022,6 +1081,9 @@ export default function EmailHistoryPage() {
                                                   body: JSON.stringify({
                                                       // User who sent to revenue
                                                       user_id: session.user_id || session.id,
+                                                      // Team leads
+                                                      tl_id: revenueForm.tlId,
+                                                      rc_id: revenueForm.rcId,
                                                       // Client info
                                                       client_id: revenueForm.clientId,
                                                       client_name: revenueForm.clientName,
@@ -1031,21 +1093,45 @@ export default function EmailHistoryPage() {
                                                       candidate_name: revenueForm.candidateName,
                                                       candidate_email: revenueForm.candidateEmail,
                                                       candidate_mobile: revenueForm.candidateMobile,
+                                                      profile: selectedCandidate?.profile || '',
                                                       // Financials
                                                       offer_salary: revenueForm.offerSalary,
                                                       terms: revenueForm.terms,
                                                       payment_days: parseInt(revenueForm.paymentDays),
+                                                      payment_from: revenueForm.paymentFrom || null,
+                                                      // Joining date
+                                                      joining_date: revenueForm.joiningDate || null,
                                                       // KYC doc
                                                       kyc_doc: revenueForm.kycDoc,
                                                       // Parsing and assignment
                                                       parsing_id: revenueForm.parsingId,
-                                                      sent_to_revenue: revenueForm.revenueTeamId
+                                                      req_id: revenueForm.reqId || null,
+                                                      sent_to_revenue: revenueForm.revenueTeamId,
+                                                      // Sent date (today)
+                                                      sent_date: new Date().toISOString().split('T')[0]
                                                   })
                                               });
 
                                               const result = await response.json();
 
                                               if (response.ok && result.success) {
+                                                  // Also update the email record with sent_to_revenue
+                                                  try {
+                                                      await fetch('/api/corporate/crm/emails', {
+                                                          method: 'PUT',
+                                                          headers: {
+                                                              'Authorization': `Bearer ${token}`,
+                                                              'Content-Type': 'application/json'
+                                                          },
+                                                          body: JSON.stringify({
+                                                              id: selectedCandidate.id,
+                                                              sent_to_revenue: revenueForm.revenueTeamId
+                                                          })
+                                                      });
+                                                  } catch (updateError) {
+                                                      console.error('Failed to update email sent_to_revenue:', updateError);
+                                                  }
+
                                                   alert('Successfully sent to Revenue Team!');
                                                   setIsRevenueModalOpen(false);
                                                   setRevenueForm({
@@ -1057,7 +1143,9 @@ export default function EmailHistoryPage() {
                                                       candidateEmail: '',
                                                       candidateMobile: '',
                                                       tlName: '',
+                                                      tlId: '',
                                                       rcName: '',
+                                                      rcId: '',
                                                       offerSalary: '',
                                                       terms: '',
                                                       paymentDays: '',
@@ -1065,6 +1153,7 @@ export default function EmailHistoryPage() {
                                                       paymentFrom: '',
                                                       revenueTeamId: '',
                                                       revenueTeamName: '',
+                                                      reqId: '',
                                                       parsingId: ''
                                                   });
                                               } else {

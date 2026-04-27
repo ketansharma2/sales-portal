@@ -145,18 +145,25 @@ export async function POST(request) {
     const body = await request.json()
     const {
       user_id,
+      tl_id,
+      rc_id,
       client_id,
       client_name,
       client_email,
       client_mobile,
       parsing_id,
+      req_id,
       candidate_name,
       candidate_email,
       candidate_mobile,
+      profile,
       kyc_doc,
       offer_salary,
       terms,
       payment_days,
+      payment_from,
+      joining_date,
+      sent_date,
       sent_to_revenue
     } = body
 
@@ -171,18 +178,25 @@ export async function POST(request) {
     // Insert revenue record
     const insertData = {
       user_id: user_id || user.id,
+      tl_id: tl_id || null,
+      rc_id: rc_id || null,
       client_id,
       client_name,
       client_email,
       client_mobile,
       parsing_id,
+      req_id,
       candidate_name,
       candidate_email,
       candidate_mobile,
+      profile,
       kyc_doc,
       offer_salary: offer_salary || null,
       terms,
       payment_days: payment_days || null,
+      payment_from: payment_from || null,
+      joining_date: joining_date || null,
+      sent_date: sent_date || null,
       sent_to_revenue: sent_to_revenue || null
     }
 

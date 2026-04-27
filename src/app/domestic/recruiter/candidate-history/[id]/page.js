@@ -22,12 +22,6 @@ export default function CandidateHistoryPage() {
     const [editId, setEditId] = useState(null);
 
     const handleEditOpen = (row) => {
-        const today = new Date().toISOString().split('T')[0];
-        if (row.callingDate !== today) {
-            alert("You can't edit past conversations. Only today's followups can be edited.");
-            return;
-        }
-        
         setFormData({
             req_id: row.req_id || '',
             profile: row.profile,
@@ -47,7 +41,7 @@ export default function CandidateHistoryPage() {
     const [isUpdatingFollowup, setIsUpdatingFollowup] = useState(false);
 
     const handleUpdateFollowup = async () => {
-        // Validate all mandatory fields
+        // Validate mandatory fields (profile/req_id not required in edit)
         if (!formData.status || !formData.applyDate || !formData.callingDate || 
             !formData.relExp || !formData.currCtc || !formData.expCtc || !formData.feedback) {
             alert("Please fill all mandatory fields marked with *");
@@ -810,47 +804,26 @@ export default function CandidateHistoryPage() {
                         {/* Form Body - Grid Layout */}
                         <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 custom-scrollbar bg-slate-50/30">
                             
-                            {/* Combined Profile & Slot Dropdown */}
+                            {/* Combined Profile & Slot Dropdown - DISABLED in Edit Mode */}
                             <div className="md:col-span-2">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Select Assigned Profile & Slot</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Assigned Profile & Slot <span className="text-gray-400">(Locked)</span></label>
                                 <select 
-                                    className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer"
-                                    value={formData.req_id} 
-                                    onChange={(e) => {
-                                        const selectedOption = workbenchOptions.find(opt => opt.value === e.target.value);
-                                        if (selectedOption) {
-                                            const labelParts = selectedOption.label.split(' • ');
-                                            setFormData({
-                                                ...formData,
-                                                req_id: e.target.value,
-                                                profile: labelParts[0] || '',
-                                                slot: labelParts[1] || ''
-                                            });
-                                        } else {
-                                            setFormData({
-                                                ...formData,
-                                                req_id: "",
-                                                profile: "",
-                                                slot: ""
-                                            });
-                                        }
-                                    }}
+                                    className="w-full bg-gray-100 border border-gray-300 text-gray-600 text-sm font-bold rounded-lg px-3 py-2.5 outline-none cursor-not-allowed"
+                                    value={formData.req_id}
+                                    disabled
                                 >
-                                    <option value="">-- Choose Profile & Slot --</option>
-                                    {isLoadingWorkbench ? (
-                                        <option value="" disabled>Loading...</option>
+                                    <option value="">-- Profile & Slot --</option>
+                                    {workbenchOptions.length > 0 ? (
+                                        workbenchOptions.map(option => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))
                                     ) : (
-                                        workbenchOptions.length > 0 ? (
-                                            workbenchOptions.map(option => (
-                                                <option key={option.value} value={option.value}>
-                                                    {option.label}
-                                                </option>
-                                            ))
-                                        ) : (
-                                            <option value="" disabled>No profiles available for today</option>
-                                        )
+                                        <option value="" disabled>No profiles available</option>
                                     )}
                                 </select>
+                                <p className="text-[9px] font-bold text-gray-500 mt-1">Profile & slot cannot be changed after creation. Create a new followup to change.</p>
                             </div>
 
                             <div>

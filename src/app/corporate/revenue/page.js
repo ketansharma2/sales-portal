@@ -9,63 +9,38 @@ import {
 
 export default function RevenueDashboard() {
   const [loading, setLoading] = useState(true);
+  const [data, setData] = useState([]);
 
   // --- CONFIG ---
   const TODAY = new Date("2026-04-09");
   const MONTHLY_REVENUE_TARGET = 500000; 
 
-  // --- DUMMY DATA ---
-  const dummyRevenueData = [
-    {
-      id: 1, entry_date: "2026-04-10", client_name: "TechNova Solutions", candidate_name: "Amit Verma", 
-      position: "Frontend Developer", joining_date: "2026-04-15", candidate_status: "Working", 
-      payment_status: "Invoice Sent", payment_due_date: "2026-04-10", 
-      base_invoice: "1,00,000", total_amount: "1,18,000",
-      next_client_followup: "2026-04-10", 
-      next_candidate_followup: "2026-04-16" 
-    },
-    {
-      id: 2, entry_date: "2026-03-25", client_name: "Global Finance", candidate_name: "Sneha Patil", 
-      position: "Data Analyst", joining_date: "2026-03-01", candidate_status: "Working", 
-      payment_status: "Received", payment_due_date: "2026-03-30", 
-      base_invoice: "1,50,000", total_amount: "1,77,000",
-      next_client_followup: "2026-04-15",
-      next_candidate_followup: "2026-04-08" 
-    },
-    {
-      id: 3, entry_date: "2026-04-05", client_name: "Urban Builders", candidate_name: "Ravi Teja", 
-      position: "Civil Engineer", joining_date: "2026-04-02", candidate_status: "Working", 
-      payment_status: "Pending", payment_due_date: "2026-04-08", 
-      base_invoice: "80,000", total_amount: "94,400",
-      next_client_followup: "2026-04-07", 
-      next_candidate_followup: "2026-04-10" 
-    },
-    {
-      id: 4, entry_date: "2026-02-15", client_name: "Apex Retail", candidate_name: "Kiran Rao", 
-      position: "Store Manager", joining_date: "2026-02-25", candidate_status: "Absconded", 
-      payment_status: "Pending Replacement", payment_due_date: "", 
-      base_invoice: "60,000", total_amount: "70,800",
-      next_client_followup: "",
-      next_candidate_followup: ""
-    },
-    {
-      id: 5, entry_date: "2026-04-08", client_name: "Stellar Jobs", candidate_name: "Priya Sharma", 
-      position: "UX Designer", joining_date: "2026-04-18", candidate_status: "Pending Join", 
-      payment_status: "Pending", payment_due_date: "2026-05-18", 
-      base_invoice: "1,20,000", total_amount: "1,41,600",
-      next_client_followup: "2026-04-12",
-      next_candidate_followup: "2026-04-17"
-    }
-  ];
-
-  const [data, setData] = useState([]);
-
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setData(dummyRevenueData);
-      setLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
+    const fetchRevenueData = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        
+        const response = await fetch('/api/corporate/revenue/history', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          setData(result.data);
+        } else {
+          setData([]);
+        }
+      } catch (error) {
+        console.error('Error fetching revenue history:', error);
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRevenueData();
   }, []);
 
   // --- HELPER FUNCTIONS ---

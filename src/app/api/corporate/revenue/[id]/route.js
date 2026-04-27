@@ -1,0 +1,70 @@
+import { supabaseServer } from '@/lib/supabase-server'
+import { NextResponse } from 'next/server'
+
+export async function PUT(request, { params }) {
+  try {
+    // Authentication
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    const currentUserId = user.user_id || user.id
+    const body = await request.json()
+    const revenueId = params.id
+    const { ...updateFields } = body
+
+    if (!revenueId) {
+      return NextResponse.json({ error: 'Revenue ID is required' }, { status: 400 })
+    }
+
+    // Build update object - only allow specific fields
+    const allowedFields = [
+      // CRM fields
+      'entry_date', 'crm_name', 'tl_name', 'entered_by_rc',
+      // Entity & Contact fields
+      'payment_from', 'client_name', 'candidate_name', 'profile',
+      'client_email', 'client_mobile', 'candidate_email', 'candidate_mobile',
+      // Financial fields
+      'offer_salary', 'terms', 'payment_days', 'joining_date',
+      'payment_due_date', 'payment_client_follow_date', 'base_invoice', 'total_amount', 'pi_date'
+    ]
+
+    const updateData = {}
+    allowedFields.forEach(field => {
+      if (updateFields[field] !== undefined) {
+        updateData[field] = updateFields[field] === '' ? null : updateFields[field]
+      }
+    })
+
+    // Update the record (bypass ownership check for now - revenue can edit any?)
+    const { data: updated, error: updateError } = await supabaseServer
+      .from('corporate_revenue')
+      .update(updateData)
+      .eq('revenue_id', revenueId)
+      .select()
+      .single()
+
+    if (updateError) {
+      console.error('Update revenue error:', updateError)
+      return NextResponse.json({ error: 'Failed to update record', details: updateError.message }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: updated
+    })
+
+  } catch (error) {
+    console.error('Revenue update API error:', error)
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: error.message
+    }, { status: 500 })
+  }
+}

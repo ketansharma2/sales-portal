@@ -47,10 +47,10 @@ export async function GET(request) {
          let convData = null;
          
          if (email.conversation_id) {
-           // First, get rc_id (user_id), tl_id (sent_to_tl), and parsing_id from candidates_conversation table
+           // First, get rc_id (user_id), tl_id (sent_to_tl), parsing_id, and req_id from candidates_conversation table
            const { data: convDataResult, error: convError } = await supabaseServer
              .from('candidates_conversation')
-             .select('user_id, sent_to_tl, parsing_id')
+             .select('user_id, sent_to_tl, parsing_id, req_id')
              .eq('conversation_id', email.conversation_id)
              .single();
              
@@ -122,22 +122,23 @@ export async function GET(request) {
           }
         }
 
-         return {
-           ...email,
-           latest_interview_status: latestInterview?.interview_status || null,
-           latest_interview_date: latestInterview?.date || null,
-           latest_interview_remark: latestInterview?.client_remark || null,
-           candidate_email: candidateEmail,
-           candidate_mobile: candidateMobile,
-           rc_id: rcId,
-           tl_id: tlId,
-           rc_name: rcName,
-           tl_name: tlName,
-           client_email: clientEmail,
-           client_phone: clientPhone,
-           kyc_doc: kycDoc,
-           parsing_id: convData?.parsing_id || null,
-         };
+        return {
+          ...email,
+          latest_interview_status: latestInterview?.interview_status || null,
+          latest_interview_date: latestInterview?.date || null,
+          latest_interview_remark: latestInterview?.client_remark || null,
+          candidate_email: candidateEmail,
+          candidate_mobile: candidateMobile,
+          rc_id: rcId,
+          tl_id: tlId,
+          rc_name: rcName,
+          tl_name: tlName,
+          client_email: clientEmail,
+          client_phone: clientPhone,
+          kyc_doc: kycDoc,
+          parsing_id: convData?.parsing_id || null,
+          req_id: convData?.req_id || null,
+        };
       })
     );
 

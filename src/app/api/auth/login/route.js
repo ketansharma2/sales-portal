@@ -92,7 +92,18 @@ export async function POST(request) {
       }
     }
 
-    if (profileData.role.length === 1) {
+     // Check if role contains REVENUE - redirect based on sector
+     if (roleString.toUpperCase().includes('REVENUE')) {
+       const sector = profileData.sector?.toLowerCase() || ''
+       if (sector === 'domestic') {
+         responseData.redirectUrl = '/domestic/revenue'
+       } else {
+         // Default to corporate revenue for other sectors
+         responseData.redirectUrl = '/corporate/revenue'
+       }
+     }
+
+     if (profileData.role.length === 1) {
       // Single role: set current_role and proceed
       responseData.user.current_role = profileData.role[0]
       responseData.user.role = profileData.role // keep for compatibility
