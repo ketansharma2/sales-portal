@@ -21,14 +21,14 @@ export async function GET(request) {
       .from('cv_parsing')
       .select('*')
       .eq('user_id', userId)
-      .eq('sector', 'domestic')
+      .ilike('sector', 'domestic')
       .order('created_at', { ascending: false })
 
     const { data: sharedData, error: sharedError } = await supabaseServer
       .from('cv_parsing')
       .select('*')
       .contains('other_users', [userId])
-      .eq('sector', 'domestic')
+      .ilike('sector', 'domestic')
       .order('created_at', { ascending: false })
 
     if (myError || sharedError) {
