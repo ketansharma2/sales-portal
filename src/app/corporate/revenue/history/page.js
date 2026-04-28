@@ -151,6 +151,7 @@ export default function RevenuePage() {
     const [viewingInvoice, setViewingInvoice] = useState(null); // Invoice data being viewed
     const [editMode, setEditMode] = useState(false); // Whether modal is in edit mode
     const [editingInvoiceId, setEditingInvoiceId] = useState(null); // Which invoice is being edited
+    const [invoiceViewType, setInvoiceViewType] = useState('PI'); // 'PI' or 'INVOICE' for preview heading
     
     const [piForm, setPiForm] = useState({
       clientId: "", clientName: "", address: "", gstin: "", state: "", pincode: "", 
@@ -310,7 +311,8 @@ export default function RevenuePage() {
      }
    };
 
-   const handleViewInvoice = async (invoiceId) => {
+   const handleViewInvoice = async (invoiceId, viewType = 'PI') => {
+     setInvoiceViewType(viewType);
      try {
        const session = JSON.parse(localStorage.getItem('session') || '{}');
        const token = session.access_token;
@@ -584,18 +586,18 @@ export default function RevenuePage() {
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col h-[calc(100vh-240px)]">
          <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
             <table className="w-full text-left border-collapse min-w-[1100px]">
-              <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-10 shadow-sm">
-                  <tr>
-                     <th className="p-3 border-r border-blue-800 text-center w-12">#</th>
-                     <th className="p-3 border-r border-blue-800 min-w-[150px]">Submitted & CRM</th> 
-                     <th className="p-3 border-r border-blue-800 min-w-[130px]">Payment From</th>
-                     <th className="p-3 border-r border-blue-800 min-w-[160px]">Client Name</th>
-                     <th className="p-3 border-r border-blue-800 min-w-[200px]">Candidate & Profile</th>
-                     <th className="p-3 border-r border-blue-800 text-center min-w-[110px]">Joining Date</th>
-                     <th className="p-3 border-r border-blue-800 text-center min-w-[130px]">Candidate Status</th>
-                     <th className="p-3 border-r border-blue-800 text-center min-w-[140px]">Payment Status</th>
-                     <th className="p-3 border-r border-blue-800 text-center min-w-[120px]">PI</th>
-                    <th className="p-3 text-center bg-[#0d316a] sticky right-0 z-20 w-32 shadow-[-4px_0px_5px_rgba(0,0,0,0.1)]">
+               <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-10 shadow-sm">
+                   <tr>
+                      <th className="p-3 border-r border-blue-800 text-center w-12">#</th>
+                      <th className="p-3 border-r border-blue-800 min-w-[150px]">Submitted & CRM</th> 
+                      <th className="p-3 border-r border-blue-800 min-w-[100px]">Payment From</th>
+                      <th className="p-3 border-r border-blue-800 min-w-[160px]">Client Name</th>
+                      <th className="p-3 border-r border-blue-800 min-w-[200px]">Candidate & Profile</th>
+                      <th className="p-3 border-r border-blue-800 text-center min-w-[110px]">Joining Date</th>
+                      <th className="p-3 border-r border-blue-800 text-center min-w-[130px]">Candidate Status</th>
+                      <th className="p-3 border-r border-blue-800 text-center min-w-[140px]">Payment Status</th>
+                      <th className="p-3 border-r border-blue-800 text-center min-w-[180px]">PI</th>
+                     <th className="p-3 text-center bg-[#0d316a] sticky right-0 z-20 w-32 shadow-[-4px_0px_5px_rgba(0,0,0,0.1)]">
                 <div className="flex flex-col items-center gap-1">
                         <span>Action</span>
                         </div>
@@ -687,21 +689,33 @@ export default function RevenuePage() {
                         {/* --- PI Column (View / Edit) - Only show if invoice exists --- */}
                         <td className="p-3 border-r border-gray-100 text-center align-middle">
                             {item.invoice_id ? (
-                              <div className="flex items-center justify-center gap-2">
+                              <div className="flex items-center justify-center gap-1 flex-wrap">
+                                {/* PI Button - View Proforma Invoice */}
                                 <button 
-                                    onClick={() => handleViewInvoice(item.invoice_id)}
-                                    className="bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white p-1.5 rounded transition-colors border border-indigo-200"
+                                    onClick={() => handleViewInvoice(item.invoice_id, 'PI')}
+                                    className="bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white px-2 py-1 rounded text-[10px] font-bold transition-colors border border-indigo-200"
                                     title="View PI"
                                 >
-                                    <FileText size={14} />
+                                    PI
                                 </button>
+                                {/* EDIT Button */}
                                 <button 
                                     onClick={() => openPiModal(item.invoice_id)}
-                                    className="bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white p-1.5 rounded transition-colors border border-emerald-200"
+                                    className="bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white px-2 py-1 rounded text-[10px] font-bold transition-colors border border-emerald-200"
                                     title="Edit PI"
                                 >
-                                    <FileCheck size={14} />
+                                    EDIT
                                 </button>
+                                {/* INVOICE Button - Show only when payment received */}
+                                {item.payment_status === 'Received' && (
+                                  <button 
+                                      onClick={() => handleViewInvoice(item.invoice_id, 'INVOICE')}
+                                      className="bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white px-2 py-1 rounded text-[10px] font-bold transition-colors border border-amber-200"
+                                      title="View Invoice"
+                                  >
+                                      INVOICE
+                                  </button>
+                                )}
                               </div>
                             ) : (
                               <span className="text-[10px] text-gray-400 italic">Not Generated</span>
@@ -965,20 +979,20 @@ export default function RevenuePage() {
                     <div className="flex flex-col items-end mb-3">
                       <img src="/maven-logo.png" alt="Maven Logo" className="h-8 w-auto object-contain" />
                     </div>
-                    <div className="text-xs space-y-1.5">
-                      {/* Heading removed from here and moved to the top */}
-                      <p><b>PI NO:</b> {generatedPi.invoiceNo}</p>
-                      <p><b>DATE:</b> {generatedPi.date}</p>
-                      {generatedPi.fromDate && <p><b>FROM:</b> {generatedPi.fromDate} <span className="mx-1">|</span> <b>TO:</b> {generatedPi.toDate}</p>}
-                    </div>
+                     <div className="text-xs space-y-1.5">
+                       {/* Heading removed from here and moved to the top */}
+                       <p><b>{invoiceViewType === 'INVOICE' ? 'INVOICE NO:' : 'PI NO:'}</b> {generatedPi.invoiceNo}</p>
+                       <p><b>DATE:</b> {generatedPi.date}</p>
+                       {generatedPi.fromDate && <p><b>FROM:</b> {generatedPi.fromDate} <span className="mx-1">|</span> <b>TO:</b> {generatedPi.toDate}</p>}
+                     </div>
                   </div>
                   {/*heading*/}
                   
                 </div>
-                {/* --- 1. Centered Heading at the top --- */}
-                <h1 className="text-center text-3xl font-black uppercase mb-0 text-[#103c7f] tracking-tight w-full">
-                  Proforma Invoice
-                </h1>
+                 {/* --- 1. Centered Heading at the top --- */}
+                 <h1 className="text-center text-3xl font-black uppercase mb-0 text-[#103c7f] tracking-tight w-full">
+                   {invoiceViewType === 'INVOICE' ? 'INVOICE' : 'Proforma Invoice'}
+                 </h1>
               </div>
 
               {/* --- Billed To & Bank Details --- */}
