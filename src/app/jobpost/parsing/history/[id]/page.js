@@ -664,27 +664,29 @@ useEffect(() => {
                                   >
                                      <option value="">-- Choose Profile --</option>
                                      {isLoadingWorkbench ? (
-                                         <option value="" disabled>Loading...</option>
+                                          <option key="loading" value="" disabled>Loading...</option>
                                      ) : (
                                           // FILTER options based on selected postDate
-                                       jobOptions
-   .filter(job => {
-     const jobDate = new Date(job.posted_date).toISOString().split('T')[0];
-     return jobDate === formData.postDate;
-   })
-   .map(job => (
+                                        jobOptions
+    .filter(job => {
+      const jobDate = new Date(job.sent_date);
+      return jobDate.toString() !== 'Invalid Date' && jobDate.toISOString().split('T')[0] === formData.postDate;
+    })
+    .map(job => (
      <option key={job.id} value={job.id}>
        {job.client_name} • {job.job_title}• {job.sector}
      </option>
    ))
                                      )}
                                       {/* Show message if no jobs found for that date */}
-                                      {!isLoadingWorkbench && formData.postDate && jobOptions
-   .filter(job => {
-     const jobDate = new Date(job.posted_date).toISOString().split('T')[0];
-     return jobDate === formData.postDate;
-   }).length === 0 && (
-                                          <option value="" disabled>No postings found on this date</option>
+                                       {!isLoadingWorkbench && formData.postDate && jobOptions
+    .filter(job => {
+      const sentDate = job.sent_date;
+      if (!sentDate || sentDate === '') return false;
+      const jobDate = new Date(sentDate);
+      return jobDate.toString() !== 'Invalid Date' && jobDate.toISOString().split('T')[0] === formData.postDate;
+    }).length === 0 && (
+                                           <option key="no-postings" value="" disabled>No postings found on this date</option>
                                       )}
                                  </select>
                              </div>
@@ -832,25 +834,29 @@ useEffect(() => {
 >
    <option value="">-- Choose Profile --</option>
 
-    {jobOptions
-      .filter(job => {
-        const jobDate = new Date(job.posted_date).toISOString().split('T')[0];
-        return jobDate === formData.postDate;
-      })
-      .map(job => (
+       {jobOptions
+       .filter(job => {
+         const sentDate = job.sent_date;
+         if (!sentDate || sentDate === '') return false;
+         const jobDate = new Date(sentDate);
+         return jobDate.toString() !== 'Invalid Date' && jobDate.toISOString().split('T')[0] === formData.postDate;
+       })
+       .map(job => (
         <option key={job.id} value={job.id}>
           {job.client_name} • {job.job_title} • ({job.sector})
         </option>
       ))
     }
 
-    {!isLoadingWorkbench &&
-      formData.postDate &&
-      jobOptions.filter(j => {
-        const jobDate = new Date(j.posted_date).toISOString().split('T')[0];
-        return jobDate === formData.postDate;
-      }).length === 0 && (
-        <option disabled>No postings found</option>
+     {!isLoadingWorkbench &&
+       formData.postDate &&
+       jobOptions.filter(j => {
+         const sentDate = j.sent_date;
+         if (!sentDate || sentDate === '') return false;
+         const jobDate = new Date(sentDate);
+         return jobDate.toString() !== 'Invalid Date' && jobDate.toISOString().split('T')[0] === formData.postDate;
+       }).length === 0 && (
+         <option key="no-postings-edit" disabled>No postings found</option>
       )}
 </select>
                              </div>

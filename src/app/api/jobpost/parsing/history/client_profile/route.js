@@ -23,48 +23,57 @@ export async function GET(request) {
     }
 
     const userId = user.id;
-
-    // 🟢 Step 1: Get job_postings
-    const { data: jobs, error: jobError } = await supabaseAdmin
-      .from("job_postings")
-      .select("id, posted_on, jd_id")
-      .eq("user_id", userId);
-
-
-    if (jobError) throw jobError;
-
  
-  const jobIds = jobs.map(j => j.jd_id);
-
-const { data: domesticData, error: dErr } = await supabaseAdmin
-  .from("domestic_crm_jd")
-  .select("jd_id, client_name, job_title")
-  .in("jd_id", jobIds);
-
-const { data: corporateData, error: cErr } = await supabaseAdmin
-  .from("corporate_crm_jd")
-  .select("jd_id, client_name, job_title")
-  .in("jd_id", jobIds);
-
+    // Fetch ALL unique JDs from both domestic and corporate tables
+    const { data: domesticJDs, error: dErr } = await supabaseAdmin
+      .from("domestic_crm_jd")
+      .select("jd_id, client_name, job_title, sent_date");
  
-if (dErr) console.error("Domestic Error:", dErr);
-if (cErr) console.error("Corporate Error:", cErr);
-
-const domesticMap = new Map((domesticData || []).map(d => [d.jd_id, d]));
-const corporateMap = new Map((corporateData || []).map(c => [c.jd_id, c]));
-
-const combined = jobs.map(job => {
-  const domestic = domesticMap.get(job.jd_id);
-  const corporate = corporateMap.get(job.jd_id);
-
-  return {
-    id: job.id,
-    posted_date: job.posted_on,
-    client_name: domestic?.client_name || corporate?.client_name || null,
-    job_title: domestic?.job_title || corporate?.job_title || null,
-    sector: domestic ? "Domestic" : corporate ? "Corporate" : null
-  };
-});
+    const { data: corporateJDs, error: cErr } = await supabaseAdmin
+      .from("corporate_crm_jd")
+      .select("jd_id, client_name, job_title, sent_date");
+ 
+     if (dErr) {
+      console.error("Domestic Query Error:", dErr);
+    }
+    if (cErr) {
+      console.error("Corporate Query Error:", cErr);
+    }
+ 
+    // Combine with sector info, using jd_id as key to deduplicate
+    // If same jd_id appears in both tables, prefer domestic
+    const combinedMap = new Map();
+ 
+    // Add domestic entries first (higher priority)
+    (domesticJDs || []).forEach(jd => {
+      if (jd.jd_id && !combinedMap.has(jd.jd_id)) {
+        combinedMap.set(jd.jd_id, {
+          id: jd.jd_id,
+          label: `${jd.client_name} - ${jd.job_title}`,
+          client_name: jd.client_name,
+          job_title: jd.job_title,
+          sector: "Domestic",
+          sent_date: jd.sent_date || null
+        });
+      }
+    });
+ 
+    // Add corporate entries (only if jd_id not already present)
+    (corporateJDs || []).forEach(jd => {
+      if (jd.jd_id && !combinedMap.has(jd.jd_id)) {
+        combinedMap.set(jd.jd_id, {
+          id: jd.jd_id,
+          label: `${jd.client_name} - ${jd.job_title}`,
+          client_name: jd.client_name,
+          job_title: jd.job_title,
+          sector: "Corporate",
+          sent_date: jd.sent_date || null
+        });
+      }
+    });
+ 
+    const combined = Array.from(combinedMap.values());
+ 
     return NextResponse.json({
       success: true,
       count: combined.length,
