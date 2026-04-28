@@ -18,9 +18,10 @@ export default function CandidateHistoryPage() {
    const [loading, setLoading] = useState(true);
    const [data, setData] = useState({ candidate_history: [], client_history: [], payment_history: [] });
 
-   // 2. UI & Modal States
-   const [isEditingCRMData, setIsEditingCRMData] = useState(false);
-   const [isModalOpen, setIsModalOpen] = useState(false);
+    // 2. UI & Modal States
+    const [isEditingCRMData, setIsEditingCRMData] = useState(false);
+    const [isEditingRevenue, setIsEditingRevenue] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
    const [modalType, setModalType] = useState(""); 
    const [kycFiles, setKycFiles] = useState([]);
    const [isKycModalOpen, setIsKycModalOpen] = useState(false);
@@ -61,72 +62,44 @@ export default function CandidateHistoryPage() {
    const [isSavingClient, setIsSavingClient] = useState(false);
    const [isSavingPayment, setIsSavingPayment] = useState(false);
 
-   useEffect(() => {
-     if (!params?.id) return;
-     const fetchData = async () => {
-       setLoading(true);
+    // Data fetching function
+    const fetchData = async () => {
+      if (!params?.id) return;
+      setLoading(true);
 
-       try {
-         const session = JSON.parse(localStorage.getItem('session') || '{}');
-         const token = session.access_token;
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
 
-         // Fetch revenue record by ID
-         const response = await fetch(`/api/corporate/revenue/history?revenue_id=${params.id}`, {
-           headers: { 'Authorization': `Bearer ${token}` }
-         });
+        // Fetch revenue record by ID
+        const response = await fetch(`/api/corporate/revenue/history?revenue_id=${params.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
 
-         const result = await response.json();
+        const result = await response.json();
 
-         if (response.ok && result.success && result.data) {
-           const record = result.data;
+        if (response.ok && result.success && result.data) {
+          const record = result.data;
 
-           // Set main form data from revenue record
-           setMainForm({
-               entry_date: record.sent_date || '',
-               crm_name: record.crm_name || '',
-               tl_name: record.tl_name || '',
-               entered_by_rc: record.rc_name || '',
-               payment_from: record.payment_from || '',
-               client_name: record.client_name || '',
-               candidate_name: record.candidate_name || '',
-               position: record.profile || '',
-               client_email: record.client_email || '',
-               client_phone: record.client_mobile || '',
-               candidate_email: record.candidate_email || '',
-               candidate_phone: record.candidate_mobile || '',
-               offer_salary: record.offer_salary ? String(record.offer_salary).replace(/,/g, '') : '',
-               payment_terms: record.terms ? String(record.terms).replace('%', '') : '',
-               joining_date: record.joining_date || '',
-               payment_days: record.payment_days ? String(record.payment_days) : ''
-           });
-
-             // Populate revenue form fields
-             setRevenueForm({
-                 base_invoice: record.base_invoice || '',
-                 total_with_gst: record.total_with_gst || '',
-                 payment_due_date: record.payment_due_date || '',
-                 payment_follow_up: record.payment_follow_up || '',
-                 pi_date: record.pi_date || ''
-             });
-
-            setMainForm({
-                entry_date: record.sent_date || '',
-                crm_name: record.crm_name || '',
-                tl_name: record.tl_name || '',
-                entered_by_rc: record.rc_name || '',
-                payment_from: record.payment_from || '',
-                client_name: record.client_name || '',
-                candidate_name: record.candidate_name || '',
-                position: record.profile || '',
-                client_email: record.client_email || '',
-                client_phone: record.client_mobile || '',
-                candidate_email: record.candidate_email || '',
-                candidate_phone: record.candidate_mobile || '',
-                offer_salary: record.offer_salary ? String(record.offer_salary).replace(/,/g, '') : '',
-                payment_terms: record.terms ? String(record.terms).replace('%', '') : '',
-                joining_date: record.joining_date || '',
-                payment_days: record.payment_days ? String(record.payment_days) : ''
-            });
+          // Set main form data from revenue record
+          setMainForm({
+              entry_date: record.sent_date || '',
+              crm_name: record.crm_name || '',
+              tl_name: record.tl_name || '',
+              entered_by_rc: record.rc_name || '',
+              payment_from: record.payment_from || '',
+              client_name: record.client_name || '',
+              candidate_name: record.candidate_name || '',
+              position: record.profile || '',
+              client_email: record.client_email || '',
+              client_phone: record.client_mobile || '',
+              candidate_email: record.candidate_email || '',
+              candidate_phone: record.candidate_mobile || '',
+              offer_salary: record.offer_salary ? String(record.offer_salary).replace(/,/g, '') : '',
+              payment_terms: record.terms ? String(record.terms).replace('%', '') : '',
+              joining_date: record.joining_date || '',
+              payment_days: record.payment_days ? String(record.payment_days) : ''
+          });
 
             // Populate revenue form fields
             setRevenueForm({
@@ -137,94 +110,105 @@ export default function CandidateHistoryPage() {
                 pi_date: record.pi_date || ''
             });
 
-             // Set basic data
-             const uiData = {
-                 ...record,
-                 position: record.profile,
-                 rc_name: record.rc_name || '',
-                 tl_name: record.tl_name || '',
-                 candidate_status: record.candidate_status || 'Working',
-                 candidate_history: [],
-                 client_history: [],
-                 payment_history: []
-             };
- 
-             setData(uiData);
-
-            // Fetch all track histories in parallel
-            try {
-              const session = JSON.parse(localStorage.getItem('session') || '{}');
-              const token = session.access_token;
-
-              const [candidateRes, clientRes, paymentRes] = await Promise.all([
-                fetch(`/api/corporate/revenue/candidate-track?revenue_id=${params.id}`, {
-                  headers: { 'Authorization': `Bearer ${token}` }
-                }),
-                fetch(`/api/corporate/revenue/client-track?revenue_id=${params.id}`, {
-                  headers: { 'Authorization': `Bearer ${token}` }
-                }),
-                fetch(`/api/corporate/revenue/payment-track?revenue_id=${params.id}`, {
-                  headers: { 'Authorization': `Bearer ${token}` }
-                })
-              ]);
-
-              // Safely parse responses with error handling
-              const [candidateResult, clientResult, paymentResult] = await Promise.all([
-                candidateRes.ok ? candidateRes.json() : Promise.resolve({ success: false, data: [] }),
-                clientRes.ok ? clientRes.json() : Promise.resolve({ success: false, data: [] }),
-                paymentRes.ok ? paymentRes.json() : Promise.resolve({ success: false, data: [] })
-              ]);
-
-              // Update data with fetched histories
-              setData(prev => ({
-                ...prev,
-                candidate_history: candidateResult.success ? candidateResult.data.map(t => ({
-                  id: t.track_id,
-                  followup_date: t.date,
-                  next_followup_date: t.next_follow_up || '',
-                  conversation: t.remarks || '',
-                  candidate_status: t.candidate_status || '',
-                  loggedBy: t.loggedBy || 'Unknown'
-                })) : [],
-                client_history: clientResult.success ? clientResult.data.map(t => ({
-                  id: t.track_id,
-                  followup_date: t.date,
-                  next_followup_date: t.next_follow_up || '',
-                  conversation: t.remarks || '',
-                  loggedBy: t.loggedBy || 'Unknown'
-                })) : [],
-                payment_history: paymentResult.success ? paymentResult.data.map(t => ({
-                  id: t.track_id,
-                  date: t.date,
-                  amount_received: t.amount_received || 0,
-                  payment_status: t.payment_status || '',
-                  remark: t.remarks || '',
-                  loggedBy: t.loggedBy || 'Unknown'
-                })) : []
-              }));
-
-            } catch (err) {
-              console.error('Failed to fetch track histories:', err);
-              // Set empty arrays on error
-              setData(prev => ({
-                ...prev,
+            // Set basic data
+            const uiData = {
+                ...record,
+                position: record.profile,
+                rc_name: record.rc_name || '',
+                tl_name: record.tl_name || '',
+                candidate_status: record.candidate_status || 'Working',
                 candidate_history: [],
                 client_history: [],
                 payment_history: []
-              }));
-            }
-          } else {
-            setData({ candidate_history: [], client_history: [], payment_history: [] });
-          }
-        } catch (error) {
-          console.error('Error fetching revenue detail:', error);
-          setData({ candidate_history: [], client_history: [], payment_history: [] });
-        } finally {
-          setLoading(false);
-       }
-     };
-     fetchData();
-   }, [params.id]);
+            };
+  
+            setData(uiData);
+
+           // Fetch all track histories in parallel
+           try {
+             const session = JSON.parse(localStorage.getItem('session') || '{}');
+             const token = session.access_token;
+
+             const [candidateRes, clientRes, paymentRes] = await Promise.all([
+               fetch(`/api/corporate/revenue/candidate-track?revenue_id=${params.id}`, {
+                 headers: { 'Authorization': `Bearer ${token}` }
+               }),
+               fetch(`/api/corporate/revenue/client-track?revenue_id=${params.id}`, {
+                 headers: { 'Authorization': `Bearer ${token}` }
+               }),
+               fetch(`/api/corporate/revenue/payment-track?revenue_id=${params.id}`, {
+                 headers: { 'Authorization': `Bearer ${token}` }
+               })
+             ]);
+
+             // Safely parse responses with error handling
+             const [candidateResult, clientResult, paymentResult] = await Promise.all([
+               candidateRes.ok ? candidateRes.json() : Promise.resolve({ success: false, data: [] }),
+               clientRes.ok ? clientRes.json() : Promise.resolve({ success: false, data: [] }),
+               paymentRes.ok ? paymentRes.json() : Promise.resolve({ success: false, data: [] })
+             ]);
+
+               // Update data with fetched histories
+               setData(prev => ({
+                 ...prev,
+                 candidate_history: candidateResult.success ? candidateResult.data.map(t => ({
+                   id: t.track_id,
+                   followup_date: t.date,
+                   next_followup_date: t.next_follow_up || '',
+                   conversation: t.remarks || '',
+                   candidate_status: t.candidate_status || '',
+                   loggedBy: t.loggedBy || 'Unknown',
+                   created_at: t.created_at
+                 })).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) : [],
+                 client_history: clientResult.success ? clientResult.data.map(t => ({
+                   id: t.track_id,
+                   followup_date: t.date,
+                   next_followup_date: t.next_follow_up || '',
+                   conversation: t.remarks || '',
+                   loggedBy: t.loggedBy || 'Unknown',
+                   created_at: t.created_at
+                 })).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) : [],
+                 payment_history: paymentResult.success ? paymentResult.data.map(t => ({
+                   id: t.track_id,
+                   date: t.date,
+                   amount_received: t.amount_received || 0,
+                   payment_status: t.payment_status || '',
+                   remark: t.remarks || '',
+                   loggedBy: t.loggedBy || 'Unknown',
+                   created_at: t.created_at
+                 })).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) : []
+               }));
+
+           } catch (err) {
+             console.error('Failed to fetch track histories:', err);
+             // Set empty arrays on error
+             setData(prev => ({
+               ...prev,
+               candidate_history: [],
+               client_history: [],
+               payment_history: []
+             }));
+           }
+         } else {
+           setData({ candidate_history: [], client_history: [], payment_history: [] });
+         }
+       } catch (error) {
+         console.error('Error fetching revenue detail:', error);
+         setData({ candidate_history: [], client_history: [], payment_history: [] });
+       } finally {
+         setLoading(false);
+      }
+    };
+
+    useEffect(() => {
+      if (!params?.id) return;
+      fetchData();
+    }, [params.id]);
+
+    // Separate function to refresh revenue data
+    const fetchRevenueData = async () => {
+      await fetchData();
+    };
 
   // --- HANDLERS ---
   const handleOpenModal = (type) => {
@@ -293,47 +277,48 @@ export default function CandidateHistoryPage() {
      }
    };
 
-     const handleSaveRevenueDetails = async () => {
-       const revenueId = params.id;
-       if (!revenueId) {
-         alert('Revenue ID not found');
-         return;
-       }
+      const handleSaveRevenueDetails = async () => {
+        const revenueId = params.id;
+        if (!revenueId) {
+          alert('Revenue ID not found');
+          return;
+        }
 
-       try {
-         const session = JSON.parse(localStorage.getItem('session') || '{}');
-         const token = session.access_token;
+        try {
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const token = session.access_token;
 
-         const response = await fetch(`/api/corporate/revenue/${revenueId}`, {
-           method: 'PUT',
-           headers: {
-             'Content-Type': 'application/json',
-             'Authorization': `Bearer ${token}`
-           },
-           body: JSON.stringify({
-             revenue_id: revenueId,
-             base_invoice: revenueForm.base_invoice,
-             total_with_gst: revenueForm.total_with_gst,
-             payment_due_date: revenueForm.payment_due_date,
-             payment_follow_up: revenueForm.payment_follow_up,
-             pi_date: revenueForm.pi_date,
-           })
-         });
+          const response = await fetch(`/api/corporate/revenue/${revenueId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              revenue_id: revenueId,
+              base_invoice: revenueForm.base_invoice,
+              total_with_gst: revenueForm.total_with_gst,
+              payment_due_date: revenueForm.payment_due_date,
+              payment_follow_up: revenueForm.payment_follow_up,
+              pi_date: revenueForm.pi_date,
+            })
+          });
 
-         const result = await response.json();
+          const result = await response.json();
 
-         if (response.ok) {
-           alert('Revenue financials saved successfully!');
-           // Refresh data
-           fetchRevenueData();
-         } else {
-           alert(`Save failed: ${result.error || 'Unknown error'}`);
-         }
-       } catch (error) {
-         console.error('Save error:', error);
-         alert('Failed to save: ' + error.message);
-       }
-     };
+          if (response.ok) {
+            alert('Revenue financials saved successfully!');
+            setIsEditingRevenue(false);
+            // Refresh data
+            fetchRevenueData();
+          } else {
+            alert(`Save failed: ${result.error || 'Unknown error'}`);
+          }
+        } catch (error) {
+          console.error('Save error:', error);
+          alert('Failed to save: ' + error.message);
+        }
+      };
 
     const handleSaveLog = async () => {
      try {
@@ -698,50 +683,98 @@ const remainingBalance = totalExpected - totalReceived;
         <p className="text-base font-black text-red-600 animate-pulse">₹ {remainingBalance.toLocaleString('en-IN')}</p>
     </div>
 </div>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-5 gap-4">
-              <div>
-                  <h2 className="text-lg font-black text-indigo-900 uppercase tracking-tight flex items-center gap-2">
-                      <IndianRupee size={20} className="text-indigo-600" /> Revenue & Invoicing Desk
-                  </h2>
-                  <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-0.5">Managed by Finance/Revenue Team</p>
-              </div>
-              <div className="flex items-center gap-2">
-                  <button onClick={handleSaveRevenueDetails} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest text-[10px] transition-colors flex items-center gap-2 shadow-sm">
-                      <Save size={14}/> Save Invoicing Info
-                  </button>
-              </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-              <div>
-                  <label className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">Base Invoice (₹)</label>
-                  <input type="number" value={revenueForm.base_invoice} onChange={e => handleBaseInvoiceChange(e.target.value)} placeholder="0.00" className="w-full border border-indigo-200 p-2.5 rounded-lg text-sm font-black text-[#103c7f] outline-none focus:border-indigo-500 bg-white shadow-sm"/>
-              </div>
+           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-5 gap-4">
                <div>
-                   <label className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1 block">Total with 18% GST (₹)</label>
-                   <input type="number" value={revenueForm.total_with_gst || ""} readOnly placeholder="0.00" className="w-full border border-emerald-200 p-2.5 rounded-lg text-sm font-black text-emerald-700 outline-none bg-emerald-50 cursor-not-allowed shadow-sm"/>
+                   <h2 className="text-lg font-black text-indigo-900 uppercase tracking-tight flex items-center gap-2">
+                       <IndianRupee size={20} className="text-indigo-600" /> Revenue & Invoicing Desk
+                   </h2>
+                   <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-0.5">Managed by Finance/Revenue Team</p>
                </div>
-               <div>
-                   <label className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">Payment Due Date</label>
-                   <input type="date" value={revenueForm.payment_due_date} onChange={e => setRevenueForm({...revenueForm, payment_due_date: e.target.value})} className="w-full border border-indigo-200 p-2.5 rounded-lg text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 bg-white shadow-sm"/>
-               </div>
-               <div>
-                   <label className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">Payment Follow-up</label>
-                    <input type="date" value={revenueForm.payment_follow_up || ""} onChange={e => setRevenueForm({...revenueForm, payment_follow_up: e.target.value})} className="w-full border border-indigo-200 p-2.5 rounded-lg text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 bg-white shadow-sm"/>
-               </div>
-               {/* PI Date */}
                <div className="flex items-center gap-2">
-                   <div className="flex-1">
-                       <label className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">PI Date</label>
-                       <input 
-                         type="date" 
-                         value={revenueForm.pi_date} 
-                         onChange={e => setRevenueForm({...revenueForm, pi_date: e.target.value})} 
-                         className="w-full border border-indigo-200 p-2.5 rounded-lg text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 bg-white shadow-sm"
-                       />
-                   </div>
+                   {isEditingRevenue ? (
+                       <button 
+                           onClick={handleSaveRevenueDetails} 
+                           className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest text-[10px] transition-colors flex items-center gap-2 shadow-sm shrink-0 animate-pulse"
+                       >
+                           <Save size={14}/> Save Invoicing Info
+                       </button>
+                   ) : (
+                       <button 
+                           onClick={() => setIsEditingRevenue(true)} 
+                           className="bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest text-[10px] transition-colors flex items-center gap-2 shadow-sm shrink-0"
+                       >
+                           <Edit size={14}/> Edit Invoicing Details
+                       </button>
+                   )}
                </div>
-          </div>
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+               <div>
+                   <label className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">Base Invoice (₹)</label>
+                   {isEditingRevenue ? (
+                       <input 
+                           type="number" 
+                           value={revenueForm.base_invoice} 
+                           onChange={e => handleBaseInvoiceChange(e.target.value)} 
+                           placeholder="0.00" 
+                           className="w-full border border-indigo-200 p-2.5 rounded-lg text-sm font-black text-[#103c7f] outline-none focus:border-indigo-500 bg-white shadow-sm"
+                       />
+                   ) : (
+                       <p className="text-sm font-black text-gray-800 bg-white/50 px-2.5 py-2 rounded-lg border border-gray-200 shadow-sm">₹ {revenueForm.base_invoice || "0"}</p>
+                   )}
+               </div>
+                <div>
+                    <label className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1 block">Total with 18% GST (₹)</label>
+                    {isEditingRevenue ? (
+                        <input type="number" value={revenueForm.total_with_gst || ""} readOnly placeholder="0.00" className="w-full border border-emerald-200 p-2.5 rounded-lg text-sm font-black text-emerald-700 outline-none bg-emerald-50 cursor-not-allowed shadow-sm"/>
+                    ) : (
+                        <p className="text-sm font-black text-emerald-700 bg-emerald-50 px-2.5 py-2 rounded-lg border border-emerald-200 shadow-sm">₹ {revenueForm.total_with_gst || "0"}</p>
+                    )}
+                </div>
+                <div>
+                    <label className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">Payment Due Date</label>
+                    {isEditingRevenue ? (
+                        <input 
+                            type="date" 
+                            value={revenueForm.payment_due_date} 
+                            onChange={e => setRevenueForm({...revenueForm, payment_due_date: e.target.value})} 
+                            className="w-full border border-indigo-200 p-2.5 rounded-lg text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 bg-white shadow-sm"
+                        />
+                    ) : (
+                        <p className="text-sm font-bold text-gray-800 bg-white/50 px-2.5 py-2.5 rounded-lg border border-gray-200 shadow-sm">{revenueForm.payment_due_date || "N/A"}</p>
+                    )}
+                </div>
+                <div>
+                    <label className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">Payment Follow-up</label>
+                    {isEditingRevenue ? (
+                        <input 
+                            type="date" 
+                            value={revenueForm.payment_follow_up || ""} 
+                            onChange={e => setRevenueForm({...revenueForm, payment_follow_up: e.target.value})} 
+                            className="w-full border border-indigo-200 p-2.5 rounded-lg text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 bg-white shadow-sm"
+                        />
+                    ) : (
+                        <p className="text-sm font-bold text-gray-800 bg-white/50 px-2.5 py-2.5 rounded-lg border border-gray-200 shadow-sm">{revenueForm.payment_follow_up || "N/A"}</p>
+                    )}
+                </div>
+                {/* PI Date */}
+                <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                        <label className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">PI Date</label>
+                        {isEditingRevenue ? (
+                            <input 
+                                type="date" 
+                                value={revenueForm.pi_date} 
+                                onChange={e => setRevenueForm({...revenueForm, pi_date: e.target.value})} 
+                                className="w-full border border-indigo-200 p-2.5 rounded-lg text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 bg-white shadow-sm"
+                            />
+                        ) : (
+                            <p className="text-sm font-bold text-gray-800 bg-white/50 px-2.5 py-2.5 rounded-lg border border-gray-200 shadow-sm">{revenueForm.pi_date || "N/A"}</p>
+                        )}
+                    </div>
+                </div>
+           </div>
 
          
       </div>

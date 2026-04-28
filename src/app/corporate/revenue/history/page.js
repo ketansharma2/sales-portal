@@ -1,11 +1,42 @@
 "use client";
-import { useState, useEffect , useRef } from "react";
+import { useState, useEffect , useRef, useMemo } from "react";
 import { 
   Search, Filter, Calendar, User, Briefcase, 
   Building2, Clock, CheckCircle, AlertCircle,
   History, IndianRupee , CheckSquare, X, Printer, FileText, FileCheck
 } from "lucide-react";
 import { useRouter } from 'next/navigation';
+
+// --- CONSTANTS ---
+const COMPANY_DATA = {
+  name: "SAVVI SALES & SERVICES PVT LTD",
+  address: "331, GANDHI COLONY, SAMALKHA PANIPAT (HR)",
+  email: "savvisales@gmail.com",
+  gstin: "06AAZCS0495D1ZY",
+  bank: {
+    name: "STATE BANK OF INDIA",
+    account: "37085013734",
+    ifsc: "SBIN0050099",
+    branch: "SAMALKHA (CODE: 1073)" 
+  },
+  terms: [
+    "All disputes subject to Samalkha jurisdiction.",
+    "Our responsibility ceases as soon as goods/services leave our premises.",
+    "Payments by Account Payee Cheque/NEFT/RTGS only."
+  ]
+ };
+
+const STATES = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
+  "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
+  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+  "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+  "Uttar Pradesh", "Uttarakhand", "West Bengal",
+  "Andaman and Nicobar Islands", "Chandigarh",
+  "Dadra and Nagar Haveli and Daman and Diu", "Delhi",
+  "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
+];
 
 export default function RevenuePage() {
    
@@ -35,36 +66,37 @@ export default function RevenuePage() {
     return str;
   };
 
-  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-  useEffect(() => {
-    const fetchRevenueHistory = async () => {
-      try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        
-        const response = await fetch('/api/corporate/revenue/history', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        const result = await response.json();
-        
-        if (result.success && result.data) {
-          console.log('Revenue data keys:', result.data.map(r => r.id));
-          setRevenueData(result.data);
-        } else {
-          setRevenueData([]);
-        }
-      } catch (error) {
-        console.error('Error fetching revenue history:', error);
-        setRevenueData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+   // Data fetching function
+   const fetchRevenueHistory = async () => {
+     setLoading(true);
+     try {
+       const session = JSON.parse(localStorage.getItem('session') || '{}');
+       const token = session.access_token;
+       
+       const response = await fetch('/api/corporate/revenue/history', {
+         headers: { 'Authorization': `Bearer ${token}` }
+       });
+       
+       const result = await response.json();
+       
+       if (result.success && result.data) {
+         setRevenueData(result.data);
+       } else {
+         setRevenueData([]);
+       }
+     } catch (error) {
+       console.error('Error fetching revenue history:', error);
+       setRevenueData([]);
+     } finally {
+       setLoading(false);
+     }
+   };
 
-    fetchRevenueHistory();
-  }, []);
+   useEffect(() => {
+     fetchRevenueHistory();
+   }, []);
 
   // --- HANDLERS ---
   const handleViewHistory = (id) => {
@@ -110,72 +142,361 @@ export default function RevenuePage() {
 
       return matchesSearch && matchesDateRange && matchesMonth;
   });
-   // --- PI GENERATION STATES ---
-  const [selectedRowIds, setSelectedRowIds] = useState([]);
-  const [isPiModalOpen, setIsPiModalOpen] = useState(false);
-  const [generatedPi, setGeneratedPi] = useState(null);
-  
-  const [piForm, setPiForm] = useState({
-    clientName: "", address: "", gstin: "", state: "Haryana", pincode: "", 
-    fromDate: "", toDate: "", billingPercent: 8.33, candidates: []
-  });
+    // --- PI GENERATION STATES ---
+    const [selectedRowIds, setSelectedRowIds] = useState([]);
+    const [isPiModalOpen, setIsPiModalOpen] = useState(false);
+    const [generatedPi, setGeneratedPi] = useState(null);
+    const [allClients, setAllClients] = useState([]); // All clients from API
+    const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false); // Loading state for generate
+    const [viewingInvoice, setViewingInvoice] = useState(null); // Invoice data being viewed
+    const [editMode, setEditMode] = useState(false); // Whether modal is in edit mode
+    const [editingInvoiceId, setEditingInvoiceId] = useState(null); // Which invoice is being edited
+    
+    const [piForm, setPiForm] = useState({
+      clientId: "", clientName: "", address: "", gstin: "", state: "", pincode: "", 
+      fromDate: "", toDate: "", billingPercent: "", candidates: []
+    });
+    const [nextSno, setNextSno] = useState(null); // Next invoice serial number
+     
+     // Scroll to preview when generatedPi becomes available
+     useEffect(() => {
+       if (generatedPi && previewRef.current) {
+         previewRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+       }
+     }, [generatedPi]);
 
-  // --- SELECTION HANDLERS ---
-  const toggleRowSelection = (revenueId) => {
-    setSelectedRowIds(prev => prev.includes(revenueId) ? prev.filter(rowId => rowId !== revenueId) : [...prev, revenueId]);
-  };
+     // Fetch all clients for dropdown
+     useEffect(() => {
+      const fetchClients = async () => {
+        try {
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const token = session.access_token;
+          if (!token) return;
 
-  const openPiModal = () => {
-    // Selected rows से कैंडिडेट्स का डेटा निकालें (assuming ctc is available, else fallback to 0)
-    const selectedCandidates = revenueData
-      .filter(item => selectedRowIds.includes(item.revenue_id))
-      .map(item => ({
-        id: item.revenue_id,
-        role: item.position,
-        name: item.candidate_name,
-        ctc: item.ctc || 500000, // Replace with actual item.ctc from your DB
-        billingPercent: 8.33 // Default, will update when client is selected
-      }));
+          const response = await fetch('/api/corporate/fse/clients', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const result = await response.json();
+          if (result.success && result.data) {
+            setAllClients(result.data);
+          }
+        } catch (error) {
+          console.error('Error fetching clients:', error);
+        }
+      };
+       fetchClients();
+     }, []);
 
-    setPiForm(prev => ({ ...prev, candidates: selectedCandidates }));
-    setIsPiModalOpen(true);
-  };
+     // Fetch next invoice serial number
+     useEffect(() => {
+       const fetchNextSno = async () => {
+         try {
+           const session = JSON.parse(localStorage.getItem('session') || '{}');
+           const token = session.access_token;
+           if (!token) return;
 
-  const handleClientSelect = (clientName) => {
-    const client = CLIENT_DB.find(c => c.name === clientName);
-    if (client) {
-      setPiForm(prev => ({
-        ...prev, clientName: client.name, address: client.address, gstin: client.gstin,
-        state: client.state, billingPercent: client.defaultBillingPercent,
-        // Update billing % for all selected candidates automatically
-        candidates: prev.candidates.map(c => ({ ...c, billingPercent: client.defaultBillingPercent }))
-      }));
+           const response = await fetch('/api/corporate/revenue/invoice/next-sno', {
+             headers: { 'Authorization': `Bearer ${token}` }
+           });
+           const result = await response.json();
+           if (result.success) {
+             setNextSno(result.data.next_sno);
+           }
+         } catch (error) {
+           console.error('Error fetching next sno:', error);
+         }
+       };
+       fetchNextSno();
+     }, []);
+
+     const uniqueClientNames = useMemo(() => 
+      Array.from(new Set(revenueData.map(r => r.client_name).filter(Boolean))),
+      [revenueData]
+    );
+
+    // Build client options directly from revenueData (each row has client_name and client_id)
+    const clientOptions = useMemo(() => {
+      const clientMap = new Map();
+      revenueData.forEach(row => {
+        if (row.client_name && row.client_id) {
+          clientMap.set(row.client_name, String(row.client_id));
+        }
+      });
+      return uniqueClientNames
+        .map(name => ({ name, id: clientMap.get(name) }))
+        .filter(opt => opt.id);
+    }, [revenueData, uniqueClientNames]);
+
+   // --- SELECTION HANDLERS ---
+   const toggleRowSelection = (revenueId) => {
+     setSelectedRowIds(prev => prev.includes(revenueId) ? prev.filter(rowId => rowId !== revenueId) : [...prev, revenueId]);
+   };
+
+   // Open PI modal — either for CREATE (no args) or EDIT (invoiceId provided)
+   const openPiModal = async (invoiceId = null) => {
+     if (invoiceId) {
+       // EDIT MODE: Fetch invoice data and populate form
+       setEditMode(true);
+       setEditingInvoiceId(invoiceId);
+       try {
+         const session = JSON.parse(localStorage.getItem('session') || '{}');
+         const token = session.access_token;
+         const response = await fetch(`/api/corporate/revenue/invoice/${invoiceId}`, {
+           headers: { 'Authorization': `Bearer ${token}` }
+         });
+         const result = await response.json();
+         if (response.ok && result.success) {
+           const inv = result.data;
+           setPiForm({
+             clientId: inv.client_id || "",
+             clientName: inv.client_name,
+             address: inv.address || "",
+             gstin: inv.gst || "",
+             state: inv.state || "",
+             pincode: inv.pincode || "",
+             fromDate: inv.from_date || "",
+             toDate: inv.to_date || "",
+             candidates: inv.candidate_details?.map(c => ({
+               id: c.revenue_id,
+               name: c.candidate_name,
+               role: c.profile,
+               ctc: c.ctc,
+               billingPercent: c.billing_percent
+             })) || [],
+           });
+         } else {
+           alert(result.error || 'Failed to load invoice');
+           return;
+         }
+       } catch (error) {
+         console.error('Fetch invoice error:', error);
+         alert('Failed to load invoice');
+         return;
+       }
+     } else {
+       // CREATE MODE: Reset to empty form, populate from selected rows
+       setEditMode(false);
+       setEditingInvoiceId(null);
+       const selectedRows = revenueData.filter(item => selectedRowIds.includes(item.revenue_id));
+       const selectedCandidates = selectedRows.map(item => ({
+         id: item.revenue_id,
+         role: item.profile || item.position || '',
+         name: item.candidate_name,
+         ctc: item.ctc || 500000,
+         billingPercent: 8.33
+       }));
+       const firstSelected = selectedRows[0];
+       const clientName = firstSelected?.client_name || '';
+       const clientId = firstSelected?.client_id ? String(firstSelected.client_id) : '';
+       setPiForm(prev => ({
+         ...prev,
+         candidates: selectedCandidates,
+         clientName,
+         clientId
+       }));
+     }
+     setIsPiModalOpen(true);
+   };
+
+   const handleClientSelect = (clientId) => {
+     // Find client from clientOptions using the selected clientId
+     const client = clientOptions.find(c => c.id == clientId);
+     if (client) {
+       setPiForm(prev => ({
+         ...prev,
+         clientId,
+         clientName: client.name
+       }));
+     }
+   };
+
+   const handleViewInvoice = async (invoiceId) => {
+     try {
+       const session = JSON.parse(localStorage.getItem('session') || '{}');
+       const token = session.access_token;
+
+       const response = await fetch(`/api/corporate/revenue/invoice/${invoiceId}`, {
+         headers: { 'Authorization': `Bearer ${token}` }
+       });
+
+       const result = await response.json();
+
+       if (response.ok && result.success) {
+         const invoice = result.data;
+         // Calculate totals from candidate_details
+         const taxableValue = invoice.candidate_details?.reduce((sum, c) => {
+           const ctc = parseFloat(c.ctc || 0);
+           const percent = parseFloat(c.billing_percent || 0);
+           return sum + (ctc * percent / 100);
+         }, 0) || 0;
+         const isInterstate = invoice.state && invoice.state !== "Haryana";
+         const cgst = isInterstate ? 0 : taxableValue * 0.09;
+         const sgst = isInterstate ? 0 : taxableValue * 0.09;
+         const igst = isInterstate ? taxableValue * 0.18 : 0;
+         const grandTotal = Math.round(taxableValue + cgst + sgst + igst);
+
+         const previewData = {
+           invoiceNo: invoice.invoice_no,
+           date: invoice.date, // Use the date column (invoice date)
+           clientName: invoice.client_name,
+           address: invoice.address,
+           gstin: invoice.gst,
+           state: invoice.state,
+           pincode: invoice.pincode,
+           fromDate: invoice.from_date,
+           toDate: invoice.to_date,
+           candidates: invoice.candidate_details?.map(c => ({
+             id: c.revenue_id,
+             name: c.candidate_name,
+             role: c.profile,
+             ctc: c.ctc,
+             billingPercent: c.billing_percent
+           })) || [],
+           taxableValue,
+           cgst,
+           sgst,
+           igst,
+           grandTotal,
+           amountInWords: numberToWords(grandTotal)
+         };
+          setGeneratedPi(previewData);
+          // No need to scroll here — useEffect watches generatedPi and scrolls
+        } else {
+         alert(result.error || 'Failed to fetch invoice');
+       }
+     } catch (error) {
+       console.error('Fetch invoice error:', error);
+       alert('Failed to fetch invoice: ' + error.message);
+     }
+   };
+
+  const handleGeneratePI = async () => {
+    if (!piForm.clientId || !piForm.clientName) {
+      alert('Please select a client');
+      return;
     }
-  };
 
- const handleGeneratePI = () => {
-    const taxableValue = piForm.candidates.reduce((sum, c) => sum + ((c.ctc * c.billingPercent) / 100), 0);
+    setIsGeneratingInvoice(true);
+
+    // Calculate amounts
+    const taxableValue = piForm.candidates.reduce((sum, c) => {
+      const ctc = parseFloat(c.ctc) || 0;
+      const percent = parseFloat(c.billingPercent) || 0;
+      return sum + (ctc * percent / 100);
+    }, 0);
+
     const isInterstate = piForm.state !== "Haryana";
     const cgst = isInterstate ? 0 : taxableValue * 0.09;
     const sgst = isInterstate ? 0 : taxableValue * 0.09;
     const igst = isInterstate ? taxableValue * 0.18 : 0;
-    const grandTotal = Math.round(taxableValue + cgst + sgst + igst); // <-- पहले टोटल निकालें
-    
-    setGeneratedPi({
-      invoiceNo: `SAVVI/PI/${new Date().toISOString().split('T')[0].replace(/-/g, '')}/11`,
-      date: new Date().toISOString().split('T')[0],
-      ...piForm, 
-      taxableValue, 
-      cgst, 
-      sgst, 
-      igst, 
-      grandTotal,
-      amountInWords: numberToWords(grandTotal) // <-- फिर यहाँ पास करें
-    });
-    setIsPiModalOpen(false); 
-    setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
-  };
-  return (
+    const grandTotal = Math.round(taxableValue + cgst + sgst + igst);
+
+    // Build candidate_details array with computed amounts
+    const candidate_details = piForm.candidates.map(c => ({
+      revenue_id: c.id,
+      candidate_name: c.name,
+      profile: c.role,
+      ctc: parseFloat(c.ctc) || 0,
+      billing_percent: parseFloat(c.billingPercent) || 0,
+      amount: parseFloat(((c.ctc * c.billingPercent) / 100).toFixed(2))
+    }));
+
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+
+      // Decide URL and method based on edit mode
+      const isEdit = editMode && editingInvoiceId;
+      const url = isEdit 
+        ? `/api/corporate/revenue/invoice/${editingInvoiceId}`
+        : '/api/corporate/revenue/invoice';
+      const method = isEdit ? 'PUT' : 'POST';
+
+       const body = isEdit ? {
+         client_id: piForm.clientId,
+         client_name: piForm.clientName,
+         gstin: piForm.gstin || null,
+         state: piForm.state || null,
+         address: piForm.address || null,
+         pincode: piForm.pincode || null,
+         from_date: piForm.fromDate || null,
+         to_date: piForm.toDate || null,
+         candidate_details
+       } : {
+         revenue_ids: piForm.candidates.map(c => c.id),
+         client_id: piForm.clientId,
+         client_name: piForm.clientName,
+         gstin: piForm.gstin || null,
+         state: piForm.state || null,
+         address: piForm.address || null,
+         pincode: piForm.pincode || null,
+         from_date: piForm.fromDate || null,
+         to_date: piForm.toDate || null,
+         candidate_details
+       };
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        const invoice = result.data;
+        // Build preview data from response
+        const previewData = {
+          invoiceNo: invoice.invoice_no,
+          date: invoice.date,
+          clientName: invoice.client_name,
+          address: invoice.address,
+          gstin: invoice.gst,
+          state: invoice.state,
+          pincode: invoice.pincode,
+          fromDate: invoice.from_date,
+          toDate: invoice.to_date,
+          candidates: invoice.candidate_details?.map(c => ({
+            id: c.revenue_id,
+            name: c.candidate_name,
+            role: c.profile,
+            ctc: c.ctc,
+            billingPercent: c.billing_percent
+          })) || [],
+          taxableValue,
+          cgst,
+          sgst,
+          igst,
+          grandTotal,
+          amountInWords: numberToWords(grandTotal)
+        };
+        setGeneratedPi(previewData);
+        setIsPiModalOpen(false);
+        // Reset form and selection
+        setPiForm({
+          clientId: "", clientName: "", address: "", gstin: "", state: "", pincode: "",
+          fromDate: "", toDate: "", billingPercent: "", candidates: []
+        });
+        setSelectedRowIds([]);
+        setEditMode(false);
+        setEditingInvoiceId(null);
+        // Refresh revenue data
+        fetchRevenueHistory();
+      } else {
+        alert(result.error || 'Failed to save invoice');
+      }
+    } catch (error) {
+      console.error('Save invoice error:', error);
+      alert('Failed to save invoice: ' + error.message);
+    } finally {
+      setIsGeneratingInvoice(false);
+    }
+   };
+   
+   return (
     <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-6 pb-20">
       
       {/* HEADER */}
@@ -363,30 +684,28 @@ export default function RevenuePage() {
                                 {item.payment_status}
                             </span>
                         </td>
-                        {/* --- NEW: 8. PI Column (View / Edit) --- */}
+                        {/* --- PI Column (View / Edit) - Only show if invoice exists --- */}
                         <td className="p-3 border-r border-gray-100 text-center align-middle">
-                            <div className="flex items-center justify-center gap-2">
-                                 <button 
-                                     onClick={() => {
-                                         // TODO: Add logic to view existing PI
-                                         console.log("View PI for:", item.revenue_id);
-                                     }}
-                                     className="bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white p-1.5 rounded transition-colors border border-indigo-200"
-                                     title="View PI"
-                                 >
-                                     <FileText size={14} />
-                                 </button>
-                                 <button 
-                                     onClick={() => {
-                                         // TODO: Add logic to edit existing PI
-                                         console.log("Edit PI for:", item.revenue_id);
-                                     }}
-                                     className="bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white p-1.5 rounded transition-colors border border-emerald-200"
-                                     title="Edit PI"
-                                 >
-                                     <FileCheck size={14} /> {/* Using FileCheck as edit icon for now, you can use Edit3 if imported */}
-                                 </button>
-                            </div>
+                            {item.invoice_id ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <button 
+                                    onClick={() => handleViewInvoice(item.invoice_id)}
+                                    className="bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white p-1.5 rounded transition-colors border border-indigo-200"
+                                    title="View PI"
+                                >
+                                    <FileText size={14} />
+                                </button>
+                                <button 
+                                    onClick={() => openPiModal(item.invoice_id)}
+                                    className="bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white p-1.5 rounded transition-colors border border-emerald-200"
+                                    title="Edit PI"
+                                >
+                                    <FileCheck size={14} />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-gray-400 italic">Not Generated</span>
+                            )}
                         </td>
 
                         {/* 8. ACTION COLUMN (View Only) */}
@@ -423,30 +742,34 @@ export default function RevenuePage() {
       {isPiModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 print:hidden">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="bg-[#103c7f] text-white p-4 flex justify-between items-center sticky top-0 z-10">
-              <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2"><FileText size={16}/> Generate Proforma Invoice</h2>
-              <button onClick={() => setIsPiModalOpen(false)} className="hover:text-red-300"><X size={18}/></button>
-            </div>
+             <div className="bg-[#103c7f] text-white p-4 flex justify-between items-center sticky top-0 z-10">
+               <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                 <FileText size={16}/> {editMode ? 'Edit Proforma Invoice' : 'Generate Proforma Invoice'}
+               </h2>
+               <button onClick={() => setIsPiModalOpen(false)} className="hover:text-red-300"><X size={18}/></button>
+             </div>
             
             <div className="p-6 space-y-6">
               {/* Client Selection & Editable Auto-fill */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2 md:col-span-1">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Select Client (Auto-fill)</label>
-                  <select 
-                    className="w-full border p-2 rounded text-sm outline-none focus:border-blue-500" 
-                    onChange={(e) => {
-                      handleClientSelect(e.target.value);
-                      // Update manual input if client is selected, otherwise allow free typing
-                      if(!e.target.value) setPiForm({...piForm, clientName: ""});
-                    }}
-                  >
-                    <option value="">-- Choose Client --</option>
-                    {CLIENT_DB.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                  </select>
-                </div>
-                <div className="col-span-2 md:col-span-1">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Client Name (Editable)</label>
+                  <div className="col-span-2 md:col-span-1">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Select Client (Auto-fill) <span className="text-red-500">*</span></label>
+                    <select 
+                      className="w-full border p-2 rounded text-sm outline-none focus:border-blue-500" 
+                      value={piForm.clientId}
+                      onChange={(e) => {
+                        handleClientSelect(e.target.value);
+                      }}
+                      disabled={editMode}
+                    >
+                      <option value="">-- Choose Client --</option>
+                      {clientOptions.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                 </div>
+                 <div className="col-span-2 md:col-span-1">
+                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Client Name (Editable) <span className="text-red-500">*</span></label>
                   <input 
                     type="text" 
                     value={piForm.clientName} 
@@ -494,12 +817,23 @@ export default function RevenuePage() {
                     onChange={e => setPiForm({...piForm, pincode: e.target.value})} 
                     className="w-full border p-2 rounded text-sm outline-none focus:border-blue-500"
                   />
-                </div>
-                <div></div> {/* Empty div to maintain grid layout */}
-                <div>
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">From Date</label>
-                  <input type="date" value={piForm.fromDate} onChange={e => setPiForm({...piForm, fromDate: e.target.value})} className="w-full border p-2 rounded text-sm outline-none focus:border-blue-500"/>
-                </div>
+                 </div>
+                 <div className="flex items-start">
+                   <div className="flex-1 bg-indigo-50 border border-indigo-100 rounded p-3">
+                     <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1">Next Invoice No. (Preview)</p>
+                      {nextSno ? (
+                        <p className="text-sm font-black text-[#103c7f]">
+                          SAVVI/PI/{new Date().toISOString().slice(0,10).replace(/-/g,'')}/{nextSno}
+                        </p>
+                      ) : (
+                       <p className="text-xs text-gray-400">Loading...</p>
+                     )}
+                   </div>
+                 </div>
+                 <div>
+                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">From Date</label>
+                   <input type="date" value={piForm.fromDate} onChange={e => setPiForm({...piForm, fromDate: e.target.value})} className="w-full border p-2 rounded text-sm outline-none focus:border-blue-500"/>
+                 </div>
                 <div>
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">To Date</label>
                   <input type="date" value={piForm.toDate} onChange={e => setPiForm({...piForm, toDate: e.target.value})} className="w-full border p-2 rounded text-sm outline-none focus:border-blue-500"/>
@@ -576,10 +910,17 @@ export default function RevenuePage() {
 
               <button 
                 onClick={handleGeneratePI} 
-                disabled={!piForm.clientName} 
-                className="w-full bg-emerald-600 text-white font-black uppercase tracking-widest p-3 rounded-lg hover:bg-emerald-700 disabled:opacity-50 mt-4 transition-colors"
+                disabled={!piForm.clientName || isGeneratingInvoice}
+                className="w-full bg-emerald-600 text-white font-black uppercase tracking-widest p-3 rounded-lg hover:bg-emerald-700 disabled:opacity-50 mt-4 transition-colors flex items-center justify-center gap-2"
               >
-                Generate Invoice Preview
+                 {isGeneratingInvoice ? (
+                   <>
+                     <svg className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" viewBox="0 0 24 24"></svg>
+                     {editMode ? 'Updating...' : 'Generating...'}
+                   </>
+                 ) : (
+                   editMode ? 'Update Invoice' : 'Generate Invoice Preview'
+                 )}
               </button>
             </div>
           </div>
