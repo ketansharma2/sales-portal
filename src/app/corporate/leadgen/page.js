@@ -44,27 +44,34 @@ export default function LeadGenHome() {
   
   const [activeDropdown, setActiveDropdown] = useState(null); 
   const [selectedLabel, setSelectedLabel] = useState("Today");
-  const [kpiData, setKpiData] = useState({
-    searched: { total: '-', startup: '-' },
-    normal: { leads: '-', calls: '-' },
-    contacts: { total: '-', startup: '-' },
-    calls: { total: '-', startup: '-', new: { total: '-', startup: '-' }, followup: { total: '-', startup: '-' } },
-    picked: { total: '-', startup: '-' },
-    notPicked: { total: '-', startup: '-' },
-    contract: { total: '-', startup: '-' },
-    sentToManager: { total: '-', startup: '-' },
-    onboarded: { total: '-', startup: '-' },
-    interested: { total: '-', startup: '-' },
-    
-    masterUnion: { company: '-', profiles: '-', calling: '-' },
-
-    franchise: {
-        discussed: { total: '-', startup: '-' },
-        formAsk: { total: '-', startup: '-' },
-        formShared: { total: '-', startup: '-' },
-        accepted: { total: '-', startup: '-' }
-    }
-  });
+   const [kpiData, setKpiData] = useState({
+     searched: { total: '-', startup: '-' },
+     normal: { leads: '-', calls: '-' },
+     contacts: { total: '-', startup: '-' },
+     calls: { total: '-', startup: '-', new: { total: '-', startup: '-' }, followup: { total: '-', startup: '-' } },
+     picked: { total: '-', startup: '-' },
+     notPicked: { total: '-', startup: '-' },
+     contract: { total: '-', startup: '-' },
+     sentToManager: { total: '-', startup: '-' },
+     onboarded: { total: '-', startup: '-' },
+     interested: { total: '-', startup: '-' },
+     
+     masterUnion: { company: '-', profiles: '-', calling: '-' },
+ 
+     franchise: {
+         discussed: { total: '-', startup: '-' },
+         formAsk: { total: '-', startup: '-' },
+         formShared: { total: '-', startup: '-' },
+         accepted: { total: '-', startup: '-' }
+     },
+     
+     projections: {
+         mpLess50: '-',
+         mpGreater50: '-',
+         wpLess50: '-',
+         wpGreater50: '-'
+     }
+   });
 
   const [followUps, setFollowUps] = useState([]);
   const [conversationLog, setConversationLog] = useState([]);
@@ -130,14 +137,39 @@ export default function LeadGenHome() {
         }
       });
       const data = await response.json();
+       if (data.success && data.data) {
+         setKpiData(prev => ({
+           ...prev,
+           searched: data.data.searched || { total: '-', startup: '-' }
+         }));
+       }
+    } catch (error) {
+      console.error('Failed to fetch leads count:', error);
+    }
+  };
+
+  const fetchProjectionsCount = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const response = await fetch('/api/corporate/leadgen/projections-count', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
       if (data.success && data.data) {
         setKpiData(prev => ({
           ...prev,
-          searched: data.data.searched || { total: '-', startup: '-' }
+          projections: data.data.projections || {
+            mpLess50: '-',
+            mpGreater50: '-',
+            wpLess50: '-',
+            wpGreater50: '-'
+          }
         }));
       }
     } catch (error) {
-      console.error('Failed to fetch leads count:', error);
+      console.error('Failed to fetch projections count:', error);
     }
   };
 
@@ -162,12 +194,16 @@ export default function LeadGenHome() {
         }
       });
       const data = await response.json();
-      if (data.success && data.data) {
-        setKpiData(prev => ({
-          ...prev,
-          contacts: data.data.contacts || { total: '0', startup: '0' }
-        }));
-      }
+       if (data.success && data.data) {
+         setKpiData(prev => ({
+           ...prev,
+           contacts: data.data.contacts || { total: '0', startup: '0' },
+           projections: {
+             ...prev.projections,
+             ...(data.data.projections || {})
+           }
+         }));
+       }
     } catch (error) {
       console.error('Failed to fetch contacts count:', error);
     }
@@ -698,6 +734,7 @@ export default function LeadGenHome() {
   useEffect(() => {
     if (latestInteractionDate) {
       fetchLeadsCount();
+      fetchProjectionsCount();
       fetchContactsCount();
       fetchNormalLeadsCount();
       fetchNormalCallsCount();
@@ -900,7 +937,30 @@ export default function LeadGenHome() {
               <KpiCard title="Contract Share" total={kpiData.contract.total} icon={<FileText size={18}/>} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'contract' })} />
               <KpiCard title="Interested" total={kpiData.interested.total} icon={<TrendingUp size={18}/>} color="green" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'interested' })} />
               <KpiCard title="Sent to Manager" total={kpiData.sentToManager.total} icon={<Send size={18}/>} color="orange" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'sent_to_manager' })} />
-              <KpiCard title="Total Onboard" total={kpiData.onboarded.total} icon={<Briefcase size={18}/>} color="teal" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'onboard' })} />
+               <KpiCard title="Total Onboard" total={kpiData.onboarded.total} icon={<Briefcase size={18}/>} color="teal" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { cardType: 'onboard' })} />
+               <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full cursor-pointer">
+                   <div className="mb-2">
+                       <p className="text-xs font-bold text-gray-500 uppercase tracking-wider leading-tight">Projection</p>
+                   </div>
+                   <div className="grid grid-cols-2">
+                       <div className="bg-[#103c7f] p-1 flex justify-between items-center">
+                           <span className="text-[11px] font-bold text-[#a1db40]">MP &lt; 50</span>
+                           <span className="text-[11px] font-bold text-[#a1db40]">{kpiData.projections?.mpLess50 || '-'}</span>
+                       </div>
+                       <div className="bg-[#103c7f] p-1 flex justify-between items-center">
+                           <span className="text-[11px] font-bold text-[#a1db40]">MP &gt; 50</span>
+                           <span className="text-[11px] font-bold text-[#a1db40]">{kpiData.projections?.mpGreater50 || '-'}</span>
+                       </div>
+                       <div className="bg-[#103c7f] p-1 flex justify-between items-center">
+                           <span className="text-[11px] font-bold text-[#a1db40]">WP &lt; 50</span>
+                           <span className="text-[11px] font-bold text-[#a1db40]">{kpiData.projections?.wpLess50 || '-'}</span>
+                       </div>
+                       <div className="bg-[#103c7f] p-1 flex justify-between items-center">
+                           <span className="text-[11px] font-bold text-[#a1db40]">WP &gt; 50</span>
+                           <span className="text-[11px] font-bold text-[#a1db40]">{kpiData.projections?.wpGreater50 || '-'}</span>
+                       </div>
+                   </div>
+               </div>
             </div>
           </div>
 
