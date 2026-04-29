@@ -7,9 +7,10 @@ import {
 
 export default function LeadgenCorporateTargetPage() {
   
-  // --- STATES ---
-  const [loading, setLoading] = useState(true);
-  const [myTargetsData, setMyTargetsData] = useState([]);
+   // --- STATES ---
+   const [loading, setLoading] = useState(true);
+   const [myTargetsData, setMyTargetsData] = useState([]);
+   const [dynamicAchievements, setDynamicAchievements] = useState({});
   
   // My Targets State (Assigned by Corporate SM)
   const [myTargetMonth, setMyTargetMonth] = useState("April");
@@ -26,20 +27,202 @@ export default function LeadgenCorporateTargetPage() {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const token = session.access_token;
-      
+
       if (!token) return;
-      
+
       const response = await fetch('/api/corporate/leadgen/my-targets', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success && result.data) {
         setMyTargetsData(result.data);
+
+        // Fetch dynamic achievements for Calls and Leads KPIs
+        await fetchDynamicAchievements(result.data);
       }
     } catch (error) {
       console.error('Error fetching my targets:', error);
+    }
+  };
+
+  // Fetch dynamic achievements for Calls and Leads KPIs
+  const fetchDynamicAchievements = async (targets) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+
+      if (!token) return;
+
+      const achievements = {};
+
+      // Get unique month-year combinations for Calls, Leads, Franchise Accept, Sent to Manager, Onboard, Interested, and Contacts KPIs
+      const callsTargets = targets.filter(t => t.kpi_metric?.toLowerCase() === 'calls');
+      const leadsTargets = targets.filter(t => t.kpi_metric?.toLowerCase() === 'leads');
+      const franchiseAcceptTargets = targets.filter(t => t.kpi_metric?.toLowerCase() === 'franchise accept');
+      const sentToManagerTargets = targets.filter(t => t.kpi_metric?.toLowerCase() === 'sent to manager');
+      const onboardTargets = targets.filter(t => t.kpi_metric?.toLowerCase() === 'onboard');
+      const interestedTargets = targets.filter(t => t.kpi_metric?.toLowerCase() === 'interested');
+      const contactsTargets = targets.filter(t => t.kpi_metric?.toLowerCase() === 'contacts');
+
+      // Fetch Calls achievements
+      for (const target of callsTargets) {
+        try {
+          const response = await fetch(`/api/corporate/leadgen/calls-achievement?month=${target.month}&year=${target.year}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            const key = `${target.month}-${target.year}`;
+            if (!achievements[key]) achievements[key] = {};
+            achievements[key].calls = {
+              achieved: result.data.achieved,
+              percentage: result.data.percentage
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching calls achievement for ${target.month} ${target.year}:`, error);
+        }
+      }
+
+      // Fetch Leads achievements
+      for (const target of leadsTargets) {
+        try {
+          const response = await fetch(`/api/corporate/leadgen/leads-achievement?month=${target.month}&year=${target.year}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            const key = `${target.month}-${target.year}`;
+            if (!achievements[key]) achievements[key] = {};
+            achievements[key].leads = {
+              achieved: result.data.achieved,
+              percentage: result.data.percentage
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching leads achievement for ${target.month} ${target.year}:`, error);
+        }
+      }
+
+      // Fetch Franchise Accept achievements
+      for (const target of franchiseAcceptTargets) {
+        try {
+          const response = await fetch(`/api/corporate/leadgen/franchise-accept-achievement?month=${target.month}&year=${target.year}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            const key = `${target.month}-${target.year}`;
+            if (!achievements[key]) achievements[key] = {};
+            achievements[key].franchiseAccept = {
+              achieved: result.data.achieved,
+              percentage: result.data.percentage
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching franchise accept achievement for ${target.month} ${target.year}:`, error);
+        }
+      }
+
+      // Fetch Sent to Manager achievements
+      for (const target of sentToManagerTargets) {
+        try {
+          const response = await fetch(`/api/corporate/leadgen/sent-to-manager-achievement?month=${target.month}&year=${target.year}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            const key = `${target.month}-${target.year}`;
+            if (!achievements[key]) achievements[key] = {};
+            achievements[key].sentToManager = {
+              achieved: result.data.achieved,
+              percentage: result.data.percentage
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching sent to manager achievement for ${target.month} ${target.year}:`, error);
+        }
+      }
+
+      // Fetch Onboard achievements
+      for (const target of onboardTargets) {
+        try {
+          const response = await fetch(`/api/corporate/leadgen/onboard-achievement?month=${target.month}&year=${target.year}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            const key = `${target.month}-${target.year}`;
+            if (!achievements[key]) achievements[key] = {};
+            achievements[key].onboard = {
+              achieved: result.data.achieved,
+              percentage: result.data.percentage
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching onboard achievement for ${target.month} ${target.year}:`, error);
+        }
+      }
+
+      // Fetch Interested achievements
+      for (const target of interestedTargets) {
+        try {
+          const response = await fetch(`/api/corporate/leadgen/interested-achievement?month=${target.month}&year=${target.year}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            const key = `${target.month}-${target.year}`;
+            if (!achievements[key]) achievements[key] = {};
+            achievements[key].interested = {
+              achieved: result.data.achieved,
+              percentage: result.data.percentage
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching interested achievement for ${target.month} ${target.year}:`, error);
+        }
+      }
+
+      // Fetch Contacts achievements
+      for (const target of contactsTargets) {
+        try {
+          const response = await fetch(`/api/corporate/leadgen/contacts-achievement?month=${target.month}&year=${target.year}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            const key = `${target.month}-${target.year}`;
+            if (!achievements[key]) achievements[key] = {};
+            achievements[key].contacts = {
+              achieved: result.data.achieved,
+              percentage: result.data.percentage
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching contacts achievement for ${target.month} ${target.year}:`, error);
+        }
+      }
+
+      setDynamicAchievements(achievements);
+    } catch (error) {
+      console.error('Error fetching dynamic achievements:', error);
     }
   };
 
@@ -95,7 +278,24 @@ export default function LeadgenCorporateTargetPage() {
                    </thead>
                    <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
                       {filteredMyTargets.length > 0 ? filteredMyTargets.map((item, idx) => {
-                          const percentage = item.target > 0 ? Math.min(Math.round((item.achieved / item.target) * 100), 100) : 0;
+                          // Calculate display target based on frequency
+                          const displayTarget = item.frequency === 'Daily' ? (item.totalTarget * item.workingDays) : item.totalTarget;
+
+                          // Use dynamic achievement for Calls, Leads, Franchise Accept, Sent to Manager, Onboard, Interested, and Contacts KPIs, otherwise use static value
+                          const isCallsKPI = item.kpi_metric?.toLowerCase() === 'calls';
+                          const isLeadsKPI = item.kpi_metric?.toLowerCase() === 'leads';
+                          const isFranchiseAcceptKPI = item.kpi_metric?.toLowerCase() === 'franchise accept';
+                          const isSentToManagerKPI = item.kpi_metric?.toLowerCase() === 'sent to manager';
+                          const isOnboardKPI = item.kpi_metric?.toLowerCase() === 'onboard';
+                          const isInterestedKPI = item.kpi_metric?.toLowerCase() === 'interested';
+                          const isContactsKPI = item.kpi_metric?.toLowerCase() === 'contacts';
+                          const dynamicKey = `${item.month}-${item.year}`;
+                          const monthAchievements = dynamicAchievements[dynamicKey] || {};
+
+                          const dynamicData = isCallsKPI ? monthAchievements.calls : (isLeadsKPI ? monthAchievements.leads : (isFranchiseAcceptKPI ? monthAchievements.franchiseAccept : (isSentToManagerKPI ? monthAchievements.sentToManager : (isOnboardKPI ? monthAchievements.onboard : (isInterestedKPI ? monthAchievements.interested : (isContactsKPI ? monthAchievements.contacts : null))))));
+
+                          const achievedValue = dynamicData ? dynamicData.achieved : (item.achieved || 0);
+                          const percentage = displayTarget > 0 ? Math.round((achievedValue / displayTarget) * 100) : 0;
                           let percColor = "text-red-600 bg-red-50 border-red-200";
                           if(percentage >= 100) percColor = "text-emerald-700 bg-emerald-50 border-emerald-200";
                           else if(percentage >= 50) percColor = "text-amber-600 bg-amber-50 border-amber-200";
@@ -130,8 +330,24 @@ export default function LeadgenCorporateTargetPage() {
                                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${item.frequency === 'Daily' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-purple-50 text-purple-600 border-purple-200'}`}>{item.frequency}</span>
                              </td>
                              
-<td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.totalTarget?.toLocaleString('en-IN')}</span></td>
-                              <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-indigo-700">{item.achieved?.toLocaleString('en-IN')}</span></td>
+<td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50">
+    <div className="flex flex-col items-center">
+        <span className="text-sm font-mono font-black text-gray-800">{displayTarget?.toLocaleString('en-IN')}</span>
+        {item.frequency === 'Daily' && (
+            <span className="text-[8px] font-bold text-orange-600 uppercase tracking-wider mt-0.5">
+                {item.totalTarget} × {item.workingDays}
+            </span>
+        )}
+    </div>
+</td>
+                              <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50">
+                                <span className="text-sm font-mono font-black text-indigo-700">
+                                  {achievedValue.toLocaleString('en-IN')}
+                                  {(isCallsKPI || isLeadsKPI || isFranchiseAcceptKPI || isSentToManagerKPI || isOnboardKPI || isInterestedKPI || isContactsKPI) && dynamicData && (
+                                    <span className="text-[8px] text-indigo-500 ml-1">(Live)</span>
+                                  )}
+                                </span>
+                              </td>
                              
                              <td className="p-3 border-r border-gray-100 text-center align-middle">
                                  <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
