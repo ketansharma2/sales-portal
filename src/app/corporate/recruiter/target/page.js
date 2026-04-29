@@ -7,9 +7,10 @@ import {
 
 export default function RCCorporateTargetPage() {
   
-  // --- STATES ---
-  const [loading, setLoading] = useState(true);
-  const [myTargetsData, setMyTargetsData] = useState([]);
+   // --- STATES ---
+   const [loading, setLoading] = useState(true);
+   const [myTargetsData, setMyTargetsData] = useState([]);
+   const [dynamicAchievements, setDynamicAchievements] = useState({});
   
   // My Targets State (Assigned by Corporate TL)
   const [myTargetMonth, setMyTargetMonth] = useState("April");
@@ -26,20 +27,156 @@ export default function RCCorporateTargetPage() {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const token = session.access_token;
-      
+
       if (!token) return;
-      
+
       const response = await fetch('/api/corporate/recruiter/my-targets', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success && result.data) {
         setMyTargetsData(result.data);
+
+        // Fetch dynamic achievements for all KPIs
+        await fetchDynamicAchievements(result.data);
       }
     } catch (error) {
       console.error('Error fetching my targets:', error);
+    }
+  };
+
+  // Fetch dynamic achievements for all KPIs
+  const fetchDynamicAchievements = async (targets) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+
+      if (!token) return;
+
+      const achievements = {};
+
+      // Get unique month-year combinations for all KPIs
+      const cvParseTargets = targets.filter(t => t.kpi_metric?.toLowerCase() === 'cv parse');
+      const trackerSentTargets = targets.filter(t => t.kpi_metric?.toLowerCase() === 'tracker sent');
+      const accuracyTargets = targets.filter(t => t.kpi_metric?.toLowerCase() === 'accuracy');
+      const conversionTargets = targets.filter(t => t.kpi_metric?.toLowerCase() === 'conversion');
+      const joiningTargets = targets.filter(t => t.kpi_metric?.toLowerCase() === 'joining');
+
+      // Fetch CV Parse achievements
+      for (const target of cvParseTargets) {
+        try {
+          const response = await fetch(`/api/domestic/recruiter/cv-parse-achievement?month=${target.month}&year=${target.year}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            const key = `${target.month}-${target.year}`;
+            if (!achievements[key]) achievements[key] = {};
+            achievements[key].cvParse = {
+              achieved: result.data.achieved,
+              percentage: result.data.percentage
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching CV parse achievement for ${target.month} ${target.year}:`, error);
+        }
+      }
+
+      // Fetch Tracker Sent achievements
+      for (const target of trackerSentTargets) {
+        try {
+          const response = await fetch(`/api/domestic/recruiter/tracker-sent-achievement?month=${target.month}&year=${target.year}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            const key = `${target.month}-${target.year}`;
+            if (!achievements[key]) achievements[key] = {};
+            achievements[key].trackerSent = {
+              achieved: result.data.achieved,
+              percentage: result.data.percentage
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching tracker sent achievement for ${target.month} ${target.year}:`, error);
+        }
+      }
+
+      // Fetch Accuracy achievements
+      for (const target of accuracyTargets) {
+        try {
+          const response = await fetch(`/api/domestic/recruiter/accuracy-achievement?month=${target.month}&year=${target.year}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            const key = `${target.month}-${target.year}`;
+            if (!achievements[key]) achievements[key] = {};
+            achievements[key].accuracy = {
+              achieved: result.data.achieved,
+              percentage: result.data.percentage
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching accuracy achievement for ${target.month} ${target.year}:`, error);
+        }
+      }
+
+      // Fetch Conversion achievements
+      for (const target of conversionTargets) {
+        try {
+          const response = await fetch(`/api/domestic/recruiter/conversion-achievement?month=${target.month}&year=${target.year}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            const key = `${target.month}-${target.year}`;
+            if (!achievements[key]) achievements[key] = {};
+            achievements[key].conversion = {
+              achieved: result.data.achieved,
+              percentage: result.data.percentage
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching conversion achievement for ${target.month} ${target.year}:`, error);
+        }
+      }
+
+      // Fetch Joining achievements
+      for (const target of joiningTargets) {
+        try {
+          const response = await fetch(`/api/corporate/recruiter/joining-achievement?month=${target.month}&year=${target.year}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            const key = `${target.month}-${target.year}`;
+            if (!achievements[key]) achievements[key] = {};
+            achievements[key].joining = {
+              achieved: result.data.achieved,
+              percentage: result.data.percentage
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching joining achievement for ${target.month} ${target.year}:`, error);
+        }
+      }
+
+      setDynamicAchievements(achievements);
+    } catch (error) {
+      console.error('Error fetching dynamic achievements:', error);
     }
   };
 
@@ -94,8 +231,23 @@ export default function RCCorporateTargetPage() {
                       </tr>
                    </thead>
                    <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
-                      {filteredMyTargets.length > 0 ? filteredMyTargets.map((item, idx) => {
-                          const percentage = item.target > 0 ? Math.min(Math.round((item.achieved / item.target) * 100), 100) : 0;
+                       {filteredMyTargets.length > 0 ? filteredMyTargets.map((item, idx) => {
+                          // Calculate display target based on frequency
+                          const displayTarget = item.frequency === 'Daily' ? (item.totalTarget * item.workingDays) : item.totalTarget;
+
+                          // Use dynamic achievement for CV Parse, Tracker Sent, Accuracy, Conversion, and Joining KPIs, otherwise use static value
+                          const isCvParseKPI = item.kpi_metric?.toLowerCase() === 'cv parse';
+                          const isTrackerSentKPI = item.kpi_metric?.toLowerCase() === 'tracker sent';
+                          const isAccuracyKPI = item.kpi_metric?.toLowerCase() === 'accuracy';
+                          const isConversionKPI = item.kpi_metric?.toLowerCase() === 'conversion';
+                          const isJoiningKPI = item.kpi_metric?.toLowerCase() === 'joining';
+                          const dynamicKey = `${item.month}-${item.year}`;
+                          const monthAchievements = dynamicAchievements[dynamicKey] || {};
+
+                          const dynamicData = isCvParseKPI ? monthAchievements.cvParse : (isTrackerSentKPI ? monthAchievements.trackerSent : (isAccuracyKPI ? monthAchievements.accuracy : (isConversionKPI ? monthAchievements.conversion : (isJoiningKPI ? monthAchievements.joining : null))));
+
+                          const achievedValue = dynamicData ? dynamicData.achieved : (item.achieved || 0);
+                          const percentage = displayTarget > 0 ? Math.round((achievedValue / displayTarget) * 100) : 0;
                           let percColor = "text-red-600 bg-red-50 border-red-200";
                           if(percentage >= 100) percColor = "text-emerald-700 bg-emerald-50 border-emerald-200";
                           else if(percentage >= 50) percColor = "text-amber-600 bg-amber-50 border-amber-200";
@@ -130,12 +282,34 @@ export default function RCCorporateTargetPage() {
                                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${item.frequency === 'Daily' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-purple-50 text-purple-600 border-purple-200'}`}>{item.frequency}</span>
                              </td>
                              
-                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.totalTarget?.toLocaleString('en-IN')}</span></td>
-                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-indigo-700">{item.achieved?.toLocaleString('en-IN')}</span></td>
+                              <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50">
+                                <div className="flex flex-col items-center">
+                                    <span className="text-sm font-mono font-black text-gray-800">{displayTarget?.toLocaleString('en-IN')}</span>
+                                    {item.frequency === 'Daily' && (
+                                        <span className="text-[8px] font-bold text-orange-600 uppercase tracking-wider mt-0.5">
+                                            {item.totalTarget} × {item.workingDays}
+                                        </span>
+                                    )}
+                                </div>
+                              </td>
+                              <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50">
+                                <span className="text-sm font-mono font-black text-indigo-700">
+                                  {isAccuracyKPI ? `${achievedValue}%` : achievedValue.toLocaleString('en-IN')}
+                                  {(isCvParseKPI || isTrackerSentKPI || isAccuracyKPI || isConversionKPI || isJoiningKPI) && dynamicData && (
+                                    <span className="text-[8px] text-indigo-500 ml-1">(Live)</span>
+                                  )}
+                                </span>
+                              </td>
                              
-                             <td className="p-3 border-r border-gray-100 text-center align-middle">
-                                 <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
-                             </td>
+                              <td className="p-3 border-r border-gray-100 text-center align-middle">
+                                  {isAccuracyKPI ? (
+                                    <span className="px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border bg-emerald-50 text-emerald-700 border-emerald-200">
+                                      {achievedValue}% <Percent size={10}/>
+                                    </span>
+                                  ) : (
+                                    <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
+                                  )}
+                              </td>
                              
                              <td className="p-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)] align-middle group-hover:bg-indigo-50 transition-colors">
                                 <div className="flex flex-row items-center gap-2 w-full px-1 justify-center">
