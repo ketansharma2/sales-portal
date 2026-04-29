@@ -51,10 +51,10 @@ export async function GET(request) {
     // Get all candidate IDs for fetching latest status
     const candidateIds = uniqueData.map(item => item.id)
 
-    // Fetch conversations with req_id and remarks
+    // Fetch conversations with post_id and remarks
     let latestStatusMap = new Map()
-    let reqIdToJobTitle = new Map()
-    
+    let postIdToJobTitle = new Map()
+
     if (candidateIds.length > 0) {
       const { data: conversations, error: convError } = await supabaseServer
         .from('candidates_conversation')
@@ -64,7 +64,7 @@ export async function GET(request) {
           calling_date,
           created_at,
           remarks,
-          req_id,
+          post_id,
           user_id,
           users!inner(name)
         `)
@@ -75,18 +75,32 @@ export async function GET(request) {
         console.error('[ERROR] Conversations fetch failed:', convError.message)
       }
 
-      // Build req_id → job_title lookup
+      // Build post_id → job_title lookup using domestic_crm_jd and corporate_crm_jd
       if (conversations && conversations.length > 0) {
-        const allReqIds = [...new Set(conversations.map(c => c.req_id).filter(id => id != null))]
-        
-        if (allReqIds.length > 0) {
-          const { data: reqData, error: reqError } = await supabaseServer
-            .from('corporate_crm_reqs')
-            .select('req_id, job_title')
-            .in('req_id', allReqIds)
+        const allPostIds = [...new Set(conversations.map(c => c.post_id).filter(id => id != null))]
 
-          if (!reqError && reqData) {
-            reqData.forEach(req => reqIdToJobTitle.set(req.req_id, req.job_title))
+        if (allPostIds.length > 0) {
+          // First try domestic_crm_jd
+          const { data: domesticJdData, error: domesticJdError } = await supabaseServer
+            .from('domestic_crm_jd')
+            .select('jd_id, job_title')
+            .in('jd_id', allPostIds)
+
+          if (!domesticJdError && domesticJdData) {
+            domesticJdData.forEach(jd => postIdToJobTitle.set(jd.jd_id, jd.job_title))
+          }
+
+          // Then try corporate_crm_jd for any missing ones
+          const remainingPostIds = allPostIds.filter(id => !postIdToJobTitle.has(id))
+          if (remainingPostIds.length > 0) {
+            const { data: corporateJdData, error: corporateJdError } = await supabaseServer
+              .from('corporate_crm_jd')
+              .select('jd_id, job_title')
+              .in('jd_id', remainingPostIds)
+
+            if (!corporateJdError && corporateJdData) {
+              corporateJdData.forEach(jd => postIdToJobTitle.set(jd.jd_id, jd.job_title))
+            }
           }
         }
       }
@@ -99,7 +113,7 @@ export async function GET(request) {
             latest_user: conv.users?.name || conv.user_id || '-',
             latest_date: conv.calling_date || '-',
             latest_remarks: conv.remarks || '-',
-            latest_profile: reqIdToJobTitle.get(conv.req_id) || '-'
+            latest_profile: postIdToJobTitle.get(conv.post_id) || '-'
           })
         }
       })
