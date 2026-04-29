@@ -41,7 +41,7 @@ export async function POST(request) {
     } = body;
 
     // 🛑 Validation
-    if (!status || !applyDate || !callingDate) {
+    if (!applyDate || !callingDate) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -131,7 +131,7 @@ export async function PUT(request) {
       );
     }
 
-    if (!status || !applyDate || !callingDate) {
+    if (!applyDate || !callingDate) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }

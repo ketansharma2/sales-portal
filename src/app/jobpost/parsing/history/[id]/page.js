@@ -173,12 +173,12 @@ useEffect(() => {
 
     const [isUpdatingFollowup, setIsUpdatingFollowup] = useState(false);
 
-     const handleUpdateFollowup = async () => {
-         if (!formData.status || !formData.applyDate || !formData.callingDate || 
-             !formData.relExp || !formData.currCtc || !formData.expCtc || !formData.feedback) {
-             alert("Please fill all mandatory fields marked with *");
-             return;
-         }
+      const handleUpdateFollowup = async () => {
+          if (!formData.applyDate || !formData.callingDate ||
+              !formData.relExp || !formData.currCtc || !formData.expCtc || !formData.feedback) {
+              alert("Please fill all mandatory fields marked with *");
+              return;
+          }
 
          setIsUpdatingFollowup(true);
          
@@ -275,11 +275,11 @@ useEffect(() => {
     const [isSavingFollowup, setIsSavingFollowup] = useState(false);
 
     const handleSaveFollowup = async () => {
-  if (!formData.req_id || !formData.status || !formData.applyDate || !formData.callingDate ||
-      !formData.relExp || !formData.currCtc || !formData.expCtc || !formData.feedback) {
-    alert("Please fill all mandatory fields");
-    return;
-  }
+   if (!formData.req_id || !formData.applyDate || !formData.callingDate ||
+       !formData.relExp || !formData.currCtc || !formData.expCtc || !formData.feedback) {
+     alert("Please fill all mandatory fields");
+     return;
+   }
 
   try {
     setIsSavingFollowup(true);
@@ -585,13 +585,13 @@ useEffect(() => {
                 </div>
             </div>
 
-           {/* ========================================================= */}
+            {/* ========================================================= */}
             {/* ADD FOLLOWUP MODAL */}
             {/* ========================================================= */}
             {isAddModalOpen && (
                 <div className="fixed inset-0 z-[100] flex justify-center items-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 p-4">
                     <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 overflow-hidden border-4 border-white">
-                        
+
                         {/* Header */}
                         <div className="bg-[#103c7f] text-white p-5 flex justify-between items-center shrink-0">
                             <div>
@@ -604,9 +604,9 @@ useEffect(() => {
 
                         {/* Form Body - Grid Layout */}
                         <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 custom-scrollbar bg-slate-50/30">
-                            
+
                              {/* --- NEW: Dependent Dropdown Logic --- */}
-                             
+
                              {/* Step 1: Select Post Date */}
                              <div>
                                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">
@@ -614,14 +614,14 @@ useEffect(() => {
                                  </label>
                                  <div className="relative">
                                      <Calendar size={14} className="absolute left-3 top-2.5 text-slate-400" />
-                                     <input 
-                                         type="date" 
+                                     <input
+                                         type="date"
                                          className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg pl-9 pr-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
-                                         value={formData.postDate} 
+                                         value={formData.postDate}
                                          onChange={(e) => {
                                              // Update postDate and reset client/profile since the date changed
                                              setFormData({
-                                                 ...formData, 
+                                                 ...formData,
                                                  postDate: e.target.value,
                                                  req_id: "",
                                                  client_name: "",
@@ -637,9 +637,9 @@ useEffect(() => {
                                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">
                                      Select Client & Profile <span className="text-red-500">*</span>
                                  </label>
-                                  <select 
+                                  <select
                                       className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer disabled:opacity-50 disabled:bg-slate-50"
-                                      value={formData.req_id} 
+                                      value={formData.req_id}
                                       disabled={!formData.postDate}
                                        onChange={(e) => {
                                           const selectedJob = jobOptions.find(
@@ -696,20 +696,20 @@ useEffect(() => {
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Apply Date <span className="text-red-500">*</span></label>
                                 <div className="relative">
                                     <Calendar size={14} className="absolute left-3 top-2.5 text-slate-400" />
-                                    <input 
-                                        type="date" 
+                                    <input
+                                        type="date"
                                         className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg pl-9 pr-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
                                         value={formData.applyDate} onChange={(e) => setFormData({...formData, applyDate: e.target.value})}
                                     />
                                 </div>
                             </div>
-                            
+
                             <div>
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Calling Date <span className="text-red-500">*</span></label>
                                 <div className="relative">
                                     <Phone size={14} className="absolute left-3 top-2.5 text-slate-400" />
-                                    <input 
-                                        type="date" 
+                                    <input
+                                        type="date"
                                         className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg pl-9 pr-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
                                         value={formData.callingDate} onChange={(e) => setFormData({...formData, callingDate: e.target.value})}
                                     />
@@ -718,16 +718,16 @@ useEffect(() => {
 
                             <div>
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Relevant Experience <span className="text-red-500">*</span></label>
-                                <input 
-                                    type="text" placeholder="e.g. 2 Yrs" 
+                                <input
+                                    type="text" placeholder="e.g. 2 Yrs"
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
                                     value={formData.relExp} onChange={(e) => setFormData({...formData, relExp: e.target.value})}
                                 />
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Candidate Status <span className="text-red-500">*</span></label>
-                                <select 
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Candidate Status</label>
+                                <select
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer"
                                     value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}
                                 >
@@ -791,13 +791,13 @@ useEffect(() => {
                 </div>
             )}
             {/* ========================================================= */}
-           {/* ========================================================= */}
+            {/* ========================================================= */}
             {/* EDIT FOLLOWUP MODAL */}
             {/* ========================================================= */}
             {isEditModalOpen && (
                 <div className="fixed inset-0 z-[100] flex justify-center items-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 p-4">
                     <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 overflow-hidden border-4 border-white">
-                        
+
                         {/* Header */}
                         <div className="bg-[#103c7f] text-white p-5 flex justify-between items-center shrink-0">
                             <div>
@@ -810,7 +810,7 @@ useEffect(() => {
 
                         {/* Form Body - Grid Layout */}
                         <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 custom-scrollbar bg-slate-50/30">
-                            
+
                              {/* Combined Profile & Slot Dropdown */}
                              <div className="md:col-span-2">
                                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Select Assigned Profile & Slot</label>
@@ -865,20 +865,20 @@ useEffect(() => {
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Apply Date <span className="text-red-500">*</span></label>
                                 <div className="relative">
                                     <Calendar size={14} className="absolute left-3 top-2.5 text-slate-400" />
-                                    <input 
-                                        type="date" 
+                                    <input
+                                        type="date"
                                         className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg pl-9 pr-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
                                         value={formData.applyDate} onChange={(e) => setFormData({...formData, applyDate: e.target.value})}
                                     />
                                 </div>
                             </div>
-                            
+
                             <div>
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Calling Date <span className="text-red-500">*</span></label>
                                 <div className="relative">
                                     <Phone size={14} className="absolute left-3 top-2.5 text-slate-400" />
-                                    <input 
-                                        type="date" 
+                                    <input
+                                        type="date"
                                         className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg pl-9 pr-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
                                         value={formData.callingDate} onChange={(e) => setFormData({...formData, callingDate: e.target.value})}
                                     />
@@ -887,16 +887,16 @@ useEffect(() => {
 
                             <div>
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Relevant Experience <span className="text-red-500">*</span></label>
-                                <input 
-                                    type="text" placeholder="e.g. 2 Yrs" 
+                                <input
+                                    type="text" placeholder="e.g. 2 Yrs"
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
                                     value={formData.relExp} onChange={(e) => setFormData({...formData, relExp: e.target.value})}
                                 />
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Candidate Status <span className="text-red-500">*</span></label>
-                                <select 
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Candidate Status</label>
+                                <select
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer"
                                     value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}
                                 >
