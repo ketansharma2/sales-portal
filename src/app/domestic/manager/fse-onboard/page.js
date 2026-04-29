@@ -18,6 +18,10 @@ import {
   Calendar,
   Briefcase,
   User,
+  Building2,
+  ClipboardList,
+  Clock,
+  FileText,
   ArrowRightCircle as ArrowRightCircleIcon,
 } from "lucide-react";
 
@@ -33,7 +37,9 @@ function FseOnboardContent() {
   const [totalCount, setTotalCount] = useState(0);
   const [showAll, setShowAll] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false); // Track if URL params have been processed
-
+// Add this with your other state declarations
+const [isCrmViewOpen, setIsCrmViewOpen] = useState(false);
+const [selectedCrmLead, setSelectedCrmLead] = useState(null);
   // Modal State
   const [modalType, setModalType] = useState(null);
   const [selectedLead, setSelectedLead] = useState(null);
@@ -81,6 +87,35 @@ function FseOnboardContent() {
     setIsInitialized(true); // Mark as initialized after processing URL params
   }, [searchParams]);
 
+  const fetchCrmDetails = async (clientId) => {
+  try {
+    const session = JSON.parse(localStorage.getItem("session") || "{}");
+    const token = session?.access_token;
+
+    if (!token) {
+      console.error("No auth token found");
+      return null;
+    }
+
+    const response = await fetch(
+      `/api/domestic/manager/client-crm-details?client_id=${clientId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    const data = await response.json();
+
+    if (data.success) {
+      return data.data;
+    } else {
+      console.error("Failed to fetch CRM details:", data.error);
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching CRM details:", error);
+    return null;
+  }
+};
   // --- FETCH DATA ---
   useEffect(() => {
     // Only fetch after URL params have been processed
@@ -187,15 +222,57 @@ function FseOnboardContent() {
     setShowAll(false); // Reset to limited view when filters change
   };
 
-  const handleAction = (id, action) => {
-    // Handle both id (mock) and client_id (real)
-    const lead = leads.find((l) => l.client_id === id || l.id === id);
-    if (!lead) return;
+  // const handleAction = (id, action) => {
+  //   // Handle both id (mock) and client_id (real)
+  //   const lead = leads.find((l) => l.client_id === id || l.id === id);
+  //   if (!lead) return;
 
+  //   setSelectedLead(lead);
+  //   setModalType(action); // 'view' or 'delivery'
+  //   setIsFormOpen(true);
+  // };
+
+const handleAction = async (id, action) => {
+  const lead = leads.find((l) => l.client_id === id || l.id === id);
+  if (!lead) return;
+
+  if (action === 'crmView') {
+    const crmDetails = await fetchCrmDetails(lead.client_id || lead.id);
+    
+    setLoading(false);
+    console.log("crmDetails:", crmDetails);
+    
+    if (crmDetails) {
+      // Merge the existing lead data with CRM details
+     const apiData = crmDetails.data || crmDetails;
+    
+    setSelectedCrmLead({
+      ...lead,
+      branches: apiData.branches || [],
+      total_branches: apiData.total_branches || 0,
+      total_conversations: apiData.total_conversations || 0,
+      all_conversations: apiData.all_conversations || []
+    });
+      setIsCrmViewOpen(true);
+    } else {
+      alert("Failed to load CRM conversations");
+    }
+  } else if (action === 'regularView') {
+    // Open regular view with timeline for database tab
     setSelectedLead(lead);
-    setModalType(action); // 'view' or 'delivery'
+    setModalType('view');
     setIsFormOpen(true);
-  };
+  } else if (action === 'view' && activeTab === 'onboard') {
+    // Open regular view for onboard tab
+    setSelectedLead(lead);
+    setModalType('view');
+    setIsFormOpen(true);
+  } else if (action === 'delivery') {
+    setSelectedLead(lead);
+    setModalType('delivery');
+    setIsFormOpen(true);
+  }
+};
 
   const submitHandover = async () => {
     if (!deliveryUser) {
@@ -715,11 +792,11 @@ function FseOnboardContent() {
       onClick={() =>
         handleAction(
           lead.client_id || lead.id,
-          "view",
+          "regularView",
         )
       }
       className="p-1.5 text-gray-500 bg-white border border-gray-200 hover:text-blue-600 hover:border-blue-200 rounded transition-colors shadow-sm"
-      title="View Details"
+      title="Regular View"
     >
       <Eye size={16} />
     </button>
@@ -743,6 +820,15 @@ function FseOnboardContent() {
         <Truck size={16} />
       </button>
     )}
+
+   <button
+  onClick={() => handleAction(lead.client_id || lead.id, "crmView")}
+  className="flex items-center gap-1.5 px-2 py-1.5 text-purple-600 bg-purple-50 border border-purple-200 hover:bg-purple-100 rounded transition-colors shadow-sm"
+  title="CRM View"
+>
+  <Eye size={16} />
+  <span className="text-xs font-medium">CRM</span>
+</button>
     
   </div>
 </td>
@@ -975,6 +1061,285 @@ function FseOnboardContent() {
           </div>
         </div>
       )}
+
+      {/* --- CRM VIEW MODAL (FOR DATABASE TAB) --- */}
+{isCrmViewOpen && selectedCrmLead && (
+  <div className="fixed inset-0 bg-[#103c7f]/60 backdrop-blur-md flex items-center justify-center z-[100] p-6 font-['Calibri']">
+    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl max-h-[90dvh] h-auto flex flex-col overflow-hidden border border-white/50">
+      {/* 1. Header (Company Name & Location) */}
+      <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-start bg-white">
+        <div className="flex gap-4 items-center">
+          <div className="p-3 bg-blue-50 text-[#103c7f] rounded-xl border border-blue-100">
+            <Briefcase size={24} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-black text-[#103c7f] italic uppercase tracking-tight">
+              {selectedCrmLead.company_name || selectedCrmLead.company || "Unknown Company"}
+            </h2>
+            <div className="flex items-center gap-1 text-xs font-bold text-gray-400 mt-0.5 uppercase tracking-wide">
+              <MapPin size={12} /> {selectedCrmLead.location || "Unknown Location"}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => setIsCrmViewOpen(false)}
+          className="text-gray-400 hover:text-gray-600 p-1"
+        >
+          <X size={24} />
+        </button>
+      </div>
+
+      {/* 2. Top Info Cards (Horizontal Strip) */}
+      {/* <div className="px-8 py-6 bg-gray-50/50">
+        <div className="flex gap-4 overflow-x-auto custom-scrollbar pb-2">
+          
+          <div className="bg-white border border-gray-100 rounded-xl p-3 min-w-[140px] shadow-sm flex items-center gap-3">
+            <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
+              <Calendar size={18} />
+            </div>
+            <div>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                Sourcing Date
+              </p>
+              <p className="text-xs font-bold text-gray-800">
+                {selectedCrmLead.sourcing_date}
+              </p>
+            </div>
+          </div>
+         
+          <div className="bg-white border border-gray-100 rounded-xl p-3 min-w-[140px] shadow-sm flex items-center gap-3">
+            <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
+              <Briefcase size={18} />
+            </div>
+            <div>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                Category
+              </p>
+              <p className="text-xs font-bold text-gray-800">
+                {selectedCrmLead.category}
+              </p>
+            </div>
+          </div>
+         
+          <div className="bg-white border border-gray-100 rounded-xl p-3 min-w-[140px] shadow-sm flex items-center gap-3">
+            <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
+              <Phone size={18} />
+            </div>
+            <div>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                Sourcing Mode
+              </p>
+              <p className="text-xs font-bold text-gray-800">
+                {selectedCrmLead.sourcing_mode}
+              </p>
+            </div>
+          </div>
+         
+          <div className="bg-white border border-gray-100 rounded-xl p-3 min-w-[140px] shadow-sm flex items-center gap-3">
+            <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
+              <Users size={18} />
+            </div>
+            <div>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                Emp Count
+              </p>
+              <p className="text-xs font-bold text-gray-800">
+                {selectedCrmLead.emp_count}
+              </p>
+            </div>
+          </div>
+          
+          <div className="bg-white border border-gray-100 rounded-xl p-3 min-w-[140px] shadow-sm flex items-center gap-3">
+            <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
+              <Database size={18} />
+            </div>
+            <div>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                Reference
+              </p>
+              <p className="text-xs font-bold text-gray-800">
+                {selectedCrmLead.reference}
+              </p>
+            </div>
+          </div>
+        
+          <div className="bg-white border border-gray-100 rounded-xl p-3 min-w-[140px] shadow-sm flex items-center gap-3">
+            <div className="bg-green-50 p-2 rounded-lg text-green-600">
+              <CheckCircle size={18} />
+            </div>
+            <div>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                Current Status
+              </p>
+              <p className="text-xs font-bold text-gray-800">
+                {selectedCrmLead.status}
+              </p>
+            </div>
+          </div>
+         
+          <div className="bg-white border border-gray-100 rounded-xl p-3 min-w-[140px] shadow-sm flex items-center gap-3">
+            <div className="bg-purple-50 p-2 rounded-lg text-purple-600">
+              <ArrowRightCircleIcon size={18} />
+            </div>
+            <div>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                Projection
+              </p>
+              <p className="text-xs font-bold text-gray-800">
+                {selectedCrmLead.projection}
+              </p>
+            </div>
+          </div>
+         
+          <div className="bg-white border border-gray-100 rounded-xl p-3 min-w-[180px] shadow-sm flex items-center gap-3">
+            <div className="bg-amber-50 p-2 rounded-lg text-amber-600">
+              <ListChecks size={18} />
+            </div>
+            <div>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                Terms & Conditions
+              </p>
+              <p className="text-xs font-bold text-gray-800 truncate max-w-[120px]" title={selectedCrmLead.tnc}>
+                {selectedCrmLead.tnc || "N/A"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div> */}
+
+      {/* 3. Branches and CRM Conversations Section */}
+     <div className="flex-1 overflow-y-auto p-6">
+  {selectedCrmLead.branches && selectedCrmLead.branches.length > 0 ? (
+    <div className="space-y-6">
+      {selectedCrmLead.branches.map((branch) => (
+        <div key={branch.branch_id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+          {/* Branch Header - Compact */}
+          <div className="bg-gradient-to-r from-purple-50 to-white px-4 py-3 border-b border-gray-200">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <Building2 size={18} className="text-purple-600" />
+                <h3 className="font-bold text-gray-800">{branch.branch_name}</h3>
+                <span className="text-xs text-gray-500">|</span>
+                <span className="text-xs text-gray-600">{branch.city}, {branch.state}</span>
+                <span className="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">
+                  {branch.initial_status}
+                </span>
+              </div>
+              <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-lg text-xs font-bold">
+                {branch.conversation_count} Conversations
+              </span>
+            </div>
+            {branch.full_address && (
+              <div className="text-xs text-gray-500 mt-1 ml-7">
+                📍 {branch.full_address}
+              </div>
+            )}
+          </div>
+
+          {/* Conversations Table - Compact */}
+          {branch.conversations && branch.conversations.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr className="border-b border-gray-200">
+                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase w-24">Date</th>
+                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase w-20">Mode</th>
+                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase w-28">Contact</th>
+                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Discussion</th>
+                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase w-28">Next Follow-up</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {branch.conversations.map((conversation) => (
+                    <tr key={conversation.conversation_id} className="hover:bg-gray-50 transition">
+                      <td className="px-4 py-2 text-gray-700 whitespace-nowrap">
+                        <div className="font-medium">{conversation.date}</div>
+                        <div className="text-xs text-gray-400">
+                          {new Date(conversation.created_at).toLocaleDateString()}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700">
+                          {conversation.mode}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 font-medium text-gray-800">
+                        {conversation.contact_name}
+                      </td>
+                      <td className="px-4 py-2 text-gray-600">
+                        <div className="group relative">
+                          <p className="line-clamp-2 text-sm cursor-help">
+                            {conversation.discussion.length > 120 
+                              ? conversation.discussion.substring(0, 120) + '...' 
+                              : conversation.discussion}
+                          </p>
+                          {conversation.discussion.length > 120 && (
+                            <div className="invisible group-hover:visible absolute z-50 bg-gray-900 text-white text-xs rounded-lg p-2 mt-1 w-80 shadow-lg">
+                              {conversation.discussion}
+                              <div className="absolute -top-1 left-4 w-2 h-2 bg-gray-900 rotate-45"></div>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2">
+                        {conversation.next_follow_up ? (
+                          <div className="group relative">
+                            <span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-orange-50 text-orange-600 border border-orange-200 cursor-help whitespace-nowrap">
+                              📅 {conversation.next_follow_up}
+                            </span>
+                            <div className="invisible group-hover:visible absolute z-50 bg-gray-900 text-white text-xs rounded-lg p-2 mt-1 w-40 shadow-lg">
+                              Follow-up: {conversation.next_follow_up}
+                              <div className="absolute -top-1 left-4 w-2 h-2 bg-gray-900 rotate-45"></div>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-6 bg-gray-50">
+              <p className="text-gray-400 text-sm">No conversations for this branch</p>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div className="text-center py-12">
+      <div className="text-gray-400">
+        <Building2 size={48} className="mx-auto mb-3 opacity-50" />
+        <p className="text-lg font-bold">No Branches Found</p>
+        <p className="text-sm mt-1">No branch or conversation data available for this client</p>
+      </div>
+    </div>
+  )}
+</div>
+
+      {/* Footer with Total Stats */}
+      <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
+        <div className="flex gap-4 text-sm">
+          <span className="font-bold text-purple-600">
+            Total Branches: {selectedCrmLead.total_branches || 0}
+          </span>
+          <span className="font-bold text-blue-600">
+            Total Conversations: {selectedCrmLead.total_conversations || 0}
+          </span>
+        </div>
+        <button
+          onClick={() => setIsCrmViewOpen(false)}
+          className="px-6 py-2 bg-[#103c7f] text-white rounded-xl font-bold hover:bg-blue-900 transition"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* --- VIEW LEAD MODAL (VIEW ONLY) --- */}
       {isFormOpen && modalType === "view" && selectedLead && (
