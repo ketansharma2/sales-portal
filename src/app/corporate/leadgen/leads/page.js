@@ -354,7 +354,8 @@ export default function LeadsTablePage() {
       status: "All",
       subStatus: "All",
       franchiseStatus: "All",
-      startup: "All"
+      startup: "All",
+       projection: "All"  // Add this line
     });
 
     // --- REAL-TIME FILTER LOGIC ---
@@ -394,8 +395,9 @@ export default function LeadsTablePage() {
             (newFilters.subStatus === "Contract Share" ? lead.everContractShare : ((lead.subStatus || '').trim().toLowerCase()) === (newFilters.subStatus || '').trim().toLowerCase());
           const matchFranchiseStatus = newFilters.franchiseStatus === "All" || ((lead.franchiseStatus || '').trim().toLowerCase()) === (newFilters.franchiseStatus || '').trim().toLowerCase();
           const matchStartup = newFilters.startup === "All" || ((lead.startup || '').trim().toLowerCase()) === (newFilters.startup || '').trim().toLowerCase();
-
-         return isAfterFrom && isBeforeTo && matchCompany && matchLocation && matchStatus && matchSubStatus && matchFranchiseStatus && matchStartup;
+          const matchProjection = newFilters.projection === "All" || 
+  ((lead.projection || '').trim().toLowerCase() === (newFilters.projection || '').trim().toLowerCase());
+         return isAfterFrom && isBeforeTo && matchCompany && matchLocation && matchStatus && matchSubStatus && matchFranchiseStatus && matchStartup && matchProjection;
       });
 
       setLeads(filtered);
@@ -434,8 +436,9 @@ export default function LeadsTablePage() {
            (filters.subStatus === "Contract Share" ? lead.everContractShare : ((lead.subStatus || '').trim().toLowerCase()) === (filters.subStatus || '').trim().toLowerCase());
          const matchFranchiseStatus = filters.franchiseStatus === "All" || ((lead.franchiseStatus || '').trim().toLowerCase()) === (filters.franchiseStatus || '').trim().toLowerCase();
          const matchStartup = filters.startup === "All" || ((lead.startup || '').trim().toLowerCase()) === (filters.startup || '').trim().toLowerCase();
-
-        return isAfterFrom && isBeforeTo && matchCompany && matchLocation && matchStatus && matchSubStatus && matchFranchiseStatus && matchStartup;
+        const matchProjection = filters.projection === "All" || 
+  ((lead.projection || '').trim().toLowerCase() === (filters.projection || '').trim().toLowerCase());
+        return isAfterFrom && isBeforeTo && matchCompany && matchLocation && matchStatus && matchSubStatus && matchFranchiseStatus && matchStartup && matchProjection;
      });
 
      setLeads(filtered);
@@ -451,7 +454,8 @@ export default function LeadsTablePage() {
         status: "All",
         subStatus: "All",
         franchiseStatus: "All",
-        startup: "All"
+        startup: "All",
+        projection: "All" 
       });
       setLeads(allLeads);
     };
@@ -899,6 +903,26 @@ export default function LeadsTablePage() {
                </div>
             </div>
 
+{/* Filter 9: Projection */}
+<div className="flex-shrink-0 w-32">
+  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Projection</label>
+  <div className="relative">
+    <TrendingUp className="absolute left-3 top-2.5 text-gray-400" size={14} />
+    <select
+      className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:border-[#103c7f] outline-none appearance-none cursor-pointer"
+      onChange={(e) => handleFilterChange("projection", e.target.value)}
+      value={filters.projection}
+    >
+      <option value="All">All</option>
+      <option value="WP > 50">WP &gt; 50</option>
+      <option value="WP < 50">WP &lt; 50</option>
+      <option value="MP > 50">MP &gt; 50</option>
+      <option value="MP < 50">MP &lt; 50</option>
+      <option value="Not Projected">Not Projected</option>
+    </select>
+  </div>
+</div>
+
             {/* Clear Filters Button */}
             <div className="flex-shrink-0">
                <button
@@ -931,6 +955,7 @@ export default function LeadsTablePage() {
         <th className="px-2 py-2 border-r border-blue-800 w-20">Status</th>
         <th className="px-2 py-2 border-r border-blue-800 w-28">Sub-Status</th>
         <th className="px-2 py-2 border-r border-blue-800 w-28">Franchise</th>
+          <th className="px-2 py-2 border-r border-blue-800 w-28">Projection</th>
         
         {/* COMPACT ACTION COLUMN */}
         <th className="px-2 py-2 text-center bg-[#0d316a] sticky right-0 z-30 w-32">Action</th>
@@ -1026,6 +1051,9 @@ export default function LeadsTablePage() {
 
               <td className="px-1 py-2 border-r border-gray-100 truncate text-[10px]" title={lead.franchiseStatus}>
                 {lead.franchiseStatus}
+              </td>
+              <td className="px-1 py-2 border-r border-gray-100 truncate text-[10px]" title={lead.franchiseStatus}>
+               {lead.projection ?? "NA"}
               </td>
 
               {/* ACTION COLUMN: Sticky Right & Compact */}
