@@ -10,7 +10,8 @@ export default function FSEDomesticTargetPage() {
   // --- STATES ---
   const [loading, setLoading] = useState(true);
   const [myTargetsData, setMyTargetsData] = useState([]);
-  
+  const [dynamicAchievements, setDynamicAchievements] = useState({});
+
   // My Targets State (Assigned by Domestic SM)
   const [myTargetMonth, setMyTargetMonth] = useState("April");
 
@@ -26,20 +27,87 @@ export default function FSEDomesticTargetPage() {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const token = session.access_token;
-      
+
       if (!token) return;
-      
+
       const response = await fetch('/api/domestic/fse/my-targets', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success && result.data) {
         setMyTargetsData(result.data);
+
+        // Fetch dynamic achievements for Onboard and Visit KPIs
+        await fetchDynamicAchievements(result.data);
       }
     } catch (error) {
       console.error('Error fetching my targets:', error);
+    }
+  };
+
+  // Fetch dynamic achievements for Onboard and Visit KPIs
+  const fetchDynamicAchievements = async (targets) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+
+      if (!token) return;
+
+      const achievements = {};
+
+      // Get unique month-year combinations for Onboard and Visit KPIs
+      const onboardTargets = targets.filter(t => t.kpi_metric?.toLowerCase() === 'onboard');
+      const visitTargets = targets.filter(t => t.kpi_metric?.toLowerCase() === 'visit');
+
+      // Fetch Onboard achievements
+      for (const target of onboardTargets) {
+        try {
+          const response = await fetch(`/api/domestic/fse/onboard-achievement?month=${target.month}&year=${target.year}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            const key = `${target.month}-${target.year}`;
+            if (!achievements[key]) achievements[key] = {};
+            achievements[key].onboard = {
+              achieved: result.data.achieved,
+              percentage: result.data.percentage
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching onboard achievement for ${target.month} ${target.year}:`, error);
+        }
+      }
+
+      // Fetch Visit achievements
+      for (const target of visitTargets) {
+        try {
+          const response = await fetch(`/api/domestic/fse/visit-achievement?month=${target.month}&year=${target.year}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            const key = `${target.month}-${target.year}`;
+            if (!achievements[key]) achievements[key] = {};
+            achievements[key].visit = {
+              achieved: result.data.achieved,
+              percentage: result.data.percentage
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching visit achievement for ${target.month} ${target.year}:`, error);
+        }
+      }
+
+      setDynamicAchievements(achievements);
+    } catch (error) {
+      console.error('Error fetching dynamic achievements:', error);
     }
   };
 
@@ -94,11 +162,21 @@ export default function FSEDomesticTargetPage() {
                       </tr>
                    </thead>
                    <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
-                      {filteredMyTargets.length > 0 ? filteredMyTargets.map((item, idx) => {
-                          const percentage = item.target > 0 ? Math.min(Math.round((item.achieved / item.target) * 100), 100) : 0;
-                          let percColor = "text-red-600 bg-red-50 border-red-200";
-                          if(percentage >= 100) percColor = "text-emerald-700 bg-emerald-50 border-emerald-200";
-                          else if(percentage >= 50) percColor = "text-amber-600 bg-amber-50 border-amber-200";
+                       {filteredMyTargets.length > 0 ? filteredMyTargets.map((item, idx) => {
+                           // Use dynamic achievement for Onboard and Visit KPIs, otherwise use static value
+                           const isOnboardKPI = item.kpi_metric?.toLowerCase() === 'onboard';
+                           const isVisitKPI = item.kpi_metric?.toLowerCase() === 'visit';
+                           const dynamicKey = `${item.month}-${item.year}`;
+                           const monthAchievements = dynamicAchievements[dynamicKey] || {};
+
+                           const dynamicData = isOnboardKPI ? monthAchievements.onboard : (isVisitKPI ? monthAchievements.visit : null);
+
+                           const achievedValue = dynamicData ? dynamicData.achieved : (item.achieved || 0);
+                           const percentage = dynamicData ? dynamicData.percentage : (item.totalTarget > 0 ? Math.round((achievedValue / item.totalTarget) * 100) : 0);
+
+                           let percColor = "text-red-600 bg-red-50 border-red-200";
+                           if(percentage >= 100) percColor = "text-emerald-700 bg-emerald-50 border-emerald-200";
+                           else if(percentage >= 50) percColor = "text-amber-600 bg-amber-50 border-amber-200";
 
                           return (
                           <tr key={item.id || idx} className="hover:bg-emerald-50/30 transition group">
@@ -131,7 +209,14 @@ export default function FSEDomesticTargetPage() {
                              </td>
                              
 <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.totalTarget?.toLocaleString('en-IN')}</span></td>
-                              <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-emerald-700">{item.achieved?.toLocaleString('en-IN')}</span></td>
+                              <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50">
+                                <span className="text-sm font-mono font-black text-emerald-700">
+                                  {achievedValue.toLocaleString('en-IN')}
+                                  {(isOnboardKPI || isVisitKPI) && dynamicData && (
+                                    <span className="text-[8px] text-emerald-500 ml-1">(Live)</span>
+                                  )}
+                                </span>
+                              </td>
                              
                              <td className="p-3 border-r border-gray-100 text-center align-middle">
                                  <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
