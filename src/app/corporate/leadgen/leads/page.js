@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Search, Phone, Filter, X, Save, Plus, Eye,Trash2,
-  Calendar, MapPin, ListFilter,ArrowRight,Send,Lock,Edit,Award,Users,Briefcase, Loader2
+  Calendar, MapPin, ListFilter,ArrowRight,Send,Lock,Edit,Award,Users,Briefcase, Loader2,TrendingUp
 } from "lucide-react";
 
 export default function LeadsTablePage() {
@@ -29,7 +29,8 @@ export default function LeadsTablePage() {
       reference: '',
       sourcing_date: '',
       startup: '',
-      district_city: ''
+      district_city: '',
+      projection: ''  // Add this line
     });
 
     const [formErrors, setFormErrors] = useState({});
@@ -198,8 +199,12 @@ export default function LeadsTablePage() {
       if (!newLeadData.startup) {
         errors.startup = 'Startup option is required';
       }
+       if (!newLeadData.projection) {
+    errors.projection = 'Projection is required';
+  }
       
-      setFormErrors(errors);
+   alert('⚠️ Please fill  all required fields');
+      // setFormErrors(errors);
       return Object.keys(errors).length === 0;
     };
 
@@ -507,7 +512,8 @@ export default function LeadsTablePage() {
          reference: lead.reference || '',
          sourcing_date: lead.sourcingDate || '',
          startup: lead.startup || '',
-         district_city: lead.districtCity || ''
+         district_city: lead.districtCity || '',
+          projection: lead.projection || ''  // Add this line
        });
      }
    };
@@ -527,7 +533,8 @@ export default function LeadsTablePage() {
         reference: '',
         sourcing_date: '',
         startup: '',
-        district_city: ''
+        district_city: '',
+        projection: ''
       });
    };
 
@@ -651,7 +658,7 @@ export default function LeadsTablePage() {
             subStatus: 'New Lead'
           });
           setModalType("add");
-          setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '', startup: '', district_city: '' });
+          setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '', startup: '', district_city: '' ,projection: ''});
          fetchLeads();
        } else {
          alert('Failed to save lead');
@@ -1230,6 +1237,21 @@ export default function LeadsTablePage() {
                                 </select>
                                 {formErrors.startup && <p className="text-red-500 text-xs mt-1">{formErrors.startup}</p>}
                             </div>
+                            <div>
+    <label className="text-[10px] font-bold text-gray-400 uppercase">Projection<span className="text-red-500">*</span></label>
+    <select
+      value={newLeadData.projection}
+      onChange={(e) => setNewLeadData({...newLeadData, projection: e.target.value})}
+      className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
+    >
+      <option value="">Select Projection</option>
+      <option value="Not Projected">Not Projected</option>
+      <option value="WP > 50">WP &gt; 50</option>
+      <option value="WP < 50">WP &lt; 50</option>
+      <option value="MP > 50">MP &gt; 50</option>
+      <option value="MP < 50">MP &lt; 50</option>
+    </select>
+  </div>
                        </div>
                   </div>
                 )}
@@ -1462,6 +1484,18 @@ export default function LeadsTablePage() {
               <span className="truncate" title={selectedLead.reference}>{selectedLead.reference || '-'}</span>
             </div>
           </div>
+          {/* Projection */}
+<div className="flex flex-col min-w-fit max-w-[120px]">
+  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">
+    Projection
+  </label>
+  <div className="flex items-center gap-1.5 text-gray-700 font-bold text-xs">
+    <TrendingUp size={13} className="text-blue-500 shrink-0" />
+    <span className="truncate" title={selectedLead.projection}>
+      {selectedLead.projection || '-'}
+    </span>
+  </div>
+</div>
         </div>
       </div>
     </div>

@@ -15,7 +15,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { company, category, state, location, emp_count, reference, sourcing_date, district_city, startup } = body;
+    const { company, category, state, location, emp_count, reference, sourcing_date, district_city, startup ,  projection } = body;
 
     if (!company) {
       return NextResponse.json({ error: 'Company name is required' }, { status: 400 });
@@ -33,6 +33,7 @@ export async function POST(request) {
         sourcing_date,
         district_city,
         startup,
+          projection ,
         leadgen_id: user.id
       })
       .select()
@@ -51,6 +52,7 @@ export async function POST(request) {
         category: data.category,
         state: data.state,
         location: data.location,
+        projection: data.projection,
         emp_count: data.emp_count,
         reference: data.reference,
         sourcing_date: data.sourcing_date,
@@ -82,7 +84,7 @@ export async function PUT(request) {
     }
 
     const body = await request.json();
-    const { client_id, company, category, state, location, emp_count, reference, sourcing_date, district_city, startup } = body;
+    const { client_id, company, category, state, location, emp_count, reference, sourcing_date, district_city, startup ,  projection } = body;
 
     if (!client_id) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
@@ -114,6 +116,7 @@ export async function PUT(request) {
         reference,
         sourcing_date,
         district_city,
+          projection ,
         startup
       })
       .eq('client_id', client_id)
@@ -237,6 +240,7 @@ export async function GET(request) {
         emp_count,
         reference,
         startup,
+        projection,
         sourcing_date,
         sent_to_sm,
         corporate_leads_interaction!left (
@@ -308,6 +312,7 @@ export async function GET(request) {
         empCount: lead.emp_count,
         reference: lead.reference,
         startup: lead.startup,
+        projection: lead.projection,
         status: latestInteraction?.status || 'New',
         subStatus: latestInteraction?.sub_status || 'New Lead',
         franchiseStatus: latestInteraction?.franchise_status || '',
