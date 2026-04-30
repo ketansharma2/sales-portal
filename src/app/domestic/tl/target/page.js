@@ -8,12 +8,13 @@ import {
 
 export default function TLDomesticTargetPage() {
   
-  // --- STATES ---
-  const [loading, setLoading] = useState(true);
-  const [teamTargets, setTeamTargets] = useState([]);
-  
-  // My Targets State (Assigned by CRM)
-  const [myTargetMonth, setMyTargetMonth] = useState("April");
+   // --- STATES ---
+   const [loading, setLoading] = useState(true);
+   const [teamTargets, setTeamTargets] = useState([]);
+   const [dynamicAchievements, setDynamicAchievements] = useState({});
+
+   // My Targets State (Assigned by CRM)
+   const [myTargetMonth, setMyTargetMonth] = useState("April");
 
   // Team Filter States
   const [filterMonth, setFilterMonth] = useState("All");
@@ -108,24 +109,198 @@ export default function TLDomesticTargetPage() {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const token = session.access_token;
-      
+
       if (!token) return;
-      
+
       const params = new URLSearchParams();
       if (filterMonth !== 'All') params.set('month', filterMonth);
       if (filterName !== 'All') params.set('name', filterName);
-      
+
       const response = await fetch(`/api/domestic/tl/team-targets?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success && result.data) {
         setTeamTargets(result.data);
+        // Fetch dynamic achievements for team targets
+        await fetchDynamicAchievements(result.data);
       }
     } catch (error) {
       console.error('Error fetching team targets:', error);
+    }
+  };
+
+  // Fetch dynamic achievements for team targets
+  const fetchDynamicAchievements = async (targets) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+
+      if (!token) return;
+
+      const achievements = {};
+
+      // Get unique combinations for CV Parse, Tracker Sent, Accuracy, Conversion, and Joining KPIs
+      const uniqueCombos = [...new Set(targets.map(t => `${t.assignedToId}|${t.month}|${t.year.toString()}`))].map(combo => {
+        const [assignedToId, month, year] = combo.split('|');
+        return { assignedToId, month, year };
+      });
+
+      // Fetch CV Parse achievements
+      for (const combo of uniqueCombos) {
+        const cvParseTargets = targets.filter(t =>
+          t.assignedToId === combo.assignedToId &&
+          t.month === combo.month &&
+          t.year.toString() === combo.year &&
+          t.kpi_metric?.toLowerCase() === 'cv parse'
+        );
+        if (cvParseTargets.length > 0) {
+          try {
+            const response = await fetch(`/api/domestic/tl/cv-parse-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+              const key = `${combo.assignedToId}|${combo.month}|${combo.year}`;
+              if (!achievements[key]) achievements[key] = {};
+              achievements[key].cvParse = {
+                achieved: result.data.achieved,
+                percentage: result.data.percentage
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching TL CV parse achievement for ${combo.month} ${combo.year} ${combo.assignedToId}:`, error);
+          }
+        }
+      }
+
+      // Fetch Tracker Sent achievements
+      for (const combo of uniqueCombos) {
+        const trackerSentTargets = targets.filter(t =>
+          t.assignedToId === combo.assignedToId &&
+          t.month === combo.month &&
+          t.year.toString() === combo.year &&
+          t.kpi_metric?.toLowerCase() === 'tracker sent'
+        );
+        if (trackerSentTargets.length > 0) {
+          try {
+            const response = await fetch(`/api/domestic/tl/tracker-sent-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+              const key = `${combo.assignedToId}|${combo.month}|${combo.year}`;
+              if (!achievements[key]) achievements[key] = {};
+              achievements[key].trackerSent = {
+                achieved: result.data.achieved,
+                percentage: result.data.percentage
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching TL tracker sent achievement for ${combo.month} ${combo.year} ${combo.assignedToId}:`, error);
+          }
+        }
+      }
+
+      // Fetch Accuracy achievements
+      for (const combo of uniqueCombos) {
+        const accuracyTargets = targets.filter(t =>
+          t.assignedToId === combo.assignedToId &&
+          t.month === combo.month &&
+          t.year.toString() === combo.year &&
+          t.kpi_metric?.toLowerCase() === 'accuracy'
+        );
+        if (accuracyTargets.length > 0) {
+          try {
+            const response = await fetch(`/api/domestic/tl/accuracy-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+              const key = `${combo.assignedToId}|${combo.month}|${combo.year}`;
+              if (!achievements[key]) achievements[key] = {};
+              achievements[key].accuracy = {
+                achieved: result.data.achieved,
+                percentage: result.data.percentage
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching TL accuracy achievement for ${combo.month} ${combo.year} ${combo.assignedToId}:`, error);
+          }
+        }
+      }
+
+      // Fetch Conversion achievements
+      for (const combo of uniqueCombos) {
+        const conversionTargets = targets.filter(t =>
+          t.assignedToId === combo.assignedToId &&
+          t.month === combo.month &&
+          t.year.toString() === combo.year &&
+          t.kpi_metric?.toLowerCase() === 'conversion'
+        );
+        if (conversionTargets.length > 0) {
+          try {
+            const response = await fetch(`/api/domestic/tl/conversion-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+              const key = `${combo.assignedToId}|${combo.month}|${combo.year}`;
+              if (!achievements[key]) achievements[key] = {};
+              achievements[key].conversion = {
+                achieved: result.data.achieved,
+                percentage: result.data.percentage
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching TL conversion achievement for ${combo.month} ${combo.year} ${combo.assignedToId}:`, error);
+          }
+        }
+      }
+
+      // Fetch Joining achievements
+      for (const combo of uniqueCombos) {
+        const joiningTargets = targets.filter(t =>
+          t.assignedToId === combo.assignedToId &&
+          t.month === combo.month &&
+          t.year.toString() === combo.year &&
+          t.kpi_metric?.toLowerCase() === 'joining'
+        );
+        if (joiningTargets.length > 0) {
+          try {
+            const response = await fetch(`/api/domestic/tl/joining-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+              const key = `${combo.assignedToId}|${combo.month}|${combo.year}`;
+              if (!achievements[key]) achievements[key] = {};
+              achievements[key].joining = {
+                achieved: result.data.achieved,
+                percentage: result.data.percentage
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching TL joining achievement for ${combo.month} ${combo.year} ${combo.assignedToId}:`, error);
+          }
+        }
+      }
+
+      setDynamicAchievements(achievements);
+    } catch (error) {
+      console.error('Error fetching TL dynamic achievements:', error);
     }
   };
 
@@ -512,15 +687,28 @@ export default function TLDomesticTargetPage() {
                      <th className="p-3 text-center bg-black/10 sticky right-0 z-20 w-32 shadow-[-4px_0px_5px_rgba(0,0,0,0.1)]">Action</th>
                   </tr>
                </thead>
-               <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
-                  {loading ? (
-                     <tr><td colSpan="10" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest">Loading Targets...</td></tr>
-                  ) : filteredTeamTargets.length > 0 ? (
-                     filteredTeamTargets.map((item) => {
-                         const percentage = item.target > 0 ? Math.round((item.achieved / item.target) * 100) : 0;
-                         let percColor = "text-red-600 bg-red-50 border-red-200";
-                         if(percentage >= 100) percColor = "text-emerald-700 bg-emerald-50 border-emerald-200";
-                         else if(percentage >= 50) percColor = "text-amber-600 bg-amber-50 border-amber-200";
+                <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
+                   {loading ? (
+                      <tr><td colSpan="10" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest">Loading Targets...</td></tr>
+                   ) : filteredTeamTargets.length > 0 ? (
+                      filteredTeamTargets.map((item) => {
+                          // Use dynamic achievement for CV Parse, Tracker Sent, Accuracy, Conversion, and Joining KPIs, otherwise use static value
+                          const isCvParseKPI = item.kpi_metric?.toLowerCase() === 'cv parse';
+                          const isTrackerSentKPI = item.kpi_metric?.toLowerCase() === 'tracker sent';
+                          const isAccuracyKPI = item.kpi_metric?.toLowerCase() === 'accuracy';
+                          const isConversionKPI = item.kpi_metric?.toLowerCase() === 'conversion';
+                          const isJoiningKPI = item.kpi_metric?.toLowerCase() === 'joining';
+                          const dynamicKey = `${item.assignedToId}|${item.month}|${item.year.toString()}`;
+                          const monthAchievements = dynamicAchievements[dynamicKey] || {};
+
+                          const dynamicData = isCvParseKPI ? monthAchievements.cvParse : (isTrackerSentKPI ? monthAchievements.trackerSent : (isAccuracyKPI ? monthAchievements.accuracy : (isConversionKPI ? monthAchievements.conversion : (isJoiningKPI ? monthAchievements.joining : null))));
+
+                          const displayTarget = item.frequency === 'Daily' ? (item.target * item.workingDays) : item.target;
+                          const achievedValue = dynamicData ? dynamicData.achieved : (item.achieved || 0);
+                          const percentage = displayTarget > 0 ? Math.round((achievedValue / displayTarget) * 100) : 0;
+                          let percColor = "text-red-600 bg-red-50 border-red-200";
+                          if(percentage >= 100) percColor = "text-emerald-700 bg-emerald-50 border-emerald-200";
+                          else if(percentage >= 50) percColor = "text-amber-600 bg-amber-50 border-amber-200";
 
                          return (
                          <tr key={item.id} className="hover:bg-emerald-50/30 transition group">
@@ -549,8 +737,31 @@ export default function TLDomesticTargetPage() {
                             <td className="p-3 border-r border-gray-100 text-center align-middle">
                                 <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${item.frequency === 'Daily' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-purple-50 text-purple-600 border-purple-200'}`}>{item.frequency}</span>
                             </td>
-<td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.target?.toLocaleString('en-IN')}</span></td>
-                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-emerald-700">{item.achieved?.toLocaleString('en-IN')}</span></td>
+<td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50">
+    <div className="flex flex-col items-center">
+        <span className="text-sm font-mono font-black text-gray-800">{displayTarget?.toLocaleString('en-IN')}</span>
+        {item.frequency === 'Daily' && (
+            <span className="text-[8px] font-bold text-orange-600 uppercase tracking-wider mt-0.5">
+                {item.target} × {item.workingDays}
+            </span>
+        )}
+    </div>
+</td>
+                              <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50">
+                                <div className="flex flex-col items-center">
+                                    <span className="text-sm font-mono font-black text-emerald-700">
+                                      {isAccuracyKPI ? `${achievedValue}%` : achievedValue.toLocaleString('en-IN')}
+                                      {(isCvParseKPI || isTrackerSentKPI || isAccuracyKPI || isConversionKPI || isJoiningKPI) && dynamicData && (
+                                        <span className="text-[8px] text-emerald-500 ml-1">(Live)</span>
+                                      )}
+                                    </span>
+                                    {item.frequency === 'Daily' && !isAccuracyKPI && (
+                                        <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-wider mt-0.5">
+                                            Monthly Total
+                                        </span>
+                                    )}
+                                </div>
+                              </td>
                             <td className="p-3 border-r border-gray-100 text-center align-middle">
                                 <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
                             </td>
