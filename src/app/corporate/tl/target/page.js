@@ -556,8 +556,10 @@ export default function TLCorporateTargetPage() {
                       </tr>
                    </thead>
                    <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
-                      {filteredMyTargets.length > 0 ? filteredMyTargets.map((item, idx) => {
-                          const percentage = item.target > 0 ? Math.min(Math.round((item.achieved / item.target) * 100), 100) : 0;
+                        {filteredMyTargets.length > 0 ? filteredMyTargets.map((item, idx) => {
+                           const baseTarget = item.target || item.totalTarget || 0;
+                           const displayTarget = item.frequency === 'Daily' ? (baseTarget * (item.workingDays || 1)) : baseTarget;
+                           const percentage = displayTarget > 0 ? Math.round((item.achieved / displayTarget) * 100) : 0;
                           let percColor = "text-red-600 bg-red-50 border-red-200";
                           if(percentage >= 100) percColor = "text-emerald-700 bg-emerald-50 border-emerald-200";
                           else if(percentage >= 50) percColor = "text-amber-600 bg-amber-50 border-amber-200";
@@ -592,32 +594,21 @@ export default function TLCorporateTargetPage() {
                                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${item.frequency === 'Daily' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-purple-50 text-purple-600 border-purple-200'}`}>{item.frequency}</span>
                              </td>
                              
-<td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.totalTarget?.toLocaleString('en-IN')}</span></td>
-                              <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50">
-                                <div className="flex flex-col items-center">
-                                    <span className="text-sm font-mono font-black text-indigo-700">
-                                      {isAccuracyKPI ? `${achievedValue}%` : achievedValue.toLocaleString('en-IN')}
-                                      {(isCvParseKPI || isTrackerSentKPI || isAccuracyKPI || isConversionKPI || isJoiningKPI) && dynamicData && (
-                                        <span className="text-[8px] text-indigo-500 ml-1">(Live)</span>
-                                      )}
-                                    </span>
-                                    {item.frequency === 'Daily' && !isAccuracyKPI && (
-                                        <span className="text-[8px] font-bold text-indigo-500 uppercase tracking-wider mt-0.5">
-                                            Monthly Total
-                                        </span>
-                                    )}
-                                </div>
-                              </td>
+ <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50">
+     <div className="flex flex-col items-center">
+         <span className="text-sm font-mono font-black text-gray-800">{displayTarget?.toLocaleString('en-IN')}</span>
+         {item.frequency === 'Daily' && (
+             <span className="text-[8px] font-bold text-orange-600 uppercase tracking-wider mt-0.5">
+                 {baseTarget} × {item.workingDays}
+             </span>
+         )}
+     </div>
+ </td>
+                               <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-indigo-700">{item.achieved?.toLocaleString('en-IN')}</span></td>
                              
-                             <td className="p-3 border-r border-gray-100 text-center align-middle">
-                                 {isAccuracyKPI ? (
-                                   <span className="px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border bg-emerald-50 text-emerald-700 border-emerald-200">
-                                     {achievedValue}% <Percent size={10}/>
-                                   </span>
-                                 ) : (
-                                   <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{achievedValue} <Percent size={10}/></span>
-                                 )}
-                             </td>
+                              <td className="p-3 border-r border-gray-100 text-center align-middle">
+                                  <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
+                              </td>
                              
                              <td className="p-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)] align-middle group-hover:bg-indigo-50 transition-colors">
                                 <div className="flex flex-row items-center gap-2 w-full px-1 justify-center">
