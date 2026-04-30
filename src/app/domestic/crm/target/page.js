@@ -9,12 +9,13 @@ import {
 export default function CRMDomesticTargetPage() {
   
   // --- STATES ---
-  const [loading, setLoading] = useState(true);
-  const [teamTargets, setTeamTargets] = useState([]);
-  
-  // My Targets State (Assigned by HOD)
-  const [myTargetMonth, setMyTargetMonth] = useState("April");
-  const [myTargetsData, setMyTargetsData] = useState([]);
+   const [loading, setLoading] = useState(true);
+   const [teamTargets, setTeamTargets] = useState([]);
+   const [crmTeamDynamicAchievements, setCrmTeamDynamicAchievements] = useState({});
+
+   // My Targets State (Assigned by HOD)
+   const [myTargetMonth, setMyTargetMonth] = useState("April");
+   const [myTargetsData, setMyTargetsData] = useState([]);
 
   // Team Filter States
   const [filterMonth, setFilterMonth] = useState("All");
@@ -135,9 +136,183 @@ export default function CRMDomesticTargetPage() {
       
       if (result.success && result.data) {
         setTeamTargets(result.data);
+        // Fetch dynamic achievements for CRM team targets
+        await fetchCrmTeamDynamicAchievements(result.data);
       }
     } catch (error) {
       console.error('Error fetching team targets:', error);
+    }
+  };
+
+  // Fetch CRM team targets dynamic achievements
+  const fetchCrmTeamDynamicAchievements = async (targets) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const token = session.access_token;
+
+      if (!token) return;
+
+      const achievements = {};
+
+      // Get unique combinations for all KPIs and assigned_to_ids
+      const uniqueCombos = [...new Set(targets.map(t => `${t.month}|${t.year.toString()}|${t.assignedToId}`))].map(combo => {
+        const [month, year, assignedToId] = combo.split('|');
+        return { month, year, assignedToId };
+      });
+
+      // Fetch Tracker Sent achievements
+      for (const combo of uniqueCombos) {
+        const trackerSentTargets = targets.filter(t =>
+          t.month === combo.month &&
+          t.year.toString() === combo.year &&
+          t.assignedToId === combo.assignedToId &&
+          t.kpi_metric?.toLowerCase() === 'tracker sent'
+        );
+        if (trackerSentTargets.length > 0) {
+          try {
+            const response = await fetch(`/api/domestic/crm/team-tracker-sent-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+              const key = `${combo.month}|${combo.year}|${combo.assignedToId}`;
+              if (!achievements[key]) achievements[key] = {};
+              achievements[key].trackerSent = {
+                achieved: result.data.achieved,
+                percentage: result.data.percentage
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching CRM Team tracker sent achievement for ${combo.month} ${combo.year} ${combo.assignedToId}:`, error);
+          }
+        }
+      }
+
+      // Fetch Accuracy achievements
+      for (const combo of uniqueCombos) {
+        const accuracyTargets = targets.filter(t =>
+          t.month === combo.month &&
+          t.year.toString() === combo.year &&
+          t.assignedToId === combo.assignedToId &&
+          t.kpi_metric?.toLowerCase() === 'accuracy'
+        );
+        if (accuracyTargets.length > 0) {
+          try {
+            const response = await fetch(`/api/domestic/crm/team-accuracy-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+              const key = `${combo.month}|${combo.year}|${combo.assignedToId}`;
+              if (!achievements[key]) achievements[key] = {};
+              achievements[key].accuracy = {
+                achieved: result.data.achieved,
+                percentage: result.data.percentage
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching CRM Team accuracy achievement for ${combo.month} ${combo.year} ${combo.assignedToId}:`, error);
+          }
+        }
+      }
+
+      // Fetch Joining achievements
+      for (const combo of uniqueCombos) {
+        const joiningTargets = targets.filter(t =>
+          t.month === combo.month &&
+          t.year.toString() === combo.year &&
+          t.assignedToId === combo.assignedToId &&
+          t.kpi_metric?.toLowerCase() === 'joining'
+        );
+        if (joiningTargets.length > 0) {
+          try {
+            const response = await fetch(`/api/domestic/crm/team-joining-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+              const key = `${combo.month}|${combo.year}|${combo.assignedToId}`;
+              if (!achievements[key]) achievements[key] = {};
+              achievements[key].joining = {
+                achieved: result.data.achieved,
+                percentage: result.data.percentage
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching CRM Team joining achievement for ${combo.month} ${combo.year} ${combo.assignedToId}:`, error);
+          }
+        }
+      }
+
+      // Fetch CV Parse achievements
+      for (const combo of uniqueCombos) {
+        const cvParseTargets = targets.filter(t =>
+          t.month === combo.month &&
+          t.year.toString() === combo.year &&
+          t.assignedToId === combo.assignedToId &&
+          t.kpi_metric?.toLowerCase() === 'cv parse'
+        );
+        if (cvParseTargets.length > 0) {
+          try {
+            const response = await fetch(`/api/domestic/crm/team-cv-parse-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+              const key = `${combo.month}|${combo.year}|${combo.assignedToId}`;
+              if (!achievements[key]) achievements[key] = {};
+              achievements[key].cvParse = {
+                achieved: result.data.achieved,
+                percentage: result.data.percentage
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching CRM Team CV parse achievement for ${combo.month} ${combo.year} ${combo.assignedToId}:`, error);
+          }
+        }
+      }
+
+      // Fetch Conversion achievements
+      for (const combo of uniqueCombos) {
+        const conversionTargets = targets.filter(t =>
+          t.month === combo.month &&
+          t.year.toString() === combo.year &&
+          t.assignedToId === combo.assignedToId &&
+          t.kpi_metric?.toLowerCase() === 'conversion'
+        );
+        if (conversionTargets.length > 0) {
+          try {
+            const response = await fetch(`/api/domestic/crm/team-conversion-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+              const key = `${combo.month}|${combo.year}|${combo.assignedToId}`;
+              if (!achievements[key]) achievements[key] = {};
+              achievements[key].conversion = {
+                achieved: result.data.achieved,
+                percentage: result.data.percentage
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching CRM Team conversion achievement for ${combo.month} ${combo.year} ${combo.assignedToId}:`, error);
+          }
+        }
+      }
+
+      setCrmTeamDynamicAchievements(achievements);
+    } catch (error) {
+      console.error('Error fetching CRM Team dynamic achievements:', error);
     }
   };
 
@@ -423,7 +598,21 @@ export default function CRMDomesticTargetPage() {
                              </td>
                              
                              <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-gray-800">{item.target.toLocaleString('en-IN')}</span></td>
-                             <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50"><span className="text-sm font-mono font-black text-emerald-700">{item.achieved.toLocaleString('en-IN')}</span></td>
+                              <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50">
+                                 <div className="flex flex-col items-center">
+                                     <span className="text-sm font-mono font-black text-emerald-700">
+                                       {isAccuracyKPI ? `${achievedValue}%` : achievedValue.toLocaleString('en-IN')}
+                                       {(isTrackerSentKPI || isAccuracyKPI || isJoiningKPI || isCvParseKPI || isConversionKPI) && dynamicData && (
+                                         <span className="text-[8px] text-emerald-500 ml-1">(Live)</span>
+                                       )}
+                                     </span>
+                                     {item.frequency === 'Daily' && !isTrackerSentKPI && !isAccuracyKPI && !isJoiningKPI && !isCvParseKPI && !isConversionKPI && (
+                                         <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-wider mt-0.5">
+                                             Monthly Total
+                                         </span>
+                                     )}
+                                 </div>
+                               </td>
                              
                              <td className="p-3 border-r border-gray-100 text-center align-middle">
                                  <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
@@ -528,11 +717,21 @@ export default function CRMDomesticTargetPage() {
                   {loading ? (
                      <tr><td colSpan="10" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest">Loading Targets...</td></tr>
                   ) : filteredTeamTargets.length > 0 ? (
-                     filteredTeamTargets.map((item) => {
-                         const percentage = item.target > 0 ? Math.round((item.achieved / item.target) * 100) : 0;
-                         let percColor = "text-red-600 bg-red-50 border-red-200";
-                         if(percentage >= 100) percColor = "text-emerald-700 bg-emerald-50 border-emerald-200";
-                         else if(percentage >= 50) percColor = "text-amber-600 bg-amber-50 border-amber-200";
+                      filteredTeamTargets.map((item) => {
+                          // Use dynamic achievement for Tracker Sent, Accuracy, Joining, CV Parse, and Conversion KPIs
+                          const isTrackerSentKPI = item.kpi_metric?.toLowerCase() === 'tracker sent';
+                          const isAccuracyKPI = item.kpi_metric?.toLowerCase() === 'accuracy';
+                          const isJoiningKPI = item.kpi_metric?.toLowerCase() === 'joining';
+                          const isCvParseKPI = item.kpi_metric?.toLowerCase() === 'cv parse';
+                          const isConversionKPI = item.kpi_metric?.toLowerCase() === 'conversion';
+                          const dynamicKey = `${item.month}|${item.year.toString()}|${item.assignedToId}`;
+                          const monthAchievements = crmTeamDynamicAchievements[dynamicKey] || {};
+                          const dynamicData = isTrackerSentKPI ? monthAchievements.trackerSent : (isAccuracyKPI ? monthAchievements.accuracy : (isJoiningKPI ? monthAchievements.joining : (isCvParseKPI ? monthAchievements.cvParse : (isConversionKPI ? monthAchievements.conversion : null))));
+                          const achievedValue = dynamicData ? dynamicData.achieved : (item.achieved || 0);
+                          const percentage = item.target > 0 ? Math.round((achievedValue / item.target) * 100) : 0;
+                          let percColor = "text-red-600 bg-red-50 border-red-200";
+                          if(percentage >= 100) percColor = "text-emerald-700 bg-emerald-50 border-emerald-200";
+                          else if(percentage >= 50) percColor = "text-amber-600 bg-amber-50 border-amber-200";
 
                          return (
                          <tr key={item.id} className="hover:bg-emerald-50/30 transition group">
