@@ -41,46 +41,28 @@ export async function GET(request) {
     const currentUserId = user.user_id || user.id;
 
     // Debug logging for troubleshooting
-    console.log('My Targets CV Parse achievement - Month:', month, 'Year:', year, 'User ID:', currentUserId);
+    console.log('Corporate My Targets Tracker sent achievement - Month:', month, 'Year:', year, 'User ID:', currentUserId);
 
-    // Count CV parsing records for users under this TL
-    // Step 1: Get user_ids of users who report to this TL
-    const { data: teamUsers, error: teamUsersError } = await supabaseServer
-      .from('users')
-      .select('user_id')
-      .eq('tl_id', currentUserId);
+    // Count tracker sent records that were forwarded to CRM in the month
+    const { data: trackerSentData, error: trackerSentError } = await supabaseServer
+      .from('candidates_conversation')
+      .select('conversation_id')
+      .eq('sent_to_tl', currentUserId)
+      .gte('sent_date', startDate)
+      .lte('sent_date', monthEnd)
+      .not('sent_to_crm', 'is', null)
+      .gte('crm_sent_date', startDate)
+      .lte('crm_sent_date', monthEnd);
 
-    if (teamUsersError) {
-      console.error('Team users fetch error:', teamUsersError);
-      return NextResponse.json({ error: 'Failed to fetch team users', details: teamUsersError.message }, { status: 500 });
+    console.log('Corporate My Targets Tracker sent data:', trackerSentData?.length || 0);
+
+    if (trackerSentError) {
+      console.error('Corporate My Targets Tracker sent fetch error:', trackerSentError);
+      return NextResponse.json({ error: 'Failed to fetch tracker sent data', details: trackerSentError.message }, { status: 500 });
     }
 
-    const teamUserIds = teamUsers?.map(u => u.user_id) || [];
-    console.log('Team user IDs under this TL:', teamUserIds.length);
-
-    if (teamUserIds.length === 0) {
-      return NextResponse.json({
-        success: true,
-        data: { achieved: 0, target: 0, percentage: 0 }
-      });
-    }
-
-    // Step 2: Count CV parsing records for these users within the date range
-    const { data: cvParseData, error: cvParseError } = await supabaseServer
-      .from('cv_parsing')
-      .select('id')
-      .in('user_id', teamUserIds)
-      .gte('portal_date', startDate)
-      .lte('portal_date', monthEnd);
-
-    if (cvParseError) {
-      console.error('CV parse data fetch error:', cvParseError);
-      return NextResponse.json({ error: 'Failed to fetch CV parse data', details: cvParseError.message }, { status: 500 });
-    }
-
-    const achieved = cvParseData ? cvParseData.length : 0;
-    console.log('My Targets CV Parse achieved:', achieved);
-    console.log('CV Parse details - Team users:', teamUserIds.length, 'CV parses:', achieved);
+    const achieved = trackerSentData ? trackerSentData.length : 0;
+    console.log('Corporate My Targets Tracker sent achieved:', achieved);
 
     // Return achieved count - percentage will be calculated in frontend
     return NextResponse.json({
@@ -90,14 +72,13 @@ export async function GET(request) {
         target: 0, // Not used in API, calculated in frontend
         percentage: 0, // Not used in API, calculated in frontend
         details: {
-          teamUsers: teamUserIds.length,
-          cvParses: achieved
+          trackerRecords: achieved
         }
       }
     });
 
   } catch (error) {
-    console.error('My Targets CV Parse achievement API error:', error);
+    console.error('Corporate My Targets Tracker sent achievement API error:', error);
     return NextResponse.json({
       error: 'Internal server error',
       details: error.message

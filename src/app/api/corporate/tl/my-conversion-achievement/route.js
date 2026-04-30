@@ -41,9 +41,9 @@ export async function GET(request) {
     const currentUserId = user.user_id || user.id;
 
     // Debug logging for troubleshooting
-    console.log('My Targets CV Parse achievement - Month:', month, 'Year:', year, 'User ID:', currentUserId);
+    console.log('Corporate My Targets Conversion achievement - Month:', month, 'Year:', year, 'User ID:', currentUserId);
 
-    // Count CV parsing records for users under this TL
+    // Count conversion records for users under this TL
     // Step 1: Get user_ids of users who report to this TL
     const { data: teamUsers, error: teamUsersError } = await supabaseServer
       .from('users')
@@ -65,22 +65,26 @@ export async function GET(request) {
       });
     }
 
-    // Step 2: Count CV parsing records for these users within the date range
-    const { data: cvParseData, error: cvParseError } = await supabaseServer
-      .from('cv_parsing')
-      .select('id')
+    // Step 2: Get unique parsing_ids from candidates_conversation for these users with Conversion status within the date range
+    const { data: conversionData, error: conversionError } = await supabaseServer
+      .from('candidates_conversation')
+      .select('parsing_id')
       .in('user_id', teamUserIds)
-      .gte('portal_date', startDate)
-      .lte('portal_date', monthEnd);
+      .eq('candidate_status', 'Conversion')
+      .gte('created_at', startDate)
+      .lte('created_at', monthEnd);
 
-    if (cvParseError) {
-      console.error('CV parse data fetch error:', cvParseError);
-      return NextResponse.json({ error: 'Failed to fetch CV parse data', details: cvParseError.message }, { status: 500 });
+    if (conversionError) {
+      console.error('Conversion data fetch error:', conversionError);
+      return NextResponse.json({ error: 'Failed to fetch conversion data', details: conversionError.message }, { status: 500 });
     }
 
-    const achieved = cvParseData ? cvParseData.length : 0;
-    console.log('My Targets CV Parse achieved:', achieved);
-    console.log('CV Parse details - Team users:', teamUserIds.length, 'CV parses:', achieved);
+    // Count unique parsing_ids
+    const uniqueParsingIds = [...new Set(conversionData?.map(item => item.parsing_id) || [])];
+    const achieved = uniqueParsingIds.length;
+
+    console.log('Corporate My Targets Conversion achieved:', achieved);
+    console.log('Conversion details - Team users:', teamUserIds.length, 'Conversion records:', conversionData?.length || 0, 'Unique parsing IDs:', achieved);
 
     // Return achieved count - percentage will be calculated in frontend
     return NextResponse.json({
@@ -91,13 +95,14 @@ export async function GET(request) {
         percentage: 0, // Not used in API, calculated in frontend
         details: {
           teamUsers: teamUserIds.length,
-          cvParses: achieved
+          conversionRecords: conversionData?.length || 0,
+          uniqueConversions: achieved
         }
       }
     });
 
   } catch (error) {
-    console.error('My Targets CV Parse achievement API error:', error);
+    console.error('Corporate My Targets Conversion achievement API error:', error);
     return NextResponse.json({
       error: 'Internal server error',
       details: error.message

@@ -41,7 +41,7 @@ export async function GET(request) {
     const currentUserId = user.user_id || user.id;
 
     // Debug logging for troubleshooting
-    console.log('My Targets CV Parse achievement - Month:', month, 'Year:', year, 'User ID:', currentUserId);
+    console.log('Corporate My Targets CV Parse achievement - Month:', month, 'Year:', year, 'User ID:', currentUserId);
 
     // Count CV parsing records for users under this TL
     // Step 1: Get user_ids of users who report to this TL
@@ -79,7 +79,7 @@ export async function GET(request) {
     }
 
     const achieved = cvParseData ? cvParseData.length : 0;
-    console.log('My Targets CV Parse achieved:', achieved);
+    console.log('Corporate My Targets CV Parse achieved:', achieved);
     console.log('CV Parse details - Team users:', teamUserIds.length, 'CV parses:', achieved);
 
     // Return achieved count - percentage will be calculated in frontend
@@ -97,7 +97,7 @@ export async function GET(request) {
     });
 
   } catch (error) {
-    console.error('My Targets CV Parse achievement API error:', error);
+    console.error('Corporate My Targets CV Parse achievement API error:', error);
     return NextResponse.json({
       error: 'Internal server error',
       details: error.message
