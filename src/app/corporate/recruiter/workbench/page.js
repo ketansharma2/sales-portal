@@ -94,8 +94,17 @@ export default function RecruiterWorkbenchPage() {
                         tl_email: item.tl_email || '',
                         slot: item.slot || '',
                         isFinalAssigned: !!item.sent_to_rc,
+                         advance_sti: item.advance_sti || '',
+                        tracker_sent: item.tracker_sent || 0,
+                        today_asset: item.today_asset || 0,
+                        today_conversion: item.today_conversion || 0,
+                        cv_naukri: item.cv_naukri || 0,
+                        cv_indeed: item.cv_indeed || 0,
+                        cv_other: item.cv_other || 0,
+                        totalCv: item.totalCv || 0,
                         recruiterRemarks: [],
-                        progress: { cv_naukri: 0, cv_indeed: 0, cv_other: 0, totalCv: 0, advance_sti: item.advance_sti || 0, today_conversion: 0, today_asset: 0, tracker_sent: 0, notes: '' }
+
+                         progress: { cv_naukri: item.cv_naukri || 0, cv_indeed: item.cv_indeed || 0, cv_other: item.cv_other || 0, totalCv: item.totalCv || 0, advance_sti: item.advance_sti || 0, today_conversion: item.today_conversion || 0, today_asset: item.today_asset || 0, tracker_sent: item.tracker_sent || 0, notes: '' }
                     }));
                     
                     // Sort by date descending
