@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect ,useMemo } from "react";
-import { useRouter  } from "next/navigation";
+
+import { useRouter, useSearchParams } from "next/navigation";
 import { 
     Building2, Mail, History, Calendar, CheckCircle2, 
     X, Send, FileText, Briefcase, MapPin, GraduationCap, Edit3, Loader2, File, MessageCircle
@@ -150,7 +151,7 @@ function CVPreview({ url, name }) {
 
 export default function CRMClientTrackerPage() {
     const router = useRouter();
-    
+     const searchParams = useSearchParams(); // Add this line
     // --- STATE ---
     const [isLoading, setIsLoading] = useState(true);
     const [crmData, setCrmData] = useState([]);
@@ -169,11 +170,27 @@ export default function CRMClientTrackerPage() {
     const [cvViewer, setCvViewer] = useState({ isOpen: false, source: null });
     const [isSendingDraft, setIsSendingDraft] = useState(false);
 
+
     // Filter States
-    const [selectedTL, setSelectedTL] = useState("");
-    const [dateRange, setDateRange] = useState({ start: "", end: "" });
+    // const [selectedTL, setSelectedTL] = useState("");
+    const [selectedTL, setSelectedTL] = useState(searchParams.get('tl') || "");
+    // const [dateRange, setDateRange] = useState({ start: "", end: "" });
+    const [dateRange, setDateRange] = useState({ 
+    start: searchParams.get('startDate') || "", 
+    end: searchParams.get('endDate') || "" 
+});
     const [tlUsers, setTlUsers] = useState([]);
 
+
+useEffect(() => {
+    const params = new URLSearchParams();
+    if (selectedTL) params.set('tl', selectedTL);
+    if (dateRange.start) params.set('startDate', dateRange.start);
+    if (dateRange.end) params.set('endDate', dateRange.end);
+    
+    const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+    window.history.replaceState({}, '', newUrl);
+}, [selectedTL, dateRange]);
     // Fetch TL users for dropdown
     useEffect(() => {
         const fetchTlUsers = async () => {

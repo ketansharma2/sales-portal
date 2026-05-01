@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { 
     Building2, History, Calendar, CheckCircle2, 
     X, FileText, Briefcase, MapPin, GraduationCap,
-    ArrowLeft, Clock, Plus, Eye, AlignLeft
+    ArrowLeft, Clock, Plus, Eye, AlignLeft,Edit2
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 
@@ -19,7 +19,8 @@ export default function TrackerHistoryPage() {
     const [modalType, setModalType] = useState(null); // 'add_journey', 'view_journey'
     const [selectedHistoryRow, setSelectedHistoryRow] = useState(null);
     const [savingJourney, setSavingJourney] = useState(false);
-    
+    const [selectedJourneyItem, setSelectedJourneyItem] = useState(null);
+const [updatingJourney, setUpdatingJourney] = useState(false);
     // Form State
     const [journeyForm, setJourneyForm] = useState({
         status: "", 
@@ -72,6 +73,101 @@ export default function TrackerHistoryPage() {
             fetchEmailHistory();
         }
     }, [params.id]);
+
+    const openEditJourneyModal = (historyRow, journeyItem) => {
+    setSelectedHistoryRow(historyRow);
+    setSelectedJourneyItem(journeyItem);
+    setJourneyForm({ 
+        status: journeyItem.status, 
+        actionDate: journeyItem.date, 
+        remark: journeyItem.remark 
+    });
+    setModalType('edit_journey');
+};
+
+const handleUpdateJourney = async () => {
+    console.log("1. Update function called");
+    
+    if (!journeyForm.status) {
+        alert("Please select a tracker status.");
+        return;
+    }
+
+    setUpdatingJourney(true);
+    
+    try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        
+        const url = `/api/corporate/crm/interview-journey/${selectedJourneyItem.id}`;
+        console.log("Calling API:", url);
+        
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                interview_status: journeyForm.status,
+                client_remark: journeyForm.remark || "Status updated.",
+                date: journeyForm.actionDate
+            })
+        });
+        
+        const result = await response.json();
+        console.log("API Result:", result);
+        
+        if (response.ok && result.success) {
+            // Create updated journey item
+            const updatedJourney = {
+                ...selectedJourneyItem,
+                status: journeyForm.status,
+                date: journeyForm.actionDate,
+                remark: journeyForm.remark || "Status updated."
+            };
+            
+            // Update candidate state
+            setCandidate(prev => {
+                const newCandidate = JSON.parse(JSON.stringify(prev));
+                
+                for (let i = 0; i < newCandidate.emailHistory.length; i++) {
+                    if (newCandidate.emailHistory[i].id === selectedHistoryRow.id) {
+                        for (let j = 0; j < newCandidate.emailHistory[i].journey.length; j++) {
+                            if (newCandidate.emailHistory[i].journey[j].id === selectedJourneyItem.id) {
+                                newCandidate.emailHistory[i].journey[j] = updatedJourney;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+                return newCandidate;
+            });
+            
+            // IMPORTANT: Also update the selectedHistoryRow to trigger view modal refresh
+            setSelectedHistoryRow(prev => {
+                const updatedRow = {
+                    ...prev,
+                    journey: prev.journey.map(j => 
+                        j.id === selectedJourneyItem.id ? updatedJourney : j
+                    )
+                };
+                console.log("Updated selectedHistoryRow:", updatedRow);
+                return updatedRow;
+            });
+            
+            setModalType('view_journey');
+        } else {
+            alert("Failed to update journey: " + (result.message || result.error));
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Failed to update journey: " + error.message);
+    } finally {
+        setUpdatingJourney(false);
+    }
+};
 
     // --- FETCH INTERVIEW JOURNEYS ---
     const fetchInterviewJourneys = async (emailHistoryData) => {
@@ -420,20 +516,31 @@ export default function TrackerHistoryPage() {
 
                         <div className="flex-1 overflow-y-auto p-6 bg-slate-50 custom-scrollbar">
                             {selectedHistoryRow.journey && selectedHistoryRow.journey.length > 0 ? (
-                                <div className="space-y-6">
-                                    {selectedHistoryRow.journey.map((step, i) => (
-                                        <div key={step.id} className="relative pl-6 border-l-2 border-indigo-200 pb-2 last:border-l-0 last:pb-0">
-                                            <div className="absolute w-3 h-3 bg-indigo-500 rounded-full -left-[7px] top-1 border-2 border-white shadow-sm"></div>
-                                            <div className="bg-white border border-slate-200 p-3 rounded-xl shadow-sm -mt-2">
-                                                <div className="flex justify-between items-start mb-1.5">
-                                                    <p className="text-xs font-black text-indigo-700 uppercase tracking-widest">{step.status}</p>
-                                                    <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1"><Calendar size={10}/> {step.date}</span>
-                                                </div>
-                                                <p className="text-[11px] font-medium text-slate-600 italic">"{step.remark}"</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                               <div className="space-y-6">
+        {selectedHistoryRow.journey.map((step, i) => (
+            <div key={step.id} className="relative pl-6 border-l-2 border-indigo-200 pb-2 last:border-l-0 last:pb-0 group">
+                <div className="absolute w-3 h-3 bg-indigo-500 rounded-full -left-[7px] top-1 border-2 border-white shadow-sm"></div>
+                <div className="bg-white border border-slate-200 p-3 rounded-xl shadow-sm -mt-2">
+                    <div className="flex justify-between items-start mb-1.5">
+                        <p className="text-xs font-black text-indigo-700 uppercase tracking-widest">{step.status}</p>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1">
+                                <Calendar size={10}/> {step.date}
+                            </span>
+                            <button 
+                                onClick={() => openEditJourneyModal(selectedHistoryRow, step)}
+                                 className="text-slate-400 hover:text-indigo-600 transition-colors"
+                                title="Edit"
+                            >
+                                <Edit2 size={12}/>
+                            </button>
+                        </div>
+                    </div>
+                    <p className="text-[11px] font-medium text-slate-600 italic">"{step.remark}"</p>
+                </div>
+            </div>
+        ))}
+    </div>
                             ) : (
                                 <div className="text-center py-10 flex flex-col items-center justify-center h-full">
                                     <History size={32} className="text-slate-300 mx-auto mb-3" />
@@ -446,6 +553,102 @@ export default function TrackerHistoryPage() {
                     </div>
                 </div>
             )}
+
+
+
+            {/* MODAL 3: EDIT JOURNEY STATUS */}
+{modalType === 'edit_journey' && selectedJourneyItem && (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col border-4 border-white animate-in zoom-in-95">
+            
+            <div className="bg-amber-600 text-white px-6 py-4 flex justify-between items-center shrink-0">
+                <div>
+                    <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                        <Edit2 size={16}/> Edit Journey Status
+                    </h2>
+                    <p className="text-[10px] text-amber-200 font-bold mt-1 uppercase tracking-widest">
+                        {candidate.name} • {selectedHistoryRow.companyName}
+                    </p>
+                </div>
+                <button onClick={() => setModalType('view_journey')} className="hover:text-amber-200 bg-white/10 p-1.5 rounded-full">
+                    <X size={18} />
+                </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
+                <div className="space-y-5">
+                    {/* Status Dropdown */}
+                    <div>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Interview Status <span className="text-rose-500">*</span></label>
+                        <select 
+                            className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-amber-500 shadow-sm cursor-pointer"
+                            value={journeyForm.status} 
+                            onChange={(e) => setJourneyForm({...journeyForm, status: e.target.value})}
+                        >
+                            <option value="">-- Select Status --</option>
+                            <option value="Shortlisted">Shortlisted</option>
+                            <option value="Selected">Selected</option>
+                            <option value="Interviewed">Interviewed</option>
+                            <option value="Rejected">Rejected</option>
+                            <option value="Joining">Joining</option>
+                            <option value="Pipeline">Pipeline</option>
+                            <option value="Ghosted">Ghosted</option>
+                        </select>
+                    </div>
+
+                    {/* Action Date */}
+                    <div>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Action Date</label>
+                        <div className="relative">
+                            <Calendar size={14} className="absolute left-3 top-2.5 text-slate-400" />
+                            <input 
+                                type="date" 
+                                className="w-full pl-9 pr-3 py-2.5 text-sm font-bold bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-amber-500 shadow-sm cursor-pointer"
+                                value={journeyForm.actionDate} 
+                                onChange={(e) => setJourneyForm({...journeyForm, actionDate: e.target.value})}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Remarks Textarea */}
+                    <div>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Client Feedback / Remark</label>
+                        <textarea 
+                            rows="4" 
+                            placeholder="E.g., Cleared L1, L2 scheduled for tomorrow..." 
+                            className="w-full bg-white border border-slate-200 text-slate-800 text-xs font-medium rounded-lg p-3 outline-none focus:ring-2 focus:ring-amber-500 resize-none shadow-sm"
+                            value={journeyForm.remark} 
+                            onChange={(e) => setJourneyForm({...journeyForm, remark: e.target.value})}
+                        ></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-200 bg-white flex justify-end gap-3 shrink-0">
+                <button onClick={() => setModalType('view_journey')} className="text-xs font-black text-slate-500 uppercase tracking-widest px-4 hover:text-slate-700 bg-slate-100 py-2.5 rounded-lg transition-colors">
+                    Cancel
+                </button>
+                <button 
+                    onClick={handleUpdateJourney} 
+                    disabled={updatingJourney}
+                    className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest shadow-md flex items-center gap-2 transition-colors disabled:opacity-50"
+                >
+                    {updatingJourney ? (
+                        <>
+                            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            Updating...
+                        </>
+                    ) : (
+                        <>
+                            <CheckCircle2 size={14}/> Update Status
+                        </>
+                    )}
+                </button>
+            </div>
+            
+        </div>
+    </div>
+)}
 
         </div>
     );
