@@ -6,8 +6,8 @@ import {
     Building2, Mail, History, Calendar, CheckCircle2, 
     X, Send, FileText, Briefcase, MapPin, GraduationCap, Edit3, Loader2, File, MessageCircle
 } from "lucide-react";
-import jsPDF from "jspdf";
 
+export const dynamic = 'force-dynamic';
 // CV Preview Component - Handles PDF, Images, and Word documents
 function CVPreview({ url, name }) {
     const [blobUrl, setBlobUrl] = useState(null);
@@ -47,7 +47,9 @@ function CVPreview({ url, name }) {
                     }
                 }
                 setFileType(detectedType);
-                
+
+                const { default: jsPDF } = await import('jspdf');
+
                 // For images, convert to PDF first
                 if (detectedType.startsWith('image/')) {
                     const img = new Image();
@@ -183,11 +185,12 @@ export default function CRMClientTrackerPage() {
 
 
 useEffect(() => {
+    if (typeof window === 'undefined') return;
     const params = new URLSearchParams();
     if (selectedTL) params.set('tl', selectedTL);
     if (dateRange.start) params.set('startDate', dateRange.start);
     if (dateRange.end) params.set('endDate', dateRange.end);
-    
+
     const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
     window.history.replaceState({}, '', newUrl);
 }, [selectedTL, dateRange]);
