@@ -3,7 +3,7 @@ import { useState, useMemo ,useEffect} from "react";
 import { 
     Building2, History, Calendar, X, FileText, 
     MapPin, GraduationCap, Eye, Mail, CheckCircle2, 
-    Clock, Users, UserCheck, AlertCircle, Briefcase, XCircle, Loader2, File
+    Clock, Users, UserCheck, AlertCircle, Briefcase, XCircle, Loader2, File, Trash2
 } from "lucide-react";
 import jsPDF from "jspdf";
 
@@ -315,6 +315,34 @@ export default function EmailHistoryPage() {
         return 'bg-slate-50 text-slate-600 border-slate-200';
     };
 
+    const handleDelete = async (id) => {
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+
+            const response = await fetch('/api/domestic/crm/email-history/delete', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setEmailData(prev => prev.filter(item => item.id !== id));
+                alert('Record deleted successfully');
+            } else {
+                alert('Error deleting record: ' + (result.message || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Error deleting record');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-6 relative">
             
@@ -463,16 +491,31 @@ export default function EmailHistoryPage() {
                                         </td>
 
                                         {/* Action Button (Sticky Right) */}
-                                        <td className="py-3 px-4 sticky right-0 bg-white transition-colors z-10 border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] w-32">
-                                            <div className="flex justify-center">
-                                                <button 
-                                                    onClick={() => openViewJourneyModal(row)}
-                                                    className="w-full py-2 px-2 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-600 hover:text-white flex items-center justify-center gap-1.5 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
-                                                >
-                                                    <Eye size={12}/> View Journey
-                                                </button>
-                                            </div>
-                                        </td>
+                                        <td className="py-3 px-4 sticky right-0 bg-white transition-colors z-10 border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] w-24">
+    <div className="flex justify-center items-center gap-2">
+        {/* View Journey Button - Icon and Text */}
+        <button 
+            onClick={() => openViewJourneyModal(row)}
+            className="py-2 px-3 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-600 hover:text-white flex items-center justify-center gap-1.5 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
+             title="View Record"
+        >
+            <Eye size={12}/>
+        </button>
+        
+        {/* Delete Button - Icon Only */}
+        <button
+            onClick={() => {
+                if (confirm(`Are you sure you want to delete this record for ${row.name}?`)) {
+                    handleDelete(row.id);
+                }
+            }}
+            className="p-2 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white transition-all shadow-sm"
+            title="Delete Record"
+        >
+            <Trash2 size={14}/>
+        </button>
+    </div>
+</td>
 
                                     </tr>
                                 ))

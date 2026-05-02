@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo ,useEffect} from "react";
 import { 
-    Building2, History, Calendar, X, FileText, Upload,
+    Building2, History, Calendar, X, FileText, Upload, Trash2,
     MapPin, GraduationCap, Eye, Mail, CheckCircle2, 
     Clock, Users, UserCheck, AlertCircle, Briefcase, XCircle, Loader2, File, Send, User, Phone, IndianRupee, FileText as FileTextIcon
 } from "lucide-react";
@@ -414,6 +414,34 @@ export default function EmailHistoryPage() {
         return 'bg-slate-50 text-slate-600 border-slate-200';
     };
 
+    const handleDelete = async (id) => {
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+
+            const response = await fetch('/api/corporate/crm/email-history/delete', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setEmailData(prev => prev.filter(item => item.id !== id));
+                alert('Record deleted successfully');
+            } else {
+                alert('Error deleting record: ' + (result.message || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Error deleting record');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-6 relative">
             
@@ -562,31 +590,46 @@ export default function EmailHistoryPage() {
                                         </td>
 
                                         {/* Action Button (Sticky Right) */}
-                                        <td className="py-3 px-4 sticky right-0 bg-white transition-colors z-10 border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] w-40">
-                                            <div className="flex flex-col gap-2">
-                                                <button 
-                                                    onClick={() => openViewJourneyModal(row)}
-                                                    className="w-full py-2 px-2 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-600 hover:text-white flex items-center justify-center gap-1.5 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
-                                                >
-                                                    <Eye size={12}/> View Journey
-                                                </button>
-                                                 <button 
-                                                     onClick={() => sendToRevenueTeam(row)}
-                                                     disabled={row.sent_to_revenue}
-                                                     className="w-full py-2 px-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
-                                                 >
-                                                     {row.sent_to_revenue ? (
-                                                         <>
-                                                             <CheckCircle2 size={12}/> Sent
-                                                         </>
-                                                     ) : (
-                                                         <>
-                                                             <Send size={12}/> Send to Revenue
-                                                         </>
-                                                     )}
-                                                 </button>
-                                            </div>
-                                        </td>
+                                        {/* Action Column (Sticky Right with Delete Icon Only) */}
+<td className="py-3 px-4 sticky right-0 bg-white transition-colors z-10 border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] w-36">
+    <div className="flex items-center justify-center gap-1.5">
+        {/* View Journey Button - Icon Only */}
+        <button 
+            onClick={() => openViewJourneyModal(row)}
+            className="p-2 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+            title="View Journey"
+        >
+            <Eye size={14}/>
+        </button>
+        
+        {/* Send to Revenue Button - Icon Only */}
+        <button 
+            onClick={() => sendToRevenueTeam(row)}
+            disabled={row.sent_to_revenue}
+            className="p-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed transition-all shadow-sm"
+            title={row.sent_to_revenue ? "Already Sent to Revenue" : "Send to Revenue"}
+        >
+            {row.sent_to_revenue ? (
+                <CheckCircle2 size={14}/>
+            ) : (
+                <Send size={14}/>
+            )}
+        </button>
+        
+        {/* Delete Button - Icon Only */}
+        <button
+            onClick={() => {
+                if (confirm(`Are you sure you want to delete this record for ${row.name}?`)) {
+                    handleDelete(row.id);
+                }
+            }}
+            className="p-2 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white transition-all shadow-sm"
+            title="Delete Record"
+        >
+            <Trash2 size={14}/>
+        </button>
+    </div>
+</td>
 
                                     </tr>
                                 ))
