@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect ,useMemo } from "react";
+import dynamic from 'next/dynamic';
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { 
@@ -151,7 +152,7 @@ function CVPreview({ url, name }) {
     );
 }
 
-export default function CRMClientTrackerPage() {
+function CRMClientTrackerPage() {
     const router = useRouter();
       const searchParams = useSearchParams(); // Add this line
     // --- STATE ---
@@ -1617,3 +1618,5 @@ useEffect(() => {
         </div>
     );
 }
+
+export default dynamic(() => Promise.resolve(CRMClientTrackerPage), { ssr: false });
