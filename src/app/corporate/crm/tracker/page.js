@@ -153,8 +153,9 @@ function CVPreview({ url, name }) {
 
 export default function CRMClientTrackerPage() {
     const router = useRouter();
-     const searchParams = useSearchParams(); // Add this line
+      const searchParams = useSearchParams(); // Add this line
     // --- STATE ---
+    const [mounted, setMounted] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [crmData, setCrmData] = useState([]);
     const [modalType, setModalType] = useState(null); // 'draft_mail', 'view_cv', null
@@ -172,6 +173,7 @@ export default function CRMClientTrackerPage() {
     const [cvViewer, setCvViewer] = useState({ isOpen: false, source: null });
     const [isSendingDraft, setIsSendingDraft] = useState(false);
 
+    useEffect(() => setMounted(true), []);
 
     // Filter States
     // const [selectedTL, setSelectedTL] = useState("");
@@ -928,6 +930,8 @@ useEffect(() => {
         setSelectedCandidate(candidate);
         setModalType('tracker_history');
     };
+
+    if (!mounted) return <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center"><div className="text-lg">Loading...</div></div>;
 
     return (
         <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-3 md:p-4 relative">
