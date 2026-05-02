@@ -1128,6 +1128,17 @@ const handleSaveRequirement = async () => {
       alert('Error updating requirement');
     }
   };
+   const handlePreview = (req) => {
+       // JD डेटा को localStorage में सेव करें (ज़रूरत के हिसाब से फ़ील्ड्स सेट करें)
+       const jdDataToSave = {
+           ...req,
+           tool_requirement: req.tool_req // mapping tool_req to tool_requirement
+       };
+       localStorage.setItem('previewJD', JSON.stringify(jdDataToSave));
+       
+       // नए टैब में प्रीव्यू पेज खोलें
+       window.open(`/domestic/crm/jdview`, '_blank'); 
+   };
 
 return (
     <div className="flex h-screen bg-[#f8fafc] font-['Calibri'] text-slate-800 overflow-hidden">
@@ -2851,19 +2862,15 @@ return (
                                                {req.job_title}
                                             </td>
 
-                                            {/* JD View Button */}
-                                            <td className="px-4 py-3 text-center">
-                                               <button 
-                                                  onClick={() => setViewJdData({
-                                                    ...req,
-                                                    tool_requirement: req.tool_req
-                                                  })} 
-                                                  className="text-blue-600 hover:text-white bg-blue-50 hover:bg-blue-600 px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 mx-auto font-bold text-[10px] uppercase tracking-widest" 
-                                                  title="View Full JD"
-                                               >
-                                                  <Eye size={12}/> View JD
-                                               </button>
-                                            </td>
+                                           {/* JD View Button */}
+<td className="px-4 py-3 text-center align-middle"><button 
+        onClick={() => handlePreview(req)} 
+        className="text-blue-600 hover:text-white bg-blue-50 hover:bg-blue-600 px-3 py-1.5 rounded-md transition-colors flex items-center justify-center gap-1.5 mx-auto font-bold text-[10px] uppercase tracking-widest" 
+        title="View Full JD"
+    >
+        <Eye size={12}/> View JD
+    </button>
+</td>
 
                                             {/* Experience */}
                                             <td className="px-4 py-3 font-medium">
