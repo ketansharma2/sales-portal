@@ -8,7 +8,6 @@ import {
     X, Send, FileText, Briefcase, MapPin, GraduationCap, Edit3, Loader2, File, MessageCircle
 } from "lucide-react";
 
-export const dynamic = 'force-dynamic';
 // CV Preview Component - Handles PDF, Images, and Word documents
 function CVPreview({ url, name }) {
     const [blobUrl, setBlobUrl] = useState(null);
