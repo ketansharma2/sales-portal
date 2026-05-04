@@ -1122,10 +1122,10 @@ export default function LeadsTablePage() {
 
         {/* 4. MODAL SYSTEM */}
         {isFormOpen && (
-          <div className="fixed inset-0 bg-[#103c7f]/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+          <div className="fixed inset-0 bg-[#103c7f]/50 backdrop-blur-sm flex justify-center items-center z-50 p-2">
     <div className={`bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 duration-200 border-4 border-white ${modalType === 'view' ? 'max-h-[90vh]' : ''}`}>            
               {/* Modal Header */}
-              <div className="bg-[#103c7f] p-4 flex justify-between items-center text-white">
+              <div className="bg-[#103c7f] p-2 flex justify-between items-center text-white">
                 <div>
                   <h3 className="font-bold text-lg uppercase tracking-wide">
                     {modalType === 'create' ? 'Sourcing New Lead' : 
@@ -1144,7 +1144,7 @@ export default function LeadsTablePage() {
               </div>
 
               {/* Modal Content */}
-              <div className="p-6">
+              <div className="p-1">
                 
                 {/* === MODE 1: CREATE NEW LEAD FORM === */}
                 {(modalType === 'create' || modalType === 'edit') && (
@@ -1439,7 +1439,7 @@ export default function LeadsTablePage() {
   <div className="flex flex-col h-full max-h-[85vh] font-['Calibri'] bg-white rounded-2xl overflow-hidden shadow-2xl">
     
     {/* 1. HEADER: DETAILED COMPANY PROFILE */}
-    <div className="bg-gray-50 border-b border-gray-200 p-5">
+    <div className="bg-gray-50 border-b border-gray-200 p-4">
       <div className="flex items-center gap-6">
         {/* A. Company Name & Startup Badge */}
         <div className="shrink-0 min-w-[200px]">
@@ -1529,26 +1529,26 @@ export default function LeadsTablePage() {
     </div>
 
     {/* 2. INTERACTION HISTORY (Modern Table) */}
-    <div className="flex-1 overflow-hidden flex flex-col bg-white p-4">
+    <div className="flex-1 overflow-hidden flex flex-col bg-white p-1">
       <div className="flex flex-col h-full border border-gray-200 rounded-xl overflow-hidden shadow-sm">
         
         {/* Table Title */}
         <div className="px-5 py-3 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
-          <h4 className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+          <h4 className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-orange-500"></span> Interaction History
           </h4>
         </div>
         
         <div className="overflow-y-auto overflow-x-auto flex-1 custom-scrollbar max-h-[400px]">
-          <table className="w-full text-left border-collapse min-w-[900px]">
+          <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead className="bg-white text-[10px] font-bold text-gray-400 uppercase sticky top-0 z-10 shadow-sm border-b border-gray-100">
               <tr>
-                <th className="p-4">Follow-up Date</th>
-                <th className="p-4">Contact Details</th>
+                <th className="p-3">Follow-up Date</th>
+                <th className="p-3">Contact Details</th>
                 <th className="p-4 w-1/4">Remarks</th>
                 <th className="p-4 text-center">Status</th>
                 <th className="p-4 text-center">Franchise</th>
-                <th className="p-4 text-center">Next Follow-up</th>
+                <th className="p-3 text-center">Next Follow-up</th>
                 <th className="p-4 text-center">Action</th>
               </tr>
             </thead>
@@ -1556,7 +1556,7 @@ export default function LeadsTablePage() {
               {interactions.length > 0 ? interactions.map((interaction, index) => (
                 <tr key={index} className="hover:bg-blue-50/30 transition duration-150 group">
                   {/* Follow-up Date */}
-                  <td className="p-4">
+                  <td className="p-3">
                     <div className="font-bold text-[#103c7f] text-sm">
                       {interaction.date ? new Date(interaction.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'N/A'}
                     </div>
@@ -1564,7 +1564,7 @@ export default function LeadsTablePage() {
                   </td>
 
                   {/* MERGED: Contact Person + Info */}
-                  <td className="p-4">
+                  <td className="p-3">
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-[10px] shrink-0">
                         {interaction.contact_person ? interaction.contact_person.split(' ').map(n => n[0]).join('').toUpperCase() : '?'}
@@ -1602,7 +1602,7 @@ export default function LeadsTablePage() {
                   </td>
 
                   {/* Next Follow-up Date */}
-                  <td className="p-4 text-center">
+                  <td className="p-3 text-center">
                     <div className="text-orange-600 font-bold bg-orange-50 px-2 py-1 rounded border border-orange-100 inline-block">
                       {interaction.next_follow_up ? new Date(interaction.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : 'N/A'}
                     </div>
@@ -1610,7 +1610,7 @@ export default function LeadsTablePage() {
 
                   {/* ACTIONS: Edit & Delete for ALL rows */}
                   <td className="p-4 text-center">
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-1">
                       <button 
                         onClick={() => {
                           setInteractionData({...interaction});

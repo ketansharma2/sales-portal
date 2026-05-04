@@ -987,7 +987,6 @@ export default function LeadGenHome() {
             <h4 className="text-xs font-black text-purple-600 uppercase tracking-[0.2em] mb-3 flex items-center gap-2"><Briefcase size={14} /> 4. Master Union Clients</h4>
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
               <KpiCard title="Leads" total={kpiData.masterUnion.company} icon={<Briefcase size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union' })} />
-              <KpiCard title="Profiles" total={kpiData.masterUnion.profiles} icon={<UserCheck size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union' })} />
               <KpiCard title="Calls" total={kpiData.masterUnion.calling} icon={<Phone size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union', cardType: 'master_union_calls' })} />
             </div>
           </div>
