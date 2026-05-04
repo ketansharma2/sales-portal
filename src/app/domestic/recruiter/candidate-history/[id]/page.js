@@ -117,11 +117,11 @@ export default function CandidateHistoryPage() {
         slot: "",
         applyDate: getToday(),
         callingDate: getToday(),
-        relExp: "",
-        currCtc: "",
-        expCtc: "",
+          relExp: "NA",
+        currCtc: "NA",
+        expCtc: "NA",
         status: "",
-        feedback: ""
+         feedback: "NA",
     };
     const [formData, setFormData] = useState(initialForm);
 
@@ -527,6 +527,9 @@ export default function CandidateHistoryPage() {
                                     <td className="py-3 px-4 max-w-[200px] whitespace-normal">
                                         <p className="text-[11px] font-medium text-slate-600 italic leading-relaxed">"{row.feedback}"</p>
                                     </td>
+                                    
+
+
 
                                     <td className="py-3 px-4 text-center">
                                         {(() => {

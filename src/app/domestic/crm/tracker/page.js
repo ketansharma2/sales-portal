@@ -1,9 +1,9 @@
 "use client";
 import { useState, useEffect ,useMemo } from "react";
 import { useRouter  } from "next/navigation";
-import { 
-    Building2, Mail, History, Calendar, CheckCircle2, 
-    X, Send, FileText, Briefcase, MapPin, GraduationCap, Edit3, Loader2, File, MessageCircle
+import {
+    Building2, Mail, History, Calendar, CheckCircle2,
+    X, Send, FileText, Briefcase, MapPin, GraduationCap, Edit3, Loader2, File, MessageCircle, Search
 } from "lucide-react";
 import jsPDF from "jspdf";
 
@@ -170,7 +170,9 @@ export default function CRMClientTrackerPage() {
 
     // Filter States
     const [selectedTL, setSelectedTL] = useState("");
+    // const [dateRange, setDateRange] = useState({ start: "", end: "" });
     const [dateRange, setDateRange] = useState({ start: "", end: "" });
+    const [searchTerm, setSearchTerm] = useState("");
     const [tlUsers, setTlUsers] = useState([]);
 
     // Fetch TL users for dropdown
@@ -196,52 +198,58 @@ export default function CRMClientTrackerPage() {
         fetchTlUsers();
     }, []);
 
-    // Filter data based on TL and date range
+    // Filter data based on TL, date range, and search term
     const filteredCrmData = useMemo(() => {
         return crmData.filter(row => {
             // TL Filter
             if (selectedTL && row.tlName !== selectedTL) return false;
-            
+
             // Date Range Filter (based on trackerShareDate column - Column 1)
             if (dateRange.start || dateRange.end) {
                 const rowDate = row.trackerShareDate;
                 if (!rowDate || rowDate === '-') return false;
-                
+
                 // Parse date - handle formats: "04-Apr-2026" or "04 APR 2026" or "04-apr-2026"
                 let dateStr = '';
-                
+
                 // Replace spaces with hyphens and handle both cases
                 const normalizedDate = rowDate.replace(/\s+/g, '-').toLowerCase();
                 const parts = normalizedDate.split('-');
-                
+
                 if (parts.length === 3) {
                     const day = parts[0].padStart(2, '0');
                     const monthStr = parts[1];
                     const year = parts[2];
-                    
+
                     // Handle month names
                     const monthMap = {
-                        'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 
-                        'may': '05', 'jun': '06', 'jul': '07', 'aug': '08', 
+                        'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+                        'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
                         'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
                     };
                     const monthNum = monthMap[monthStr];
-                    
+
                     if (monthNum) {
                         dateStr = `${year}-${monthNum}-${day}`;
                     }
                 }
-                
+
                 if (!dateStr) return false;
-                
+
                 // Compare dates (YYYY-MM-DD format)
                 if (dateRange.start && dateStr < dateRange.start) return false;
                 if (dateRange.end && dateStr > dateRange.end) return false;
             }
-            
+
+            // Search Filter (Name or Profile)
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                if (!row.name.toLowerCase().includes(term) && !row.profile.toLowerCase().includes(term)) return false;
+            }
+
             return true;
         });
-    }, [crmData, selectedTL, dateRange]);
+    }, [crmData, selectedTL, dateRange, searchTerm]);
 
     // Fetch CRM Tracker Data from API
     useEffect(() => {
@@ -937,6 +945,17 @@ export default function CRMClientTrackerPage() {
                     
                     {/* Filter Section */}
                     <div className="flex flex-wrap items-center gap-2 bg-white border border-slate-200 px-3 py-2 rounded-lg shadow-sm">
+                        {/* Search Filter */}
+                        <div className="flex items-center gap-2">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Search:</label>
+                            <input
+                                type="text"
+                                placeholder="Name or Profile"
+                                className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
                         {/* TL Filter */}
                         <div className="flex items-center gap-2">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">TL:</label>
@@ -973,9 +992,9 @@ export default function CRMClientTrackerPage() {
                         </div>
 
                         {/* Clear Filters */}
-                        {(selectedTL || dateRange.start || dateRange.end) && (
-                            <button 
-                                onClick={() => { setSelectedTL(""); setDateRange({ start: "", end: "" }); }}
+                        {(selectedTL || dateRange.start || dateRange.end || searchTerm) && (
+                            <button
+                                onClick={() => { setSelectedTL(""); setDateRange({ start: "", end: "" }); setSearchTerm(""); }}
                                 className="text-[10px] font-bold text-red-600 hover:text-red-800 uppercase tracking-widest"
                             >
                                 Clear

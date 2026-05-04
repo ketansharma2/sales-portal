@@ -123,11 +123,11 @@ export default function CandidateHistoryPage() {
         slot: "",
         applyDate: getToday(),
         callingDate: getToday(),
-        relExp: "",
-        currCtc: "",
-        expCtc: "",
+        relExp: "NA",
+        currCtc: "NA",
+        expCtc: "NA",
         status: "",
-        feedback: ""
+         feedback: "NA",
     };
     const [formData, setFormData] = useState(initialForm);
 
@@ -488,7 +488,7 @@ export default function CandidateHistoryPage() {
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Dates</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Relevant Exp</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Curr CTC/Exp CTC</th>
-                                <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest max-w-[200px]">Feedback</th>
+                                <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest ">Feedback</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Candidate Status</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center border-l border-slate-200 w-36">Actions</th>
                                 <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center border-l border-slate-200 w-32 sticky right-0 bg-slate-50">Tracker Status</th>
@@ -530,9 +530,11 @@ export default function CandidateHistoryPage() {
                                         <p className="text-[11px] font-bold text-slate-500">{row.currCtc || "-"} / <span className="text-emerald-600">{row.expCtc || "-"}</span></p>
                                     </td>
 
-                                    <td className="py-3 px-4 max-w-[200px] whitespace-normal">
-                                        <p className="text-[11px] font-medium text-slate-600 italic leading-relaxed">"{row.feedback}"</p>
-                                    </td>
+                                    <td className="py-3 px-4 max-w-[150px]">
+    <p className="text-[11px] font-medium text-slate-600 italic truncate" title={row.feedback}>
+        "{row.feedback}"
+    </p>
+</td>
 
                                     <td className="py-3 px-4 text-center">
                                         {(() => {
@@ -625,7 +627,7 @@ export default function CandidateHistoryPage() {
                 <div className="fixed inset-0 z-[100] flex justify-center items-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 p-4">
                     <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 overflow-hidden border-4 border-white">
                         
-                        {/* Header */}
+                       
                         <div className="bg-[#103c7f] text-white p-5 flex justify-between items-center shrink-0">
                             <div>
                                 <h2 className="text-base font-black uppercase tracking-widest flex items-center gap-2">
@@ -635,7 +637,7 @@ export default function CandidateHistoryPage() {
                             <button onClick={() => setIsAddModalOpen(false)} className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"><X size={18} /></button>
                         </div>
 
-                        {/* Form Body - Grid Layout */}
+                       
                         <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 custom-scrollbar bg-slate-50/30">
                             
                              {/* Combined Profile & Slot Dropdown (Full Width on mobile, spans 2 cols if needed, but keeping 1 col here as per design) */}

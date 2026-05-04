@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { 
-    Building2, History, Calendar, CheckCircle2, 
+    Building2, History, Calendar, CheckCircle2, Trash2,
     X, FileText, Briefcase, MapPin, GraduationCap,
     ArrowLeft, Clock, Plus, Eye, AlignLeft
 } from "lucide-react";
@@ -72,6 +72,35 @@ export default function TrackerHistoryPage() {
             fetchEmailHistory();
         }
     }, [params.id]);
+
+
+     const handleDelete = async (id) => {
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+
+            const response = await fetch('/api/domestic/crm/email-history/delete', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setEmailData(prev => prev.filter(item => item.id !== id));
+                alert('Record deleted successfully');
+            } else {
+                alert('Error deleting record: ' + (result.message || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Error deleting record');
+        }
+    };
 
     // --- FETCH INTERVIEW JOURNEYS ---
     const fetchInterviewJourneys = async (emailHistoryData) => {
@@ -293,6 +322,17 @@ export default function TrackerHistoryPage() {
                                                 >
                                                     <Eye size={12}/> View
                                                 </button>
+                                                 <button
+                                                                                                    onClick={() => {
+                                                                                                        if (confirm(`Are you sure you want to delete this email history record?`)) {
+                                                                                                            handleDelete(row.id);
+                                                                                                        }
+                                                                                                    }}
+                                                                                                    className="flex-1 py-1.5 px-2 rounded bg-red-600 text-white hover:bg-red-700 flex items-center justify-center gap-1.5 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
+                                                                                                    title="Delete Record"
+                                                                                                >
+                                                                                                    <Trash2 size={12}/> Delete
+                                                                                                </button>
                                             </div>
                                         </td>
 

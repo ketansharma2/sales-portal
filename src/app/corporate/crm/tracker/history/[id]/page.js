@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { 
     Building2, History, Calendar, CheckCircle2, 
     X, FileText, Briefcase, MapPin, GraduationCap,
-    ArrowLeft, Clock, Plus, Eye, AlignLeft,Edit2
+    ArrowLeft, Clock, Plus, Eye, AlignLeft,Edit2,Trash2
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 
@@ -22,6 +22,7 @@ export default function TrackerHistoryPage() {
     const [selectedJourneyItem, setSelectedJourneyItem] = useState(null);
 const [updatingJourney, setUpdatingJourney] = useState(false);
     // Form State
+    const [deletingJourney, setDeletingJourney] = useState(false);
     const [journeyForm, setJourneyForm] = useState({
         status: "", 
         actionDate: new Date().toISOString().split('T')[0],
@@ -287,6 +288,34 @@ const handleUpdateJourney = async () => {
         }
     };
 
+    const handleDelete = async (id) => {
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+
+            const response = await fetch('/api/corporate/crm/email-history/delete', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setEmailData(prev => prev.filter(item => item.id !== id));
+                alert('Record deleted successfully');
+            } else {
+                alert('Error deleting record: ' + (result.message || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Error deleting record');
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-6 flex items-center justify-center">
@@ -375,19 +404,30 @@ const handleUpdateJourney = async () => {
                                         {/* Action Buttons (Sticky Right) */}
                                         <td className="py-4 px-4 sticky right-0 bg-white border-l border-slate-100 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.02)]">
                                             <div className="flex gap-2">
-                                                <button 
+                                                <button
                                                     onClick={() => openAddJourneyModal(row)}
                                                     className="flex-1 py-1.5 px-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 flex items-center justify-center gap-1.5 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
                                                     title="Add Status"
                                                 >
                                                     <Plus size={12}/> Add
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => openViewJourneyModal(row)}
                                                     className="flex-1 py-1.5 px-2 rounded bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50 flex items-center justify-center gap-1.5 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
                                                     title="View Timeline"
                                                 >
                                                     <Eye size={12}/> View
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        if (confirm(`Are you sure you want to delete this email history record?`)) {
+                                                            handleDelete(row.id);
+                                                        }
+                                                    }}
+                                                    className="flex-1 py-1.5 px-2 rounded bg-red-600 text-white hover:bg-red-700 flex items-center justify-center gap-1.5 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
+                                                    title="Delete Record"
+                                                >
+                                                    <Trash2 size={12}/> Delete
                                                 </button>
                                             </div>
                                         </td>
@@ -521,21 +561,21 @@ const handleUpdateJourney = async () => {
             <div key={step.id} className="relative pl-6 border-l-2 border-indigo-200 pb-2 last:border-l-0 last:pb-0 group">
                 <div className="absolute w-3 h-3 bg-indigo-500 rounded-full -left-[7px] top-1 border-2 border-white shadow-sm"></div>
                 <div className="bg-white border border-slate-200 p-3 rounded-xl shadow-sm -mt-2">
-                    <div className="flex justify-between items-start mb-1.5">
-                        <p className="text-xs font-black text-indigo-700 uppercase tracking-widest">{step.status}</p>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1">
-                                <Calendar size={10}/> {step.date}
-                            </span>
-                            <button 
-                                onClick={() => openEditJourneyModal(selectedHistoryRow, step)}
-                                 className="text-slate-400 hover:text-indigo-600 transition-colors"
-                                title="Edit"
-                            >
-                                <Edit2 size={12}/>
-                            </button>
-                        </div>
-                    </div>
+                             <div className="flex justify-between items-start mb-1.5">
+                         <p className="text-xs font-black text-indigo-700 uppercase tracking-widest">{step.status}</p>
+                         <div className="flex items-center gap-2">
+                             <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1">
+                                 <Calendar size={10}/> {step.date}
+                             </span>
+                             <button
+                                 onClick={() => openEditJourneyModal(selectedHistoryRow, step)}
+                                  className="text-slate-400 hover:text-indigo-600 transition-colors"
+                                 title="Edit"
+                             >
+                                 <Edit2 size={12}/>
+                             </button>
+                         </div>
+                     </div>
                     <p className="text-[11px] font-medium text-slate-600 italic">"{step.remark}"</p>
                 </div>
             </div>

@@ -1,9 +1,9 @@
 "use client";
 import { useState, useMemo ,useEffect} from "react";
-import { 
+import {
     Building2, History, Calendar, X, FileText, Upload, Trash2,
-    MapPin, GraduationCap, Eye, Mail, CheckCircle2, 
-    Clock, Users, UserCheck, AlertCircle, Briefcase, XCircle, Loader2, File, Send, User, Phone, IndianRupee, FileText as FileTextIcon
+    MapPin, GraduationCap, Eye, Mail, CheckCircle2,
+    Clock, Users, UserCheck, AlertCircle, Briefcase, XCircle, Loader2, File, Send, User, Phone, IndianRupee, FileText as FileTextIcon, Search
 } from "lucide-react";
 import jsPDF from "jspdf";
 
@@ -148,9 +148,10 @@ function CVPreview({ url, name }) {
 }
 
 export default function EmailHistoryPage() {
-     // --- STATE ---
-     const [selectedClient, setSelectedClient] = useState("All");
-     const [dateRange, setDateRange] = useState({ start: "", end: "" });
+      // --- STATE ---
+      const [selectedClient, setSelectedClient] = useState("All");
+      const [dateRange, setDateRange] = useState({ start: "", end: "" });
+      const [searchTerm, setSearchTerm] = useState("");
      const [modalType, setModalType] = useState(null);
      const [selectedCandidate, setSelectedCandidate] = useState(null);
      const [emailData, setEmailData] = useState([]);
@@ -334,15 +335,15 @@ export default function EmailHistoryPage() {
     // Use clientsList for dropdown, but still use emailData for filtering when "All" is not selected
     const clientCompanies = [...new Set(emailData.map(item => item.clientCompany))];
 
-    // --- FILTER DATA BASED ON DROPDOWN AND DATE RANGE ---
+    // --- FILTER DATA BASED ON DROPDOWN, DATE RANGE, AND SEARCH TERM ---
     const filteredData = useMemo(() => {
         let data = emailData;
-        
+
         // Filter by client
         if (selectedClient !== "All") {
             data = data.filter(row => row.clientCompany === selectedClient);
         }
-        
+
         // Filter by date range
         if (dateRange.start && dateRange.end) {
             data = data.filter(row => {
@@ -353,9 +354,18 @@ export default function EmailHistoryPage() {
                 return rowDate >= startDate && rowDate <= endDate;
             });
         }
-        
+
+        // Search Filter (Name or Profile)
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            data = data.filter(row =>
+                row.name.toLowerCase().includes(term) ||
+                row.profile.toLowerCase().includes(term)
+            );
+        }
+
         return data;
-    }, [selectedClient, dateRange, emailData]);
+    }, [selectedClient, dateRange, searchTerm, emailData]);
 
     // --- CALCULATE DYNAMIC KPIs ---
     const kpiCounts = useMemo(() => {
@@ -460,6 +470,19 @@ export default function EmailHistoryPage() {
 
             {/* --- FILTER BAR --- */}
             <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                {/* Search Filter */}
+                <div className="flex items-center gap-3 w-full max-w-lg">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest shrink-0">
+                        <Search size={14} className="inline mr-1 mb-0.5 text-indigo-500"/> Search:
+                    </label>
+                    <input
+                        type="text"
+                        placeholder="Name or Profile"
+                        className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
                 <div className="flex items-center gap-3 w-full max-w-md">
                     <label className="text-xs font-black text-slate-500 uppercase tracking-widest shrink-0">
                         <Building2 size={14} className="inline mr-1 mb-0.5 text-indigo-500"/> Select Client:
@@ -479,19 +502,28 @@ export default function EmailHistoryPage() {
                     <label className="text-xs font-black text-slate-500 uppercase tracking-widest shrink-0">
                         <Calendar size={14} className="inline mr-1 mb-0.5 text-indigo-500"/> Date Range:
                     </label>
-                    <input 
-                        type="date" 
+                    <input
+                        type="date"
                         className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
                         value={dateRange.start}
                         onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
                     />
                     <span className="text-xs font-bold text-slate-400">to</span>
-                    <input 
-                        type="date" 
+                    <input
+                        type="date"
                         className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
                         value={dateRange.end}
                         onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
                     />
+                    {/* Clear Filters */}
+                    {(selectedClient !== "All" || dateRange.start || dateRange.end || searchTerm) && (
+                        <button
+                            onClick={() => { setSelectedClient("All"); setDateRange({ start: "", end: "" }); setSearchTerm(""); }}
+                            className="text-[10px] font-bold text-red-600 hover:text-red-800 uppercase tracking-widest"
+                        >
+                            Clear
+                        </button>
+                    )}
                 </div>
             </div>
 
