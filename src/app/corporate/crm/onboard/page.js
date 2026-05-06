@@ -180,15 +180,15 @@ export default function OnboardPage() {
               <thead>
                 {/* Updated Header Color: Subtle Blue Tint */}
                 <tr className="bg-[#103c7f]/5 border-b border-[#103c7f]/10 text-[10px] font-black text-[#103c7f] uppercase tracking-widest">
-                  <th className="px-5 py-3 whitespace-nowrap">Onboarding Date</th>
-                  <th className="px-5 py-3 whitespace-nowrap">Company Name</th>
-                  <th className="px-5 py-3 whitespace-nowrap">Category</th>
-                  <th className="px-5 py-3 whitespace-nowrap">Location & State</th>
-                  <th className="px-5 py-3 whitespace-nowrap w-64">Contact Person</th>
-                  <th className="px-5 py-3 whitespace-nowrap">Remarks</th>
-                  <th className="px-5 py-3 whitespace-nowrap">TNC</th>
-                  <th className="px-5 py-3 whitespace-nowrap">Client Status</th>
-                  <th className="px-5 py-3 whitespace-nowrap text-center">Status</th>
+                  <th className="px-2 py-2 whitespace-nowrap min-w-[100px]">Onboarding Date</th>
+                  <th className="px-2 py-2 whitespace-nowrap min-w-[100px]">Company Name</th>
+                  <th className="px-2 py-2 whitespace-nowrap min-w-[80px]">Category</th>
+                  <th className="px-2 py-2 whitespace-nowrap min-w-[100px]">Location & State</th>
+                  <th className="px-2 py-2 whitespace-nowrap min-w-[100px]">Contact Person</th>
+                  <th className="px-2 py-2 whitespace-nowrap min-w-[100px]">Remarks</th>
+                  <th className="px-2 py-2 whitespace-nowrap min-w-[50px]">TNC</th>
+                  <th className="px-2 py-2 whitespace-nowrap min-w-[50px]">Client Status</th>
+                  <th className="px-2 py-2 whitespace-nowrap text-center min-w-[80px]">Status</th>
                 </tr>
               </thead>
 
@@ -209,39 +209,44 @@ export default function OnboardPage() {
                       onClick={() => router.push(`/corporate/crm/clients/${item.id}`)}
                       className="hover:bg-blue-50/40 transition-colors group cursor-pointer"
                     >
-                      <td className="px-5 py-3.5 text-xs font-bold text-gray-500 whitespace-nowrap">{item.date}</td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-4 py-2 text-xs font-bold text-gray-500 whitespace-nowrap">{item.date}</td>
+                      <td className="px-2 py-2">
                         <div className="font-black text-[#103c7f] text-sm">{item.company}</div>
                         <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">ID: #{item.id}</div>
                       </td>
-                      <td className="px-5 py-3.5">
-                        <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-bold border border-slate-200">{item.category}</span>
-                      </td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-2 py-2">
+    <span 
+      className="block truncate text-slate-600 px-2 py-1 rounded text-[10px] font-bold" 
+      title={item.category}
+    >
+        {item.category}
+    </span>
+</td>
+                      <td className="px-2 py-2">
                         <div className="flex flex-col">
                           <span className="text-xs font-bold text-gray-700 flex items-center gap-1"><MapPin size={10} className="text-orange-500" /> {item.location}</span>
                           <span className="text-[10px] text-gray-400 font-semibold pl-3.5">{item.state}</span>
                         </div>
                       </td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-2 py-2">
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-1.5"><User size={12} className="text-[#103c7f]" /><span className="text-xs font-bold text-gray-800">{item.contact.name}</span></div>
                           <div className="flex items-center gap-1.5 pl-0.5"><Mail size={10} className="text-gray-400" /><span className="text-[10px] text-gray-500 font-medium">{item.contact.email}</span></div>
                           <div className="flex items-center gap-1.5 pl-0.5"><Phone size={10} className="text-gray-400" /><span className="text-[10px] text-gray-500 font-medium">{item.contact.phone}</span></div>
                         </div>
                       </td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-2 py-2">
                         <div className="flex items-center gap-2 relative w-fit p-1.5 rounded hover:bg-yellow-50 transition-colors border border-transparent hover:border-yellow-100">
                           <MessageSquare size={14} className="text-gray-400" />
                           <span className="text-[11px] font-medium text-gray-600 truncate max-w-[150px]" title={item.remarks}>{item.remarks}</span>
                         </div>
                       </td>
-                      <td className="px-5 py-3.5">
-                        <span className="text-[10px] font-medium text-gray-600 truncate block max-w-[120px]" title={item.tnc}>{item.tnc}</span>
+                      <td className="px-2 py-2">
+                        <span className="text-[10px] font-medium text-gray-600 truncate block max-w-[100px]" title={item.tnc}>{item.tnc}</span>
                       </td>
 
                       {/* --- CLIENT STATUS COLUMN --- */}
-                      <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
                         <button 
                           onClick={() => handleToggleStatus(item.id, item.clientStatus, item.company)}
                           className={`px-2 py-1 rounded text-[10px] font-bold cursor-pointer hover:opacity-80 transition-opacity ${
@@ -253,7 +258,7 @@ export default function OnboardPage() {
                       </td>
 
                       {/* --- ACTION COLUMN --- */}
-                      <td className="px-5 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-2 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                          {item.isAcknowledged ? (
                            <div className="inline-flex items-center gap-1 bg-green-50 border border-green-100 text-green-700 px-3 py-1 rounded-md shadow-sm">
                              <CheckCircle size={12} />

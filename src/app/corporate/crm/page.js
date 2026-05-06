@@ -710,7 +710,7 @@ export default function CRMDashboard() {
       }));
 
   return (
-    <div className="flex h-screen bg-[#f8fafc] font-['Calibri'] text-slate-800 overflow-hidden">
+    <div className="flex h-screen bg-[#f8fafc] font-['Calibri'] text-slate-800 ">
       
       {/* ================= LEFT SECTION (MAIN DASHBOARD - 75% Width) ================= */}
       <div className="flex-1 flex flex-col h-full overflow-hidden border-r border-gray-200">
@@ -756,7 +756,7 @@ export default function CRMDashboard() {
         </div>
 
         {/* CONTENT AREA */}
-        <div className="flex-1 flex flex-col overflow-hidden p-5 space-y-6 bg-slate-50">
+        <div className="flex-1 overflow-y-auto flex flex-col  p-5 space-y-6 bg-slate-50">
           
           {/* --- ROW 1: DATABASE OVERVIEW (LIFETIME) --- */}
           <div className="shrink-0">
@@ -781,9 +781,9 @@ export default function CRMDashboard() {
 
 
           {/* --- ROW 3: DETAILED TABLE --- */}
-          <div className="flex-1 flex flex-col min-h-0 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <div className=" flex-1 min-h-[500px] flex flex-col  bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
             {/* Table Header */}
-            <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 flex justify-between items-center shrink-0">
+            <div className="px-4 py-2 border-b border-gray-200 bg-gray-50 flex justify-between items-center shrink-0">
                <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
                 <FileText size={14}/> Client Data ({dateRange.from} - {dateRange.to})
               </h3>
@@ -791,14 +791,14 @@ export default function CRMDashboard() {
             </div>
             
             {/* Table Body */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
-                <table className="w-full text-left border-collapse relative">
+             <div className="flex-1 overflow-y-auto custom-scrollbar">
+                 <table className="w-full text-left border-collapse relative table-fixed">
                   <thead className="bg-white text-[10px] font-black text-gray-500 uppercase tracking-wider sticky top-0 z-10 shadow-sm">
                     <tr>
-                      <th className="px-4 py-3 bg-gray-50/95 backdrop-blur">Date & Mode</th>
-                      <th className="px-4 py-3 bg-gray-50/95 backdrop-blur">Company Name</th>
-                      <th className="px-4 py-3 bg-gray-50/95 backdrop-blur">Contact Info</th>
-                      <th className="px-4 py-3 bg-gray-50/95 backdrop-blur">Conversation</th>
+                      <th className="px-4 py-2 bg-gray-50/95 backdrop-blur w-20">Date & Mode</th>
+                      <th className="px-4 py-2 bg-gray-50/95 backdrop-blur w-40">Company Name</th>
+                      <th className="px-4 py-2 bg-gray-50/95 backdrop-blur w-40">Contact Info</th>
+                      <th className="px-4 py-2 bg-gray-50/95 backdrop-blur w-auto">Conversation</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 text-xs font-medium text-gray-700">
