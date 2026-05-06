@@ -1059,147 +1059,147 @@ useEffect(() => {
             </div>
 
             {/* --- MAIN TABLE --- */}
-            <div className="bg-white border border-slate-100 rounded-xl shadow-xs overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="overflow-x-auto custom-scrollbar min-h-[50vh] pb-3">
-                    <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1300px]">
-                        <thead className="sticky top-0 z-10">
-                            <tr className="bg-slate-800 text-white">
-                                <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600">TL & Date</th>
-                                <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600 text-center">RC CV</th>
-                                <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600">Candidate Name</th>
-                                <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600">Profile</th>
-                                <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600">Location</th>
-                                <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600">Qualification</th>
-                                <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600">Exp & Rel Exp</th>
-                                <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600">CTC (Current / Expected)</th>
-                                <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest max-w-[180px] border-b border-slate-600">TL Evaluation</th>
-                                <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest text-center border-b border-slate-600">Updated CV</th>
-                                
-                                {/* Action Column */}
-                                <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest bg-indigo-800/50 sticky right-0 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.2)] text-center border-l border-b border-slate-600 w-32">
-                                    <div className="flex flex-col items-center gap-1">
-                                        <span>Action</span>
-                                        <div className="flex items-center gap-1 bg-slate-800/80 rounded px-1.5 py-0.5 cursor-pointer hover:bg-slate-700" onClick={toggleAllSelection}>
-                                            <input 
-                                                type="checkbox" 
-                                                className="cursor-pointer accent-indigo-500 w-3 h-3"
-                                                checked={selectedRowIds.length === filteredCrmData.length && filteredCrmData.length > 0}
-                                                readOnly
-                                            />
-                                            <span className="text-[8px] text-slate-300">Select All</span>
-                                        </div>
-                                    </div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50 bg-white">
-                            {filteredCrmData.map((row) => {
-                                const isSelected = selectedRowIds.includes(row.id);
-                                return (
-                                    <tr key={row.id} className={`transition-colors group ${isSelected ? 'bg-indigo-50/50' : 'hover:bg-slate-50/50'}`}>
-                                        
-                                        {/* TL & Date */}
-                                        <td className="py-2 px-3">
-                                            <p className="text-[11px] font-black text-slate-800">{row.tlName}</p>
-                                            <p className="text-[9px] font-bold text-slate-500 flex items-center gap-1 uppercase tracking-widest mt-0.5">
-                                                <Calendar size={9} className="text-indigo-400"/> {row.trackerShareDate}
-                                            </p>
-                                        </td>
+           <div className="bg-white border border-slate-100 rounded-xl shadow-xs overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="overflow-x-auto overflow-y-auto custom-scrollbar max-h-[80vh] pb-3">
+        {/* 1. Added 'table-fixed' here */}
+        <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1300px] table-fixed">
+            <thead className="sticky top-0 z-20 shadow-sm">
+                <tr className="bg-slate-800 text-white">
+                    {/* 2. Added explicit w-[...] to each th */}
+                    <th className="py-2 px-2 text-[9px] font-black uppercase tracking-widest border-b border-slate-600 w-[120px]">TL & Date</th>
+                    <th className="py-2 px-2 text-[9px] font-black uppercase tracking-widest border-b border-slate-600 text-center w-[60px]">RC CV</th>
+                    <th className="py-2 px-2 text-[9px] font-black uppercase tracking-widest border-b border-slate-600 w-[150px]">Candidate Name</th>
+                    <th className="py-2 px-2 text-[9px] font-black uppercase tracking-widest border-b border-slate-600 w-[120px]">Profile</th>
+                    <th className="py-2 px-2 text-[9px] font-black uppercase tracking-widest border-b border-slate-600 w-[130px]">Location</th>
+                    <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600 w-[140px]">Qualification</th>
+                    <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600 w-[100px]">Exp & Rel Exp</th>
+                    <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600 w-[140px]">CTC (Current / Expected)</th>
+                    <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600 w-[200px]">TL Evaluation</th>
+                    <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest text-center border-b border-slate-600 w-[80px]">Updated CV</th>
+                    
+                    {/* Action Column */}
+                    <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest bg-indigo-800/50 sticky right-0 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.2)] text-center border-l border-b border-slate-600 w-32">
+                        <div className="flex flex-col items-center gap-1">
+                            <span>Action</span>
+                            <div className="flex items-center gap-1 bg-slate-800/80 rounded px-1.5 py-0.5 cursor-pointer hover:bg-slate-700" onClick={toggleAllSelection}>
+                                <input 
+                                    type="checkbox" 
+                                    className="cursor-pointer accent-indigo-500 w-3 h-3"
+                                    checked={selectedRowIds.length === filteredCrmData.length && filteredCrmData.length > 0}
+                                    readOnly
+                                />
+                                <span className="text-[8px] text-slate-300">Select All</span>
+                            </div>
+                        </div>
+                    </th>
+                </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50 bg-white">
+                {filteredCrmData.map((row) => {
+                    const isSelected = selectedRowIds.includes(row.id);
+                    return (
+                        <tr key={row.id} className={`transition-colors group ${isSelected ? 'bg-indigo-50/50' : 'hover:bg-slate-50/50'}`}>
+                            
+                            {/* TL & Date */}
+                            <td className="py-2 px-3 overflow-hidden">
+                                {/* 3. Added truncate and title */}
+                                <p className="text-[11px] font-black text-slate-800 truncate" title={row.tlName}>{row.tlName}</p>
+                                <p className="text-[9px] font-bold text-slate-500 flex items-center gap-1 uppercase tracking-widest mt-0.5 truncate" title={row.trackerShareDate}>
+                                    <Calendar size={9} className="text-indigo-400 shrink-0"/> {row.trackerShareDate}
+                                </p>
+                            </td>
 
-                                        {/* RC CV */}
-                                        <td className="py-2 px-3 text-center">
-                                            <button 
-                                                onClick={() => openRcCvModal(row)}
-                                                className="w-7 h-7 rounded-full bg-amber-100 text-amber-600 hover:bg-amber-200 hover:text-amber-700 flex items-center justify-center mx-auto transition-colors shadow-xs"
-                                                title="View Raw CV"
-                                            >
-                                                <FileText size={12} />
-                                            </button>
-                                        </td>
+                            {/* RC CV (No truncate needed here) */}
+                            <td className="py-2 px-3 text-center">
+                                <button 
+                                    onClick={() => openRcCvModal(row)}
+                                    className="w-7 h-7 rounded-full bg-amber-100 text-amber-600 hover:bg-amber-200 hover:text-amber-700 flex items-center justify-center mx-auto transition-colors shadow-xs shrink-0"
+                                    title="View Raw CV"
+                                >
+                                    <FileText size={12} />
+                                </button>
+                            </td>
 
-                                        {/* Candidate Name */}
-                                        <td className="py-2 px-3">
-                                            <p className="text-[11px] font-black text-slate-800">{row.name}</p>
-                                        </td>
+                            {/* Candidate Name */}
+                            <td className="py-2 px-3 overflow-hidden">
+                                <p className="text-[11px] font-black text-slate-800 truncate block w-full" title={row.name}>{row.name}</p>
+                            </td>
 
-                                        {/* Profile */}
-                                        <td className="py-2 px-3">
-                                            <span className="text-[9px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded uppercase tracking-widest">
-                                                {row.profile}
-                                            </span>
-                                        </td>
+                            {/* Profile */}
+                            <td className="py-2 px-3 overflow-hidden">
+                                <span className="text-[9px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded uppercase tracking-widest truncate block w-fit max-w-full" title={row.profile}>
+                                    {row.profile}
+                                </span>
+                            </td>
 
-                                        {/* Location */}
-                                        <td className="py-2 px-3">
-                                            <p className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
-                                                <MapPin size={11} className="text-slate-400"/> {row.location}
-                                            </p>
-                                        </td>
+                            {/* Location */}
+                            <td className="py-2 px-3 overflow-hidden">
+                                <p className="text-[11px] font-bold text-slate-600 flex items-center gap-1 truncate w-full" title={row.location}>
+                                    <MapPin size={11} className="text-slate-400 shrink-0"/> <span className="truncate">{row.location}</span>
+                                </p>
+                            </td>
 
-                                        {/* Qualification */}
-                                        <td className="py-2 px-3">
-                                            <p className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
-                                                <GraduationCap size={11} className="text-slate-400"/> {row.qualification}
-                                            </p>
-                                        </td>
+                            {/* Qualification */}
+                            <td className="py-2 px-3 overflow-hidden">
+                                <p className="text-[11px] font-bold text-slate-600 flex items-center gap-1 truncate w-full" title={row.qualification}>
+                                    <GraduationCap size={11} className="text-slate-400 shrink-0"/> <span className="truncate">{row.qualification}</span>
+                                </p>
+                            </td>
 
-                                        {/* Experience */}
-                                        <td className="py-2 px-3">
-                                            <p className="text-[11px] font-black text-slate-800 mb-0.5">{row.experience} <span className="text-[8px] font-bold text-slate-400">Tot</span></p>
-                                            <p className="text-[11px] font-black text-emerald-600">{row.relevantExp} <span className="text-[8px] font-bold text-emerald-400">Rel</span></p>
-                                        </td>
+                            {/* Experience */}
+                            <td className="py-2 px-3 overflow-hidden">
+                                <p className="text-[11px] font-black text-slate-800 mb-0.5 truncate" title={`${row.experience} Tot`}>{row.experience} <span className="text-[8px] font-bold text-slate-400">Tot</span></p>
+                                <p className="text-[11px] font-black text-emerald-600 truncate" title={`${row.relevantExp} Rel`}>{row.relevantExp} <span className="text-[8px] font-bold text-emerald-400">Rel</span></p>
+                            </td>
 
-                                        {/* CTC */}
-                                        <td className="py-2 px-3">
-                                            <p className="text-[10px] font-bold text-slate-500 mb-0.5"><span className="w-4 inline-block text-slate-400">C:</span> {row.cCTC}</p>
-                                            <p className="text-[10px] font-black text-emerald-700"><span className="w-4 inline-block text-emerald-400 font-bold">E:</span> {row.eCTC}</p>
-                                        </td>
+                            {/* CTC */}
+                            <td className="py-2 px-3 overflow-hidden">
+                                <p className="text-[10px] font-bold text-slate-500 mb-0.5 truncate" title={`Current: ${row.cCTC}`}><span className="w-4 inline-block text-slate-400">C:</span> {row.cCTC}</p>
+                                <p className="text-[10px] font-black text-emerald-700 truncate" title={`Expected: ${row.eCTC}`}><span className="w-4 inline-block text-emerald-400 font-bold">E:</span> {row.eCTC}</p>
+                            </td>
 
-                                        {/* TL Evaluation */}
-                                        <td className="py-2 px-3 max-w-[180px] whitespace-normal">
-                                            <p className="text-[9px] font-medium text-slate-600 italic leading-snug border-l-2 border-amber-400 pl-2">
-                                                "{row.tlEvaluation}"
-                                            </p>
-                                        </td>
+                            {/* TL Evaluation */}
+                            <td className="py-2 px-3 overflow-hidden">
+                                <p className="text-[9px] font-medium text-slate-600 italic leading-snug border-l-2 border-amber-400 pl-2 truncate w-full" title={row.tlEvaluation}>
+                                    "{row.tlEvaluation}"
+                                </p>
+                            </td>
 
-                                        {/* View CV File */}
-                                        <td className="py-2 px-3 text-center">
-                                            <button 
-                                                onClick={() => openCVModal(row)}
-                                                className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 hover:bg-indigo-100 hover:text-indigo-700 flex items-center justify-center mx-auto transition-colors shadow-xs"
-                                                title="View Processed CV"
-                                            >
-                                                <FileText size={12} />
-                                            </button>
-                                        </td>
+                            {/* View CV File */}
+                            <td className="py-2 px-3 text-center">
+                                <button 
+                                    onClick={() => openCVModal(row)}
+                                    className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 hover:bg-indigo-100 hover:text-indigo-700 flex items-center justify-center mx-auto transition-colors shadow-xs shrink-0"
+                                    title="View Processed CV"
+                                >
+                                    <FileText size={12} />
+                                </button>
+                            </td>
 
-                                        {/* Action Column (Checkbox + Button) */}
-                                        <td className="py-2 px-3 sticky right-0 bg-slate-50/50 transition-colors z-10 border-l border-slate-100 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.03)] w-32">
-                                            <div className="flex flex-col items-center justify-center gap-2">
-                                                
-                                                <input 
-                                                    type="checkbox" 
-                                                    className="cursor-pointer accent-indigo-600 w-4 h-4 shadow-xs rounded"
-                                                    checked={isSelected}
-                                                    onChange={() => toggleRowSelection(row.id)}
-                                                />
-
-                                                <button 
-                                                    onClick={() => router.push(`/corporate/crm/tracker/history/${row.id}`)}
-                                                    className="w-full py-1 px-2 rounded-lg bg-white text-indigo-600 border border-indigo-300 hover:bg-indigo-50 flex items-center justify-center gap-1 font-black text-[8px] uppercase tracking-widest transition-all shadow-xs"
-                                                >
-                                                    <History size={10}/> History
-                                                </button>
-                                            </div>
-                                        </td>
-
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                            {/* Action Column */}
+                            <td className="py-2 px-3 sticky right-0 bg-slate-50/50 transition-colors z-10 border-l border-slate-100 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.03)] w-32">
+                                <div className="flex flex-col items-center justify-center gap-2">
+                                    <input 
+                                        type="checkbox" 
+                                        className="cursor-pointer accent-indigo-600 w-4 h-4 shadow-xs rounded"
+                                        checked={isSelected}
+                                        onChange={() => toggleRowSelection(row.id)}
+                                    />
+                                    <button 
+                                        onClick={() => router.push(`/corporate/crm/tracker/history/${row.id}`)}
+                                        className="w-full py-1 px-2 rounded-lg bg-white text-indigo-600 border border-indigo-300 hover:bg-indigo-50 flex items-center justify-center gap-1 font-black text-[8px] uppercase tracking-widest transition-all shadow-xs"
+                                    >
+                                        <History size={10}/> History
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    );
+                })}
+            </tbody>
+        </table>
+    </div>
+</div>
 
             {/* ========================================================= */}
             {/* MODAL 1: EDITABLE DRAFT MAIL TABLE */}

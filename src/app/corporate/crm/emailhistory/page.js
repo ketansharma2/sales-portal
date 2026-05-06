@@ -453,10 +453,10 @@ export default function EmailHistoryPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-6 relative">
+        <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-2 md:p-2 relative">
             
             {/* --- HEADER --- */}
-            <div className="mb-6">
+            <div className="mb-3">
                 <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
                     <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center shrink-0">
                         <Mail size={18} />
@@ -468,27 +468,30 @@ export default function EmailHistoryPage() {
                 </p>
             </div>
 
-            {/* --- FILTER BAR --- */}
-            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+           {/* --- FILTER BAR --- */}
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-3 mb-4 flex flex-wrap lg:flex-nowrap items-center gap-4">
+                
                 {/* Search Filter */}
-                <div className="flex items-center gap-3 w-full max-w-lg">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest shrink-0">
+                <div className="flex items-center gap-2 w-full lg:w-auto lg:flex-1 min-w-[200px]">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest shrink-0 hidden sm:block">
                         <Search size={14} className="inline mr-1 mb-0.5 text-indigo-500"/> Search:
                     </label>
                     <input
                         type="text"
                         placeholder="Name or Profile"
-                        className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
+                        className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 transition-all w-full"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="flex items-center gap-3 w-full max-w-md">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest shrink-0">
-                        <Building2 size={14} className="inline mr-1 mb-0.5 text-indigo-500"/> Select Client:
+
+                {/* Client Dropdown */}
+                <div className="flex items-center gap-2 w-full lg:w-auto lg:flex-1 min-w-[200px]">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest shrink-0 hidden sm:block">
+                        <Building2 size={14} className="inline mb-0.5 text-indigo-500"/> Client:
                     </label>
                     <select 
-                        className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
+                        className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all w-full"
                         value={selectedClient} 
                         onChange={(e) => setSelectedClient(e.target.value)}
                     >
@@ -498,28 +501,34 @@ export default function EmailHistoryPage() {
                         </optgroup>
                     </select>
                 </div>
-                <div className="flex items-center gap-2 w-full max-w-sm">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest shrink-0">
-                        <Calendar size={14} className="inline mr-1 mb-0.5 text-indigo-500"/> Date Range:
+
+                {/* Date Range & Clear Button */}
+                <div className="flex items-center gap-2 w-full lg:w-auto shrink-0">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest shrink-0 hidden sm:block">
+                        <Calendar size={14} className="inline mr-1 mb-0.5 text-indigo-500"/> Date:
                     </label>
-                    <input
-                        type="date"
-                        className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
-                        value={dateRange.start}
-                        onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                    />
-                    <span className="text-xs font-bold text-slate-400">to</span>
-                    <input
-                        type="date"
-                        className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
-                        value={dateRange.end}
-                        onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                    />
+                    <div className="flex items-center gap-1.5 flex-1">
+                        <input
+                            type="date"
+                            className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all w-full sm:w-auto"
+                            value={dateRange.start}
+                            onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                        />
+                        <span className="text-[10px] font-bold text-slate-400">to</span>
+                        <input
+                            type="date"
+                            className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all w-full sm:w-auto"
+                            value={dateRange.end}
+                            onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                        />
+                    </div>
+
                     {/* Clear Filters */}
                     {(selectedClient !== "All" || dateRange.start || dateRange.end || searchTerm) && (
                         <button
                             onClick={() => { setSelectedClient("All"); setDateRange({ start: "", end: "" }); setSearchTerm(""); }}
-                            className="text-[10px] font-bold text-red-600 hover:text-red-800 uppercase tracking-widest"
+                            className="text-[10px] font-bold text-red-600 hover:text-white bg-red-50 hover:bg-red-500 px-3 py-2 rounded-lg uppercase tracking-widest transition-colors shrink-0 ml-1 shadow-sm"
+                            title="Clear Filters"
                         >
                             Clear
                         </button>
@@ -541,7 +550,7 @@ export default function EmailHistoryPage() {
 
             {/* --- MAIN EMAIL HISTORY TABLE --- */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="overflow-x-auto custom-scrollbar min-h-[50vh] pb-4">
+                <div className="overflow-x-auto overflow-y-auto custom-scrollbar max-h-[60vh] pb-4">
                     <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1300px]">
                         <thead className="sticky top-0 z-20">
                             <tr className="bg-slate-900 text-white">

@@ -1365,12 +1365,6 @@ const session = JSON.parse(localStorage.getItem('session') || '{}');
             </div>
             <div className="flex gap-2">
                <button 
-                  onClick={() => setIsTrackerModalOpen(true)} 
-                  className="flex items-center gap-1 bg-white border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-gray-50 shadow-sm transition-all hover:border-blue-200 hover:text-blue-600"
-               >
-                  <Plus size={12}/> Tracker
-               </button>
-               <button 
                   onClick={() => setIsReqModalOpen(true)} 
                   className="flex items-center gap-1 bg-[#103c7f] text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-900 shadow-md transition-all"
                >
@@ -1390,51 +1384,57 @@ const session = JSON.parse(localStorage.getItem('session') || '{}');
                </div>
                
                <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar max-h-[500px]">
-                  <div className="grid grid-cols-1 gap-4 pb-10">
-                     {trackers.map((t) => (
-                        <div key={t.id} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all">
-                           {/* Compact Header: Title Left, Date Right */}
-                           <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
-                              <div className="flex-1 min-w-0 pr-2"> {/* Added flex-1 for truncation safety */}
-                                 <h5 className="text-xs font-black text-gray-800 truncate">{t.name}</h5>
-                              </div>
-                              <div className="shrink-0">
-                                 <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wide mr-1">Shared:</span>
-                                 <span className="text-[10px] text-gray-600 font-bold bg-white border border-gray-200 px-1.5 py-0.5 rounded">{t.date}</span>
-                              </div>
-                           </div>
-                           <div className="flex items-center justify-between px-2 py-4 bg-white">
-                              <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
-                                 <p className="text-[13px] font-black text-gray-800">{t.s}</p>
-                                 <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Shared</p>
-                              </div>
-                              <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
-                                 <p className="text-[13px] font-black text-blue-600">{t.i}</p>
-                                 <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Interview</p>
-                              </div>
-                              <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
-                                 <p className="text-[13px] font-black text-orange-500">{t.sel}</p>
-                                 <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Selected</p>
-                              </div>
-                              <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
-                                 <p className="text-[13px] font-black text-green-600">{t.j}</p>
-                                 <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Joined</p>
-                              </div>
-                              <div className="flex-1 text-center px-1">
-                                 <p className="text-[13px] font-black text-red-500">{t.r}</p>
-                                 <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Not Selected</p>
-                              </div>
-                           </div>
-                           <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50/30 flex justify-between items-center">
-                              <div className="flex items-center gap-2 overflow-hidden">
-                                 <span className="text-[9px] font-bold text-gray-400 uppercase shrink-0">Feedback:</span>
-                                 <p className="text-[10px] text-gray-600 font-medium italic truncate max-w-[150px]" title={t.feedback}>"{t.feedback}"</p>
-                              </div>
-                           </div>
-                        </div>
-                     ))}
-                  </div>
-               </div>
+    <div className="grid grid-cols-1 gap-4 pb-10">
+        {trackers.map((t) => (
+            <div key={t.id} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all">
+                
+                {/* Header: Title Left, Date Right */}
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+                    
+                    <div className="shrink-0">
+                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wide mr-1">Shared Date:</span>
+                        <span className="text-[10px] text-gray-600 font-bold bg-white border border-gray-200 px-1.5 py-0.5 rounded">{t.date}</span>
+                    </div>
+                </div>
+
+                {/* Stats Row */}
+                <div className="flex items-center justify-between px-2 py-4 bg-white">
+                    
+                    {/* 1. Shared */}
+                    <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
+                        <p className="text-[13px] font-black text-gray-800">{t.s}</p>
+                        <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Shared</p>
+                    </div>
+                    
+                    {/* 2. Shortlisted */}
+                    <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
+                        <p className="text-[13px] font-black text-purple-600">{t.short}</p>
+                        <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Shortlisted</p>
+                    </div>
+                    
+                    {/* 3. Interview */}
+                    <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
+                        <p className="text-[13px] font-black text-blue-600">{t.i}</p>
+                        <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Interview</p>
+                    </div>
+                    
+                    {/* 4. Selected */}
+                    <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
+                        <p className="text-[13px] font-black text-orange-500">{t.sel}</p>
+                        <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Selected</p>
+                    </div>
+                    
+                    {/* 5. Joining */}
+                    <div className="flex-1 text-center px-1">
+                        <p className="text-[13px] font-black text-green-600">{t.j}</p>
+                        <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Joining</p>
+                    </div>
+
+                </div>
+            </div>
+        ))}
+    </div>
+</div>
             </section>
          </div>
       </div>
