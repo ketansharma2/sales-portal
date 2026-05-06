@@ -33,8 +33,8 @@ export async function GET(request) {
     const { data: leadgenUsers, error: leadgenError } = await supabaseServer
       .from('users')
       .select('user_id, name, email')
+      .eq('sector', 'Domestic')
       .contains('role', ['LEADGEN'])
-       .eq('sector', 'Corporate')
       .order('name', { ascending: true })
 
     console.log('Leadgen query result:', { leadgenUsers, leadgenError });

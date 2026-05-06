@@ -37,7 +37,7 @@ export default function SalesManagerDashboard() {
     const fetchFseTeam = async () => {
       try {
         const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/domestic/manager/fse-team', {
+        const response = await fetch('/api/hod/domestic/fse-team', {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         });
         const data = await response.json();
@@ -55,7 +55,7 @@ export default function SalesManagerDashboard() {
     const fetchLeadGenTeam = async () => {
       try {
         const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/domestic/manager/leadgen-users', {
+        const response = await fetch('/api/hod/domestic/leadgen-users', {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         });
         const data = await response.json();
@@ -94,7 +94,7 @@ const [stats, setStats] = useState({
     if (!mounted || fseTeam.length === 0) return;
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/manager/dashboard', {
+      const response = await fetch('/api/hod/domestic/dashboard', {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${session.access_token}`,
