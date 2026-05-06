@@ -98,7 +98,7 @@ export default function SalesManagerDashboard() {
     const fetchLeadGenTeam = async () => {
       try {
         const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/corporate/manager/leadgen-users', {
+        const response = await fetch('/api/hod/corporate/leadgen-users', {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         });
         const data = await response.json();
@@ -122,7 +122,7 @@ export default function SalesManagerDashboard() {
   //   const fetchFseTeam = async () => {
   //     try {
   //       const session = JSON.parse(localStorage.getItem('session') || '{}');
-  //       const response = await fetch('/api/corporate/manager/fse-users', {
+  //       const response = await fetch('/api/hod/corporate/fse-users', {
   //         headers: { 'Authorization': `Bearer ${session.access_token}` }
   //       });
   //       const data = await response.json();
@@ -145,7 +145,7 @@ export default function SalesManagerDashboard() {
   const fetchLatestDate = async () => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/corporate/leadgen/latest-interaction-date', {
+        const response = await fetch('/api/hod/corporate/latest-interaction-date', {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -182,7 +182,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/conversation-log?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/conversation-log?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -214,7 +214,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/normal-leads-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/normal-leads-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -245,7 +245,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/normal-calls-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/normal-calls-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -276,7 +276,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/startup-leads-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/startup-leads-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -307,7 +307,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/startup-calls-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/startup-calls-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -338,7 +338,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/master-union-leads-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/master-union-leads-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -369,7 +369,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/master-union-calls-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/master-union-calls-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -400,7 +400,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/total-leads-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/total-leads-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -431,7 +431,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/total-calls-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/total-calls-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -462,7 +462,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/total-contacts-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/total-contacts-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -493,7 +493,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/new-followup-calls-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/new-followup-calls-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -534,7 +534,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/picked-not-picked-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/picked-not-picked-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -572,7 +572,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/contract-share-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/contract-share-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -609,7 +609,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/interested-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/interested-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -646,7 +646,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/sent-to-manager-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/sent-to-manager-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -683,7 +683,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/total-onboard-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/total-onboard-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -721,7 +721,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/franchise-form-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/franchise-form-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -774,7 +774,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/franchise-discussed-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/franchise-discussed-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
@@ -814,7 +814,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/manager/franchise-accepted-count?${params.toString()}`, {
+      const response = await fetch(`/api/hod/corporate/franchise-accepted-count?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
