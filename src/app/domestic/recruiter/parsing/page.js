@@ -268,6 +268,23 @@ export default function CVParsingPage() {
     useEffect(() => {
         fetchCVParsingData();
     }, []);
+    const formatMobileNumber = (mobile) => {
+    if (!mobile) return mobile;
+    
+    // Convert to string and remove all non-digit characters
+    let cleaned = mobile.toString().replace(/\D/g, '');
+    
+    // If it's a 12-digit number starting with '91', remove the '91'
+    if (cleaned.length === 12 && cleaned.startsWith('91')) {
+        cleaned = cleaned.substring(2);
+    }
+    // If still more than 10 digits, take only the last 10 digits
+    else if (cleaned.length > 10) {
+        cleaned = cleaned.substring(cleaned.length - 10);
+    }
+    
+    return cleaned;
+};
 
     const fetchCVParsingData = async () => {
         try {
@@ -1021,11 +1038,16 @@ export default function CVParsingPage() {
                                     <div className="bg-slate-50 rounded-lg p-3">
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Mobile</p>
                                         <input
-                                            type="text"
-                                            value={editableData.mobile}
-                                            onChange={(e) => handleEditableChange('mobile', e.target.value)}
-                                            className="w-full text-sm font-bold text-slate-800 bg-transparent border-b border-slate-300 focus:border-blue-500 outline-none"
-                                        />
+    type="text"
+    value={formatMobileNumber(editableData.mobile)}
+    onChange={(e) => {
+        const formattedValue = formatMobileNumber(e.target.value);
+        handleEditableChange('mobile', formattedValue);
+    }}
+    className="w-full text-sm font-bold text-slate-800 bg-transparent border-b border-slate-300 focus:border-blue-500 outline-none"
+    placeholder="Enter 10 digit mobile number"
+    maxLength={10}
+/>
                                     </div>
                                     
                                     {/* Location */}
