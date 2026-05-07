@@ -635,126 +635,227 @@ export default function RecruiterWorkbenchPage() {
                                 <h3 className="font-bold text-lg uppercase tracking-wide">Document Preview</h3>
                             </div>
                             <div className="flex gap-3">
-                                <button onClick={async () => {
-                                    const element = document.getElementById('pdf-content');
-                                    if (!element) {
-                                        alert('Content not found');
-                                        return;
-                                    }
-                                    
-                                    // Try html2canvas approach first
-                                    try {
-                                        // Dynamic import
-                                        const [{ jsPDF: jspdfModule }, html2canvasModule] = await Promise.all([
-                                            import('jspdf'),
-                                            import('html2canvas')
-                                        ]);
-                                        
-                                        const html2canvas = html2canvasModule.default || html2canvasModule;
-                                        const { jsPDF } = jspdfModule;
-                                        
-                                        // Capture the element as canvas
-                                        const canvas = await html2canvas(element, {
-                                            scale: 2,
-                                            useCORS: true,
-                                            allowTaint: true,
-                                            backgroundColor: '#ffffff'
-                                        });
-                                        
-                                        const imgData = canvas.toDataURL('image/jpeg', 1.0);
-                                        
-                                        // Create PDF
-                                        const pdf = new jsPDF('p', 'mm', 'a4');
-                                        const pageWidth = pdf.internal.pageSize.getWidth();
-                                        const imgWidth = pageWidth;
-                                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                                        
-                                        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
-                                        pdf.save(`${currentJdView?.title || 'job-description'}.pdf`);
-                                        return;
-                                    } catch (err) {
-                                        console.warn('html2canvas failed, using fallback:', err.message);
-                                    }
-                                    
-                                    // Fallback: text-based PDF
-                                    try {
-                                        const [{ jsPDF }] = await Promise.all([import('jspdf')]);
-                                        const pdf = new jsPDF('p', 'mm', 'a4');
-                                        const pageWidth = pdf.internal.pageSize.getWidth();
-                                        const margin = 15;
-                                        let y = margin;
-                                        
-                                        // Add logo
-                                        try {
-                                            pdf.addImage('/maven-logo.png', 'PNG', margin, y, 60, 20);
-                                            y += 35; // Increased gap between logo and border
-                                        } catch (e) { y += 20; }
-                                        
-                                        // Border with more internal padding
-                                        const borderMargin = 20; // Increased border margin
-                                        pdf.setDrawColor(0);
-                                        pdf.setLineWidth(0.5);
-                                        pdf.rect(borderMargin, y - 5, pageWidth - 2 * borderMargin, 230);
-                                        
-                                        // Add top padding inside border
-                                        y += 10;
-                                        
-                                        const contentLeft = borderMargin + 10; // More padding inside border
-                                        const contentRight = pageWidth - borderMargin - 10;
-                                        
-                                        // Helper
-                                        const addField = (label, value) => {
-                                            if (!value) return;
-                                            pdf.setFontSize(11);
-                                            pdf.setFont('helvetica', 'bold');
-                                            pdf.text(label, contentLeft, y);
-                                            pdf.setFont('helvetica', 'normal');
-                                            const lines = pdf.splitTextToSize(value.toString(), pageWidth - 2 * margin - pdf.getTextWidth(label));
-                                            pdf.text(lines, contentLeft + pdf.getTextWidth(label), y);
-                                            y += lines.length * 5 + 3;
-                                        };
-                                        
-                                        addField('JOB TITLE: ', currentJdView?.title);
-                                        addField('LOCATION: ', currentJdView?.location);
-                                        addField('EXPERIENCE: ', currentJdView?.experience);
-                                        addField('EMPLOYMENT TYPE: ', currentJdView?.employment_type);
-                                        addField('WORKING DAYS: ', currentJdView?.working_days);
-                                        addField('TIMINGS: ', currentJdView?.timings);
-                                        addField('PACKAGE: ', currentJdView?.package_salary);
-                                        addField('TOOL REQUIREMENT: ', currentJdView?.tool_requirement);
-                                        
-                                        y += 5;
-                                        
-                                        if (currentJdView?.summary) {
-                                            pdf.setFontSize(12);
-                                            pdf.setFont('helvetica', 'bold');
-                                            pdf.text('Job Summary:', contentLeft, y);
-                                            y += 6;
-                                            pdf.setFontSize(10);
-                                            const lines = pdf.splitTextToSize(currentJdView.summary, pageWidth - 2 * margin - 10);
-                                            pdf.text(lines, contentLeft + 2, y);
-                                            y += lines.length * 4 + 8;
-                                        }
-                                        
-                                        if (currentJdView?.skills) {
-                                            pdf.setFontSize(12);
-                                            pdf.setFont('helvetica', 'bold');
-                                            pdf.text('Required Skills:', contentLeft, y);
-                                            y += 6;
-                                            pdf.setFontSize(10);
-                                            const lines = pdf.splitTextToSize(currentJdView.skills, pageWidth - 2 * margin - 10);
-                                            pdf.text(lines, contentLeft + 2, y);
-                                        }
-                                        
-                                        pdf.save(`${currentJdView?.title || 'job-description'}.pdf`);
-                                    } catch (fallbackErr) {
-                                        console.error('Fallback also failed:', fallbackErr);
-                                        alert('PDF generation failed. Using browser print instead.');
-                                        window.print();
-                                    }
-                                }} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider">
-                                    <Download size={16}/> Save as PDF
-                                </button>
+<button onClick={async () => {
+    const pdfContent = document.getElementById('pdf-content');
+    if (!pdfContent) {
+        alert('PDF content not found');
+        return;
+    }
+    
+    // Get job title for filename
+    const jobTitle = currentJdView?.title || 'job_description';
+    // Create a clean filename (remove special characters)
+    const fileName = jobTitle.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '_');
+    
+    // Store original page title
+    const originalTitle = document.title;
+    
+    // Temporarily change the MAIN PAGE title (important!)
+    document.title = jobTitle;
+    
+    // Create a hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+    
+    const iframeDoc = iframe.contentWindow.document;
+    
+    iframeDoc.open();
+    iframeDoc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>${jobTitle}</title>
+            <meta charset="UTF-8">
+            <style>
+                @media print {
+                    @page {
+                        margin: .5cm;
+                        size: A4;
+                    }
+                    
+                    @page {
+                        @top-left { content: none !important; }
+                        @top-center { content: none !important; }
+                        @top-right { content: none !important; }
+                        @bottom-left { content: none !important; }
+                        @bottom-center { content: none !important; }
+                        @bottom-right { content: none !important; }
+                        @left-middle { content: none !important; }
+                        @right-middle { content: none !important; }
+                    }
+                    
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        font-family: Calibri, Arial, sans-serif;
+                        background: white;
+                    }
+                    
+                    .print-container {
+                        max-width: 210mm;
+                        margin: 0 auto;
+                    }
+                    
+                    .printed-header {
+                        display: none !important;
+                    }
+                    
+                    header, footer, nav, aside, .header, .footer {
+                        display: none !important;
+                    }
+                    
+                    a[href]:after {
+                        content: none !important;
+                        display: none !important;
+                    }
+                    
+                    body::before, body::after, 
+                    html::before, html::after {
+                        display: none !important;
+                        content: none !important;
+                    }
+                    
+                    .page-number, .page-count, .print-page {
+                        display: none !important;
+                    }
+                    
+                    img {
+                        max-width: 100%;
+                        height: auto;
+                    }
+                    
+                    .border {
+                        border: 1px solid black;
+                    }
+                    
+                    .p-8 {
+                        padding: 30px;
+                    }
+                    
+                    .mb-10 {
+                        margin-bottom: 30px;
+                    }
+                    
+                    .space-y-4 > * {
+                        margin-bottom: 12px;
+                    }
+                    
+                    .font-bold {
+                        font-weight: bold;
+                    }
+                    
+                    .list-disc {
+                        list-style-type: disc;
+                        padding-left: 20px;
+                    }
+                    
+                    .mt-12 {
+                        margin-top: 40px;
+                    }
+                    
+                    .pt-6 {
+                        padding-top: 20px;
+                    }
+                    
+                    .border-t {
+                        border-top: 1px solid #ccc;
+                    }
+                    
+                    .print-header, .print-footer, .print-url, .print-date {
+                        display: none !important;
+                    }
+                }
+                
+                body {
+                    margin: 0;
+                    padding: 20px;
+                    font-family: Calibri, Arial, sans-serif;
+                    background: white;
+                }
+                
+                .print-container {
+                    max-width: 210mm;
+                    margin: 0 auto;
+                }
+                
+                .printed-header {
+                    display: none;
+                }
+                
+                .content-wrapper {
+                    margin-top: 0;
+                }
+                
+                img {
+                    max-width: 100%;
+                    height: auto;
+                }
+                
+                .border {
+                    border: 1px solid black;
+                }
+                
+                .p-8 {
+                    padding: 30px;
+                }
+                
+                .mb-10 {
+                    margin-bottom: 30px;
+                }
+                
+                .space-y-4 > * {
+                    margin-bottom: 12px;
+                }
+                
+                .font-bold {
+                    font-weight: bold;
+                }
+                
+                .list-disc {
+                    list-style-type: disc;
+                    padding-left: 20px;
+                }
+                
+                .mt-12 {
+                    margin-top: 40px;
+                }
+                
+                .pt-6 {
+                    padding-top: 20px;
+                }
+                
+                .border-t {
+                    border-top: 1px solid #ccc;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="print-container">
+                ${pdfContent.outerHTML}
+            </div>
+        </body>
+        </html>
+    `);
+    
+    iframeDoc.close();
+    
+    setTimeout(() => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        
+        // Restore original page title after print dialog closes
+        setTimeout(() => {
+            document.title = originalTitle;
+            document.body.removeChild(iframe);
+        }, 1000);
+    }, 500);
+}} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider">
+    <Download size={16}/> Save as PDF
+</button>
                                 <button onClick={() => setIsJdViewModalOpen(false)} className="hover:bg-white/20 p-2 rounded-full transition">
                                     <X size={20}/>
                                 </button>
