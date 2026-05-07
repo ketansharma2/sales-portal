@@ -9,13 +9,14 @@ import {
 export default function CRMWorkbenchReport() {
     
     // --- STATE ---
-    const [fromDate, setFromDate] = useState(""); 
+    const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedTL, setSelectedTL] = useState("All");
     const [selectedRecruiter, setSelectedRecruiter] = useState("All");
     const [latestCvDate, setLatestCvDate] = useState("");
     const [isDateInitialized, setIsDateInitialized] = useState(false);
+    const [showAll, setShowAll] = useState(false);
     
     // Users data from API
     const [allUsers, setAllUsers] = useState([]);
@@ -146,28 +147,31 @@ export default function CRMWorkbenchReport() {
 
     // Fetch cards data when date range or selection changes
     useEffect(() => {
-        if (!isDateInitialized || !fromDate || !toDate) return;
+        if (!isDateInitialized || (!showAll && (!fromDate || !toDate))) return;
 
         const fetchCardsData = async () => {
             try {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
                 const token = session.access_token;
-                
+
                 if (!token) return;
 
-                let url = `/api/domestic/crm/workbench/cards?fromDate=${fromDate}&toDate=${toDate}`;
-                
+                let url = `/api/domestic/crm/workbench/cards`;
+                if (!showAll) {
+                    url += `?fromDate=${fromDate}&toDate=${toDate}`;
+                }
+
                 if (selectedRecruiter !== "All" && selectedRcUser) {
-                    url += `&recruiter_id=${selectedRcUser.user_id}`;
+                    url += `${url.includes('?') ? '&' : '?'}recruiter_id=${selectedRcUser.user_id}`;
                 } else if (selectedTL !== "All" && selectedTlUser) {
-                    url += `&tl_id=${selectedTlUser.user_id}`;
+                    url += `${url.includes('?') ? '&' : '?'}tl_id=${selectedTlUser.user_id}`;
                 }
 
                 const res = await fetch(url, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const result = await res.json();
-                
+
                 if (result.success && result.data) {
                     setCardsData(prev => ({
                         ...prev,
@@ -187,16 +191,19 @@ export default function CRMWorkbenchReport() {
             try {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
                 const token = session.access_token;
-                
+
                 if (!token) return;
 
-                const url = `/api/domestic/crm/workbench/tracker-shared?fromDate=${fromDate}&toDate=${toDate}`;
+                let url = `/api/domestic/crm/workbench/tracker-shared`;
+                if (!showAll) {
+                    url += `?fromDate=${fromDate}&toDate=${toDate}`;
+                }
 
                 const res = await fetch(url, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const result = await res.json();
-                
+
                 if (result.success) {
                     setCardsData(prev => ({
                         ...prev,
@@ -210,7 +217,7 @@ export default function CRMWorkbenchReport() {
 
         fetchCardsData();
         fetchTrackerShared();
-    }, [fromDate, toDate, selectedTL, selectedRecruiter, selectedTlUser, selectedRcUser, isDateInitialized]);
+    }, [fromDate, toDate, selectedTL, selectedRecruiter, selectedTlUser, selectedRcUser, isDateInitialized, showAll]);
     
     // Modals State
     const [cvModalData, setCvModalData] = useState(null);
@@ -225,28 +232,31 @@ export default function CRMWorkbenchReport() {
 
     // Fetch workbench data when date range or selection changes
     useEffect(() => {
-        if (!isDateInitialized || !fromDate || !toDate) return;
+        if (!isDateInitialized || (!showAll && (!fromDate || !toDate))) return;
 
         const fetchWorkbenchData = async () => {
             try {
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
                 const token = session.access_token;
-                
+
                 if (!token) return;
 
-                let url = `/api/domestic/crm/workbench/data?fromDate=${fromDate}&toDate=${toDate}`;
-                
+                let url = `/api/domestic/crm/workbench/data`;
+                if (!showAll) {
+                    url += `?fromDate=${fromDate}&toDate=${toDate}`;
+                }
+
                 if (selectedRecruiter !== "All" && selectedRcUser) {
-                    url += `&rc_id=${selectedRcUser.user_id}`;
+                    url += `${url.includes('?') ? '&' : '?'}rc_id=${selectedRcUser.user_id}`;
                 } else if (selectedTL !== "All" && selectedTlUser) {
-                    url += `&tl_id=${selectedTlUser.user_id}`;
+                    url += `${url.includes('?') ? '&' : '?'}tl_id=${selectedTlUser.user_id}`;
                 }
 
                 const res = await fetch(url, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const result = await res.json();
-                
+
                 if (result.success && result.data) {
                     setWorkbenchData(result.data);
                 }
@@ -256,7 +266,7 @@ export default function CRMWorkbenchReport() {
         };
 
         fetchWorkbenchData();
-    }, [fromDate, toDate, selectedTL, selectedRecruiter, selectedTlUser, selectedRcUser, isDateInitialized]);
+    }, [fromDate, toDate, selectedTL, selectedRecruiter, selectedTlUser, selectedRcUser, isDateInitialized, showAll]);
 
     // --- CALCULATIONS ---
     // Filter workbench data based on search
@@ -299,10 +309,13 @@ export default function CRMWorkbenchReport() {
                         <label className="text-[10px] font-black text-indigo-800 uppercase tracking-wide ml-2 mr-2 flex items-center gap-1">
                             <UserCog size={12}/> TL:
                         </label>
-                        <select 
+                        <select
                             className="px-3 py-1.5 border-none rounded-lg text-xs font-bold text-[#103c7f] bg-white shadow-sm outline-none cursor-pointer focus:ring-2 focus:ring-indigo-400"
                             value={selectedTL}
-                            onChange={(e) => setSelectedTL(e.target.value)}
+                            onChange={(e) => {
+                                setSelectedTL(e.target.value);
+                                setShowAll(false);
+                            }}
                         >
                             <option value="All">All Team Leads</option>
                             {tlList.map(tl => <option key={tl.user_id} value={tl.name}>{tl.name}</option>)}
@@ -314,10 +327,13 @@ export default function CRMWorkbenchReport() {
                         <label className="text-[10px] font-black text-blue-800 uppercase tracking-wide ml-2 mr-2 flex items-center gap-1">
                             <Users size={12}/> RC:
                         </label>
-                        <select 
+                        <select
                             className="px-3 py-1.5 border-none rounded-lg text-xs font-bold text-[#103c7f] bg-white shadow-sm outline-none cursor-pointer focus:ring-2 focus:ring-blue-400"
                             value={selectedRecruiter}
-                            onChange={(e) => setSelectedRecruiter(e.target.value)}
+                            onChange={(e) => {
+                                setSelectedRecruiter(e.target.value);
+                                setShowAll(false);
+                            }}
                         >
                             <option value="All">All Recruiters</option>
                             {recruitersList.map(r => <option key={r.user_id} value={r.name}>{r.name}</option>)}
@@ -330,10 +346,13 @@ export default function CRMWorkbenchReport() {
                         
                         <div className="relative flex items-center">
                             <Calendar size={12} className="absolute left-2.5 text-blue-600 pointer-events-none" />
-                            <input 
-                                type="date" 
+                            <input
+                                type="date"
                                 value={fromDate}
-                                onChange={(e) => setFromDate(e.target.value)}
+                                onChange={(e) => {
+                                    setFromDate(e.target.value);
+                                    setShowAll(false);
+                                }}
                                 className="pl-7 pr-2 py-1.5 border-none rounded-lg text-xs font-bold text-[#103c7f] bg-white shadow-sm outline-none cursor-pointer focus:ring-2 focus:ring-blue-400"
                             />
                         </div>
@@ -342,13 +361,35 @@ export default function CRMWorkbenchReport() {
 
                         <div className="relative flex items-center">
                             <Calendar size={12} className="absolute left-2.5 text-blue-600 pointer-events-none" />
-                            <input 
-                                type="date" 
+                            <input
+                                type="date"
                                 value={toDate}
-                                onChange={(e) => setToDate(e.target.value)}
+                                onChange={(e) => {
+                                    setToDate(e.target.value);
+                                    setShowAll(false);
+                                }}
                                 className="pl-7 pr-2 py-1.5 border-none rounded-lg text-xs font-bold text-[#103c7f] bg-white shadow-sm outline-none cursor-pointer focus:ring-2 focus:ring-blue-400"
                             />
                         </div>
+                    </div>
+
+                    {/* Show All Button */}
+                    <div className="bg-green-50 p-2 rounded-xl border border-green-100 flex items-center shadow-sm">
+                        <button
+                            onClick={() => {
+                                setShowAll(true);
+                                setSelectedTL("All");
+                                setSelectedRecruiter("All");
+                                setSearchTerm("");
+                            }}
+                            className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-colors ${
+                                showAll
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-white text-green-700 hover:bg-green-100'
+                            } shadow-sm outline-none`}
+                        >
+                            Show All Data
+                        </button>
                     </div>
 
                 </div>

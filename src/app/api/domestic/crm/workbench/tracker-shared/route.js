@@ -18,16 +18,16 @@ export async function GET(request) {
     const fromDate = searchParams.get('fromDate')
     const toDate = searchParams.get('toDate')
 
-    if (!fromDate || !toDate) {
-      return NextResponse.json({ error: 'fromDate and toDate required' }, { status: 400 })
-    }
-
-    const { count, error } = await supabaseServer
+    let query = supabaseServer
       .from('domestic_crm_emails')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', currentUserId)
-      .gte('shared_date', fromDate)
-      .lte('shared_date', toDate)
+
+    if (fromDate && toDate) {
+      query = query.gte('shared_date', fromDate).lte('shared_date', toDate)
+    }
+
+    const { count, error } = await query
 
     if (error) {
       console.error('Tracker shared error:', error)
