@@ -1,8 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect ,useRef} from "react";
 import { useParams, useRouter } from "next/navigation";
 import { 
-    ArrowLeft, History, User, Plus, Send, Trash2, 
+    UploadCloud,ArrowLeft, History, User, Plus, Send, Trash2, 
     Calendar, Phone, Briefcase, MapPin, IndianRupee, Clock,
     FileText, CheckCircle2, MessageSquareText, AlertCircle, Bookmark,X , Edit
 } from "lucide-react";
@@ -20,7 +20,8 @@ export default function CandidateHistoryPage() {
     // --- EDIT STATE & HANDLERS ---
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editId, setEditId] = useState(null);
-
+    const [isUploadingCV, setIsUploadingCV] = useState(false);
+    const fileInputRef = useRef(null);
     const handleEditOpen = (row) => {
         const today = new Date().toISOString().split('T')[0];
         if (row.callingDate !== today) {
@@ -256,6 +257,59 @@ export default function CandidateHistoryPage() {
 
     const [isSavingFollowup, setIsSavingFollowup] = useState(false);
 
+    const handleCvUpload = async (candidateId, file) => {
+    if (!file) return;
+    
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowedTypes.includes(file.type)) {
+        alert('Invalid file type. Only PDF, DOC, DOCX, JPG, JPEG, and PNG files are allowed');
+        return;
+    }
+    
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+        alert('File size exceeds 10MB limit');
+        return;
+    }
+    
+    setIsUploadingCV(true);
+    
+    try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('cv_parsing_id', candidateId);
+        
+        const response = await fetch('/api/domestic/recruiter/upload-cv', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('CV uploaded successfully!');
+            // Optionally refresh or update state
+        } else {
+            alert(result.error || 'Upload failed');
+        }
+    } catch (error) {
+        console.error('Upload error:', error);
+        alert('Failed to upload CV');
+    } finally {
+        setIsUploadingCV(false);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    }
+};
+
     const handleSaveFollowup = async () => {
         // Validate all mandatory fields
         if (!formData.profile || !formData.status || !formData.applyDate || !formData.callingDate || 
@@ -457,12 +511,49 @@ export default function CandidateHistoryPage() {
                     </p>
                 </div>
 
-                <button 
-                    onClick={handleAddOpen}
-                    className="bg-[#103c7f] hover:bg-blue-900 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-md transition-colors flex items-center justify-center gap-2"
-                >
-                    <Plus size={16}/> Add New Followup
-                </button>
+               <div className="flex gap-3">
+        {/* Upload CV Button */}
+        <div className="relative">
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                        handleCvUpload(candidateId, file);
+                    }
+                    e.target.value = '';
+                }}
+                className="hidden"
+                id="cv-upload"
+            />
+            <label
+                htmlFor="cv-upload"
+                className={`bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer ${isUploadingCV ? 'opacity-70 cursor-not-allowed' : ''}`}
+            >
+                {isUploadingCV ? (
+                    <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Uploading...
+                    </>
+                ) : (
+                    <>
+                        <UploadCloud size={16}/> Upload CV
+                    </>
+                )}
+            </label>
+        </div>
+
+        {/* Add Followup Button */}
+        <button 
+            onClick={handleAddOpen}
+            className="bg-[#103c7f] hover:bg-blue-900 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-md transition-colors flex items-center justify-center gap-2"
+        >
+            <Plus size={16}/> Add New Followup
+        </button>
+    </div>
+       
             </div>
 
           {/* ========================================================= */}
