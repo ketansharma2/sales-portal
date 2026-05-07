@@ -319,6 +319,7 @@ export default function CVParsingPage() {
                     latest_remarks: item.latest_remarks || '-',
                     latest_profile: item.latest_profile || '-',
                     latest_profile: item.latest_profile || '-',
+                    sent_to_tl: item.sent_to_tl || '-',
                 }));
                 setParsedData(transformedData);
             }
@@ -874,19 +875,30 @@ export default function CVParsingPage() {
                                             </td>
 
                                             {/* 16. Action (History Button) */}
-                                            <td className="py-3 px-4 sticky right-0 bg-slate-50 group-hover:bg-blue-50 transition-colors z-10 border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] w-28">
-                                                <div className="flex items-center justify-center">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation(); // Prevents double firing since row is also clickable
-                                                            navigateToHistory(row.id);
-                                                        }}
-                                                        className="flex items-center gap-1.5 px-4 py-2 bg-[#103c7f] text-white rounded hover:bg-blue-900 transition-colors font-black text-[10px] uppercase tracking-widest shadow-sm"
-                                                    >
-                                                        <History size={12} /> History
-                                                    </button>
-                                                </div>
-                                            </td>
+                                           <td className="py-3 px-4 sticky right-0 bg-slate-50 group-hover:bg-blue-50 transition-colors z-10 border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] w-28">
+    <div className="flex flex-col items-center justify-center gap-2">
+        {/* History Button */}
+        <button
+            onClick={(e) => {
+                e.stopPropagation(); // Prevents double firing since row is also clickable
+                navigateToHistory(row.id);
+            }}
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#103c7f] text-white rounded hover:bg-blue-900 transition-colors font-black text-[10px] uppercase tracking-widest shadow-sm w-full justify-center"
+        >
+            <History size={12} /> History
+        </button>
+        
+        {/* Sent to TL Badge - Only shows when sent_to_tl is true */}
+        {row.sent_to_tl === true && (
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-md text-[9px] font-black uppercase tracking-wider border border-emerald-200 w-full justify-center">
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                Sent to TL
+            </div>
+        )}
+        
+       
+    </div>
+</td>
 
                                         </tr>
                                     ))}

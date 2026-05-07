@@ -3,6 +3,128 @@ import { NextResponse } from "next/server";
 import mammoth from "mammoth";
 import { supabaseServer } from '@/lib/supabase-server'
 
+// export async function GET(request) {
+//   try {
+//     const authHeader = request.headers.get('authorization')
+//     if (!authHeader) {
+//       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+//     }
+//     const token = authHeader.replace('Bearer ', '')
+//     const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+//     if (authError || !user) {
+//       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+//     }
+
+//     const userId = user.user_id || user.id
+
+//     const { data: myData, error: myError } = await supabaseServer
+//       .from('cv_parsing')
+//       .select('*')
+//       .eq('user_id', userId)
+//       .ilike('sector', 'domestic')
+//       .order('created_at', { ascending: false })
+
+//     const { data: sharedData, error: sharedError } = await supabaseServer
+//       .from('cv_parsing')
+//       .select('*')
+//       .contains('other_users', [userId])
+//       .ilike('sector', 'domestic')
+//       .order('created_at', { ascending: false })
+
+//     if (myError || sharedError) {
+//       console.error('Fetch CV parsing error:', myError || sharedError)
+//       return NextResponse.json({
+//         error: 'Failed to fetch CV parsing data',
+//         details: myError?.message || sharedError?.message
+//       }, { status: 500 })
+//     }
+
+//     const allData = [...(myData || []), ...(sharedData || [])]
+    
+//     const uniqueData = allData.filter((item, index, self) => 
+//       index === self.findIndex((t) => t.id === item.id)
+//     )
+
+//     const candidateIds = uniqueData.map(item => item.id)
+
+//     // Fetch conversations with req_id
+//     const { data: conversations, error: convError } = await supabaseServer
+//       .from('candidates_conversation')
+//       .select(`
+//         parsing_id,
+//         candidate_status,
+//         calling_date,
+//         created_at,
+//         remarks,
+//         user_id,
+//         req_id,
+//         users!inner(name)
+//       `)
+//       .in('parsing_id', candidateIds)
+//       .order('created_at', { ascending: false })
+
+//     if (convError) {
+//       console.error('[ERROR] Conversations fetch failed:', convError.message)
+//     }
+
+//     // Build req_id → job_title lookup
+//     const reqIdToJobTitle = new Map()
+//     if (conversations && conversations.length > 0) {
+//       const allReqIds = [...new Set(conversations.map(c => c.req_id).filter(id => id != null))]
+      
+//       if (allReqIds.length > 0) {
+//         const { data: reqData, error: reqError } = await supabaseServer
+//           .from('domestic_crm_reqs')
+//           .select('req_id, job_title')
+//           .in('req_id', allReqIds)
+
+//         if (!reqError && reqData) {
+//           reqData.forEach(req => reqIdToJobTitle.set(req.req_id, req.job_title))
+//         }
+//       }
+//     }
+
+//     // Build latest conversation data map per candidate
+//     const latestStatusMap = new Map()
+//     conversations?.forEach(conv => {
+//       if (!latestStatusMap.has(conv.parsing_id)) {
+//         latestStatusMap.set(conv.parsing_id, {
+//           latest_status: conv.candidate_status || '-',
+//           latest_user: conv.users?.name || conv.user_id || '-',
+//           latest_date: conv.calling_date || '-',
+//           latest_remarks: conv.remarks || '-',
+//           latest_profile: reqIdToJobTitle.get(conv.req_id) || '-'
+//         })
+//       }
+//     })
+
+//     const processedData = uniqueData.map(item => {
+//       const statusInfo = latestStatusMap.get(item.id)
+//       const processed = {
+//         ...item,
+//         is_shared: item.other_users && item.other_users.includes(userId) && item.user_id !== userId,
+//         latest_status: statusInfo?.latest_status || '-',
+//         latest_user: statusInfo?.latest_user || '-',
+//         latest_date: statusInfo?.latest_date || '-',
+//         latest_remarks: statusInfo?.latest_remarks || '-',
+//         latest_profile: statusInfo?.latest_profile || '-'
+//       }
+//       return processed
+//     })
+
+//     return NextResponse.json({
+//       success: true,
+//       data: processedData
+//     })
+
+//   } catch (error) {
+//     console.error('Fetch CV parsing API error:', error)
+//     return NextResponse.json({
+//       error: 'Internal server error',
+//       details: error.message
+//     }, { status: 500 })
+//   }
+// }
 export async function GET(request) {
   try {
     const authHeader = request.headers.get('authorization')
@@ -47,67 +169,137 @@ export async function GET(request) {
 
     const candidateIds = uniqueData.map(item => item.id)
 
-    // Fetch conversations with req_id
-    const { data: conversations, error: convError } = await supabaseServer
-      .from('candidates_conversation')
-      .select(`
-        parsing_id,
-        candidate_status,
-        calling_date,
-        created_at,
-        remarks,
-        user_id,
-        req_id,
-        users!inner(name)
-      `)
-      .in('parsing_id', candidateIds)
-      .order('created_at', { ascending: false })
+    // Fetch conversations with req_id and sent_to_tl
+    let latestStatusMap = new Map()
+    let reqIdToJobTitle = new Map()
+    let sentToTlMap = new Map() // Track if ANY conversation has sent_to_tl (UUID exists)
+    
+    if (candidateIds.length > 0) {
+      // Batch the IDs to avoid URL length limits
+      const BATCH_SIZE = 50;
+      let allConversations = [];
 
-    if (convError) {
-      console.error('[ERROR] Conversations fetch failed:', convError.message)
-    }
+      for (let i = 0; i < candidateIds.length; i += BATCH_SIZE) {
+        const batch = candidateIds.slice(i, i + BATCH_SIZE);
+        const { data: conversations, error: convError } = await supabaseServer
+          .from('candidates_conversation')
+          .select(`
+            parsing_id,
+            candidate_status,
+            calling_date,
+            created_at,
+            remarks,
+            sent_to_tl,
+            req_id,
+            user_id,
+            users!inner(name)
+          `)
+          .in('parsing_id', batch)
+          .order('created_at', { ascending: false })
 
-    // Build req_id → job_title lookup
-    const reqIdToJobTitle = new Map()
-    if (conversations && conversations.length > 0) {
-      const allReqIds = [...new Set(conversations.map(c => c.req_id).filter(id => id != null))]
-      
-      if (allReqIds.length > 0) {
-        const { data: reqData, error: reqError } = await supabaseServer
-          .from('domestic_crm_reqs')
-          .select('req_id, job_title')
-          .in('req_id', allReqIds)
-
-        if (!reqError && reqData) {
-          reqData.forEach(req => reqIdToJobTitle.set(req.req_id, req.job_title))
+        if (convError) {
+          console.error('[ERROR] Conversations fetch failed for batch:', convError.message)
+        } else if (conversations) {
+          allConversations.push(...conversations)
         }
       }
+
+      // Get all unique req_ids for job titles
+      if (allConversations.length > 0) {
+        const allReqIds = [...new Set(allConversations.map(c => c.req_id).filter(id => id != null))]
+        
+        if (allReqIds.length > 0) {
+          const { data: reqData, error: reqError } = await supabaseServer
+            .from('domestic_crm_reqs')
+            .select('req_id, job_title')
+            .in('req_id', allReqIds)
+
+          if (!reqError && reqData) {
+            reqData.forEach(req => reqIdToJobTitle.set(req.req_id, req.job_title))
+          }
+        }
+      }
+
+      // Process all conversations
+      allConversations?.forEach(conv => {
+        const parsingId = conv.parsing_id
+        
+        // For latest status (most recent conversation)
+        if (!latestStatusMap.has(parsingId)) {
+          latestStatusMap.set(parsingId, {
+            latest_status: conv.candidate_status || '-',
+            latest_user: conv.users?.name || conv.user_id || '-',
+            latest_date: conv.calling_date || '-',
+            latest_remarks: conv.remarks || '-',
+            latest_profile: reqIdToJobTitle.get(conv.req_id) || '-'
+          })
+        }
+        
+        // Check if sent_to_tl contains a UUID (not null, not empty, not undefined)
+        // UUID format: 123e4567-e89b-12d3-a456-426614174000
+        const isSentToTl = conv.sent_to_tl !== null && 
+                          conv.sent_to_tl !== '' && 
+                          conv.sent_to_tl !== undefined &&
+                          conv.sent_to_tl !== false &&
+                          conv.sent_to_tl !== 'false'
+        
+        // Optional: Validate UUID format
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const isValidUuid = uuidRegex.test(conv.sent_to_tl);
+        
+        // If this conversation has sent_to_tl with a valid UUID, mark it
+        if (isSentToTl && isValidUuid) {
+          sentToTlMap.set(parsingId, {
+            sent_to_tl: true,
+            sent_to_tl_user_id: conv.sent_to_tl, // The UUID of the TL
+            sent_to_tl_user_name: conv.users?.name || conv.user_id || '-', // Name of person who sent
+            sent_to_tl_date: conv.calling_date || conv.created_at || '-'
+          })
+        }
+      })
+      
+      // Ensure all candidateIds have an entry in sentToTlMap
+      candidateIds.forEach(id => {
+        if (!sentToTlMap.has(id)) {
+          sentToTlMap.set(id, {
+            sent_to_tl: false,
+            sent_to_tl_user_id: '-',
+            sent_to_tl_user_name: '-',
+            sent_to_tl_date: '-'
+          })
+        }
+      })
     }
 
-    // Build latest conversation data map per candidate
-    const latestStatusMap = new Map()
-    conversations?.forEach(conv => {
-      if (!latestStatusMap.has(conv.parsing_id)) {
-        latestStatusMap.set(conv.parsing_id, {
-          latest_status: conv.candidate_status || '-',
-          latest_user: conv.users?.name || conv.user_id || '-',
-          latest_date: conv.calling_date || '-',
-          latest_remarks: conv.remarks || '-',
-          latest_profile: reqIdToJobTitle.get(conv.req_id) || '-'
-        })
-      }
-    })
-
     const processedData = uniqueData.map(item => {
-      const statusInfo = latestStatusMap.get(item.id)
+      const statusInfo = latestStatusMap.get(item.id) || { 
+        latest_status: '-', 
+        latest_user: '-', 
+        latest_date: '-',
+        latest_remarks: '-',
+        latest_profile: '-'
+      }
+      
+      const sentInfo = sentToTlMap.get(item.id) || {
+        sent_to_tl: false,
+        sent_to_tl_user_id: '-',
+        sent_to_tl_user_name: '-',
+        sent_to_tl_date: '-'
+      }
+      
       const processed = {
         ...item,
         is_shared: item.other_users && item.other_users.includes(userId) && item.user_id !== userId,
-        latest_status: statusInfo?.latest_status || '-',
-        latest_user: statusInfo?.latest_user || '-',
-        latest_date: statusInfo?.latest_date || '-',
-        latest_remarks: statusInfo?.latest_remarks || '-',
-        latest_profile: statusInfo?.latest_profile || '-'
+        latest_status: statusInfo.latest_status,
+        latest_user: statusInfo.latest_user,
+        latest_date: statusInfo.latest_date,
+        latest_remarks: statusInfo.latest_remarks,
+        latest_profile: statusInfo.latest_profile,
+        // Add sent_to_tl fields
+        sent_to_tl: sentInfo.sent_to_tl,
+        sent_to_tl_user_id: sentInfo.sent_to_tl_user_id,
+        sent_to_tl_user_name: sentInfo.sent_to_tl_user_name,
+        sent_to_tl_date: sentInfo.sent_to_tl_date
       }
       return processed
     })
@@ -125,7 +317,6 @@ export async function GET(request) {
     }, { status: 500 })
   }
 }
-
 export async function POST(request) {
   try {
     const formData = await request.formData();
