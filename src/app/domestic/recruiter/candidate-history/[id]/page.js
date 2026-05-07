@@ -531,7 +531,7 @@ const handleCvUpload = async (candidateId, file) => {
                     </>
                 ) : (
                     <>
-                        <UploadCloud size={16}/> Upload CV
+                        <UploadCloud size={16}/> Update CV
                     </>
                 )}
             </label>

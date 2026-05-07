@@ -539,7 +539,7 @@ export default function CandidateHistoryPage() {
                     </>
                 ) : (
                     <>
-                        <UploadCloud size={16}/> Upload CV
+                        <UploadCloud size={16}/> Update CV
                     </>
                 )}
             </label>
