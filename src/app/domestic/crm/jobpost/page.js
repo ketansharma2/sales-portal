@@ -111,8 +111,20 @@ export default function JobRequirementsPage() {
            }
          });
          const data = await response.json();
-         console.log("data",data);
-         setJobpostUsers(data);
+         console.log("data", data);
+         
+         if (isMounted) {
+           setJobpostUsers(data);
+           
+           // --- यहीं पर डिफ़ॉल्ट यूज़र सेट कर दें ---
+           // अगर डेटा मौजूद है और कम से कम 1 यूज़र है
+           if (data && data.length > 0) {
+             setInlineForm(prev => ({
+               ...prev,
+               assigned_to: data[0].user_id // पहले यूज़र की ID सेट करें
+             }));
+           }
+         }
         
        } catch (error) {
          console.error('Failed to fetch jobpost users:', error);
@@ -120,12 +132,13 @@ export default function JobRequirementsPage() {
          if (isMounted) setLoadingJobpostUsers(false);
        }
      };
+     
      fetchJobpostUsers();
 
      return () => {
        isMounted = false;
      };
-   }, []);
+   }, []); // inlineForm को dependency array में मत डालना, नहीं तो इनफिनिट लूप बन सकता है
 
    // Fetch Branches when client is selected
   useEffect(() => {
@@ -705,27 +718,27 @@ export default function JobRequirementsPage() {
     <div className="min-h-screen bg-gray-50 font-['Calibri'] p-2 print:p-0 print:bg-white">
       
       {/* HEADER */}
-      <div className="mb-6 print:hidden">
+      <div className="mb-2 print:hidden">
         <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight">Post Job Requirements</h1>
         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Assign validated mandates to the Job Posting Team</p>
       </div>
 
       {/* SMART INLINE CREATION ROW */}
-     <div className="bg-white border border-gray-200 rounded-xl shadow-sm mb-6 print:hidden relative overflow-hidden">
+     <div className="bg-white border border-gray-200 rounded-xl shadow-sm mb-2 print:hidden relative overflow-hidden">
   <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#103c7f] rounded-l-xl"></div>
   
-  <div className="p-4 pl-6">
-    <h3 className="text-[11px] font-black text-[#103c7f] uppercase tracking-widest mb-4 flex items-center gap-1.5">
+  <div className="p-2 pl-3">
+    <h3 className="text-[11px] font-black text-[#103c7f] uppercase tracking-widest mb-2 flex items-center gap-1.5">
       <Plus size={14} /> Create New Assignment
     </h3>
     
     {/* Add horizontal scroll on small screens */}
     <div className="overflow-x-auto">
       <div className="min-w-[800px] lg:min-w-0">
-        <div className="flex flex-wrap lg:flex-nowrap items-end gap-4">
+        <div className="flex flex-wrap lg:flex-nowrap items-end gap-3">
             
           {/* Date */}
-          <div className="w-full sm:w-auto md:w-[130px] shrink-0">
+          <div className="w-full sm:w-auto md:w-[110px] shrink-0">
             <label className="text-[9px] font-bold text-gray-500 uppercase mb-1.5 block">Date</label>
             <input 
               type="date" 
@@ -736,7 +749,7 @@ export default function JobRequirementsPage() {
           </div>
           
           {/* Client Name */}
-          <div className="w-full sm:w-auto md:w-[200px] shrink-0">
+          <div className="w-full sm:w-auto md:w-[180px] shrink-0">
             <label className="text-[9px] font-bold text-gray-500 uppercase mb-1.5 block">Client Name</label>
             <select 
               value={inlineForm.client_name}
@@ -772,7 +785,7 @@ export default function JobRequirementsPage() {
           </div>
 
           {/* Location */}
-          <div className="w-full sm:w-auto md:w-[180px] shrink-0">
+          <div className="w-full sm:w-auto md:w-[100px] shrink-0">
             <label className="text-[9px] font-bold text-gray-500 uppercase mb-1.5 block">Location</label>
             <input 
               type="text" 
@@ -785,7 +798,7 @@ export default function JobRequirementsPage() {
           </div>
 
            {/* Package */}
-           <div className="w-full sm:w-auto md:w-[180px] shrink-0">
+           <div className="w-full sm:w-auto md:w-[100px] shrink-0">
              <label className="text-[9px] font-bold text-gray-500 uppercase mb-1.5 block">Package</label>
              <input
                type="text"
@@ -801,7 +814,7 @@ export default function JobRequirementsPage() {
          
 
              {/* View JD Button */}
-            <div className="w-full md:w-[180px] shrink-0">
+            <div className="w-full md:w-[100px] shrink-0">
               <label className="text-[9px] font-bold text-gray-500 uppercase mb-1.5 block select-none">View JD</label>
               <button
                 onClick={() => {
@@ -816,9 +829,10 @@ export default function JobRequirementsPage() {
               >
                 <Eye size={14} className={inlineForm.jd_id ? "text-blue-500" : "text-gray-400"} /> View JD
               </button>
+              
             </div>
 
-              <div className="w-full sm:w-auto md:w-[180px] shrink-0">
+              <div className="w-full sm:w-auto md:w-[100px] shrink-0">
              <label className="text-[9px] font-bold text-gray-500 uppercase mb-1.5 block">Assign To</label>
              <select
                value={inlineForm.assigned_to}
@@ -836,7 +850,7 @@ export default function JobRequirementsPage() {
            </div>
 
           {/* Assign Button */}
-          <div className="w-full sm:w-auto md:w-[180px] shrink-0">
+          <div className="w-full sm:w-auto md:w-[120px] shrink-0">
             <label className="text-[9px] font-bold text-gray-500 uppercase mb-1.5 block select-none">Assign</label>
             <button 
               onClick={handleAssign} 
@@ -922,14 +936,27 @@ export default function JobRequirementsPage() {
                       </div>
                     </td>
 
-                    <td className="p-2 text-center align-middle">
-                      <div className="flex justify-center">
+                  <td className="p-2 text-center align-middle">
+                      <div className="flex justify-center gap-2"> {/* Added gap-2 for spacing between buttons */}
+                        {/* Existing View Apps Button */}
                         <button
                           onClick={() => fetchCVModalData(assignment.id)}
                           className="flex items-center gap-1.5 bg-purple-50 text-purple-700 hover:bg-purple-600 hover:text-white px-3 py-1.5 rounded-md border border-purple-100 transition-colors font-bold text-[10px] uppercase tracking-widest whitespace-nowrap"
-                          title="View Applications"
+                          title="View Applications Data"
                         >
                           <Users size={12}/> 0 Apps
+                        </button>
+
+                        {/* NEW: View CVs Button */}
+                        <button
+                          onClick={() => {
+                            // Add your logic to view CVs here
+                            // e.g., openViewCVsModal(assignment.id)
+                          }}
+                          className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-md border border-indigo-100 transition-colors font-bold text-[10px] uppercase tracking-widest whitespace-nowrap"
+                          title="View Candidate CVs"
+                        >
+                          <FileText size={12}/> View CVs
                         </button>
                       </div>
                     </td>

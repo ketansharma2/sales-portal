@@ -3,7 +3,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
-  Users, Wallet, LayoutGrid, ShieldCheck, Store ,Briefcase,HelpCircle,Receipt,
+  Users, Wallet, LayoutGrid, ShieldCheck, Store ,Briefcase,HelpCircle,Receipt,FileScan,FileBadge,
   Settings, FileText, Target, Search, BarChart, Phone,Calendar,MapPin,Truck,UserPlus,IndianRupee,UserCheck,Edit,Plus,
   Package,PhoneCall,ClipboardList,KanbanSquare,TableProperties, SunMedium, UploadCloud,Activity,History,LayoutDashboard,  Building2,
   House,ShoppingCart, CalendarOff
@@ -128,6 +128,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       { name: "JD Management", href: `${roleBaseHref}/jd`, icon: <FileText size={20} /> }, // Naya JD Page Tab
       { name: "Client FAQs", href: `${roleBaseHref}/faq`, icon: <HelpCircle size={20} /> }, // Interview Questions Repo
       { name: "Target", href: `${roleBaseHref}/target`, icon: <Target size={20} /> },
+      { name: "Job Post", href: `${roleBaseHref}/jobpost`, icon: <FileBadge size={20} /> },
     ];
   }
   else if (currentRole === "recruiter") {
@@ -163,6 +164,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       { name: "Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
       { name: "Job Posting", href: `${roleBaseHref}/post`, icon: <FileText size={20} /> },
       { name: "CV Parsing", href: `${roleBaseHref}/parsing`, icon: <UploadCloud size={20} /> },
+      { name: "Posting", href: `${roleBaseHref}/posting`, icon: <FileScan size={20} /> },
     ];
   }
   else if (currentRole === "revenue") {
@@ -195,7 +197,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       )}
 
       {/* Navigation Links */}
-      <nav className={`flex-1 px-5 space-y-3 ${isSectorPath ? "mt-6" : "mt-20"}`}>
+      <nav className={`flex-1 px-5 space-y-1 ${isSectorPath ? "mt-6" : "mt-20"}`}>
         {menuItems.map((item) => {
           
           // --- ACTIVE STATE LOGIC ---
