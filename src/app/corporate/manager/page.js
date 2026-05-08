@@ -1167,7 +1167,7 @@ export default function SalesManagerDashboard() {
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                         <KpiCard title="Leads" total={stats?.kpiData.masterUnion.company} icon={<Briefcase size={18} />} color="purple" onClick={() => {}} />
-                                        <KpiCard title="Profiles" total={stats?.kpiData.masterUnion.profiles} icon={<UserCheck size={18} />} color="purple" onClick={() => {}} />
+                                      
                                         <KpiCard title="Calls" total={stats?.kpiData.masterUnion.calling} icon={<Phone size={18} />} color="purple" onClick={() => {}} />
                                     </div>
                                 </div>
