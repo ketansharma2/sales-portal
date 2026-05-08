@@ -88,6 +88,7 @@ export async function POST(request) {
         category: lead.category,
         city: lead.district_city || null,
         state: lead.state,
+        projection: lead.projection,
         location: lead.location || null,
         contact_person: latestInteraction.contact_person || lead.contact_person || null,
         phone: latestInteraction.contact_no || lead.phone || null,

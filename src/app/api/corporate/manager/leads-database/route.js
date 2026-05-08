@@ -63,6 +63,7 @@ export async function GET(request) {
         startup,
         sourcing_date,
         sent_to_sm,
+        projection,
         created_at,
         leadgen_id,
         corporate_leads_interaction!left (
@@ -111,6 +112,7 @@ export async function GET(request) {
         empCount: lead.emp_count,
         reference: lead.reference,
         startup: lead.startup,
+        projection: lead.projection,
         status: latestInteraction?.status || 'New',
         subStatus: latestInteraction?.sub_status || 'New Lead',
         franchiseStatus: latestInteraction?.franchise_status || '',

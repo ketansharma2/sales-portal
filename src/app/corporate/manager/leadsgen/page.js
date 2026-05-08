@@ -22,6 +22,7 @@ import {
   Map,
   Users,
   Briefcase,
+  TrendingUp,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -121,17 +122,18 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
   const [showEmailSuggestions, setShowEmailSuggestions] = useState(false);
   const [showPhoneSuggestions, setShowPhoneSuggestions] = useState(false);
 
-  // --- FILTER STATE ---
-  const [filters, setFilters] = useState({
-    fromDate: "",
-    toDate: "",
-    company: "",
-    location: "",
-    status: "All",
-    subStatus: "All",
-    sourcedBy: "All",
-    franchiseStatus: "All",
-  });
+   // --- FILTER STATE ---
+   const [filters, setFilters] = useState({
+     fromDate: "",
+     toDate: "",
+     company: "",
+     location: "",
+     status: "All",
+     subStatus: "All",
+     sourcedBy: "All",
+     franchiseStatus: "All",
+     projection: "All",
+   });
 
 const fetchCrmDetails = async (clientId) => {
   try {
@@ -347,8 +349,13 @@ const fetchCrmDetails = async (clientId) => {
       result = result.filter((l) => l.sourcedBy === filters.sourcedBy);
     }
     if (filters.franchiseStatus !== "All") {
-      result = result.filter((l) => 
+      result = result.filter((l) =>
         (l.franchiseStatus && l.franchiseStatus === filters.franchiseStatus)
+      );
+    }
+    if (filters.projection !== "All") {
+      result = result.filter((l) =>
+        (l.projection && l.projection === filters.projection)
       );
     }
 
@@ -709,6 +716,7 @@ const fetchCrmDetails = async (clientId) => {
                 subStatus: "All",
                 sourcedBy: "All",
                 franchiseStatus: "All",
+                projection: "All",
               });
             }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "actionable" ? "bg-[#103c7f] text-white shadow-md" : "text-gray-500 hover:bg-gray-50"}`}
@@ -727,6 +735,7 @@ const fetchCrmDetails = async (clientId) => {
                 subStatus: "All",
                 sourcedBy: "All",
                 franchiseStatus: "All",
+                projection: "All",
               });
             }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "database" ? "bg-[#103c7f] text-white shadow-md" : "text-gray-500 hover:bg-gray-50"}`}
@@ -737,7 +746,7 @@ const fetchCrmDetails = async (clientId) => {
       </div>
 
       {/* 2. FILTERS */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-4 grid grid-cols-8 gap-3 items-end">
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-4 grid grid-cols-9 gap-3 items-end">
         <div className="col-span-1">
           <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
             From
@@ -870,6 +879,26 @@ const fetchCrmDetails = async (clientId) => {
             <option>Form Not Filled</option>
           </select>
         </div>
+        <div className="col-span-1">
+          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
+            Projection
+          </label>
+          <div className="relative">
+            <TrendingUp className="absolute left-3 top-2.5 text-gray-400" size={14} />
+            <select
+              value={filters.projection}
+              className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] transition cursor-pointer"
+              onChange={(e) => handleFilterChange("projection", e.target.value)}
+            >
+              <option value="All">All</option>
+              <option value="WP > 50">WP &gt; 50</option>
+              <option value="WP < 50">WP &lt; 50</option>
+              <option value="MP > 50">MP &gt; 50</option>
+              <option value="MP < 50">MP &lt; 50</option>
+              <option value="Not Projected">Not Projected</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* 3. TABLE AREA - SEPARATE FOR EACH TAB */}
@@ -912,12 +941,16 @@ const fetchCrmDetails = async (clientId) => {
                 <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap text-center">
                   Status/Substatus
                 </th>
-                <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap text-center">
-                  Franchise Status
-                </th>
-                <th className="px-4 py-3 text-center bg-[#0d316a] sticky right-0 z-50 min-w-[200px] shadow-lg">
-                  Action
-                </th>
+                 <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap text-center">
+                   Franchise Status
+                 </th>
+                 <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap text-center">
+                   Projection
+                 </th>
+
+                 <th className="px-4 py-3 text-center bg-[#0d316a] sticky right-0 z-50 min-w-[200px] shadow-lg">
+                   Action
+                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700 font-medium">
@@ -1005,16 +1038,27 @@ const fetchCrmDetails = async (clientId) => {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 border-r border-gray-100 whitespace-nowrap text-center">
-                        {lead.franchiseStatus ? (
-                          <span className="bg-orange-50 text-orange-700 border border-orange-200 px-2 py-0.5 rounded text-[10px] font-bold">
-                            {lead.franchiseStatus}
-                          </span>
-                        ) : (
-                          <span className="text-gray-300">-</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center sticky right-0 bg-white group-hover:bg-blue-50/20 border-l border-gray-200 z-10 whitespace-nowrap shadow-[-4px_0px_8px_-4px_rgba(0,0,0,0.05)]">
+                     
+                       <td className="px-4 py-3 border-r border-gray-100 whitespace-nowrap text-center">
+                         {lead.franchiseStatus ? (
+                           <span className="bg-orange-50 text-orange-700 border border-orange-200 px-2 py-0.5 rounded text-[10px] font-bold">
+                             {lead.franchiseStatus}
+                           </span>
+                         ) : (
+                           <span className="text-gray-300">-</span>
+                         )}
+                       </td>
+                       <td className="px-4 py-3 border-r border-gray-100 whitespace-nowrap text-center">
+                         <div className="flex flex-col items-center gap-1">
+                           <span
+                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${lead.projection ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-gray-50 text-gray-600 border-gray-200"}`}
+                           >
+                             {lead.projection || 'N/A' }
+                           </span>
+                         </div>
+                       </td>
+
+                       <td className="px-4 py-3 text-center sticky right-0 bg-white group-hover:bg-blue-50/20 border-l border-gray-200 z-10 whitespace-nowrap shadow-[-4px_0px_8px_-4px_rgba(0,0,0,0.05)]">
                         <div className="flex items-center justify-center gap-2">
                           {lead.sentToCrm ? (
                            <>
@@ -1080,12 +1124,12 @@ const fetchCrmDetails = async (clientId) => {
                 })
               ) : (
                 <tr>
-                  <td
-                    colSpan="10"
-                    className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest"
-                  >
-                    No leads found
-                  </td>
+                   <td
+                     colSpan="11"
+                     className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest"
+                   >
+                     No leads found
+                   </td>
                 </tr>
               )}
             </tbody>
@@ -1123,6 +1167,9 @@ const fetchCrmDetails = async (clientId) => {
                 </th>
                 <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap text-center">
                   Franchise
+                </th>
+                 <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap text-center">
+                  Projection
                 </th>
                 <th className="px-4 py-3 text-center bg-[#0d316a] sticky right-0 z-20 w-[80px]">
                   Action
@@ -1227,6 +1274,16 @@ const fetchCrmDetails = async (clientId) => {
                           <span className="text-gray-300">-</span>
                         )}
                       </td>
+                        <td className="px-4 py-3 border-r border-gray-100 whitespace-nowrap text-center">
+  <div className="flex flex-col items-center gap-1">
+    <span
+      className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${lead.projection ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-gray-50 text-gray-600 border-gray-200"}`}
+    >
+      {lead.projection || "NA"}
+    </span>
+
+  </div>
+</td>
                       <td className="px-4 py-3 text-center sticky right-0 bg-white group-hover:bg-blue-50/20 border-l border-gray-200 z-10 whitespace-nowrap shadow-[-4px_0px_8px_-4px_rgba(0,0,0,0.05)]">
                         <button
                           onClick={() => handleAction(lead, "view")}

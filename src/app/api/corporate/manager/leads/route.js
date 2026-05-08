@@ -173,6 +173,7 @@ export async function GET(request) {
           sourcing_date,
           created_at,
           leadgen_id,
+          projection,
           corporate_leads_interaction!left (
             id,
             date,
@@ -197,6 +198,7 @@ export async function GET(request) {
       rawData = data
     }
 
+    console.log("leads:",rawData);
     // Format the data
     let formattedLeads = rawData?.map((lead) => {
       // For actionable tab, use allInteractions; for database tab, use corporate_leads_interaction
@@ -216,6 +218,7 @@ export async function GET(request) {
         empCount: lead.emp_count,
         reference: lead.reference,
         startup: lead.startup,
+        projection: lead.projection,
         status: latestInteraction?.status || 'New',
         subStatus: latestInteraction?.sub_status || 'New Lead',
         franchiseStatus: latestInteraction?.franchise_status || '',
