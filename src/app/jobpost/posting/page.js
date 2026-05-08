@@ -13,23 +13,48 @@ export default function JobPosterPanel() {
   // --- STATE ---
   const [postings, setPostings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Fetch JDs from API
   useEffect(() => {
     fetchJDs();
   }, []);
 
+  // Retry on error
+  useEffect(() => {
+    if (error && !loading) {
+      const timer = setTimeout(() => {
+        console.log('Retrying API call after error...');
+        fetchJDs();
+      }, 5000); // Retry after 5 seconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [error, loading]);
+
   const fetchJDs = async () => {
     try {
+      setError(null);
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const response = await fetch('/api/jobpost/posting', {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await response.json();
+      console.log('API Response:', data); // Debug logging
+
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
+
       if (data.error) throw new Error(data.error);
-      setPostings(data.data || []);
+
+      // Ensure data.data is always an array
+      const postingsData = data.data || [];
+      setPostings(Array.isArray(postingsData) ? postingsData : []);
     } catch (error) {
       console.error('Error fetching JDs:', error);
+      setError(error.message);
+      setPostings([]);
     } finally {
       setLoading(false);
     }
@@ -106,8 +131,8 @@ export default function JobPosterPanel() {
       }
 
       // Determine API base based on sector
-      const apiBase = selectedJD.sector === 'Corporate' ? '/api/corporate/crm/jd' : '/api/domestic/crm/jd';
-
+      const apiBase = selectedJD.job_type === 'corporate' ? '/api/corporate/crm/jd' : '/api/domestic/crm/jd';
+      console.log("Adding link with data:", selectedJD);
       try {
           const response = await fetch(`${apiBase}/job-postings`, {
               method: 'POST',
@@ -116,7 +141,7 @@ export default function JobPosterPanel() {
                   'Authorization': `Bearer ${session.access_token}`
               },
                body: JSON.stringify({
-                   jd_id: selectedJD.jd_id,
+                   jd_id: selectedJD.id,
                    user_id: userId,
                    platform: newLink.platform,
                    live_url: newLink.live_url,
@@ -144,11 +169,14 @@ export default function JobPosterPanel() {
           setIsManageModalOpen(false);
           setTimeout(async () => {
               const session = JSON.parse(localStorage.getItem('session') || '{}');
-              const response = await fetch('/api/jobpost/jds', {
+              const response = await fetch('/api/jobpost/posting', {
                   headers: { 'Authorization': `Bearer ${session.access_token}` }
               });
               const freshData = await response.json();
-              const updatedPost = freshData.find(p => p.jd_id === selectedJD.jd_id);
+              console.log("Fresh data after adding link:", freshData);
+            const updatedPost = freshData.data.find(
+  p => p.id === selectedJD.id
+);
               if (updatedPost) {
                   setSelectedJD(updatedPost);
                   setPostings(freshData);
@@ -195,12 +223,13 @@ export default function JobPosterPanel() {
           // Update local state
           const updatedJob = {
               ...selectedJD,
-              publishingDetails: selectedJD.publishingDetails.map(pub => 
+              publishingDetails: selectedJD.publishingDetails.map(pub =>
                   pub.id === linkId ? { ...pub, stage: newStage } : pub
               )
           };
+           fetchJDs();
 
-          setPostings(postings.map(post => post.jd_id === selectedJD.jd_id ? updatedJob : post));
+          setPostings(Array.isArray(postings) ? postings.map(post => post.jd_id === selectedJD.id ? updatedJob : post) : []);
           setSelectedJD(updatedJob);
       } catch (error) {
           console.error('Error toggling stage:', error);
@@ -238,7 +267,7 @@ export default function JobPosterPanel() {
               publishingDetails: selectedJD.publishingDetails.filter(pub => pub.id !== linkId)
           };
 
-          setPostings(postings.map(post => post.jd_id === selectedJD.jd_id ? updatedJob : post));
+          setPostings(Array.isArray(postings) ? postings.map(post => post.jd_id === selectedJD.id ? updatedJob : post) : []);
           setSelectedJD(updatedJob);
       } catch (error) {
           console.error('Error deleting link:', error);
@@ -251,7 +280,7 @@ export default function JobPosterPanel() {
       if(!newLog.count || newLog.count <= 0) return alert("Please enter a valid CV count!");
       
       // Determine API base based on sector
-      const apiBase = selectedJD.sector === 'Corporate' ? '/api/corporate/crm/jd' : '/api/domestic/crm/jd';
+      const apiBase = selectedJD.job_type === 'corporate' ? '/api/corporate/crm/jd' : '/api/domestic/crm/jd';
       
       // Save to database
       try {
@@ -263,7 +292,7 @@ export default function JobPosterPanel() {
                   'Authorization': `Bearer ${session.access_token}`
               },
               body: JSON.stringify({
-                  jd_id: selectedJD.jd_id,
+                  jd_id: selectedJD.id,
                   date: newLog.date,
                   platform: newLog.platform,
                   cv_received: parseInt(newLog.count),
@@ -288,14 +317,18 @@ export default function JobPosterPanel() {
           setIsDataModalOpen(false);
           setTimeout(async () => {
               const session = JSON.parse(localStorage.getItem('session') || '{}');
-              const response = await fetch('/api/jobpost/jds', {
+              const response = await fetch('/api/jobpost/posting', {
                   headers: { 'Authorization': `Bearer ${session.access_token}` }
               });
               const freshData = await response.json();
-              const updatedPost = freshData.find(p => p.jd_id === selectedJD.jd_id);
+                            console.log("Fresh data after adding link:", freshData);
+
+            const updatedPost = freshData.data.find(
+  p => p.id === selectedJD.id
+);
               if (updatedPost) {
                   setSelectedJD(updatedPost);
-                  setPostings(freshData);
+                  setPostings(freshData.data);
               }
               setIsDataModalOpen(true);
           }, 100);
@@ -321,7 +354,7 @@ export default function JobPosterPanel() {
       if(!newLog.count || newLog.count <= 0) return alert("Please enter a valid CV count!");
       
       // Determine API base based on sector
-      const apiBase = selectedJD.sector === 'Corporate' ? '/api/corporate/crm/jd' : '/api/domestic/crm/jd';
+      const apiBase = selectedJD.job_type === 'corporate' ? '/api/corporate/crm/jd' : '/api/domestic/crm/jd';
       
       try {
           const session = JSON.parse(localStorage.getItem('session') || '{}');
@@ -355,19 +388,23 @@ export default function JobPosterPanel() {
           alert('Data updated successfully!');
           
           setIsDataModalOpen(false);
-          setTimeout(async () => {
-              const session = JSON.parse(localStorage.getItem('session') || '{}');
-              const response = await fetch('/api/jobpost/jds', {
-                  headers: { 'Authorization': `Bearer ${session.access_token}` }
-              });
-              const freshData = await response.json();
-              const updatedPost = freshData.find(p => p.jd_id === selectedJD.jd_id);
-              if (updatedPost) {
-                  setSelectedJD(updatedPost);
-                  setPostings(freshData);
-              }
-              setIsDataModalOpen(true);
-          }, 100);
+//           setTimeout(async () => {
+//               const session = JSON.parse(localStorage.getItem('session') || '{}');
+//               const response = await fetch('/api/jobpost/posting', {
+//                   headers: { 'Authorization': `Bearer ${session.access_token}` }
+//               });
+//               const freshData = await response.json();
+//                             console.log("Fresh data after adding link:", freshData);
+
+//               const updatedPost = freshData.data.find(
+//           p => p.id === selectedJD.id
+// );
+//               if (updatedPost) {
+//                   setSelectedJD(updatedPost);
+//                   setPostings(freshData);
+//               }
+//               setIsDataModalOpen(true);
+//           }, 100);
       } catch (error) {
           console.error('Error updating CV data:', error);
           alert('Error updating data');
@@ -406,7 +443,7 @@ export default function JobPosterPanel() {
           
           // Update local state
           const updatedJob = { ...selectedJD, cvLogs: selectedJD.cvLogs.filter(log => log.id !== logId) };
-          setPostings(postings.map(post => post.jd_id === selectedJD.jd_id ? updatedJob : post));
+          setPostings(Array.isArray(postings) ? postings.map(post => post.jd_id === selectedJD.id ? updatedJob : post) : []);
           setSelectedJD(updatedJob);
       } catch (error) {
           console.error('Error deleting CV data:', error);
@@ -488,9 +525,9 @@ const handleStatusChange = async (jdId, newStatus, jobType) => {
     }
     
     // ✅ Update local state
-    setPostings(postings.map(post => 
+    setPostings(Array.isArray(postings) ? postings.map(post =>
       post.id === jdId ? { ...post, status: newStatus } : post
-    ));
+    ) : []);
     
     alert('Status updated to ' + newStatus);
   } catch (error) {
@@ -521,190 +558,220 @@ const handleStatusChange = async (jdId, newStatus, jobType) => {
              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">Manage & Track Published Links</p>
          </div>
          
-         {/* Simple Stats Card */}
-          <div className="flex gap-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex-wrap">
-              {/* TOTAL POSTS */}
-              <div className="text-center px-4 border-r border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Total Posts</p>
-                  <p className="text-xl font-black text-slate-800">
-                     {postings.length}
-                  </p>
-              </div>
+          {/* Simple Stats Card */}
+           <div className="flex gap-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex-wrap">
+               {/* TOTAL POSTS */}
+               <div className="text-center px-4 border-r border-gray-100">
+                   <p className="text-[10px] font-bold text-gray-400 uppercase">Total Posts</p>
+                   <p className="text-xl font-black text-slate-800">
+                      {Array.isArray(postings) ? postings.length : 0}
+                   </p>
+               </div>
 
-              {/* PENDING */}
-              <div className="text-center px-4 border-r border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Pending</p>
-                  <p className="text-xl font-black text-orange-500">
-                     {postings.filter(p => p.status === 'Sent' || p.jdStatus === 'Pending' || !p.jdStatus).length}
-                  </p>
-              </div>
+               {/* PENDING */}
+               <div className="text-center px-4 border-r border-gray-100">
+                   <p className="text-[10px] font-bold text-gray-400 uppercase">Pending</p>
+                   <p className="text-xl font-black text-orange-500">
+                      {Array.isArray(postings) ? postings.filter(p => p.status === 'Sent' || p.jdStatus === 'Pending' || !p.jdStatus).length : 0}
+                   </p>
+               </div>
 
-              {/* OPEN */}
-              <div className="text-center px-4 border-r border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Open</p>
-                  <p className="text-xl font-black text-green-600">
-                     {postings.filter(p => p.status === 'Open' || p.jdStatus === 'Live').length}
-                  </p>
-              </div>
+               {/* OPEN */}
+               <div className="text-center px-4 border-r border-gray-100">
+                   <p className="text-[10px] font-bold text-gray-400 uppercase">Open</p>
+                   <p className="text-xl font-black text-green-600">
+                      {Array.isArray(postings) ? postings.filter(p => p.status === 'Open' || p.jdStatus === 'Live').length : 0}
+                   </p>
+               </div>
 
-              {/* PAUSED */}
-              <div className="text-center px-4 border-r border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Paused</p>
-                  <p className="text-xl font-black text-gray-500">
-                     {postings.filter(p => p.status === 'Paused').length}
-                  </p>
-              </div>
+               {/* PAUSED */}
+               <div className="text-center px-4 border-r border-gray-100">
+                   <p className="text-[10px] font-bold text-gray-400 uppercase">Paused</p>
+                   <p className="text-xl font-black text-gray-500">
+                      {Array.isArray(postings) ? postings.filter(p => p.status === 'Paused').length : 0}
+                   </p>
+               </div>
 
-              {/* FLAGGED */}
-              <div className="text-center px-4 border-r border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Flagged</p>
-                  <p className="text-xl font-black text-yellow-600">
-                     {postings.filter(p => p.status === 'Flagged').length}
-                  </p>
-              </div>
+               {/* FLAGGED */}
+               <div className="text-center px-4 border-r border-gray-100">
+                   <p className="text-[10px] font-bold text-gray-400 uppercase">Flagged</p>
+                   <p className="text-xl font-black text-yellow-600">
+                      {Array.isArray(postings) ? postings.filter(p => p.status === 'Flagged').length : 0}
+                   </p>
+               </div>
 
-              {/* CLOSED */}
-              <div className="text-center px-4 border-r border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Closed</p>
-                  <p className="text-xl font-black text-red-500">
-                     {postings.filter(p => p.status === 'Closed' || p.jdStatus === 'Deleted').length}
-                  </p>
-              </div>
+               {/* CLOSED */}
+               <div className="text-center px-4 border-r border-gray-100">
+                   <p className="text-[10px] font-bold text-gray-400 uppercase">Closed</p>
+                   <p className="text-xl font-black text-red-500">
+                      {Array.isArray(postings) ? postings.filter(p => p.status === 'Closed' || p.jdStatus === 'Deleted').length : 0}
+                   </p>
+               </div>
 
-              {/* TOTAL CVs */}
-              <div className="text-center px-4 border-r border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">CVs</p>
-                  <p className="text-xl font-black text-indigo-600">
-                     {postings.reduce((sum, p) => sum + (p.cvLogs?.reduce((s, log) => s + Number(log.count || 0), 0) || 0), 0)}
-                  </p>
-              </div>
+               {/* TOTAL CVs */}
+               <div className="text-center px-4 border-r border-gray-100">
+                   <p className="text-[10px] font-bold text-gray-400 uppercase">CVs</p>
+                   <p className="text-xl font-black text-indigo-600">
+                      {Array.isArray(postings) ? postings.reduce((sum, p) => sum + (p.cvLogs?.reduce((s, log) => s + Number(log.count || 0), 0) || 0), 0) : 0}
+                   </p>
+               </div>
 
-              {/* TOTAL CALLS */}
-              <div className="text-center px-4">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Calls</p>
-                  <p className="text-xl font-black text-emerald-600">
-                     {postings.reduce((sum, p) => sum + (p.cvLogs?.reduce((s, log) => s + Number(log.callingCount || 0), 0) || 0), 0)}
-                  </p>
-              </div>
-          </div>
+               {/* TOTAL CALLS */}
+               <div className="text-center px-4">
+                   <p className="text-[10px] font-bold text-gray-400 uppercase">Calls</p>
+                   <p className="text-xl font-black text-emerald-600">
+                      {Array.isArray(postings) ? postings.reduce((sum, p) => sum + (p.cvLogs?.reduce((s, log) => s + Number(log.callingCount || 0), 0) || 0), 0) : 0}
+                   </p>
+               </div>
+           </div>
        </div>
 
-       {/* 2. TABLE */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm print:hidden">
-         <div className="overflow-x-auto">
-             <table className="w-full text-left border-collapse min-w-[1000px]">
-                <thead className="bg-[#103c7f] text-white text-[11px] font-bold uppercase tracking-wider sticky top-0 z-10">
-                    <tr>
-                        <th className="p-4 border-r border-blue-800">Received Date</th>
-                        <th className="p-4 border-r border-blue-800">Sector / CRM</th>
-                        <th className="p-4 border-r border-blue-800">Client</th>
-                        <th className="p-4 border-r border-blue-800 w-1/4">Profile</th>
-                        <th className="p-4 border-r border-blue-800 text-center">JD</th>
-                        <th className="p-4 border-r border-blue-800 text-center">Status</th>
-                        <th className="p-4 border-r border-blue-800 text-center">Tracking</th>
-                        <th className="p-4 text-center">Data Received</th> 
-                    </tr>
-                </thead>
-                <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
-                    {postings.map((post) => {
-                        const activeCount = getActiveCount(post.publishingDetails || []);
-                        const totalCVs = getTotalCVs(post.cvLogs);
-                        
-                        return (
-                        <tr key={post.id} className="hover:bg-blue-50/30 transition group">
-                            
-                            <td className="p-2 border-r border-gray-100 whitespace-nowrap">
-                                <span className="flex items-center gap-1.5 text-gray-600 font-bold bg-gray-50 px-2 py-1 rounded border border-gray-200">
-                                    <Calendar size={12} className="text-[#103c7f]"/> {post.date}
-                                </span>
-                            </td>
+        {/* 2. TABLE */}
+        {loading ? (
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm print:hidden flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#103c7f] mx-auto mb-4"></div>
+              <p className="text-gray-500 font-bold uppercase tracking-widest">Loading postings...</p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 rounded-2xl shadow-sm print:hidden flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="text-red-500 mb-2">⚠️</div>
+              <p className="text-red-700 font-bold">Error loading postings</p>
+              <p className="text-red-600 text-sm mt-1">{error}</p>
+              <button
+                onClick={fetchJDs}
+                className="mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold transition"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm print:hidden">
+            <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[1000px]">
+                   <thead className="bg-[#103c7f] text-white text-[11px] font-bold uppercase tracking-wider sticky top-0 z-10">
+                       <tr>
+                           <th className="p-4 border-r border-blue-800">Received Date</th>
+                           <th className="p-4 border-r border-blue-800">Sector / CRM</th>
+                           <th className="p-4 border-r border-blue-800">Client</th>
+                           <th className="p-4 border-r border-blue-800 w-1/4">Profile</th>
+                           <th className="p-4 border-r border-blue-800 text-center">JD</th>
+                           <th className="p-4 border-r border-blue-800 text-center">Status</th>
+                           <th className="p-4 border-r border-blue-800 text-center">Tracking</th>
+                           <th className="p-4 text-center">Data Received</th>
+                       </tr>
+                   </thead>
+                   <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
+                       {Array.isArray(postings) && postings.length > 0 ? postings.map((post) => {
+                         const activeCount = getActiveCount(post.publishingDetails || []);
+                         const totalCVs = getTotalCVs(post.cvLogs);
 
-                            <td className="p-2 border-r border-gray-100">
-                                <div className="flex flex-col items-start gap-1">
-                                    <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-widest ${
-                                        post.job_type === 'Domestic' ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-purple-50 text-purple-700 border border-purple-100'
-                                    }`}>
-                                        {post.job_type}
-                                    </span>
-                                    <span className="flex items-center gap-1 font-bold text-gray-800">
-                                        <User size={12} className="text-gray-400"/> {post.created_by_name || 'CRM'}
-                                    </span>
-                                </div>
-                            </td>
+                         return (
+                         <tr key={post.id} className="hover:bg-blue-50/30 transition group">
 
-                            <td className="p-2 border-r border-gray-100 font-bold text-gray-800">
-                                <div className="flex items-center gap-1.5"><Building2 size={14} className="text-gray-400"/> {post.client_name}</div>
-                            </td>
+                             <td className="p-2 border-r border-gray-100 whitespace-nowrap">
+                                 <span className="flex items-center gap-1.5 text-gray-600 font-bold bg-gray-50 px-2 py-1 rounded border border-gray-200">
+                                     <Calendar size={12} className="text-[#103c7f]"/> {post.date}
+                                 </span>
+                             </td>
 
-                            <td className="p-2 border-r border-gray-100">
-                                <span className="font-black text-[#103c7f] text-sm">{post.job_title}</span>
-                                
-                            </td>
+                             <td className="p-2 border-r border-gray-100">
+                                 <div className="flex flex-col items-start gap-1">
+                                     <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-widest ${
+                                         post.job_type === 'Domestic' ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-purple-50 text-purple-700 border border-purple-100'
+                                     }`}>
+                                         {post.job_type}
+                                     </span>
+                                     <span className="flex items-center gap-1 font-bold text-gray-800">
+                                         <User size={12} className="text-gray-400"/> {post.created_by_name || 'CRM'}
+                                     </span>
+                                 </div>
+                             </td>
 
-                            <td className="p-2 border-r border-gray-100 text-center align-middle">
-                                <button 
-                                    onClick={() => handleViewJD(post)} 
-                                    className="inline-flex items-center gap-1 bg-gray-50 hover:bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 font-bold transition shadow-sm"
-                                >
-                                    <FileText size={14}/> View
-                                </button>
-                            </td>
+                             <td className="p-2 border-r border-gray-100 font-bold text-gray-800">
+                                 <div className="flex items-center gap-1.5"><Building2 size={14} className="text-gray-400"/> {post.client_name}</div>
+                             </td>
 
-                            {/* Dynamic Status Column */}
-<td className="p-2 border-r border-gray-100 text-center">
-  <select 
-    value={
-      post.status === 'Sent' ? 'Pending' :
-      post.status === 'Live' ? 'Open' :
-      post.status === 'Deleted' ? 'Closed' :
-      post.status || 'Pending'
-    }
-    onChange={(e) => handleStatusChange(post.id, e.target.value, post.job_type)}
-    className={`text-[9px] font-black uppercase border rounded px-2 py-1 cursor-pointer ${
-      (post.status === 'Sent' || (post.status || 'Pending') === 'Pending') ? 'bg-orange-50 text-orange-600 border-orange-200' :
-      post.status === 'Open' || post.status === 'Live' ? 'bg-green-50 text-green-700 border-green-200' :
-      post.status === 'Paused' ? 'bg-gray-100 text-gray-500 border-gray-200' :
-      post.status === 'Closed' || post.status === 'Deleted' ? 'bg-red-50 text-red-600 border-red-200' :
-      post.status === 'Flagged' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-      'bg-gray-100 text-gray-600 border-gray-200'
-    }`}
-  >
-    <option value="Pending">Pending</option>
-    <option value="Open">Open</option>
-    <option value="Closed">Closed</option>
-    <option value="Paused">Paused</option>
-    <option value="Flagged">Flagged</option>
-  </select>
-</td>
+                             <td className="p-2 border-r border-gray-100">
+                                 <span className="font-black text-[#103c7f] text-sm">{post.job_title}</span>
 
-                            {/* Manage Links Action */}
-                            <td className="p-2 border-r border-gray-100 text-center align-middle">
-                                <button 
-                                    onClick={() => handleOpenManage(post)} 
-                                    className="inline-flex items-center gap-1.5 bg-[#103c7f] hover:bg-blue-900 text-white px-4 py-2 rounded-lg font-bold transition shadow-sm text-xs uppercase tracking-wide"
-                                >
-                                    <Globe size={14}/> Manage Postings
-                                </button>
-                            </td>
+                             </td>
 
-                            {/* NEW COLUMN: Data Received (CVs) */}
-                            <td className="p-2 text-center align-middle">
-                                <button 
-                                    onClick={() => handleOpenDataLog(post)}
-                                    className="inline-flex flex-col items-center justify-center p-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition border border-indigo-100 min-w-[80px]"
-                                    title="Click to Log CVs"
-                                >
-                                    <span className="text-lg font-black">{totalCVs}</span>
-                                    <span className="text-[9px] font-bold uppercase tracking-widest flex items-center gap-1"><Database size={10}/> CVs</span>
-                                </button>
-                            </td>
+                             <td className="p-2 border-r border-gray-100 text-center align-middle">
+                                 <button
+                                     onClick={() => handleViewJD(post)}
+                                     className="inline-flex items-center gap-1 bg-gray-50 hover:bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 font-bold transition shadow-sm"
+                                 >
+                                     <FileText size={14}/> View
+                                 </button>
+                             </td>
 
-                        </tr>
-                    )})}
-                </tbody>
-             </table>
-         </div>
-      </div>
+                             {/* Dynamic Status Column */}
+ <td className="p-2 border-r border-gray-100 text-center">
+   <select
+     value={
+       post.status === 'Sent' ? 'Pending' :
+       post.status === 'Live' ? 'Open' :
+       post.status === 'Deleted' ? 'Closed' :
+       post.status || 'Pending'
+     }
+     onChange={(e) => handleStatusChange(post.id, e.target.value, post.job_type)}
+     className={`text-[9px] font-black uppercase border rounded px-2 py-1 cursor-pointer ${
+       (post.status === 'Sent' || (post.status || 'Pending') === 'Pending') ? 'bg-orange-50 text-orange-600 border-orange-200' :
+       post.status === 'Open' || post.status === 'Live' ? 'bg-green-50 text-green-700 border-green-200' :
+       post.status === 'Paused' ? 'bg-gray-100 text-gray-500 border-gray-200' :
+       post.status === 'Closed' || post.status === 'Deleted' ? 'bg-red-50 text-red-600 border-red-200' :
+       post.status === 'Flagged' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+       'bg-gray-100 text-gray-600 border-gray-200'
+     }`}
+   >
+     <option value="Pending">Pending</option>
+     <option value="Open">Open</option>
+     <option value="Closed">Closed</option>
+     <option value="Paused">Paused</option>
+     <option value="Flagged">Flagged</option>
+   </select>
+ </td>
+
+                             {/* Manage Links Action */}
+                             <td className="p-2 border-r border-gray-100 text-center align-middle">
+                                 <button
+                                     onClick={() => handleOpenManage(post)}
+                                     className="inline-flex items-center gap-1.5 bg-[#103c7f] hover:bg-blue-900 text-white px-4 py-2 rounded-lg font-bold transition shadow-sm text-xs uppercase tracking-wide"
+                                 >
+                                     <Globe size={14}/> Manage Postings
+                                 </button>
+                             </td>
+
+                             {/* NEW COLUMN: Data Received (CVs) */}
+                             <td className="p-2 text-center align-middle">
+                                 <button
+                                     onClick={() => handleOpenDataLog(post)}
+                                     className="inline-flex flex-col items-center justify-center p-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition border border-indigo-100 min-w-[80px]"
+                                     title="Click to Log CVs"
+                                 >
+                                     <span className="text-lg font-black">{totalCVs}</span>
+                                     <span className="text-[9px] font-bold uppercase tracking-widest flex items-center gap-1"><Database size={10}/> CVs</span>
+                                 </button>
+                             </td>
+
+                          </tr>
+                         );
+                       }) : (
+                         <tr>
+                           <td colSpan="8" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest">
+                             No postings found
+                           </td>
+                         </tr>
+                       )}
+                 </tbody>
+              </table>
+          </div>
+       </div>
+        )}
 
       {/* --- 3. CV DATA LOGGING MODAL --- */}
       {isDataModalOpen && selectedJD && (

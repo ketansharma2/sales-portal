@@ -95,14 +95,99 @@ export async function GET(request) {
       req_data: reqDataMap[`${item.req_id}_${item.job_type}`] || null
     }))
 
+    // ✅ Collect JD IDs for enrichment
+    const jdIds = [...new Set(combinedJobposts.map(item => item.id).filter(Boolean))]
+console.log('JD IDs for enrichment:', jdIds);
+    // ✅ Fetch posting_data (CV logs) for these JD IDs
+    let cvData = []
+    if (jdIds.length > 0) {
+      const { data: cvLogs, error: cvError } = await supabaseServer
+        .from('posting_data')
+        .select('*')
+        .in('jd_id', jdIds)
+        .order('date', { ascending: false })
+
+      if (!cvError && cvLogs) {
+        cvData = cvLogs
+      }
+    }
+
+    // ✅ Fetch job_postings for these JD IDs
+    let jobPostings = []
+    if (jdIds.length > 0) {
+      const { data: postings, error: postingsError } = await supabaseServer
+        .from('job_postings')
+        .select('*')
+        .in('jd_id', jdIds)
+        .order('created_at', { ascending: false })
+
+      if (!postingsError && postings) {
+        jobPostings = postings
+      }
+    }
+
+    // ✅ Transform final response with enrichment
+    let enrichedData = combinedJobposts.map(item => ({
+      id: item.id,
+      date: item.assigned_date,
+      client_name: item.client_name,
+      job_title: item.profile,
+      location: item.location,
+      package: item.package,
+      status: item.status || 'Assigned',
+      jd_id: item.jd_id,
+      job_type: item.job_type,
+      req_data: reqDataMap[`${item.req_id}_${item.job_type}`] || null,
+      // ✅ Add publishing details like JDs API
+      publishingDetails: jobPostings
+        .filter(p => p.jd_id === item.id)
+        .map(p => ({
+          id: p.id,
+          platform: p.platform,
+          live_url: p.live_url,
+          stage: p.current_stage,
+          postedOn: p.posted_on,
+          createdAt: p.created_at
+        })),
+      // ✅ Add CV logs like JDs API
+      cvLogs: cvData
+        .filter(c => c.jd_id === item.id)
+        .map(c => ({
+          id: c.id,
+          date: c.date,
+          platform: c.platform,
+          count: c.cv_received,
+          callingCount: c.calls_done
+        }))
+    }))
+
     // ✅ Sort by latest date
-    transformedData.sort(
+    enrichedData.sort(
       (a, b) => new Date(b.date || 0) - new Date(a.date || 0)
     )
 
+    // ✅ Fetch created_by/assigned_to user names like JDs API
+    const dataWithNames = await Promise.all(enrichedData.map(async (item) => {
+      let userName = null
+
+      // Try to get user name from various possible fields
+      const userId = item.req_data?.created_by || item.req_data?.assigned_to
+
+      if (userId) {
+        const { data: userData } = await supabaseServer
+          .from('users')
+          .select('name')
+          .eq('user_id', userId)
+          .single()
+        userName = userData?.name || null
+      }
+
+      return { ...item, created_by_name: userName }
+    }))
+
     return NextResponse.json({
       success: true,
-      data: transformedData
+      data: dataWithNames
     })
 
   } catch (error) {
