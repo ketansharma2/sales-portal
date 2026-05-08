@@ -89,10 +89,58 @@ export default function SalesManagerDashboard() {
           formAsk: { total: 0 },
           formShared: { total: 0 },
           accepted: { total: 0 }
-      }
+      },
+       projections: {
+         mpLess50: '-',
+         mpGreater50: '-',
+         wpLess50: '-',
+         wpGreater50: '-'
+     }
     }
   });
 
+  const fetchProjectionsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const params = new URLSearchParams();
+      params.append('leadgen_id', selectedAgent || 'All');
+
+      if (useLatestFromApi && latestDateFromApi) {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', latestDateFromApi);
+        params.append('toDate', latestDateFromApi);
+      } else if (fromDate && toDate && fromDate !== '' && toDate !== '') {
+        params.append('dateRange', 'specific');
+        params.append('fromDate', fromDate);
+        params.append('toDate', toDate);
+      } else {
+        params.append('dateRange', 'default');
+      }
+
+      const response = await fetch(`/api/corporate/manager/projections-count?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStats(prev => ({
+          ...prev,
+          kpiData: {
+            ...prev.kpiData,
+            projections: data.data.projections || {
+              mpLess50: '-',
+              mpGreater50: '-',
+              wpLess50: '-',
+              wpGreater50: '-'
+            }
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch projections count:', error);
+    }
+  };
   // Fetch LeadGen team
   useEffect(() => {
     const fetchLeadGenTeam = async () => {
@@ -862,6 +910,7 @@ export default function SalesManagerDashboard() {
       fetchMasterUnionLeadsCount(true, latestDateFromApi),
       fetchMasterUnionCallsCount(true, latestDateFromApi),
       fetchConversationLog(true, latestDateFromApi),
+      fetchProjectionsCount(true, latestDateFromApi),
     ]);
     setLoading(false);
     setIsFetching(false);
@@ -893,6 +942,7 @@ export default function SalesManagerDashboard() {
       fetchMasterUnionLeadsCount(false),
       fetchMasterUnionCallsCount(false),
       fetchConversationLog(false),
+      fetchProjectionsCount(false),
     ]);
     setLoading(false);
     setIsFetching(false);
@@ -909,6 +959,7 @@ export default function SalesManagerDashboard() {
       if (fromDate && toDate && fromDate !== '' && toDate !== '') {
         fetchTotalLeadsCount(false);
         fetchTotalCallsCount(false);
+        fetchProjectionsCount(false);
         fetchTotalContactsCount(false);
         fetchNewFollowupCallsCount(false);
         fetchPickedNotPickedCount(false);
@@ -1039,6 +1090,29 @@ export default function SalesManagerDashboard() {
                                 <KpiCard title="Interested" total={stats?.kpiData?.interested?.total || 0} icon={<TrendingUp size={18}/>} color="green" onClick={() => {}} />
                                 <KpiCard title="Sent to Manager" total={stats?.kpiData?.sentToManager?.total || 0} icon={<Send size={18}/>} color="orange" onClick={() => {}} />
                                 <KpiCard title="Total Onboard" total={stats?.kpiData?.onboarded?.total || 0} icon={<Briefcase size={18}/>} color="teal" onClick={() => {}} />
+                                <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full cursor-pointer">
+                   <div className="mb-2">
+                       <p className="text-xs font-bold text-gray-500 uppercase tracking-wider leading-tight">Projection</p>
+                   </div>
+                   <div className="grid grid-cols-2">
+                        <div className="bg-[#103c7f] p-1 flex justify-between items-center">
+                            <span className="text-[11px] font-bold text-[#a1db40]">MP &lt; 50</span>
+                            <span className="text-[11px] font-bold text-[#a1db40]">{stats?.kpiData?.projections?.mpLess50 || '-'}</span>
+                        </div>
+                        <div className="bg-[#103c7f] p-1 flex justify-between items-center">
+                            <span className="text-[11px] font-bold text-[#a1db40]">MP &gt; 50</span>
+                            <span className="text-[11px] font-bold text-[#a1db40]">{stats?.kpiData?.projections?.mpGreater50 || '-'}</span>
+                        </div>
+                        <div className="bg-[#103c7f] p-1 flex justify-between items-center">
+                            <span className="text-[11px] font-bold text-[#a1db40]">WP &lt; 50</span>
+                            <span className="text-[11px] font-bold text-[#a1db40]">{stats?.kpiData?.projections?.wpLess50 || '-'}</span>
+                        </div>
+                        <div className="bg-[#103c7f] p-1 flex justify-between items-center">
+                            <span className="text-[11px] font-bold text-[#a1db40]">WP &gt; 50</span>
+                            <span className="text-[11px] font-bold text-[#a1db40]">{stats?.kpiData?.projections?.wpGreater50 || '-'}</span>
+                        </div>
+                   </div>
+               </div>
                             </div>
                         </div>
                         {/* ROW 2 & 3: NORMAL AND STARTUP CLIENTS (HIGHLIGHTED) */}
