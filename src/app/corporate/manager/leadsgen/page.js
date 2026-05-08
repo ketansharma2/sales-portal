@@ -101,6 +101,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
     emp_count: "",
     reference: "",
     startup: "",
+    projection: "",
   });
   const [districtsList, setDistrictsList] = useState([]);
 
@@ -389,7 +390,8 @@ const fetchCrmDetails = async (clientId) => {
         location: lead.location || lead.city || "",
         emp_count: lead.empCount || "",
         reference: lead.reference || "",
-        startup: selectedLead.startup || "No",
+        startup: lead.startup || "No",
+        projection: lead.projection || "",
       });
     }
 
@@ -670,6 +672,7 @@ const fetchCrmDetails = async (clientId) => {
             emp_count: newLeadData.emp_count,
             reference: newLeadData.reference,
             startup: newLeadData.startup,
+            projection: newLeadData.projection,
           }),
         });
         const data = await response.json();
@@ -2461,8 +2464,8 @@ const fetchCrmDetails = async (clientId) => {
                     ></textarea>
                   </div>
 
-                  {/* Row 4: Reference & Startup */}
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* Row 4: Reference, Startup & Projection */}
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">
                         Reference / Source
@@ -2495,6 +2498,28 @@ const fetchCrmDetails = async (clientId) => {
                       >
                         <option value="Yes">Yes</option>
                         <option value="No">No</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">
+                        Projection
+                      </label>
+                      <select
+                        value={newLeadData.projection}
+                        onChange={(e) =>
+                          setNewLeadData({
+                            ...newLeadData,
+                            projection: e.target.value,
+                          })
+                        }
+                        className="w-full border border-gray-300 rounded p-2 text-sm focus:border-[#103c7f] outline-none bg-white"
+                      >
+                        <option value="">Select Projection</option>
+                        <option value="WP > 50">WP &gt; 50</option>
+                        <option value="WP < 50">WP &lt; 50</option>
+                        <option value="MP > 50">MP &gt; 50</option>
+                        <option value="MP < 50">MP &lt; 50</option>
+                        <option value="Not Projected">Not Projected</option>
                       </select>
                     </div>
                   </div>

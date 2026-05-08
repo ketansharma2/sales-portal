@@ -34,6 +34,7 @@ export async function PUT(request) {
       emp_count,
       reference,
       startup,
+      projection,
     } = body
 
     if (!id && !client_id) {
@@ -61,6 +62,7 @@ export async function PUT(request) {
         emp_count,
         reference,
         startup,
+        projection,
       })
       .eq('client_id', client_id || id)
       .select()
