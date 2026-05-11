@@ -745,10 +745,10 @@ export default function AssignWorkPage() {
     });
 
     return (
-        <div className="min-h-screen bg-gray-50 font-['Calibri'] p-4 md:p-6 relative">
+        <div className="min-h-screen bg-gray-50 font-['Calibri'] p-2 md:p-2 relative">
             
             {/* HEADER */}
-            <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+            <div className="mb-3 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
                     <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
                         <ClipboardList size={24}/> Requirement Allocation Panel
@@ -772,7 +772,7 @@ export default function AssignWorkPage() {
             </div>
 
             {/* --- QUICK ASSIGN / EDIT FORM --- */}
-            <div className={`bg-white p-4 rounded-xl border shadow-sm mb-6 relative overflow-hidden transition-all ${isEditMode ? 'border-orange-300 shadow-orange-100' : 'border-blue-200'}`}>
+            <div className={`bg-white p-4 rounded-xl border shadow-sm mb-3 relative overflow-hidden transition-all ${isEditMode ? 'border-orange-300 shadow-orange-100' : 'border-blue-200'}`}>
                 <div className={`absolute top-0 left-0 w-1 h-full ${isEditMode ? 'bg-orange-500' : 'bg-[#103c7f]'}`}></div>
                 
                 <div className="flex justify-between items-center mb-3">

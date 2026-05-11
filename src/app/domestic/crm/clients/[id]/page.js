@@ -1373,18 +1373,7 @@ return (
                </h3>
             </div>
              <div className="flex gap-2">
-                <button 
-                   onClick={() => {
-                     if (!selectedBranchId) {
-                       alert('Please select a branch first');
-                       return;
-                     }
-                     setIsTrackerModalOpen(true);
-                   }} 
-                   className="flex items-center gap-1 bg-white border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-gray-50 shadow-sm transition-all hover:border-blue-200 hover:text-blue-600"
-                >
-                   <Plus size={12}/> Tracker
-                </button>
+               
                 <button 
                    onClick={() => {
                      if (!selectedBranchId) {
@@ -1422,46 +1411,52 @@ return (
                <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar max-h-[500px]">
                   <div className="grid grid-cols-1 gap-4 pb-10">
                      {trackers.map((t) => (
-                        <div key={t.id} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all">
-                           {/* Compact Header: Title Left, Date Right */}
-                           <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
-                              <div className="flex-1 min-w-0 pr-2"> {/* Added flex-1 for truncation safety */}
-                                 <h5 className="text-xs font-black text-gray-800 truncate">{t.name}</h5>
-                              </div>
-                              <div className="shrink-0">
-                                 <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wide mr-1">Shared:</span>
-                                 <span className="text-[10px] text-gray-600 font-bold bg-white border border-gray-200 px-1.5 py-0.5 rounded">{t.date}</span>
-                              </div>
-                           </div>
-                           <div className="flex items-center justify-between px-2 py-4 bg-white">
-                              <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
-                                 <p className="text-[13px] font-black text-gray-800">{t.s}</p>
-                                 <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Shared</p>
-                              </div>
-                              <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
-                                 <p className="text-[13px] font-black text-blue-600">{t.i}</p>
-                                 <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Interview</p>
-                              </div>
-                              <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
-                                 <p className="text-[13px] font-black text-orange-500">{t.sel}</p>
-                                 <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Selected</p>
-                              </div>
-                              <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
-                                 <p className="text-[13px] font-black text-green-600">{t.j}</p>
-                                 <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Joined</p>
-                              </div>
-                              <div className="flex-1 text-center px-1">
-                                 <p className="text-[13px] font-black text-red-500">{t.r}</p>
-                                 <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Not Selected</p>
-                              </div>
-                           </div>
-                           <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50/30 flex justify-between items-center">
-                              <div className="flex items-center gap-2 overflow-hidden">
-                                 <span className="text-[9px] font-bold text-gray-400 uppercase shrink-0">Feedback:</span>
-                                 <p className="text-[10px] text-gray-600 font-medium italic truncate max-w-[150px]" title={t.feedback}>"{t.feedback}"</p>
-                              </div>
-                           </div>
-                        </div>
+                         <div key={t.id} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all">
+                
+                {/* Header: Title Left, Date Right */}
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+                    
+                    <div className="shrink-0">
+                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wide mr-1">Shared Date:</span>
+                        <span className="text-[10px] text-gray-600 font-bold bg-white border border-gray-200 px-1.5 py-0.5 rounded">{t.date}</span>
+                    </div>
+                </div>
+
+                {/* Stats Row */}
+                <div className="flex items-center justify-between px-2 py-4 bg-white">
+                    
+                    {/* 1. Shared */}
+                    <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
+                        <p className="text-[13px] font-black text-gray-800">{t.s}</p>
+                        <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Shared</p>
+                    </div>
+                    
+                    {/* 2. Shortlisted */}
+                    <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
+                        <p className="text-[13px] font-black text-purple-600">{t.short}</p>
+                        <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Shortlisted</p>
+                    </div>
+                    
+                    {/* 3. Interview */}
+                    <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
+                        <p className="text-[13px] font-black text-blue-600">{t.i}</p>
+                        <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Interview</p>
+                    </div>
+                    
+                    {/* 4. Selected */}
+                    <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
+                        <p className="text-[13px] font-black text-orange-500">{t.sel}</p>
+                        <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Selected</p>
+                    </div>
+                    
+                    {/* 5. Joining */}
+                    <div className="flex-1 text-center px-1">
+                        <p className="text-[13px] font-black text-green-600">{t.j}</p>
+                        <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Joining</p>
+                    </div>
+
+                </div>
+            </div>
                      ))}
                   </div>
                </div>
@@ -2378,134 +2373,7 @@ return (
             </div>
         </div>
       )}
-      {/* ================= MODAL 7: ADD TRACKER DETAILS ================= */}
-      {isTrackerModalOpen && (
-        <div className="fixed inset-0 bg-[#103c7f]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                
-                {/* Header */}
-                <div className="bg-[#103c7f] px-6 py-4 flex justify-between items-center text-white">
-                    <div>
-                        <h3 className="text-lg font-black uppercase tracking-wide">Add Tracker Stats</h3>
-                        <p className="text-xs text-blue-200 opacity-80">Update recruitment funnel numbers for a requirement.</p>
-                    </div>
-                    <button onClick={() => setIsTrackerModalOpen(false)} className="hover:bg-white/10 p-1.5 rounded-full transition-colors"><X size={20}/></button>
-                </div>
-
-                {/* Body */}
-                <div className="p-8 space-y-5">
-                    
-                    {/* Requirement Selection Dropdown */}
-                    <div>
-                        <label className="text-[10px] font-bold text-gray-500 uppercase">Requirement</label>
-                        <select 
-                          value={newTrackerData.reqId}
-                          onChange={(e) => setNewTrackerData({...newTrackerData, reqId: e.target.value})}
-                          className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
-                        >
-                            <option value="">Select Requirement</option>
-                            {/* Dynamically listing active requirements */}
-                            {currentBranchData.requirements.map(req => (
-                              <option key={req.req_id} value={req.req_id}>{req.job_title} (Openings: {req.openings})</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Row 1: Share Date & Shared Count */}
-                    <div className="grid grid-cols-2 gap-5">
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase">Tracker Share Date</label>
-                            <input 
-                              type="date" 
-                              value={newTrackerData.shareDate}
-                              onChange={(e) => setNewTrackerData({...newTrackerData, shareDate: e.target.value})}
-                              className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
-                            />
-                        </div>
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase">Tracker Shared (Count)</label>
-                            <input 
-                              type="number" 
-                              value={newTrackerData.sharedCount}
-                              onChange={(e) => setNewTrackerData({...newTrackerData, sharedCount: e.target.value})}
-                              className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
-                              placeholder="0"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Row 2: Interviewed & Selected */}
-                    <div className="grid grid-cols-2 gap-5">
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase">Interviewed</label>
-                            <input 
-                              type="number" 
-                              value={newTrackerData.interviewed}
-                              onChange={(e) => setNewTrackerData({...newTrackerData, interviewed: e.target.value})}
-                              className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
-                              placeholder="0"
-                            />
-                        </div>
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase">Selected</label>
-                            <input 
-                              type="number" 
-                              value={newTrackerData.selected}
-                              onChange={(e) => setNewTrackerData({...newTrackerData, selected: e.target.value})}
-                              className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
-                              placeholder="0"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Row 3: Joining & Rejected */}
-                    <div className="grid grid-cols-2 gap-5">
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase">Joining</label>
-                            <input 
-                              type="number" 
-                              value={newTrackerData.joining}
-                              onChange={(e) => setNewTrackerData({...newTrackerData, joining: e.target.value})}
-                              className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
-                              placeholder="0"
-                            />
-                        </div>
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase">Not Selected</label>
-                            <input 
-                              type="number" 
-                              value={newTrackerData.rejected}
-                              onChange={(e) => setNewTrackerData({...newTrackerData, rejected: e.target.value})}
-                              className="w-full border border-gray-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none"
-                              placeholder="0"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Feedback Text Area */}
-                    <div>
-                        <label className="text-[10px] font-bold text-gray-500 uppercase">Feedback From Client</label>
-                        <textarea 
-                          rows="3"
-                          value={newTrackerData.feedback}
-                          onChange={(e) => setNewTrackerData({...newTrackerData, feedback: e.target.value})}
-                          className="w-full border border-gray-300 rounded p-3 text-sm focus:border-[#103c7f] outline-none resize-none"
-                          placeholder="Any specific feedback on profiles shared..."
-                        ></textarea>
-                    </div>
-
-                </div>
-
-                {/* Footer */}
-                <div className="p-5 bg-gray-50 border-t flex justify-end gap-3">
-                    <button onClick={() => setIsTrackerModalOpen(false)} className="px-5 py-2.5 text-gray-500 font-bold hover:text-gray-700 text-sm">Cancel</button>
-                    <button onClick={handleSaveTracker} className="bg-[#103c7f] hover:bg-blue-900 text-white px-8 py-2.5 rounded-lg font-bold text-sm shadow-md flex items-center gap-2">
-                        <Share2 size={16}/> Save Tracker
-                    </button>
-                </div>
-            </div>
-        </div>
-      )}
+     
 
       {/* ================= MODAL 8: VIEW ALL CONTACTS (TABLE FORMAT) ================= */}
       {isAllContactsOpen && (

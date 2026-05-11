@@ -710,13 +710,13 @@ export default function CRMDashboard() {
       }));
 
   return (
-    <div className="flex h-screen bg-[#f8fafc] font-['Calibri'] text-slate-800 overflow-hidden">
+    <div className="flex h-screen  bg-[#f8fafc] font-['Calibri'] text-slate-800 overflow-hidden">
       
       {/* ================= LEFT SECTION (MAIN DASHBOARD - 75% Width) ================= */}
       <div className="flex-1 flex flex-col h-full overflow-hidden border-r border-gray-200">
         
         {/* HEADER WITH DATE FILTERS */}
-        <div className="bg-[#103c7f] px-6 py-4 border-b border-[#0d316a] shadow-sm flex justify-between items-center shrink-0">
+        <div className="bg-[#103c7f] px-3 py-2 border-b border-[#0d316a] shadow-sm flex justify-between items-center shrink-0">
           <div>
             <h1 className="text-xl font-black text-white tracking-tight uppercase italic leading-none">
               CRM Analytics
@@ -756,19 +756,16 @@ export default function CRMDashboard() {
         </div>
 
         {/* CONTENT AREA */}
-        <div className="flex-1 flex flex-col overflow-hidden p-5 space-y-6 bg-slate-50">
+        <div className="flex-1 flex flex-col overflow-y-auto p-3 space-y-6 bg-slate-50">
           
           {/* --- ROW 1: DATABASE OVERVIEW (LIFETIME) --- */}
           <div className="shrink-0">
-             <span className="text-[10px] font-bold text-[#103c7f] bg-blue-100 px-2 py-0.5 rounded border border-blue-200 ">
+             <span className="text-[10px] font-bold text-[#103c7f] bg-blue-100 px-0.5 py-0.5 rounded border border-blue-200 ">
                     {dateRange.from} <span className="mx-1 text-gray-400">to</span> {dateRange.to}
                 </span>
-            {/* <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-              <Briefcase size={14}/> Database Overview (Lifetime)
-            </h3> */}
             <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
               {totalStats.map((stat, idx) => (
-                <div key={idx} className="bg-white p-2.5 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center hover:shadow-md transition-all mt-2">
+                <div key={idx} className="bg-white p-2.5 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center hover:shadow-md transition-all mt-1">
                   <div className={`p-1.5 rounded-full ${stat.bg} mb-1.5`}>
                     <stat.icon size={14} className={stat.color} />
                   </div>
@@ -780,24 +777,24 @@ export default function CRMDashboard() {
           </div>
 
 
-          {/* --- ROW 3: DETAILED TABLE --- */}
-          <div className="flex-1 flex flex-col min-h-0 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            {/* Table Header */}
+         {/* --- ROW 3: DETAILED TABLE --- */}
+          <div className="flex-1 min-h-[500px] flex flex-col bg-white border border-gray-200 ...">
+            {/* Table Header (Title) */}
             <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 flex justify-between items-center shrink-0">
                <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
                 <FileText size={14}/> Client Data ({dateRange.from} - {dateRange.to})
               </h3>
-              
             </div>
             
-            {/* Table Body */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
-                <table className="w-full text-left border-collapse relative">
-                  <thead className="bg-white text-[10px] font-black text-gray-500 uppercase tracking-wider sticky top-0 z-10 shadow-sm">
+            <div className="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
+                
+                <table className="w-full text-left border-collapse relative table-fixed min-w-[800px]">
+                  
+                  <thead className="bg-white text-[10px] font-black text-gray-500 uppercase tracking-wider sticky top-0 z-20 shadow-sm">
                     <tr>
-                      <th className="px-4 py-3 bg-gray-50/95 backdrop-blur">Date & Mode</th>
-                      <th className="px-4 py-3 bg-gray-50/95 backdrop-blur">Company Name</th>
-                      <th className="px-4 py-3 bg-gray-50/95 backdrop-blur">Contact Info</th>
+                      <th className="px-4 py-3 bg-gray-50/95 backdrop-blur w-32">Date & Mode</th>
+                      <th className="px-4 py-3 bg-gray-50/95 backdrop-blur w-48">Company Name</th>
+                      <th className="px-4 py-3 bg-gray-50/95 backdrop-blur w-48">Contact Info</th>
                       <th className="px-4 py-3 bg-gray-50/95 backdrop-blur">Conversation</th>
                     </tr>
                   </thead>

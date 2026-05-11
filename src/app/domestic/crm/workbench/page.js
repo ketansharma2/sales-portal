@@ -289,10 +289,10 @@ export default function CRMWorkbenchReport() {
     }, [cardsData]);
 
     return (
-        <div className="min-h-screen bg-gray-50 font-['Calibri'] p-4 md:p-6">
+        <div className="min-h-screen bg-gray-50 font-['Calibri'] p-2 md:p-2">
             
             {/* --- HEADER & FILTERS --- */}
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-6 bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-2 gap-6 bg-white p-3 rounded-2xl shadow-sm border border-gray-200">
                 <div>
                     <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2 mb-1">
                         <LayoutDashboard size={24}/> CRM Workbench Overview
@@ -396,7 +396,7 @@ export default function CRMWorkbenchReport() {
             </div>
 
             {/* --- TOP KPI SUMMARY CARDS --- */}
-            <div className="mb-6">
+            <div className="mb-2">
                 <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <Users size={14} className="text-blue-500"/> Team Operational Metrics
                     {latestCvDate && (

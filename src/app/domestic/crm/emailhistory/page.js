@@ -354,10 +354,10 @@ export default function EmailHistoryPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-6 relative">
+        <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-2 md:p-2 relative">
             
             {/* --- HEADER --- */}
-            <div className="mb-6">
+            <div className="mb-3">
                 <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
                     <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center shrink-0">
                         <Mail size={18} />
@@ -369,58 +369,66 @@ export default function EmailHistoryPage() {
                 </p>
             </div>
 
-            {/* --- FILTER BAR --- */}
-            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+           {/* --- FILTER BAR --- */}
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-3 mb-3 flex flex-wrap items-center justify-between gap-4">
+                
                 {/* Search Filter */}
-                <div className="flex items-center gap-3 w-full max-w-lg">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest shrink-0">
+                <div className="flex items-center gap-2 w-full md:w-auto flex-1 min-w-[200px]">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest shrink-0 hidden sm:block">
                         <Search size={14} className="inline mr-1 mb-0.5 text-indigo-500"/> Search:
                     </label>
                     <input
                         type="text"
                         placeholder="Name or Profile"
-                        className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
+                        className="flex-1 w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="flex items-center gap-3 w-full max-w-md">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest shrink-0">
-                        <Building2 size={14} className="inline mr-1 mb-0.5 text-indigo-500"/> Select Client:
+
+                {/* Select Client */}
+                <div className="flex items-center gap-2 w-full md:w-auto flex-1 min-w-[200px]">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest shrink-0 hidden sm:block">
+                        <Building2 size={14} className="inline mr-1 mb-0.5 text-indigo-500"/> Client:
                     </label>
                     <select 
-                        className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
+                        className="flex-1 w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
                         value={selectedClient} 
                         onChange={(e) => setSelectedClient(e.target.value)}
                     >
-                        <option value="All">All Clients (Overall View)</option>
+                        <option value="All">All Clients (Overall)</option>
                         <optgroup label="Specific Companies">
                             {clientsList.map(c => <option key={c.client_id} value={c.company_name}>{c.company_name}</option>)}
                         </optgroup>
                     </select>
                 </div>
-                <div className="flex items-center gap-2 w-full max-w-sm">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest shrink-0">
-                        <Calendar size={14} className="inline mr-1 mb-0.5 text-indigo-500"/> Date Range:
+
+                {/* Date Range */}
+                <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest shrink-0 hidden sm:block">
+                        <Calendar size={14} className="inline mr-1 mb-0.5 text-indigo-500"/> Date:
                     </label>
-                    <input
-                        type="date"
-                        className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
-                        value={dateRange.start}
-                        onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                    />
-                    <span className="text-xs font-bold text-slate-400">to</span>
-                    <input
-                        type="date"
-                        className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
-                        value={dateRange.end}
-                        onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                    />
-                    {/* Clear Filters */}
+                    <div className="flex items-center gap-2 flex-1">
+                        <input
+                            type="date"
+                            className="bg-slate-50 w-full sm:w-auto border border-slate-200 text-slate-800 text-xs font-bold rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
+                            value={dateRange.start}
+                            onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                        />
+                        <span className="text-[10px] font-bold text-slate-400">to</span>
+                        <input
+                            type="date"
+                            className="bg-slate-50 w-full sm:w-auto border border-slate-200 text-slate-800 text-xs font-bold rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
+                            value={dateRange.end}
+                            onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                        />
+                    </div>
+
+                    {/* Clear Filters Button */}
                     {(selectedClient !== "All" || dateRange.start || dateRange.end || searchTerm) && (
                         <button
                             onClick={() => { setSelectedClient("All"); setDateRange({ start: "", end: "" }); setSearchTerm(""); }}
-                            className="text-[10px] font-bold text-red-600 hover:text-red-800 uppercase tracking-widest"
+                            className="text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-500 hover:text-white px-3 py-2 rounded-lg uppercase tracking-widest transition-colors shrink-0 ml-1 shadow-sm"
                         >
                             Clear
                         </button>
@@ -429,7 +437,7 @@ export default function EmailHistoryPage() {
             </div>
 
             {/* --- DYNAMIC KPI CARDS --- */}
-            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3 mb-3">
                 <KpiCard title="Tracker Shared" count={kpiCounts.shared} icon={<Mail size={16}/>} color="indigo" />
                 <KpiCard title="Shortlisted" count={kpiCounts.shortlisted} icon={<UserCheck size={16}/>} color="blue" />
                 <KpiCard title="Selected" count={kpiCounts.selected} icon={<CheckCircle2 size={16}/>} color="green" />
@@ -441,19 +449,23 @@ export default function EmailHistoryPage() {
             </div>
 
             {/* --- MAIN EMAIL HISTORY TABLE --- */}
+            {/* --- MAIN EMAIL HISTORY TABLE --- */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="overflow-x-auto custom-scrollbar min-h-[50vh] pb-4">
-                    <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1300px]">
-                        <thead className="sticky top-0 z-20">
+                <div className="overflow-x-auto overflow-y-auto custom-scrollbar max-h-[60vh] pb-4">
+                    
+                    {/* 1. Added 'table-fixed' */}
+                    <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1300px] table-fixed">
+                        <thead className="sticky top-0 z-20 shadow-sm">
                             <tr className="bg-slate-900 text-white">
-                                <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest border-b border-slate-700">Client Company</th>
-                                <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest border-b border-slate-700">Candidate</th>
-                                <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest border-b border-slate-700">Profile & Location</th>
-                                <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest border-b border-slate-700">Experience</th>
-                                <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest max-w-[200px] border-b border-slate-700">Initial Email Feedback</th>
-                                <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest text-center border-b border-slate-700">CV File</th>
-                                <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest text-center border-b border-slate-700">Current Status</th>
-                                <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest bg-indigo-900/50 sticky right-0 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)] text-center border-l border-b border-slate-700 w-32">Action</th>
+                                {/* 2. Added fixed widths (w-[...px]) to all headers */}
+                                <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest border-b border-slate-700 w-[160px]">Client Company</th>
+                                <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest border-b border-slate-700 w-[140px]">Candidate</th>
+                                <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest border-b border-slate-700 w-[180px]">Profile & Location</th>
+                                <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest border-b border-slate-700 w-[120px]">Experience</th>
+                                <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest border-b border-slate-700 w-[250px]">Initial Email Feedback</th>
+                                <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest text-center border-b border-slate-700 w-[100px]">CV File</th>
+                                <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest text-center border-b border-slate-700 w-[140px]">Current Status</th>
+                                <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest bg-indigo-900/50 sticky right-0 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)] text-center border-l border-b border-slate-700 w-[120px]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
@@ -462,49 +474,50 @@ export default function EmailHistoryPage() {
                                     <tr key={row.id} className="hover:bg-slate-50 transition-colors">
                                         
                                         {/* Company & Date */}
-                                        <td className="py-3 px-4 border-r border-slate-50 bg-slate-50/30">
-                                            <p className="text-xs font-black text-indigo-700">{row.clientCompany}</p>
-                                            <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1.5 uppercase tracking-widest mt-1">
-                                                <Calendar size={10} className="text-indigo-400"/> Shared: {row.dateShared} via {row.sentVia}
+                                        <td className="py-3 px-4 border-r border-slate-50 bg-slate-50/30 overflow-hidden">
+                                            {/* 3. Added truncate and title for Tooltips */}
+                                            <p className="text-xs font-black text-indigo-700 truncate block" title={row.clientCompany}>{row.clientCompany}</p>
+                                            <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1.5 uppercase tracking-widest mt-1 truncate" title={`Shared: ${row.dateShared} via ${row.sentVia}`}>
+                                                <Calendar size={10} className="text-indigo-400 shrink-0"/> <span className="truncate">Shared: {row.dateShared} via {row.sentVia}</span>
                                             </p>
                                         </td>
 
                                         {/* Candidate Details */}
-                                        <td className="py-3 px-4">
-                                            <p className="text-xs font-black text-slate-800">{row.name}</p>
-                                            <p className="text-[10px] font-bold text-slate-500 mt-1 flex items-center gap-1">
-                                                <GraduationCap size={10} className="text-slate-400"/> {row.qualification}
+                                        <td className="py-3 px-4 overflow-hidden">
+                                            <p className="text-xs font-black text-slate-800 truncate block" title={row.name}>{row.name}</p>
+                                            <p className="text-[10px] font-bold text-slate-500 mt-1 flex items-center gap-1 truncate" title={row.qualification}>
+                                                <GraduationCap size={10} className="text-slate-400 shrink-0"/> <span className="truncate">{row.qualification}</span>
                                             </p>
                                         </td>
 
                                         {/* Profile & Location */}
-                                        <td className="py-3 px-4">
-                                            <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded uppercase tracking-widest block w-max mb-1.5">
+                                        <td className="py-3 px-4 overflow-hidden">
+                                            <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded uppercase tracking-widest block w-fit max-w-full mb-1.5 truncate" title={row.profile}>
                                                 {row.profile}
                                             </span>
-                                            <p className="text-[10px] font-bold text-slate-600 flex items-center gap-1">
-                                                <MapPin size={10} className="text-slate-400"/> {row.location}
+                                            <p className="text-[10px] font-bold text-slate-600 flex items-center gap-1 truncate" title={row.location}>
+                                                <MapPin size={10} className="text-slate-400 shrink-0"/> <span className="truncate">{row.location}</span>
                                             </p>
                                         </td>
 
                                         {/* Experience */}
-                                        <td className="py-3 px-4">
-                                            <p className="text-xs font-black text-slate-800">{row.experience}</p>
+                                        <td className="py-3 px-4 overflow-hidden">
+                                            <p className="text-xs font-black text-slate-800 truncate" title={row.experience}>{row.experience}</p>
                                         </td>
 
                                         {/* CRM Feedback (Email Note) */}
-                                        <td className="py-3 px-4 max-w-[200px] whitespace-normal">
-                                            <p className="text-[10px] font-medium text-slate-600 italic leading-snug border-l-2 border-indigo-300 pl-2">
+                                        <td className="py-3 px-4 overflow-hidden">
+                                            <p className="text-[10px] font-medium text-slate-600 italic leading-snug border-l-2 border-indigo-300 pl-2 truncate w-full block" title={row.crmFeedback}>
                                                 "{row.crmFeedback}"
                                             </p>
                                         </td>
 
-                                        {/* CV Link */}
+                                        {/* CV Link (No truncation needed here) */}
                                         <td className="py-3 px-4 text-center">
                                             {row.cv_url ? (
                                                 <button 
                                                     onClick={() => fetchPdfPreview(row)}
-                                                    className="flex flex-col items-center justify-center gap-1 text-indigo-600 hover:text-indigo-800 transition-colors"
+                                                    className="flex flex-col items-center justify-center gap-1 text-indigo-600 hover:text-indigo-800 transition-colors mx-auto"
                                                     title="Preview CV"
                                                 >
                                                     <FileText size={16} className="text-red-500"/>
@@ -523,32 +536,28 @@ export default function EmailHistoryPage() {
                                         </td>
 
                                         {/* Action Button (Sticky Right) */}
-                                        <td className="py-3 px-4 sticky right-0 bg-white transition-colors z-10 border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] w-24">
-    <div className="flex justify-center items-center gap-2">
-        {/* View Journey Button - Icon and Text */}
-        <button 
-            onClick={() => openViewJourneyModal(row)}
-            className="py-2 px-3 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-600 hover:text-white flex items-center justify-center gap-1.5 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
-             title="View Record"
-        >
-            <Eye size={12}/>
-        </button>
-        
-        {/* Delete Button - Icon Only */}
-        <button
-            onClick={() => {
-                if (confirm(`Are you sure you want to delete this record for ${row.name}?`)) {
-                    handleDelete(row.id);
-                }
-            }}
-            className="p-2 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white transition-all shadow-sm"
-            title="Delete Record"
-        >
-            <Trash2 size={14}/>
-        </button>
-    </div>
-</td>
-
+                                        <td className="py-3 px-4 sticky right-0 bg-white transition-colors z-10 border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] w-[120px]">
+                                            <div className="flex justify-center items-center gap-2">
+                                                <button 
+                                                    onClick={() => openViewJourneyModal(row)}
+                                                    className="py-2 px-3 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-600 hover:text-white flex items-center justify-center gap-1.5 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
+                                                    title="View Record"
+                                                >
+                                                    <Eye size={12}/>
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        if (confirm(`Are you sure you want to delete this record for ${row.name}?`)) {
+                                                            handleDelete(row.id);
+                                                        }
+                                                    }}
+                                                    className="p-2 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                                                    title="Delete Record"
+                                                >
+                                                    <Trash2 size={14}/>
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))
                             ) : (

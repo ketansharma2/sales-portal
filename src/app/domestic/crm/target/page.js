@@ -557,7 +557,7 @@ export default function CRMDomesticTargetPage() {
                          <th className="p-3 border-r border-white/10 text-center bg-black/10 w-24">Target</th>
                          <th className="p-3 border-r border-white/10 text-center bg-black/10 w-24">Achieved</th>
                          <th className="p-3 border-r border-white/10 text-center bg-black/20 w-24">%</th>
-                         <th className="p-3 text-center bg-black/10 sticky right-0 z-20 w-20 shadow-[-4px_0px_5px_rgba(0,0,0,0.1)]">Action</th>
+                         <th className="p-3 text-center bg-black/10  right-0 z-20 w-20 shadow-[-4px_0px_5px_rgba(0,0,0,0.1)]">Action</th>
                       </tr>
                    </thead>
                    <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
@@ -697,27 +697,31 @@ export default function CRMDomesticTargetPage() {
 
       {/* TABLE SECTION */}
       <div className="bg-white border-2 border-gray-100 rounded-xl overflow-hidden shadow-sm flex flex-col h-[calc(100vh-450px)] min-h-[300px]">
-         <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
-            <table className="w-full text-left border-collapse min-w-[1100px]">
-               <thead className="text-white text-[10px] uppercase font-bold sticky top-0 z-10 shadow-sm tracking-widest bg-[#103c7f]">
-                  <tr>
-                     <th className="p-3 border-r border-white/10 w-24 text-center">Period</th>
-                     <th className="p-3 border-r border-white/10 w-24 text-center">Work Days</th>
-                     <th className="p-3 border-r border-white/10 w-56">Assigned To</th>
-                     <th className="p-3 border-r border-white/10 min-w-[200px]">Guideline</th>
-                     <th className="p-3 border-r border-white/10 w-40">KPI Metric</th>
-                     <th className="p-3 border-r border-white/10 text-center w-24">Freq.</th>
-                     <th className="p-3 border-r border-white/10 text-center bg-black/10 w-24">Target</th>
-                     <th className="p-3 border-r border-white/10 text-center bg-black/10 w-24">Achieved</th>
-                     <th className="p-3 border-r border-white/10 text-center bg-black/20 w-24">%</th>
-                     <th className="p-3 text-center bg-black/10 sticky right-0 z-20 w-32 shadow-[-4px_0px_5px_rgba(0,0,0,0.1)]">Action</th>
-                  </tr>
-               </thead>
-               <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
-                  {loading ? (
-                     <tr><td colSpan="10" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest">Loading Targets...</td></tr>
-                  ) : filteredTeamTargets.length > 0 ? (
-                      filteredTeamTargets.map((item) => {
+          <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
+             <table className="w-full text-left border-collapse min-w-[1100px]">
+                
+                {/* 1. thead z-index changed to z-20 */}
+                <thead className="text-white text-[10px] uppercase font-bold sticky top-0 z-20 shadow-sm tracking-widest bg-[#103c7f]">
+                   <tr>
+                      <th className="p-3 border-r border-white/10 w-24 text-center">Period</th>
+                      <th className="p-3 border-r border-white/10 w-24 text-center">Work Days</th>
+                      <th className="p-3 border-r border-white/10 w-56">Assigned To</th>
+                      <th className="p-3 border-r border-white/10 min-w-[200px]">Guideline</th>
+                      <th className="p-3 border-r border-white/10 w-40">KPI Metric</th>
+                      <th className="p-3 border-r border-white/10 text-center w-24">Freq.</th>
+                      <th className="p-3 border-r border-white/10 text-center bg-black/10 w-24">Target</th>
+                      <th className="p-3 border-r border-white/10 text-center bg-black/10 w-24">Achieved</th>
+                      <th className="p-3 border-r border-white/10 text-center bg-black/20 w-24">%</th>
+                      
+                      {/* 2. Action th updated: sticky right-0 z-30 added */}
+                      <th className="p-3 border-r border-white/10 text-center bg-[#103c7f] sticky right-0 z-30 w-32 shadow-[-4px_0px_5px_rgba(0,0,0,0.1)]">Action</th>
+                   </tr>
+                </thead>
+                <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
+                   {loading ? (
+                      <tr><td colSpan="10" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest">Loading Targets...</td></tr>
+                   ) : filteredTeamTargets.length > 0 ? (
+                       filteredTeamTargets.map((item) => {
                           // Use dynamic achievement for Tracker Sent, Accuracy, Joining, CV Parse, and Conversion KPIs
                           const isTrackerSentKPI = item.kpi_metric?.toLowerCase() === 'tracker sent';
                           const isAccuracyKPI = item.kpi_metric?.toLowerCase() === 'accuracy';
@@ -766,7 +770,7 @@ export default function CRMDomesticTargetPage() {
                                 <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
                             </td>
                             
-                            {/* ACTION COLUMN */}
+                            {/* 3. ACTION COLUMN td: z-10 is correct here */}
                             <td className="p-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)] align-middle group-hover:bg-emerald-50 transition-colors">
                                <div className="flex flex-row items-center gap-2 w-full px-1 justify-center">
                                    <button onClick={() => handleOpenModal(item)} className="flex-1 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-1 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-1 min-w-[50px]">
@@ -781,14 +785,14 @@ export default function CRMDomesticTargetPage() {
                                </div>
                             </td>
                          </tr>
-                     )})
-                  ) : (
-                      <tr><td colSpan="10" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest">No team targets found matching filters</td></tr>
-                  )}
-               </tbody>
-            </table>
-         </div>
-      </div>
+                      )})
+                   ) : (
+                       <tr><td colSpan="10" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest">No team targets found matching filters</td></tr>
+                   )}
+                </tbody>
+             </table>
+          </div>
+       </div>
 
       {/* --- ADD/EDIT TARGET MODAL --- */}
       {isModalOpen && (

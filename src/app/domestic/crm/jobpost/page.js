@@ -866,11 +866,13 @@ export default function JobRequirementsPage() {
   </div>
 </div>
 
-      {/* MAIN TABLE */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm print:hidden">
-        <div className="overflow-x-auto">
+     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm print:hidden">
+        {/* यहाँ बदलाव किया गया है: overflow-y-auto और max-h-[60vh] जोड़ा गया है */}
+        <div className="overflow-x-auto overflow-y-auto custom-scrollbar max-h-[60vh]">
           <table className="w-full text-left border-collapse min-w-[1000px]">
-            <thead className="bg-[#103c7f] text-white text-[11px] font-bold uppercase sticky top-0 z-10">
+            
+            {/* यह पहले से सही है, अब यह काम करेगा! */}
+            <thead className="bg-[#103c7f] text-white text-[11px] font-bold uppercase sticky top-0 z-20 shadow-sm">
               <tr>
                 <th className="p-3 border-r border-blue-800 whitespace-nowrap">Create Date</th>
                 <th className="p-3 border-r border-blue-800">Client Name</th>
@@ -881,13 +883,14 @@ export default function JobRequirementsPage() {
                 <th className="p-3 text-center">Applications Received</th>
               </tr>
             </thead>
-                <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
-                    {loadingAssignments ? (
-                      <tr><td colSpan={7} className="p-4 text-center text-gray-500">Loading jobpost assignments...</td></tr>
-                    ) : assignments.length === 0 ? (
-                      <tr><td colSpan={7} className="p-4 text-center text-gray-500">No jobpost assignments found.</td></tr>
-                    ) : (
-                    assignments.map((assignment) => (
+            
+            <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
+              {loadingAssignments ? (
+                <tr><td colSpan={7} className="p-4 text-center text-gray-500">Loading jobpost assignments...</td></tr>
+              ) : assignments.length === 0 ? (
+                <tr><td colSpan={7} className="p-4 text-center text-gray-500">No jobpost assignments found.</td></tr>
+              ) : (
+                assignments.map((assignment) => (
                   <tr key={assignment.id} className="hover:bg-blue-50/20 transition group">
                     <td className="p-2 border-r border-gray-100 whitespace-nowrap text-gray-500 font-bold align-middle">
                       <div className="flex items-center gap-1.5">
@@ -936,9 +939,8 @@ export default function JobRequirementsPage() {
                       </div>
                     </td>
 
-                  <td className="p-2 text-center align-middle">
-                      <div className="flex justify-center gap-2"> {/* Added gap-2 for spacing between buttons */}
-                        {/* Existing View Apps Button */}
+                    <td className="p-2 text-center align-middle">
+                      <div className="flex justify-center gap-2">
                         <button
                           onClick={() => fetchCVModalData(assignment.id)}
                           className="flex items-center gap-1.5 bg-purple-50 text-purple-700 hover:bg-purple-600 hover:text-white px-3 py-1.5 rounded-md border border-purple-100 transition-colors font-bold text-[10px] uppercase tracking-widest whitespace-nowrap"
@@ -947,11 +949,9 @@ export default function JobRequirementsPage() {
                           <Users size={12}/> 0 Apps
                         </button>
 
-                        {/* NEW: View CVs Button */}
                         <button
                           onClick={() => {
-                            // Add your logic to view CVs here
-                            // e.g., openViewCVsModal(assignment.id)
+                            // Logic here
                           }}
                           className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-md border border-indigo-100 transition-colors font-bold text-[10px] uppercase tracking-widest whitespace-nowrap"
                           title="View Candidate CVs"

@@ -174,115 +174,149 @@ export default function OnboardPage() {
         </div>
 
         {/* 3. TABLE SECTION */}
-        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar pb-20">
+        <div className="flex-1 p-4 pb-20">
           <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                {/* Updated Header Color: Subtle Blue Tint */}
-                <tr className="bg-[#103c7f]/5 border-b border-[#103c7f]/10 text-[10px] font-black text-[#103c7f] uppercase tracking-widest">
-                  <th className="px-5 py-3 whitespace-nowrap">Onboarding Date</th>
-                  <th className="px-5 py-3 whitespace-nowrap">Company Name</th>
-                  <th className="px-5 py-3 whitespace-nowrap">Category</th>
-                  <th className="px-5 py-3 whitespace-nowrap">Location & State</th>
-                  <th className="px-5 py-3 whitespace-nowrap w-64">Contact Person</th>
-                  <th className="px-5 py-3 whitespace-nowrap">Remarks</th>
-                  <th className="px-5 py-3 whitespace-nowrap">TNC</th>
-                  <th className="px-5 py-3 whitespace-nowrap">Client Status</th>
-                  <th className="px-5 py-3 whitespace-nowrap text-center">Status</th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-gray-100">
-                {loading ? (
-                  <tr>
-                    <td colSpan="9" className="px-6 py-8 text-center">
-                      <div className="flex flex-col items-center justify-center text-gray-400">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#103c7f] mb-2"></div>
-                        <p className="text-sm font-bold">Loading clients...</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : filteredList.length > 0 ? (
-                  filteredList.map((item) => (
-                    <tr 
-                      key={item.id} 
-                      onClick={() => router.push(`/domestic/crm/clients/${item.id}`)}
-                      className="hover:bg-blue-50/40 transition-colors group cursor-pointer"
-                    >
-                      <td className="px-5 py-3.5 text-xs font-bold text-gray-500 whitespace-nowrap">{item.date}</td>
-                      <td className="px-5 py-3.5">
-                        <div className="font-black text-[#103c7f] text-sm">{item.company}</div>
-                        <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">ID: #{item.id}</div>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-bold border border-slate-200">{item.category}</span>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-gray-700 flex items-center gap-1"><MapPin size={10} className="text-orange-500" /> {item.location}</span>
-                          <span className="text-[10px] text-gray-400 font-semibold pl-3.5">{item.state}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-1.5"><User size={12} className="text-[#103c7f]" /><span className="text-xs font-bold text-gray-800">{item.contact.name}</span></div>
-                          <div className="flex items-center gap-1.5 pl-0.5"><Mail size={10} className="text-gray-400" /><span className="text-[10px] text-gray-500 font-medium">{item.contact.email}</span></div>
-                          <div className="flex items-center gap-1.5 pl-0.5"><Phone size={10} className="text-gray-400" /><span className="text-[10px] text-gray-500 font-medium">{item.contact.phone}</span></div>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2 relative w-fit p-1.5 rounded hover:bg-yellow-50 transition-colors border border-transparent hover:border-yellow-100">
-                          <MessageSquare size={14} className="text-gray-400" />
-                          <span className="text-[11px] font-medium text-gray-600 truncate max-w-[150px]" title={item.remarks}>{item.remarks}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className="text-[10px] font-medium text-gray-600 truncate block max-w-[120px]" title={item.tnc}>{item.tnc}</span>
-                      </td>
-
-                      {/* --- CLIENT STATUS COLUMN --- */}
-                      <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
-                        <button 
-                          onClick={() => handleToggleStatus(item.id, item.clientStatus, item.company)}
-                          className={`px-2 py-1 rounded text-[10px] font-bold cursor-pointer hover:opacity-80 transition-opacity ${
-                            item.clientStatus === 'Active' ? 'bg-green-100 text-green-700' :
-                            'bg-red-100 text-red-700'
-                          }`}>
-                          {item.clientStatus}
-                        </button>
-                      </td>
-
-                      {/* --- ACTION COLUMN --- */}
-                      <td className="px-5 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
-                         {item.isAcknowledged ? (
-                           <div className="inline-flex items-center gap-1 bg-green-50 border border-green-100 text-green-700 px-3 py-1 rounded-md shadow-sm">
-                             <CheckCircle size={12} />
-                             <span className="text-[10px] font-black uppercase tracking-wide">Done</span>
-                           </div>
-                         ) : (
-                           <button 
-                             onClick={() => handleAcknowledge(item.id)}
-                             className="bg-white border-b-2 border-gray-200 text-gray-500 text-[10px] font-bold px-3 py-1.5 rounded hover:bg-[#103c7f] hover:text-white hover:border-[#103c7f] transition-all uppercase tracking-wide"
-                           >
-                             Acknowledge
-                           </button>
-                         )}
-                      </td>
-
+            {/* 1. Added max-h-[70vh] and overflow-y-auto for vertical scroll */}
+            <div className="overflow-x-auto overflow-y-auto custom-scrollbar max-h-[70vh]">
+                
+                {/* 2. Added table-fixed and min-w-[1200px] */}
+                <table className="w-full text-left border-collapse table-fixed min-w-[1200px]">
+                  
+                  {/* 3. sticky top-0 ensures header stays fixed */}
+                  <thead className="sticky top-0 z-20 bg-white shadow-sm">
+                    <tr className="bg-[#103c7f]/5 border-b border-[#103c7f]/10 text-[10px] font-black text-[#103c7f] uppercase tracking-widest">
+                      {/* 4. Added explicit w-[...px] to all headers */}
+                      <th className="px-5 py-3 whitespace-nowrap w-[110px]">Onboarding Date</th>
+                      <th className="px-5 py-3 whitespace-nowrap w-[180px]">Company Name</th>
+                      <th className="px-5 py-3 whitespace-nowrap w-[120px]">Category</th>
+                      <th className="px-5 py-3 whitespace-nowrap w-[160px]">Location & State</th>
+                      <th className="px-5 py-3 whitespace-nowrap w-[180px]">Contact Person</th>
+                      <th className="px-5 py-3 whitespace-nowrap w-[200px]">Remarks</th>
+                      <th className="px-5 py-3 whitespace-nowrap w-[120px]">TNC</th>
+                      <th className="px-5 py-3 whitespace-nowrap w-[120px]">Client Status</th>
+                      <th className="px-5 py-3 whitespace-nowrap text-center w-[120px]">Status</th>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="9" className="px-6 py-8 text-center">
-                        <div className="flex flex-col items-center justify-center text-gray-400">
-                            <Search size={32} className="opacity-20 mb-2"/>
-                            <p className="text-sm font-bold">No records found matching "{searchQuery}"</p>
-                        </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  </thead>
+
+                  <tbody className="divide-y divide-gray-100">
+                    {loading ? (
+                      <tr>
+                        <td colSpan="9" className="px-6 py-8 text-center">
+                          <div className="flex flex-col items-center justify-center text-gray-400">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#103c7f] mb-2"></div>
+                            <p className="text-sm font-bold">Loading clients...</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : filteredList.length > 0 ? (
+                      filteredList.map((item) => (
+                        <tr 
+                          key={item.id} 
+                          onClick={() => router.push(`/domestic/crm/clients/${item.id}`)}
+                          className="hover:bg-blue-50/40 transition-colors group cursor-pointer"
+                        >
+                          {/* Date */}
+                          <td className="px-5 py-3.5 text-xs font-bold text-gray-500 whitespace-nowrap overflow-hidden">
+                              <span className="truncate block w-full" title={item.date}>{item.date}</span>
+                          </td>
+
+                          {/* Company Name */}
+                          <td className="px-5 py-3.5 overflow-hidden">
+                            <div className="font-black text-[#103c7f] text-sm truncate block w-full" title={item.company}>{item.company}</div>
+                            <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">ID: #{item.id}</div>
+                          </td>
+
+                          {/* Category */}
+                          <td className="px-3 py-3.5 overflow-hidden">
+                            <span className=" text-slate-600 px-2 py-1 rounded text-[10px] font-bold  truncate block w-fit max-w-full" title={item.category}>
+                                {item.category}
+                            </span>
+                          </td>
+
+                          {/* Location */}
+                          <td className="px-5 py-3.5 overflow-hidden">
+                            <div className="flex flex-col w-full">
+                              <span className="text-xs font-bold text-gray-700 flex items-center gap-1 truncate w-full" title={item.location}>
+                                  <MapPin size={10} className="text-orange-500 shrink-0" /> <span className="truncate">{item.location}</span>
+                              </span>
+                              <span className="text-[10px] text-gray-400 font-semibold pl-3.5 truncate w-full" title={item.state}>{item.state}</span>
+                            </div>
+                          </td>
+
+                          {/* Contact Person */}
+                          <td className="px-5 py-3.5 overflow-hidden">
+                            <div className="flex flex-col gap-1 w-full">
+                              <div className="flex items-center gap-1.5 truncate" title={item.contact.name}>
+                                  <User size={12} className="text-[#103c7f] shrink-0" /><span className="text-xs font-bold text-gray-800 truncate">{item.contact.name}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 pl-0.5 truncate" title={item.contact.email}>
+                                  <Mail size={10} className="text-gray-400 shrink-0" /><span className="text-[10px] text-gray-500 font-medium truncate">{item.contact.email}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 pl-0.5 truncate" title={item.contact.phone}>
+                                  <Phone size={10} className="text-gray-400 shrink-0" /><span className="text-[10px] text-gray-500 font-medium truncate">{item.contact.phone}</span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Remarks - Truncated with Tooltip */}
+                          <td className="px-5 py-3.5 overflow-hidden">
+                            <div className="flex items-center gap-2 relative w-full p-1.5 rounded hover:bg-yellow-50 transition-colors border border-transparent hover:border-yellow-100">
+                              <MessageSquare size={14} className="text-gray-400 shrink-0" />
+                              <span className="text-[11px] font-medium text-gray-600 truncate block w-full" title={item.remarks}>{item.remarks}</span>
+                            </div>
+                          </td>
+
+                          {/* TNC - Truncated with Tooltip */}
+                          <td className="px-5 py-3.5 overflow-hidden">
+                            <span className="text-[10px] font-medium text-gray-600 truncate block w-full" title={item.tnc}>{item.tnc}</span>
+                          </td>
+
+                          {/* --- CLIENT STATUS COLUMN --- */}
+                          <td className="px-5 py-3.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                            <button 
+                              onClick={() => handleToggleStatus(item.id, item.clientStatus, item.company)}
+                              className={`px-2 py-1 rounded text-[10px] font-bold cursor-pointer hover:opacity-80 transition-opacity truncate max-w-full ${
+                                item.clientStatus === 'Active' ? 'bg-green-100 text-green-700' :
+                                'bg-red-100 text-red-700'
+                              }`}
+                              title={`Click to change status (Current: ${item.clientStatus})`}
+                            >
+                              {item.clientStatus}
+                            </button>
+                          </td>
+
+                          {/* --- ACTION COLUMN --- */}
+                          <td className="px-5 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                             {item.isAcknowledged ? (
+                               <div className="inline-flex items-center gap-1 bg-green-50 border border-green-100 text-green-700 px-3 py-1 rounded-md shadow-sm mx-auto">
+                                 <CheckCircle size={12} />
+                                 <span className="text-[10px] font-black uppercase tracking-wide">Done</span>
+                               </div>
+                             ) : (
+                               <button 
+                                 onClick={() => handleAcknowledge(item.id)}
+                                 className="bg-white border-b-2 border-gray-200 text-gray-500 text-[10px] font-bold px-3 py-1.5 rounded hover:bg-[#103c7f] hover:text-white hover:border-[#103c7f] transition-all uppercase tracking-wide mx-auto"
+                               >
+                                 Acknowledge
+                               </button>
+                             )}
+                          </td>
+
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="9" className="px-6 py-8 text-center">
+                            <div className="flex flex-col items-center justify-center text-gray-400">
+                                <Search size={32} className="opacity-20 mb-2"/>
+                                <p className="text-sm font-bold">No records found matching "{searchQuery}"</p>
+                            </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+            </div>
           </div>
         </div>
       </div>
