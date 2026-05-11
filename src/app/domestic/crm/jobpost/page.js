@@ -890,7 +890,17 @@ export default function JobRequirementsPage() {
               ) : assignments.length === 0 ? (
                 <tr><td colSpan={7} className="p-4 text-center text-gray-500">No jobpost assignments found.</td></tr>
               ) : (
-                assignments.map((assignment) => (
+                [...assignments]
+      .sort((a, b) => {
+        // First sort by date (descending - latest first)
+        const dateCompare = new Date(b.date) - new Date(a.date);
+        if (dateCompare !== 0) return dateCompare;
+        
+        // If same date, sort by client name (alphabetically)
+        const clientA = (a.client_name || "").toLowerCase();
+        const clientB = (b.client_name || "").toLowerCase();
+        return clientA.localeCompare(clientB);
+      }).map((assignment) => (
                   <tr key={assignment.id} className="hover:bg-blue-50/20 transition group">
                     <td className="p-2 border-r border-gray-100 whitespace-nowrap text-gray-500 font-bold align-middle">
                       <div className="flex items-center gap-1.5">
