@@ -125,7 +125,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       { name: "Tracker History", href: `${roleBaseHref}/emailhistory`, icon: <History size={20} /> },
       { name: "Requirement Allocation", href: `${roleBaseHref}/assign`, icon: <ClipboardList size={20} /> },
       { name: "Workbench Report", href: `${roleBaseHref}/workbench`, icon: <LayoutDashboard size={20} /> },
-      { name: "JD Management", href: `${roleBaseHref}/jd`, icon: <FileText size={20} /> }, // Naya JD Page Tab
+     // { name: "JD Management", href: `${roleBaseHref}/jd`, icon: <FileText size={20} /> }, // Naya JD Page Tab
       { name: "Client FAQs", href: `${roleBaseHref}/faq`, icon: <HelpCircle size={20} /> }, // Interview Questions Repo
       { name: "Target", href: `${roleBaseHref}/target`, icon: <Target size={20} /> },
       { name: "Job Post", href: `${roleBaseHref}/jobpost`, icon: <FileBadge size={20} /> },
@@ -162,7 +162,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   else if (currentRole === "jobpost") {
     menuItems = [
       { name: "Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
-      { name: "Job Posting", href: `${roleBaseHref}/post`, icon: <FileText size={20} /> },
+      //{ name: "Job Posting", href: `${roleBaseHref}/post`, icon: <FileText size={20} /> },
       { name: "CV Parsing", href: `${roleBaseHref}/parsing`, icon: <UploadCloud size={20} /> },
       { name: "Posting", href: `${roleBaseHref}/posting`, icon: <FileScan size={20} /> },
     ];
