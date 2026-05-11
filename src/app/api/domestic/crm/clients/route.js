@@ -18,7 +18,6 @@ export async function GET(request) {
     const { data: clients, error: clientsError } = await supabaseServer
       .from('domestic_crm_clients')
       .select('client_id, company_name, email')
-      .eq('user_id', currentUserId)
       .order('company_name', { ascending: true })
 
     if (clientsError) {

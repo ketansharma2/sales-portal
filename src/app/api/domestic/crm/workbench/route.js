@@ -17,10 +17,11 @@ export async function GET(request) {
     const client_id = searchParams.get('client_id')
     const sent_to_tl = searchParams.get('sent_to_tl')
     const workbench_id = searchParams.get('workbench_id')
-
+     const currentUserId = user.user_id || user.id
     let query = supabaseServer
       .from('domestic_workbench')
       .select('*')
+      .eq('user_id', currentUserId)
       .order('created_at', { ascending: false })
 
     if (client_id) {

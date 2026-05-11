@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request) {
   try {
-    // Authentication
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -14,38 +13,31 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Get current user's ID
     const currentUserId = user.user_id || user.id
 
-    // Fetch clients for current CRM user with email
     const { data: clients, error: clientsError } = await supabaseServer
       .from('corporate_crm_clients')
       .select('client_id, company_name, email')
-      .eq('user_id', currentUserId)
       .order('company_name', { ascending: true })
-
+console.log("Fetched clients:", currentUserId, clients);
     if (clientsError) {
       console.error('Clients fetch error:', clientsError)
       return NextResponse.json({ error: 'Failed to fetch clients' }, { status: 500 })
     }
 
-    // For each client, fetch branch_ids and their emails
     const clientsWithEmails = await Promise.all(
       (clients || []).map(async (client) => {
-        // Get branch_ids from corporate_crm_branch using client_id
         const { data: branches, error: branchesError } = await supabaseServer
           .from('corporate_crm_branch')
           .select('branch_id')
           .eq('client_id', client.client_id)
 
         if (branchesError) {
-          console.error('Branches fetch error:', branchesError)
-          return { ...client, branchEmails: [] }
+          return { ...client, branchEmails: [], branchPhones: [] }
         }
 
         const branchIds = (branches || []).map(b => b.branch_id).filter(Boolean)
 
-        // Get emails from corporate_crm_contacts using branch_ids
         let branchEmails = []
         let branchPhones = []
         if (branchIds.length > 0) {

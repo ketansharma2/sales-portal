@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server'
 
 export async function GET(request) {
   try {
-    // Authentication
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -14,22 +13,17 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Get query parameters
     const { searchParams } = new URL(request.url)
     const client_id = searchParams.get('client_id')
     const sent_to_tl = searchParams.get('sent_to_tl')
-
-    // Filter by authenticated user_id
+    const workbench_id = searchParams.get('workbench_id')
     const currentUserId = user.user_id || user.id
-
-    // Build query for workbench data
     let query = supabaseServer
       .from('corporate_workbench')
       .select('*')
       .eq('user_id', currentUserId)
       .order('created_at', { ascending: false })
 
-    // Apply filters
     if (client_id) {
       query = query.eq('client_id', client_id)
     }
@@ -47,43 +41,42 @@ export async function GET(request) {
       }, { status: 500 })
     }
 
-    // Fetch related data separately
     const clientIds = [...new Set(workbenchData.map(item => item.client_id).filter(Boolean))]
     const reqIds = [...new Set(workbenchData.map(item => item.req_id).filter(Boolean))]
     const tlIds = [...new Set(workbenchData.map(item => item.sent_to_tl).filter(Boolean))]
+    const recruiterIds = [...new Set(workbenchData.map(item => item.sent_to_rc).filter(Boolean))]
 
-    // Fetch clients
+    console.log('Workbench data count:', workbenchData?.length || 0)
+    console.log('Client IDs:', clientIds)
+    console.log('Req IDs:', reqIds)
+
     const { data: clientsData } = await supabaseServer
       .from('corporate_crm_clients')
       .select('client_id, company_name')
       .in('client_id', clientIds)
 
-    // Fetch requirements
-    const { data: reqsData } = await supabaseServer
+    const { data: reqsData, error: reqsError } = reqIds.length > 0 ? await supabaseServer
       .from('corporate_crm_reqs')
       .select('req_id, job_title, experience, package, openings, location, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers, contact_details')
-      .in('req_id', reqIds)
+      .in('req_id', reqIds) : { data: [] }
 
-    // Fetch TL users
+    if (reqsError) {
+      console.error('Fetch requirements error:', reqsError)
+    }
+
     const { data: usersData } = await supabaseServer
       .from('users')
       .select('user_id, name, email')
       .in('user_id', tlIds)
 
-    // Get recruiter IDs for progress queries
-    const recruiterIds = [...new Set(workbenchData.map(item => item.sent_to_rc).filter(Boolean))]
-
-    // Fetch RC users
     const { data: rcUsersData } = await supabaseServer
       .from('users')
       .select('user_id, name, email')
       .in('user_id', recruiterIds)
 
-    // Fetch progress counts for tracker sent, today asset, today conversion, and CVs
     const countsPromises = workbenchData.map(async (item) => {
       if (!item.req_id || !item.sent_to_rc || !item.date) return { workbench_id: item.workbench_id, tracker_sent: 0, today_asset: 0, today_conversion: 0, cv_naukri: 0, cv_indeed: 0, cv_other: 0, totalCv: 0 };
 
-      // Tracker sent count
       const { count: trackerCount } = await supabaseServer
         .from('candidates_conversation')
         .select('*', { count: 'exact', head: true })
@@ -91,7 +84,6 @@ export async function GET(request) {
         .eq('user_id', item.sent_to_rc)
         .eq('calling_date', item.date);
 
-      // Today Asset count
       const { count: assetCount } = await supabaseServer
         .from('candidates_conversation')
         .select('*', { count: 'exact', head: true })
@@ -100,7 +92,6 @@ export async function GET(request) {
         .eq('calling_date', item.date)
         .eq('candidate_status', 'Asset');
 
-      // Today Conversion count
       const { count: conversionCount } = await supabaseServer
         .from('candidates_conversation')
         .select('*', { count: 'exact', head: true })
@@ -109,7 +100,6 @@ export async function GET(request) {
         .eq('calling_date', item.date)
         .eq('candidate_status', 'Conversion');
 
-      // Get unique parsing_ids from tracker rows
       const { data: trackerRows } = await supabaseServer
         .from('candidates_conversation')
         .select('parsing_id')
@@ -120,7 +110,6 @@ export async function GET(request) {
 
       const parsingIds = [...new Set(trackerRows?.map(r => r.parsing_id).filter(Boolean))];
 
-      // Get CV counts by portal
       let cv_naukri = 0, cv_indeed = 0, cv_other = 0;
       if (parsingIds.length > 0) {
         const { data: cvData } = await supabaseServer
@@ -133,7 +122,6 @@ export async function GET(request) {
         cv_indeed = cvData?.filter(c => c.portal === 'Indeed').length || 0;
         cv_other = cvData?.filter(c => c.portal === 'Other').length || 0;
       }
-
 
       return {
         workbench_id: item.workbench_id,
@@ -156,13 +144,11 @@ export async function GET(request) {
     const cvOtherMap = new Map(countsResults.map(r => [r.workbench_id, r.cv_other]));
     const totalCvMap = new Map(countsResults.map(r => [r.workbench_id, r.totalCv]));
 
-    // Create lookup maps
     const clientsMap = new Map(clientsData?.map(c => [c.client_id, c]) || [])
     const reqsMap = new Map(reqsData?.map(r => [r.req_id, r]) || [])
     const usersMap = new Map(usersData?.map(u => [u.user_id, u]) || [])
     const rcUsersMap = new Map(rcUsersData?.map(u => [u.user_id, u]) || [])
 
-    // Transform data for UI
     const transformedData = workbenchData.map(item => {
       const client = clientsMap.get(item.client_id)
       const req = reqsMap.get(item.req_id)
@@ -187,13 +173,11 @@ export async function GET(request) {
         rc_name: rc?.name || '',
         user_id: item.user_id,
         created_at: item.created_at,
-        // Remark fields
         advance_sti: item.advance_sti || '',
         rc_remarks: item.rc_remarks || '',
         tl_remarks: item.tl_remarks || '',
         cv_remarks: item.cv_remarks || '',
         status: item.status || 'Pending',
-        // Progress stats
         tracker_sent: trackerSentMap.get(item.workbench_id) || 0,
         today_asset: todayAssetMap.get(item.workbench_id) || 0,
         today_conversion: todayConversionMap.get(item.workbench_id) || 0,
@@ -201,7 +185,7 @@ export async function GET(request) {
         cv_indeed: cvIndeedMap.get(item.workbench_id) || 0,
         cv_other: cvOtherMap.get(item.workbench_id) || 0,
         totalCv: totalCvMap.get(item.workbench_id) || 0,
-        // JD details from requirements
+        // JD fields
         location: req?.location || '',
         employment_type: req?.employment_type || '',
         working_days: req?.working_days || '',
@@ -232,7 +216,6 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    // Authentication
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -254,14 +237,12 @@ export async function POST(request) {
       sent_to_rc
     } = body
 
-    // Validate required fields
     if (!date || !client_id || !req_id || !sent_to_tl) {
       return NextResponse.json({
         error: 'Date, client_id, req_id, and sent_to_tl are required'
       }, { status: 400 })
     }
 
-    // Insert into corporate_workbench table
     const { data: newWorkbench, error: insertError } = await supabaseServer
       .from('corporate_workbench')
       .insert({
@@ -301,7 +282,6 @@ export async function POST(request) {
 
 export async function PUT(request) {
   try {
-    // Authentication
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -324,14 +304,12 @@ export async function PUT(request) {
       sent_to_rc
     } = body
 
-    // Validate required fields
     if (!workbench_id) {
       return NextResponse.json({
         error: 'workbench_id is required'
       }, { status: 400 })
     }
 
-    // Update corporate_workbench table
     const { data: updatedWorkbench, error: updateError } = await supabaseServer
       .from('corporate_workbench')
       .update({
@@ -371,7 +349,6 @@ export async function PUT(request) {
 
 export async function DELETE(request) {
   try {
-    // Authentication
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -385,14 +362,12 @@ export async function DELETE(request) {
     const { searchParams } = new URL(request.url)
     const workbench_id = searchParams.get('workbench_id')
 
-    // Validate required fields
     if (!workbench_id) {
       return NextResponse.json({
         error: 'workbench_id is required'
       }, { status: 400 })
     }
 
-    // Delete from corporate_workbench table
     const { error: deleteError } = await supabaseServer
       .from('corporate_workbench')
       .delete()
