@@ -2385,57 +2385,145 @@ useEffect(() => {
                 )}
 
                 {/* JD Preview Modal */}
-                {isJDPreviewOpen && selectedJD && (
-                    <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-xl flex justify-center items-center z-[9999] p-0 md:p-4 print:static print:block print:bg-white print:p-0 print:z-auto" style={{ zIndex: 99999 }}>
-                        <div className="bg-transparent w-full max-w-[800px] h-full md:h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 relative shadow-2xl rounded-2xl print:block print:h-auto print:max-w-full print:shadow-none print:rounded-none">
+              {isJDPreviewOpen && selectedJD && (
+  <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-xl flex justify-center items-center z-[9999] p-0 md:p-4 print:static print:block print:bg-white print:p-0 print:z-auto" style={{ zIndex: 99999 }}>
+    <div className="bg-transparent w-full max-w-[800px] h-full md:h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 relative shadow-2xl rounded-2xl print:block print:h-auto print:max-w-full print:shadow-none print:rounded-none">
 
-                            <div className="bg-[#103c7f] text-white p-4 flex justify-between items-center shrink-0 border-b border-blue-900 print:hidden">
-                                <div className="flex items-center gap-3">
-                                    <FileText size={20} />
-                                    <div>
-                                        <h3 className="font-bold text-lg uppercase tracking-wide">Document Preview</h3>
-                                        <p className="text-[10px] text-blue-200 font-bold tracking-widest uppercase">For Client: {selectedJD.client_name}</p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-3">
-                                    <button onClick={() => setIsJDPreviewOpen(false)} className="hover:bg-white/20 p-2 rounded-full transition"><X size={20} /></button>
-                                </div>
-                            </div>
+      <div className="bg-[#103c7f] text-white p-4 flex justify-between items-center shrink-0 border-b border-blue-900 print:hidden">
+        <div className="flex items-center gap-3">
+          <FileText size={20} />
+          <div>
+            <h3 className="font-bold text-lg uppercase tracking-wide">Document Preview</h3>
+            <p className="text-[10px] text-blue-200 font-bold tracking-widest uppercase">For Client: {selectedJD.client_name}</p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={() => setIsJDPreviewOpen(false)} className="hover:bg-white/20 p-2 rounded-full transition"><X size={20} /></button>
+        </div>
+      </div>
 
-                            <div className="flex-1 min-h-0 overflow-y-auto bg-gray-200 p-4 md:p-8 block print:bg-white print:p-0">
-                                <div className="bg-white w-full max-w-[210mm] min-h-[297mm] h-max mx-auto p-[10mm] md:p-[15mm] shadow-xl text-black font-['Calibri'] relative print:shadow-none print:m-0" id="pdf-content">
+      <div className="flex-1 min-h-0 overflow-y-auto bg-gray-200 p-4 md:p-8 block print:bg-white print:p-0">
+        <div className="bg-white w-full max-w-[210mm] min-h-[297mm] h-max mx-auto p-[10mm] md:p-[15mm] shadow-xl text-black font-['Calibri'] relative print:shadow-none print:m-0" id="pdf-content">
 
-                                    <div className="mb-10"><Image src="/maven-logo.png" alt="Maven Jobs" width={220} height={70} className="object-contain" priority /></div>
+          <div className="mb-10">
+            <Image src="/maven-logo.png" alt="Maven Jobs" width={220} height={70} className="object-contain" priority />
+          </div>
 
-                                    <div className="border border-black p-8 min-h-[850px] relative print:border-none print:p-0">
+          <div className="border border-black p-8 min-h-[850px] relative print:border-none print:p-0">
 
-                                        <div className="space-y-4 mb-10 text-[15px] leading-relaxed">
-                                            {selectedJD.job_title && <p><span className="font-bold">JOB TITLE : </span> {selectedJD.job_title}</p>}
-                                            {selectedJD.location && <p><span className="font-bold">LOCATION : </span> {selectedJD.location}</p>}
-                                            {selectedJD.experience && <p><span className="font-bold">EXPERIENCE : </span> {selectedJD.experience}</p>}
-                                            {selectedJD.employment_type && <p><span className="font-bold">EMPLOYMENT TYPE : </span> {selectedJD.employment_type}</p>}
-                                            {selectedJD.working_days && <p><span className="font-bold">WORKING DAYS : </span> {selectedJD.working_days}</p>}
-                                            {selectedJD.timings && <p><span className="font-bold">TIMINGS : </span> {selectedJD.timings}</p>}
-                                            {selectedJD.package && <p><span className="font-bold">PACKAGE : </span> {selectedJD.package}</p>}
-                                            {selectedJD.tool_requirement && <p><span className="font-bold">TOOL REQUIREMENT : </span> {selectedJD.tool_requirement}</p>}
-                                        </div>
+            <div className="space-y-4 mb-10 text-[15px] leading-relaxed">
+              {selectedJD.job_title && <p><span className="font-bold">JOB TITLE : </span> {selectedJD.job_title}</p>}
+              {selectedJD.location && <p><span className="font-bold">LOCATION : </span> {selectedJD.location}</p>}
+              {selectedJD.experience && <p><span className="font-bold">EXPERIENCE : </span> {selectedJD.experience}</p>}
+              {selectedJD.employment_type && <p><span className="font-bold">EMPLOYMENT TYPE : </span> {selectedJD.employment_type}</p>}
+              {selectedJD.working_days && <p><span className="font-bold">WORKING DAYS : </span> {selectedJD.working_days}</p>}
+              {selectedJD.timings && <p><span className="font-bold">TIMINGS : </span> {selectedJD.timings}</p>}
+              {selectedJD.package && <p><span className="font-bold">PACKAGE : </span> {selectedJD.package}</p>}
+              {selectedJD.tool_req && <p><span className="font-bold">TOOL REQUIREMENT : </span> {selectedJD.tool_req}</p>}
+            </div>
 
-                                        <div className="space-y-8 text-[15px]">
-                                            {selectedJD.job_summary && <div><h4 className="font-bold mb-2 uppercase text-[16px]">Job Summary :</h4><p className="leading-relaxed text-justify text-gray-800">{selectedJD.job_summary}</p></div>}
-                                            {selectedJD.rnr && <div><h4 className="font-bold mb-2 uppercase text-[16px]">Role & Responsibilities :</h4><ul className="list-disc pl-5 space-y-1.5 text-gray-800">{selectedJD.rnr?.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}</ul></div>}
-                                            {selectedJD.req_skills && <div><h4 className="font-bold mb-2 uppercase text-[16px]">Required Skills :</h4><ul className="list-disc pl-5 space-y-1.5 text-gray-800">{selectedJD.req_skills?.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}</ul></div>}
-                                            {selectedJD.preferred_qual && <div><h4 className="font-bold mb-2 uppercase text-[16px]">Preferred Qualifications :</h4><ul className="list-disc pl-5 space-y-1.5 text-gray-800">{selectedJD.preferred_qual?.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}</ul></div>}
-                                            {selectedJD.company_offers && <div><h4 className="font-bold mb-2 uppercase text-[16px]">What Company Offer :</h4><ul className="list-disc pl-5 space-y-1.5 text-gray-800">{selectedJD.company_offers?.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}</ul></div>}
-                                            {selectedJD.contact_details && <div className="mt-12 pt-6 border-t border-black/20"><h4 className="font-bold mb-3 uppercase text-[16px]">Contact Us To Apply :</h4><div className="whitespace-pre-line leading-loose text-gray-900 font-medium">{selectedJD.contact_details}</div></div>}
-                                        </div>
+            <div className="space-y-8 text-[15px]">
+              {selectedJD.job_summary && (
+                <div>
+                  <h4 className="font-bold mb-2 uppercase text-[16px]">Job Summary :</h4>
+                  <p className="leading-relaxed text-justify text-gray-800">{selectedJD.job_summary}</p>
+                </div>
+              )}
+              
+              {/* Roles & Responsibilities - Parse string array */}
+              {selectedJD.rnr && (
+                <div>
+                  <h4 className="font-bold mb-2 uppercase text-[16px]">Role & Responsibilities :</h4>
+                  <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                    {(() => {
+                      try {
+                        // Parse the string array
+                        let rnrArray = selectedJD.rnr;
+                        if (typeof rnrArray === 'string') {
+                          rnrArray = rnrArray.replace(/'/g, '"');
+                          rnrArray = JSON.parse(rnrArray);
+                        }
+                        return Array.isArray(rnrArray) && rnrArray.map((line, i) => (
+                          <li key={i}>{line}</li>
+                        ));
+                      } catch(e) {
+                        return <li>{selectedJD.rnr}</li>;
+                      }
+                    })()}
+                  </ul>
+                </div>
+              )}
+              
+              {/* Required Skills - Parse string array */}
+              {selectedJD.req_skills && (
+                <div>
+                  <h4 className="font-bold mb-2 uppercase text-[16px]">Required Skills :</h4>
+                  <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                    {(() => {
+                      try {
+                        let skillsArray = selectedJD.req_skills;
+                        if (typeof skillsArray === 'string') {
+                          skillsArray = skillsArray.replace(/'/g, '"');
+                          skillsArray = JSON.parse(skillsArray);
+                        }
+                        return Array.isArray(skillsArray) && skillsArray.map((skill, i) => (
+                          <li key={i}>{skill}</li>
+                        ));
+                      } catch(e) {
+                        return <li>{selectedJD.req_skills}</li>;
+                      }
+                    })()}
+                  </ul>
+                </div>
+              )}
+              
+              {/* Preferred Qualifications - Parse string array */}
+              {selectedJD.preferred_qual && (
+                <div>
+                  <h4 className="font-bold mb-2 uppercase text-[16px]">Preferred Qualifications :</h4>
+                  <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                    {(() => {
+                      try {
+                        let qualArray = selectedJD.preferred_qual;
+                        if (typeof qualArray === 'string') {
+                          qualArray = qualArray.replace(/'/g, '"');
+                          qualArray = JSON.parse(qualArray);
+                        }
+                        return Array.isArray(qualArray) && qualArray.map((item, i) => (
+                          <li key={i}>{item}</li>
+                        ));
+                      } catch(e) {
+                        return <li>{selectedJD.preferred_qual}</li>;
+                      }
+                    })()}
+                  </ul>
+                </div>
+              )}
+              
+              {selectedJD.company_offers && (
+                <div>
+                  <h4 className="font-bold mb-2 uppercase text-[16px]">What Company Offer :</h4>
+                  <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                    {selectedJD.company_offers?.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                  </ul>
+                </div>
+              )}
+              
+              {selectedJD.contact_details && (
+                <div className="mt-12 pt-6 border-t border-black/20">
+                  <h4 className="font-bold mb-3 uppercase text-[16px]">Contact Us To Apply :</h4>
+                  <div className="whitespace-pre-line leading-loose text-gray-900 font-medium">{selectedJD.contact_details}</div>
+                </div>
+              )}
+            </div>
 
-                                    </div>
-                                </div>
-                            </div>
+          </div>
+        </div>
+      </div>
 
-                        </div>
-                    </div>
-                )}
+    </div>
+  </div>
+)}
                 {/* ========================================================= */}
                 {/* --- MODAL 1: SMALL MODAL FOR CV BREAKDOWN --- */}
                 {/* ========================================================= */}
