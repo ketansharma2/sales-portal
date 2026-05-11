@@ -197,7 +197,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       )}
 
       {/* Navigation Links */}
-      <nav className={`flex-1 px-5 space-y-1 ${isSectorPath ? "mt-6" : "mt-20"}`}>
+      <nav className={`flex-1  px-5 space-y-0.5 ${isSectorPath ? "mt-6" : "mt-20"}`}>
         {menuItems.map((item) => {
           
           // --- ACTIVE STATE LOGIC ---
@@ -208,22 +208,28 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
             : pathname === item.href || pathname.startsWith(item.href + "/");
 
           return (
-            <Link 
+           <Link 
               key={item.name} 
               href={item.href} 
               className={`flex items-center rounded-2xl transition-all duration-300 group relative ${
-                isCollapsed ? "justify-center p-2" : "justify-between px-6 py-4"
+                isCollapsed ? "justify-center p-2" : "justify-between px-6 py-2.5" // पैडिंग पहले ही कम कर दी है
               } ${
                 isActive ? "bg-white/10 text-white shadow-lg" : "text-blue-100/60 hover:text-white hover:bg-white/5"
               }`}
             >
               <div className="flex items-center gap-4">
-                <span className={`transition-transform duration-300 ${isActive ? "text-[#a1db40] scale-110" : "group-hover:text-[#a1db40]"}`}>
+                
+                <span className={`transition-all duration-300 w-6 flex justify-center ${isActive ? "text-[#a1db40] scale-110" : "group-hover:text-[#a1db40]"}`}>
                   {item.icon}
                 </span>
+
                 {!isCollapsed && (
-                  <span className={`text-[15px] tracking-wide ${isActive ? "font-black" : "font-semibold"}`}>
-                    {item.name}
+                  <span className={`text-[15px] tracking-wide relative`}>
+                    <span className="font-black opacity-0" aria-hidden="true">{item.name}</span>
+                    
+                    <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-full transition-all duration-300 ${isActive ? "font-black" : "font-semibold"}`}>
+                        {item.name}
+                    </span>
                   </span>
                 )}
               </div>
