@@ -572,7 +572,7 @@ const handleStatusChange = async (jdId, newStatus, jobType) => {
                <div className="text-center px-4 border-r border-gray-100">
                    <p className="text-[10px] font-bold text-gray-400 uppercase">Pending</p>
                    <p className="text-xl font-black text-orange-500">
-                      {Array.isArray(postings) ? postings.filter(p => p.status === 'Sent' || p.jdStatus === 'Pending' || !p.jdStatus).length : 0}
+                      {Array.isArray(postings) ? postings.filter(p =>  p.status === 'Pending').length : 0}
                    </p>
                </div>
 
