@@ -19,12 +19,13 @@ export async function GET(request) {
       );
     }
 
-    // Fetch job_postings records for the specific date (using posted_on column)
+    // Fetch job_postings records for the specific date
     const { data: jobPostings, error: jobPostingsError } = await supabaseAdmin
       .from('job_postings')
       .select('id, jd_id, posted_on')
       .eq('posted_on', date)
 
+      console.log("Fetched job_postings:", jobPostings);  
     if (jobPostingsError) {
       console.error('Error fetching job_postings:', jobPostingsError);
       return NextResponse.json({ error: jobPostingsError.message }, { status: 500 })
@@ -38,57 +39,91 @@ export async function GET(request) {
       })
     }
 
-    // Get unique jd_ids only (to avoid duplicate rows for same JD posted to multiple platforms)
+    // Get unique jd_ids
     const uniqueJdIds = [...new Set(jobPostings.map(jp => jp.jd_id))];
-
-    // Fetch matching JDs from both tables using unique jd_ids
+    console.log("Unique JD IDs:", uniqueJdIds);
+    // Fetch from jobpost tables (these don't have job_title)
     const [domesticJDs, corporateJDs] = await Promise.all([
       supabaseAdmin
-        .from('domestic_crm_jd')
-        .select('jd_id, client_name, job_title')
-        .in('jd_id', uniqueJdIds),
+        .from('domestic_crm_jobpost')
+        .select('id, client_name, req_id')
+        .in('id', uniqueJdIds),
       supabaseAdmin
-        .from('corporate_crm_jd')
-        .select('jd_id, client_name, job_title')
-        .in('jd_id', uniqueJdIds)
+        .from('corporate_crm_jobpost')
+        .select('id, client_name, req_id')
+        .in('id', uniqueJdIds)
     ]);
 
-    // Create lookup maps using jd_id as key
+    // Collect all req_ids
+    const domesticReqIds = (domesticJDs.data || []).map(jd => jd.req_id).filter(Boolean);
+    const corporateReqIds = (corporateJDs.data || []).map(jd => jd.req_id).filter(Boolean);
+    const allReqIds = [...new Set([...domesticReqIds, ...corporateReqIds])];
+    
+    // Fetch job titles from req tables
+    let reqDataMap = new Map();
+    
+    if (allReqIds.length > 0) {
+      const [domesticReq, corporateReq] = await Promise.all([
+        supabaseAdmin
+          .from('domestic_crm_reqs')
+          .select('req_id, job_title')
+          .in('req_id', allReqIds),
+        supabaseAdmin
+          .from('corporate_crm_reqs')
+          .select('req_id, job_title')
+          .in('req_id', allReqIds)
+      ]);
+
+      console.log("Domestic Req Data:", domesticReq);
+      console.log("Corporate Req Data:", corporateReq);
+
+      domesticReq.data?.forEach(req => {
+        reqDataMap.set(req.req_id, { job_title: req.job_title, client_name: req.client_name });
+      });
+      
+      corporateReq.data?.forEach(req => {
+        if (!reqDataMap.has(req.req_id)) {
+          reqDataMap.set(req.req_id, { job_title: req.job_title, client_name: req.client_name });
+        }
+      });
+    }
+
+    // Create lookup maps
     const domesticMap = {};
     domesticJDs.data?.forEach(jd => {
-      domesticMap[jd.jd_id] = { ...jd, sector: 'Domestic' };
+      domesticMap[jd.id] = { ...jd, sector: 'Domestic' };
     });
 
     const corporateMap = {};
     corporateJDs.data?.forEach(jd => {
-      corporateMap[jd.jd_id] = { ...jd, sector: 'Corporate' };
+      corporateMap[jd.id] = { ...jd, sector: 'Corporate' };
     });
 
-    // Build final jobs list using unique jd_ids only
+    // Build final jobs list
     const jobs = uniqueJdIds.map(jdId => {
-      // Check domestic first, then corporate
       const domesticJD = domesticMap[jdId];
       const corporateJD = corporateMap[jdId];
       
       if (domesticJD) {
+        const reqInfo = reqDataMap.get(domesticJD.req_id);
         return {
           id: jdId,
           date: date,
           sector: 'Domestic',
-          client: domesticJD.client_name,
-          profile: domesticJD.job_title
+          client: domesticJD.client_name || 'Unknown',
+          profile: reqInfo?.job_title || 'N/A'
         };
       } else if (corporateJD) {
+        const reqInfo = reqDataMap.get(corporateJD.req_id);
         return {
           id: jdId,
           date: date,
           sector: 'Corporate',
-          client: corporateJD.client_name,
-          profile: corporateJD.job_title
+          client:  corporateJD.client_name || 'Unknown',
+          profile: reqInfo?.job_title || 'N/A'
         };
       }
       
-      // If no match found
       return {
         id: jdId,
         date: date,
