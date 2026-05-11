@@ -24,50 +24,114 @@ export async function GET(request) {
 
     const userId = user.id;
  
-    // Fetch ALL unique JDs from both domestic and corporate tables
+    // Fetch domestic JDs (no job_title field, only req_id)
     const { data: domesticJDs, error: dErr } = await supabaseAdmin
-      .from("domestic_crm_jd")
-      .select("jd_id, client_name, job_title, sent_date");
+      .from("domestic_crm_jobpost")
+      .select("id, client_name, req_id, assigned_date");
  
+    // Fetch corporate JDs (has req_id reference)
     const { data: corporateJDs, error: cErr } = await supabaseAdmin
-      .from("corporate_crm_jd")
-      .select("jd_id, client_name, job_title, sent_date");
+      .from("corporate_crm_jobpost")
+      .select("id, client_name, req_id, assigned_date");
  
-     if (dErr) {
+    if (dErr) {
       console.error("Domestic Query Error:", dErr);
     }
     if (cErr) {
       console.error("Corporate Query Error:", cErr);
     }
  
-    // Combine with sector info, using jd_id as key to deduplicate
-    // If same jd_id appears in both tables, prefer domestic
+    // Collect all req_ids from both domestic and corporate
+    const domesticReqIds = (domesticJDs || [])
+      .filter(jd => jd.req_id)
+      .map(jd => jd.req_id);
+    
+    const corporateReqIds = (corporateJDs || [])
+      .filter(jd => jd.req_id)
+      .map(jd => jd.req_id);
+    
+    const allReqIds = [...new Set([...domesticReqIds, ...corporateReqIds])];
+    
+    let reqDataMap = new Map();
+    
+    // Fetch job titles from domestic_req and corporate_req tables
+    if (allReqIds.length > 0) {
+      // Fetch from domestic_req table
+      const { data: domesticReqData, error: domesticReqErr } = await supabaseAdmin
+        .from("domestic_crm_reqs")
+        .select("req_id, job_title")
+        .in("req_id", allReqIds);
+      
+      if (domesticReqErr) {
+        console.error("Domestic Req Query Error:", domesticReqErr);
+      } else {
+        (domesticReqData || []).forEach(req => {
+          reqDataMap.set(req.req_id, {
+            job_title: req.job_title,
+          
+            source: "domestic_req"
+          });
+        });
+      }
+      
+      // Fetch from corporate_req table
+      const { data: corporateReqData, error: corporateReqErr } = await supabaseAdmin
+        .from("corporate_crm_reqs")
+        .select("req_id, job_title")
+        .in("req_id", allReqIds);
+      
+      if (corporateReqErr) {
+        console.error("Corporate Req Query Error:", corporateReqErr);
+      } else {
+        (corporateReqData || []).forEach(req => {
+          if (!reqDataMap.has(req.req_id)) {
+            reqDataMap.set(req.req_id, {
+              job_title: req.job_title,
+             
+              source: "corporate_req"
+            });
+          }
+        });
+      }
+    }
+ 
+    // Combine both sides
     const combinedMap = new Map();
  
-    // Add domestic entries first (higher priority)
+    // Add domestic entries - must use req_id to get job_title
     (domesticJDs || []).forEach(jd => {
-      if (jd.jd_id && !combinedMap.has(jd.jd_id)) {
-        combinedMap.set(jd.jd_id, {
-          id: jd.jd_id,
-          label: `${jd.client_name} - ${jd.job_title}`,
-          client_name: jd.client_name,
-          job_title: jd.job_title,
+      if (jd.id && !combinedMap.has(jd.id)) {
+        const reqInfo = reqDataMap.get(jd.req_id);
+        const jobTitle = reqInfo?.job_title || "N/A";
+        const clientName = jd.client_name || "N/A";
+        
+        combinedMap.set(jd.id, {
+          id: jd.id,
+          label: `${clientName} - ${jobTitle}`,
+          client_name: clientName,
+          job_title: jobTitle,
           sector: "Domestic",
-          sent_date: jd.sent_date || null
+          assigned_date: jd.assigned_date || null,
+          req_id: jd.req_id
         });
       }
     });
  
-    // Add corporate entries (only if jd_id not already present)
+    // Add corporate entries - use req_id to get job_title
     (corporateJDs || []).forEach(jd => {
-      if (jd.jd_id && !combinedMap.has(jd.jd_id)) {
-        combinedMap.set(jd.jd_id, {
-          id: jd.jd_id,
-          label: `${jd.client_name} - ${jd.job_title}`,
-          client_name: jd.client_name,
-          job_title: jd.job_title,
+      if (jd.id && !combinedMap.has(jd.id)) {
+        const reqInfo = reqDataMap.get(jd.req_id);
+        const jobTitle = reqInfo?.job_title || "N/A";
+        const clientName =  jd.client_name || "N/A";
+        
+        combinedMap.set(jd.id, {
+          id: jd.id,
+          label: `${clientName} - ${jobTitle}`,
+          client_name: clientName,
+          job_title: jobTitle,
           sector: "Corporate",
-          sent_date: jd.sent_date || null
+          sent_date: jd.assigned_date || null,
+          req_id: jd.req_id
         });
       }
     });

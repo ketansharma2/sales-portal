@@ -129,7 +129,7 @@ useEffect(() => {
 
       setJobOptions(result.data); // ✅ store jobs
 
-     
+     console.log("Fetched Job Options:", result.data); // Debug log
     } catch (err) {
       console.error(err);
       alert("Error loading data");
@@ -665,13 +665,15 @@ useEffect(() => {
                                      <option value="">-- Choose Profile --</option>
                                      {isLoadingWorkbench ? (
                                           <option key="loading" value="" disabled>Loading...</option>
-                                     ) : (
-                                          // FILTER options based on selected postDate
-                                        jobOptions
-    .filter(job => {
-      const jobDate = new Date(job.sent_date);
-      return jobDate.toString() !== 'Invalid Date' && jobDate.toISOString().split('T')[0] === formData.postDate;
-    })
+                                      ) : (
+                                           // FILTER options based on selected postDate
+                                         jobOptions
+     .filter(job => {
+       const dateField = job.sent_date || job.assigned_date;
+       if (!dateField || dateField === '') return false;
+       const jobDate = new Date(dateField);
+       return jobDate.toString() !== 'Invalid Date' && jobDate.toISOString().split('T')[0] === formData.postDate;
+     })
     .map(job => (
      <option key={job.id} value={job.id}>
        {job.client_name} • {job.job_title}• {job.sector}
@@ -820,7 +822,7 @@ useEffect(() => {
    disabled={!formData.postDate}
    onChange={(e) => {
      const selectedJob = jobOptions.find(j => String(j.id) === String(e.target.value));
-
+console.log("Selected Job:", selectedJob);
      if (selectedJob) {
        setFormData({
          ...formData,
@@ -834,13 +836,13 @@ useEffect(() => {
 >
    <option value="">-- Choose Profile --</option>
 
-       {jobOptions
-       .filter(job => {
-         const sentDate = job.sent_date;
-         if (!sentDate || sentDate === '') return false;
-         const jobDate = new Date(sentDate);
-         return jobDate.toString() !== 'Invalid Date' && jobDate.toISOString().split('T')[0] === formData.postDate;
-       })
+        {jobOptions
+        .filter(job => {
+          const dateField = job.sent_date || job.assigned_date;
+          if (!dateField || dateField === '') return false;
+          const jobDate = new Date(dateField);
+          return jobDate.toString() !== 'Invalid Date' && jobDate.toISOString().split('T')[0] === formData.postDate;
+        })
        .map(job => (
         <option key={job.id} value={job.id}>
           {job.client_name} • {job.job_title} • ({job.sector})
@@ -851,7 +853,7 @@ useEffect(() => {
      {!isLoadingWorkbench &&
        formData.postDate &&
        jobOptions.filter(j => {
-         const sentDate = j.sent_date;
+         const sentDate = j.assigned_date;
          if (!sentDate || sentDate === '') return false;
          const jobDate = new Date(sentDate);
          return jobDate.toString() !== 'Invalid Date' && jobDate.toISOString().split('T')[0] === formData.postDate;
