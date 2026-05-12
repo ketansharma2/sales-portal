@@ -575,11 +575,11 @@ export default function RevenuePage() {
       {/* PI GENERATION BUTTON (Shows only when rows are selected) */}
         {selectedRowIds.length > 0 && (
             <button 
-              onClick={openPiModal}
-              className="px-4 py-2 text-xs font-black uppercase tracking-widest text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-sm flex items-center gap-2 h-[34px]"
-            >
-              <FileCheck size={14} /> Generate PI ({selectedRowIds.length})
-            </button>
+  onClick={() => openPiModal(null)}  // <-- Explicitly telling it: NO invoiceId yet!
+  className="px-4 py-2 text-xs font-black uppercase tracking-widest text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-sm flex items-center gap-2 h-[34px]"
+>
+  <FileCheck size={14} /> Generate PI ({selectedRowIds.length})
+</button>
         )}
 
       {/* TABLE SECTION */}
