@@ -807,8 +807,8 @@ useEffect(() => {
                                     {filteredParsedData.map((row) => (
                                         <tr
                                             key={row.id}
-                                            onClick={() => navigateToHistory(row.id)} // Clicking ROW redirects to new page
-                                            className={`hover:bg-blue-50/30 transition-colors group cursor-pointer ${row.is_shared ? 'bg-blue-100' : ''}`}
+                                            // onClick={() => navigateToHistory(row.id)} // Clicking ROW redirects to new page
+                                            className={`hover:bg-blue-50/30 transition-colors group  ${row.is_shared ? 'bg-blue-100' : ''}`}
                                         >
                                             
                                             {/* 1. CV View Button (Sticky Left) */}
