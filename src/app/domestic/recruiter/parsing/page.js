@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import dynamic from 'next/dynamic';
 import { supabase } from "@/lib/supabase";
 import jsPDF from "jspdf";
 import {
@@ -168,11 +169,10 @@ function CVPreview({ url, name }) {
         />
     );
 }
-
-export default function CVParsingPage() {
+function CVParsingPage() {
     const router = useRouter(); // Initialize router
     const fileInputRef = useRef(null);
-
+    const searchParams = useSearchParams();
     // --- STATE ---
     const [isParsing, setIsParsing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -199,11 +199,25 @@ export default function CVParsingPage() {
 
     // --- PARSED DATA ---
     const [parsedData, setParsedData] = useState([]);
-    const [statusFilter, setStatusFilter] = useState("");
-    const [fromDate, setFromDate] = useState("");
-    const [toDate, setToDate] = useState("");
-    const [searchQuery, setSearchQuery] = useState("");
-    const [profileQuery, setProfileQuery] = useState("");
+   const [statusFilter, setStatusFilter] = useState(() => searchParams.get('status') || "");
+
+const [fromDate, setFromDate] = useState(() => searchParams.get('fromDate') || "");
+const [toDate, setToDate] = useState(() => searchParams.get('toDate') || "");
+const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || "");
+const [profileQuery, setProfileQuery] = useState(() => searchParams.get('profile') || "");
+
+// Add this useEffect to update URL when filters change
+useEffect(() => {
+    const params = new URLSearchParams();
+    if (statusFilter) params.set('status', statusFilter);
+    if (fromDate) params.set('fromDate', fromDate);
+    if (toDate) params.set('toDate', toDate);
+    if (searchQuery) params.set('search', searchQuery);
+    if (profileQuery) params.set('profile', profileQuery);
+    
+    const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+    window.history.replaceState({}, '', newUrl);
+}, [statusFilter, fromDate, toDate, searchQuery, profileQuery]);
 
     // Fixed status options
     const statusOptions = [
@@ -1346,3 +1360,5 @@ export default function CVParsingPage() {
         </div>
     );
 }
+
+export default dynamic(() => Promise.resolve(CVParsingPage), { ssr: false });
