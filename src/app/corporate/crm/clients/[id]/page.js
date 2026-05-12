@@ -251,41 +251,83 @@ export default function ClientMasterProfile() {
       console.error('Failed to fetch requirements:', error);
     }
   };
+const [dateWiseTrackers, setDateWiseTrackers] = useState([]);
 
   // Function to fetch trackers
-  const fetchTrackers = async () => {
-    if (!selectedBranchId) {
-      setTrackers([]);
-      return;
-    }
-    try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch(`/api/corporate/crm/tracker?branch_id=${selectedBranchId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
-      const data = await response.json();
-      if (data.success) {
-        // Format trackers for display
-        const formattedTrackers = data.data.map(tracker => ({
-          id: tracker.tracker_id,
-          name: tracker.corporate_crm_reqs?.job_title || 'Unknown',
-          date: new Date(tracker.tracker_date).toLocaleDateString('en-GB'),
-          s: tracker.shared,
-          i: tracker.interviewed,
-          sel: tracker.selected,
-          j: tracker.joining,
-          r: tracker.not_selected,
-          feedback: tracker.feedback || 'No feedback'
-        }));
-        setTrackers(formattedTrackers);
+ const fetchTrackers = async () => {
+  if (!clientId) {
+    setDateWiseTrackers([]);
+    return;
+  }
+  try {
+    const session = JSON.parse(localStorage.getItem('session') || '{}');
+    const response = await fetch(`/api/corporate/crm/tracker-count?branch_id=${clientId}`, {
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`
       }
-    } catch (error) {
-      console.error('Failed to fetch trackers:', error);
-      setTrackers([]);
+    });
+    const data = await response.json();
+
+    if (data.success && data.data && data.data.length > 0) {
+      const trackerData = data.data[0];
+      
+      // Process each unique shared date
+      const uniqueDates = [...new Set(trackerData.shared_dates)];
+      
+     const formattedTrackers = uniqueDates.map(date => {
+  // Get emails for this date
+  const emailsOnDate = trackerData.emails.filter(email => email.shared_date === date);
+  
+  // Calculate counts based on unique emails
+  let sharedCount = emailsOnDate.length;
+  let shortlistedCount = 0;
+  let interviewedCount = 0;
+  let selectedCount = 0;
+  let joiningCount = 0;
+  
+  emailsOnDate.forEach(email => {
+    // Each email is unique by its id (email_draft_id)
+    if (email.interviews && email.interviews.length > 0) {
+      // Check the latest or first interview status for this email
+      const interview = email.interviews[0]; // or loop through if multiple
+      
+      if (interview.interview_status === 'Interviewed') {
+        interviewedCount++;
+      }
+      if (interview.interview_status === 'Shortlisted') {
+        shortlistedCount++;
+      }
+      if (interview.interview_status === 'Selected') {
+        selectedCount++;
+      }
+      if (interview.interview_status === 'Joining') {
+        joiningCount++;
+      }
     }
+  });
+  
+  return {
+    id: date,
+    date: new Date(date).toLocaleDateString('en-GB'),
+    shared: sharedCount,
+    shortlisted: shortlistedCount,
+    interviewed: interviewedCount,
+    selected: selectedCount,
+    joining: joiningCount
   };
+});
+      
+      // Sort by date (newest first)
+      const sortedTrackers = formattedTrackers.sort((a, b) => new Date(b.id) - new Date(a.id));
+      setDateWiseTrackers(sortedTrackers);
+    } else {
+      setDateWiseTrackers([]);
+    }
+  } catch (error) {
+    console.error('Failed to fetch trackers:', error);
+    setDateWiseTrackers([]);
+  }
+};
 
   // Fetch conversations, requirements, and trackers for the selected branch
   useEffect(() => {
@@ -1354,90 +1396,104 @@ const session = JSON.parse(localStorage.getItem('session') || '{}');
    
 {/* ================= COLUMN 3: OPERATIONS HUB (1 Flex) ================= */}
      {/* ================= COLUMN 3: OPERATIONS HUB ================= */}
-      <div className="flex-1 bg-slate-50 flex flex-col min-w-[350px]">
-         
-         {/* HEADER: Blue Theme, Exact Height & Padding to match Column 2 */}
-         <div className="h-16 px-6 py-4 border-b border-blue-100 bg-blue-50/40 flex justify-between items-center shrink-0 border-t-4 border-t-[#103c7f]">
-            <div>
-               <h3 className="text-sm font-black text-gray-700 uppercase tracking-widest flex items-center gap-2">
-                  <Briefcase size={16} className="text-[#103c7f]"/> Operations Tab
-               </h3>
-            </div>
-            <div className="flex gap-2">
-               <button 
-                  onClick={() => setIsReqModalOpen(true)} 
-                  className="flex items-center gap-1 bg-[#103c7f] text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-900 shadow-md transition-all"
-               >
-                  <Plus size={12}/> Req
-               </button>
-            </div>
-         </div>
-
-         {/* Content */}
-         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-8">
-            <section className="flex-1 flex flex-col min-h-0">
-               <div className="flex justify-between items-end mb-3">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tracker History</label>
-                  <button onClick={() => setIsAllReqsOpen(true)} className="text-[10px] font-bold text-[#103c7f] hover:underline flex items-center gap-1">
-                     View All Requirement <ChevronRight size={10} />
-                  </button>
-               </div>
-               
-               <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar max-h-[500px]">
-    <div className="grid grid-cols-1 gap-4 pb-10">
-        {trackers.map((t) => (
-            <div key={t.id} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all">
-                
-                {/* Header: Title Left, Date Right */}
-                <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
-                    
-                    <div className="shrink-0">
-                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wide mr-1">Shared Date:</span>
-                        <span className="text-[10px] text-gray-600 font-bold bg-white border border-gray-200 px-1.5 py-0.5 rounded">{t.date}</span>
-                    </div>
-                </div>
-
-                {/* Stats Row */}
-                <div className="flex items-center justify-between px-2 py-4 bg-white">
-                    
-                    {/* 1. Shared */}
-                    <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
-                        <p className="text-[13px] font-black text-gray-800">{t.s}</p>
-                        <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Shared</p>
-                    </div>
-                    
-                    {/* 2. Shortlisted */}
-                    <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
-                        <p className="text-[13px] font-black text-purple-600">{t.short}</p>
-                        <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Shortlisted</p>
-                    </div>
-                    
-                    {/* 3. Interview */}
-                    <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
-                        <p className="text-[13px] font-black text-blue-600">{t.i}</p>
-                        <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Interview</p>
-                    </div>
-                    
-                    {/* 4. Selected */}
-                    <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
-                        <p className="text-[13px] font-black text-orange-500">{t.sel}</p>
-                        <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Selected</p>
-                    </div>
-                    
-                    {/* 5. Joining */}
-                    <div className="flex-1 text-center px-1">
-                        <p className="text-[13px] font-black text-green-600">{t.j}</p>
-                        <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Joining</p>
-                    </div>
-
-                </div>
-            </div>
-        ))}
-    </div>
-</div>
-            </section>
-         </div>
+<div className="flex-1 bg-slate-50 flex flex-col min-w-[350px]">
+   
+   {/* HEADER: Blue Theme */}
+   <div className="h-16 px-6 py-4 border-b border-blue-100 bg-blue-50/40 flex justify-between items-center shrink-0 border-t-4 border-t-[#103c7f]">
+      <div>
+         <h3 className="text-sm font-black text-gray-700 uppercase tracking-widest flex items-center gap-2">
+            <Briefcase size={16} className="text-[#103c7f]"/> Operations Tab
+         </h3>
       </div>
+      <div className="flex gap-2">
+         <button 
+            onClick={() => {
+              if (!selectedBranchId) {
+                alert('Please select a branch first');
+                return;
+              }
+              setIsReqModalOpen(true);
+            }} 
+            className="flex items-center gap-1 bg-[#103c7f] text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-900 shadow-md transition-all"
+         >
+            <Plus size={12}/> Req
+         </button>
+      </div>
+   </div>
+
+   {/* Content */}
+   <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-8">
+      <section className="flex-1 flex flex-col min-h-0">
+          <div className="flex justify-between items-end mb-3">
+             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tracker History</label>
+             <button 
+               onClick={() => {
+                 if (!selectedBranchId) {
+                   alert('Please select a branch first');
+                   return;
+                 }
+                 setIsAllReqsOpen(true);
+               }}
+               className="text-[10px] font-bold text-[#103c7f] hover:underline flex items-center gap-1"
+             >
+                View All Requirement <ChevronRight size={10} />
+             </button>
+          </div>
+         
+         <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar max-h-[500px]">
+            <div className="grid grid-cols-1 gap-4 pb-10">
+               {dateWiseTrackers.map((t) => (
+                   <div key={t.id} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all">
+                      
+                      {/* Header: Shared Date */}
+                      <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+                          <div className="shrink-0">
+                              <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wide mr-1">Shared Date:</span>
+                              <span className="text-[10px] text-gray-600 font-bold bg-white border border-gray-200 px-1.5 py-0.5 rounded">{t.date}</span>
+                          </div>
+                      </div>
+
+                      {/* Stats Row */}
+                      <div className="flex items-center justify-between px-2 py-4 bg-white">
+                          
+                          {/* 1. Shared */}
+                          <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
+                              <p className="text-[13px] font-black text-gray-800">{t.shared}</p>
+                              <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Shared</p>
+                          </div>
+                          
+                          {/* 2. Shortlisted */}
+                          <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
+                              <p className="text-[13px] font-black text-purple-600">{t.shortlisted}</p>
+                              <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Shortlisted</p>
+                          </div>
+                          
+                          {/* 3. Interview */}
+                          <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
+                              <p className="text-[13px] font-black text-blue-600">{t.interviewed}</p>
+                              <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Interview</p>
+                          </div>
+                          
+                          {/* 4. Selected */}
+                          <div className="flex-1 text-center border-r border-gray-100 last:border-0 px-1">
+                              <p className="text-[13px] font-black text-orange-500">{t.selected}</p>
+                              <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Selected</p>
+                          </div>
+                          
+                          {/* 5. Joining */}
+                          <div className="flex-1 text-center px-1">
+                              <p className="text-[13px] font-black text-green-600">{t.joining}</p>
+                              <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-wide">Joining</p>
+                          </div>
+
+                      </div>
+                  </div>
+               ))}
+            </div>
+         </div>
+      </section>
+   </div>
+</div>
       {/* ================= MODALS SECTION ================= */}
       
       {/* 1. COMPLIANCE MODAL */}
