@@ -36,6 +36,7 @@ export default function OnboardPage() {
             category: client.category,
             location: client.location,
             state: client.state,
+            createdRaw: client.created_at || '',
             contact: {
               name: client.contact_person || 'N/A',
               email: client.email || 'N/A',
@@ -45,7 +46,7 @@ export default function OnboardPage() {
             tnc: client.tnc || 'N/A',
             clientStatus: client.client_status || 'Inactive',
             isAcknowledged: client.status === 'Done' // Set to true if status is 'Done'
-          })).sort((a, b) => new Date(b.dateRaw) - new Date(a.dateRaw));
+          })).sort((a, b) => new Date(b.createdRaw) - new Date(a.createdRaw));
           setOnboardingList(formattedClients);
         }
       } catch (error) {

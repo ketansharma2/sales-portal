@@ -33,9 +33,11 @@ export default function OnboardPage() {
             date: client.onboarding_date ? new Date(client.onboarding_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A',
             dateRaw: client.onboarding_date || '',
             company: client.company_name,
+            created: client.created_at ? new Date(client.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A',
             category: client.category,
             location: client.location,
             state: client.state,
+            createdRaw: client.created_at || '',
             contact: {
               name: client.contact_person || 'N/A',
               email: client.email || 'N/A',
@@ -45,7 +47,9 @@ export default function OnboardPage() {
             tnc: client.tnc || 'N/A',
             clientStatus: client.client_status || 'Inactive',
             isAcknowledged: client.status === 'Done'
-          })).sort((a, b) => new Date(b.dateRaw) - new Date(a.dateRaw));
+          })).sort((a, b) => new Date(b.createdRaw) - new Date(a.createdRaw));
+
+          console.log('Formatted Clients:', formattedClients);
           setOnboardingList(formattedClients);
         }
       } catch (error) {

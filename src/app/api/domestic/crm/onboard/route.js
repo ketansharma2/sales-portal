@@ -19,7 +19,7 @@ export async function GET(request) {
       .from('domestic_crm_clients')
       .select('*')
       .eq('user_id', user.id)
-      .order('onboarding_date', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (clientsError) {
       console.error('Fetch CRM clients error:', clientsError)
