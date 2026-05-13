@@ -690,9 +690,227 @@ export default function CRMWorkbenchReport() {
                                 <h3 className="font-bold text-lg uppercase tracking-wide">Document Preview</h3>
                             </div>
                             <div className="flex gap-3">
-                                <button onClick={() => window.print()} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider">
-                                    <Download size={16}/> Save as PDF
-                                </button>
+                               <button onClick={async () => {
+    const pdfContent = document.getElementById('pdf-content');
+    if (!pdfContent) {
+        alert('PDF content not found');
+        return;
+    }
+    
+    // Get job title for filename
+    const jobTitle = currentJdView?.title || 'job_description';
+    // Create a clean filename (remove special characters)
+    const fileName = jobTitle.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '_');
+    
+    // Store original page title
+    const originalTitle = document.title;
+    
+    // Temporarily change the MAIN PAGE title (important!)
+    document.title = jobTitle;
+    
+    // Create a hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+    
+    const iframeDoc = iframe.contentWindow.document;
+    
+    iframeDoc.open();
+    iframeDoc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>${jobTitle}</title>
+            <meta charset="UTF-8">
+            <style>
+                @media print {
+                    @page {
+                        margin: .5cm;
+                        size: A4;
+                    }
+                    
+                    @page {
+                        @top-left { content: none !important; }
+                        @top-center { content: none !important; }
+                        @top-right { content: none !important; }
+                        @bottom-left { content: none !important; }
+                        @bottom-center { content: none !important; }
+                        @bottom-right { content: none !important; }
+                        @left-middle { content: none !important; }
+                        @right-middle { content: none !important; }
+                    }
+                    
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        font-family: Calibri, Arial, sans-serif;
+                        background: white;
+                    }
+                    
+                    .print-container {
+                        max-width: 210mm;
+                        margin: 0 auto;
+                    }
+                    
+                    .printed-header {
+                        display: none !important;
+                    }
+                    
+                    header, footer, nav, aside, .header, .footer {
+                        display: none !important;
+                    }
+                    
+                    a[href]:after {
+                        content: none !important;
+                        display: none !important;
+                    }
+                    
+                    body::before, body::after, 
+                    html::before, html::after {
+                        display: none !important;
+                        content: none !important;
+                    }
+                    
+                    .page-number, .page-count, .print-page {
+                        display: none !important;
+                    }
+                    
+                    img {
+                        max-width: 100%;
+                        height: auto;
+                    }
+                    
+                    .border {
+                        border: 1px solid black;
+                    }
+                    
+                    .p-8 {
+                        padding: 30px;
+                    }
+                    
+                    .mb-10 {
+                        margin-bottom: 30px;
+                    }
+                    
+                    .space-y-4 > * {
+                        margin-bottom: 12px;
+                    }
+                    
+                    .font-bold {
+                        font-weight: bold;
+                    }
+                    
+                    .list-disc {
+                        list-style-type: disc;
+                        padding-left: 20px;
+                    }
+                    
+                    .mt-12 {
+                        margin-top: 40px;
+                    }
+                    
+                    .pt-6 {
+                        padding-top: 20px;
+                    }
+                    
+                    .border-t {
+                        border-top: 1px solid #ccc;
+                    }
+                    
+                    .print-header, .print-footer, .print-url, .print-date {
+                        display: none !important;
+                    }
+                }
+                
+                body {
+                    margin: 0;
+                    padding: 20px;
+                    font-family: Calibri, Arial, sans-serif;
+                    background: white;
+                }
+                
+                .print-container {
+                    max-width: 210mm;
+                    margin: 0 auto;
+                }
+                
+                .printed-header {
+                    display: none;
+                }
+                
+                .content-wrapper {
+                    margin-top: 0;
+                }
+                
+                img {
+                    max-width: 100%;
+                    height: auto;
+                }
+                
+                .border {
+                    border: 1px solid black;
+                }
+                
+                .p-8 {
+                    padding: 30px;
+                }
+                
+                .mb-10 {
+                    margin-bottom: 30px;
+                }
+                
+                .space-y-4 > * {
+                    margin-bottom: 12px;
+                }
+                
+                .font-bold {
+                    font-weight: bold;
+                }
+                
+                .list-disc {
+                    list-style-type: disc;
+                    padding-left: 20px;
+                }
+                
+                .mt-12 {
+                    margin-top: 40px;
+                }
+                
+                .pt-6 {
+                    padding-top: 20px;
+                }
+                
+                .border-t {
+                    border-top: 1px solid #ccc;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="print-container">
+                ${pdfContent.outerHTML}
+            </div>
+        </body>
+        </html>
+    `);
+    
+    iframeDoc.close();
+    
+    setTimeout(() => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        
+        // Restore original page title after print dialog closes
+        setTimeout(() => {
+            document.title = originalTitle;
+            document.body.removeChild(iframe);
+        }, 1000);
+    }, 500);
+}} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg uppercase tracking-wider">
+    <Download size={16}/> Save as PDF
+</button>
                                 <button onClick={() => { setIsJdViewModalOpen(false); setJdModalData(null); }} className="hover:bg-white/20 p-2 rounded-full transition">
                                     <X size={20}/>
                                 </button>
