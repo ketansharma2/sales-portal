@@ -954,7 +954,7 @@ export default function JobRequirementsPage() {
                           className="flex items-center gap-1.5 bg-purple-50 text-purple-700 hover:bg-purple-600 hover:text-white px-3 py-1.5 rounded-md border border-purple-100 transition-colors font-bold text-[10px] uppercase tracking-widest whitespace-nowrap"
                           title="View Applications Data"
                         >
-                          <Users size={12}/> 0 Apps
+                          <Users size={12}/> {assignment.cv_count || '0'} Apps
                         </button>
 
                         {/* NEW: View CVs Button */}

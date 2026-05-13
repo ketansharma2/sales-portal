@@ -48,6 +48,33 @@ export async function GET(request) {
       }
     }
 
+
+     const jdIds = [...new Set(jobpostData.map(item => item.id).filter(Boolean))]
+console.log('JD IDs for enrichment:', jdIds);
+    // ✅ Fetch posting_data (CV logs) for these JD IDs
+    let cvData = []
+    if (jdIds.length > 0) {
+      const { data: cvLogs, error: cvError } = await supabaseServer
+        .from('posting_data')
+        .select('*')
+        .in('jd_id', jdIds)
+        .order('date', { ascending: false })
+
+      if (!cvError && cvLogs) {
+        cvData = cvLogs
+      }
+    }
+
+    
+   const cvCountMap = {};
+
+cvData?.forEach(cv => {
+  const received = Number(cv.cv_received) || 0;
+
+  cvCountMap[cv.jd_id] =
+    (cvCountMap[cv.jd_id] || 0) + received;
+});
+    
     // Transform data to match expected format
     const transformedData = jobpostData.map(item => ({
       id: item.id,
@@ -58,6 +85,7 @@ export async function GET(request) {
       package: item.package,
       status: item.status || 'Assigned',
       jd_id: item.jd_id,
+      cv_count: cvCountMap[item.id] || 0,
       req_data: reqDataMap[item.req_id] || null
     }))
 
