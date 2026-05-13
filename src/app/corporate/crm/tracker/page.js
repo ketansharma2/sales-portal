@@ -304,6 +304,7 @@ useEffect(() => {
                         tlCvName: item.redacted_cv_url || '',
                         rcCvName: item.cv_url || '',
                         tlEvaluation: item.cv_status ? `${item.cv_status}${item.tl_remarks ? ' - ' + item.tl_remarks : ''}` : '-',
+                        emailCount: item.email_count || 0,
                         crmFeedback: "",
                     }));
                     setCrmData(transformed);
@@ -1185,6 +1186,12 @@ useEffect(() => {
                                         checked={isSelected}
                                         onChange={() => toggleRowSelection(row.id)}
                                     />
+                                     {/* Email Count Badge */}
+        <div className="flex items-center justify-center">
+            <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold border border-indigo-200 shadow-xs">
+                {row.emailCount || 0} Emails
+            </span>
+        </div>
                                     <button 
                                         onClick={() => router.push(`/corporate/crm/tracker/history/${row.id}`)}
                                         className="w-full py-1 px-2 rounded-lg bg-white text-indigo-600 border border-indigo-300 hover:bg-indigo-50 flex items-center justify-center gap-1 font-black text-[8px] uppercase tracking-widest transition-all shadow-xs"

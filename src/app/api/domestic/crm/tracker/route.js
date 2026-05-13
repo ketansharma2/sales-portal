@@ -78,6 +78,24 @@ export async function GET(request) {
       }
     }
 
+const conversationIds = conversations.map(c => c.conversation_id)
+
+const { data: emailData, error: emailError } = await supabaseServer
+  .from('domestic_crm_emails')
+  .select('conversation_id')
+  .in('conversation_id', conversationIds)
+
+if (emailError) {
+  console.error('Email count fetch error:', emailError)
+}
+
+// Create count map
+const emailCountMap = {}
+
+emailData?.forEach(email => {
+  emailCountMap[email.conversation_id] =
+    (emailCountMap[email.conversation_id] || 0) + 1
+})
     const transformedData = conversations.map(conversation => {
       const cvData = cvParsingMap.get(conversation.parsing_id)
       return {
@@ -95,7 +113,8 @@ export async function GET(request) {
         candidate_qualification: cvData?.qualification || '-',
         candidate_experience: cvData?.experience !== undefined && cvData?.experience !== null ? cvData.experience : '-',
         redacted_cv_url: cvData?.redacted_cv_url || '',
-        cv_url: cvData?.cv_url || ''
+        cv_url: cvData?.cv_url || '',
+        email_count: emailCountMap[conversation.conversation_id] || 0
       }
     })
 
