@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 import mammoth from "mammoth";
 import { supabaseServer } from '@/lib/supabase-server'
-
+import docstream from '@jose.espana/docstream';
 // export async function GET(request) {
 //   try {
 //     const authHeader = request.headers.get('authorization')
@@ -356,10 +356,24 @@ export async function POST(request) {
     
     if (isWordDoc) {
       console.log("Converting Word document to text...");
+      const isOldDoc = file.type === 'application/msword' || 
+                 fileName?.toLowerCase().endsWith('.doc');
+
+      const isDocx = file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+               fileName?.toLowerCase().endsWith('.docx');
       try {
+
+      if (isOldDoc) {
+      // Use docstream for legacy .doc files
+      console.log("Parsing legacy .doc file with docstream...");
+      const ast = await docstream.parseOffice(buffer);
+      textContent = ast.toText();
+      console.log("Extracted text length from .doc:", textContent.length);
+    } else if (isDocx) {
         const result = await mammoth.extractRawText({ buffer: buffer });
         textContent = result.value;
         console.log("Extracted text length:", textContent.length);
+      }
         mimeType = "text/plain";
       } catch (mammothError) {
         console.error("Error converting Word document:", mammothError);
