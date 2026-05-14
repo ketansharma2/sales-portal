@@ -149,18 +149,17 @@ export default function AdminCRMDashboard() {
                     <div className="flex items-center gap-2 mb-3">
                         <Activity size={16} className="text-indigo-700" />
                         <h2 className="text-xs font-black text-indigo-700 uppercase tracking-widest">
-                            CRM Performance Metrics
+                            CRM Client Metrics
                         </h2>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <KpiCard title="Onboards" total={stats.onboards} icon={<Briefcase size={18} />} color="blue" />
+                        <KpiCard title="Client Onboard" total={stats.onboards} icon={<Briefcase size={18} />} color="blue" />
                         <KpiCard title="Branches" total={stats.branches} icon={<Building2 size={18} />} color="purple" />
-                        <KpiCard title="Contacts" total={stats.contacts} icon={<Phone size={18} />} color="teal" />
-                        <KpiCard title="Conversations" total={stats.conversations} icon={<MessageSquare size={18} />} color="orange" />
+                        <KpiCard title="Client Contacts" total={stats.contacts} icon={<Phone size={18} />} color="teal" />
+                        <KpiCard title="Client Calling" total={stats.conversations} icon={<MessageSquare size={18} />} color="orange" />
                         
                         <KpiCard title="Unique Profiles" total={stats.uniqueProfiles} icon={<UserCheck size={18} />} color="blue" />
-                        <KpiCard title="Requirement No." total={stats.requirements} icon={<FileText size={18} />} color="purple" />
-                        <KpiCard title="Workbench Allot" total={stats.workbenchAllot} icon={<CheckSquare size={18} />} color="green" />
+                        <KpiCard title="No. of Positions" total={stats.requirements} icon={<FileText size={18} />} color="purple" />
                         <KpiCard title="Tracker Shared" total={stats.trackerShared} icon={<Share2 size={18} />} color="teal" />
                     </div>
                 </div>
