@@ -111,7 +111,7 @@ export default function RevenuePage() {
   };
 
   // --- FILTER LOGIC ---
-  const filteredData = revenueData.filter(item => {
+const filteredData = revenueData.filter(item => {
       const matchesSearch = 
         item.candidate_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         item.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -139,8 +139,17 @@ export default function RevenuePage() {
         matchesMonth = monthIndex === itemMonth;
       }
   
-
       return matchesSearch && matchesDateRange && matchesMonth;
+      
+  }).sort((a, b) => {
+      // --- NEW SORTING LOGIC ADDED HERE ---
+      // Convert joining dates to Date objects for comparison
+      // If a joining_date is missing, treat it as 0 so it drops to the bottom
+      const dateA = a.joining_date ? new Date(a.joining_date).getTime() : 0;
+      const dateB = b.joining_date ? new Date(b.joining_date).getTime() : 0;
+      
+      // Subtract Date A from Date B to sort Descending (Latest first)
+      return dateB - dateA; 
   });
     // --- PI GENERATION STATES ---
     const [selectedRowIds, setSelectedRowIds] = useState([]);
@@ -589,7 +598,7 @@ export default function RevenuePage() {
                <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-10 shadow-sm">
                    <tr>
                       <th className="p-3 border-r border-blue-800 text-center w-12">#</th>
-                      <th className="p-3 border-r border-blue-800 min-w-[150px]">Submitted & CRM</th> 
+                      <th className="p-3 border-r border-blue-800 min-w-[120px]">Submitted & CRM</th> 
                       <th className="p-3 border-r border-blue-800 min-w-[100px]">Payment From</th>
                       <th className="p-3 border-r border-blue-800 min-w-[160px]">Client Name</th>
                       <th className="p-3 border-r border-blue-800 min-w-[200px]">Candidate & Profile</th>
@@ -597,11 +606,7 @@ export default function RevenuePage() {
                       <th className="p-3 border-r border-blue-800 text-center min-w-[130px]">Candidate Status</th>
                       <th className="p-3 border-r border-blue-800 text-center min-w-[140px]">Payment Status</th>
                       <th className="p-3 border-r border-blue-800 text-center min-w-[180px]">PI</th>
-                     <th className="p-3 text-center bg-[#0d316a] sticky right-0 z-20 w-32 shadow-[-4px_0px_5px_rgba(0,0,0,0.1)]">
-                <div className="flex flex-col items-center gap-1">
-                        <span>Action</span>
-                        </div>
-            </th>                  
+                     <th className="p-3 border-r border-blue-800 text-center min-w-[180px]">Action</th>
             </tr>
                </thead>
                <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
@@ -723,8 +728,7 @@ export default function RevenuePage() {
                         </td>
 
                         {/* 8. ACTION COLUMN (View Only) */}
-                      <td className="p-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)] align-middle group-hover:bg-blue-50/30 transition-colors">
-      {/* flex-col हटाकर flex items-center और justify-center लगाया है */}
+<td className="p-2 text-center bg-white   align-middle group-hover:bg-blue-50 transition-colors">      {/* flex-col हटाकर flex items-center और justify-center लगाया है */}
       <div className="flex items-center justify-center gap-2 w-full px-1">
           {/* CHECKBOX */}
            <input 

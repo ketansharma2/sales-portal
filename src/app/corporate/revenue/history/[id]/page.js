@@ -1094,8 +1094,9 @@ const remainingBalance = totalExpected - totalReceived;
                             <div>
                                 <label className="text-[9px] font-bold text-gray-500 uppercase">Candidate Status</label>
                                 <select value={candForm.candidate_status} onChange={e => setCandForm({...candForm, candidate_status: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs outline-none focus:border-emerald-500 bg-gray-50 cursor-pointer">
-                                    <option value="Working">Working</option>
-                                    <option value="Warning">Warning</option>
+                                    <option value="Joined">Joined</option>
+                                    <option value="Terminate">Terminate </option>
+                                    <option value="Working">Working </option>
                                     <option value="Absconded">Absconded</option>
                                     <option value="Resigned">Resigned</option>
                                 </select>
