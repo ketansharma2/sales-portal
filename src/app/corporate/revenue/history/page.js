@@ -44,6 +44,8 @@ export default function RevenuePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("All");
   const [dateFrom, setDateFrom] = useState("");
+  const [candidateStatusFilter, setCandidateStatusFilter] = useState("All");
+const [paymentStatusFilter, setPaymentStatusFilter] = useState("All");
   const [dateTo, setDateTo] = useState("");
   const [revenueData, setRevenueData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -108,6 +110,8 @@ export default function RevenuePage() {
     setDateFrom("");
     setDateTo("");
     setSearchTerm("");
+    setCandidateStatusFilter("All"); // <-- Add this
+    setPaymentStatusFilter("All");   // <-- Add this
   };
 
   // --- FILTER LOGIC ---
@@ -132,14 +136,33 @@ const filteredData = revenueData.filter(item => {
           matchesDateRange = new Date(item.entry_date) <= to;
       }
 
-      let matchesMonth = true;
+     let matchesMonth = true;
       if (selectedMonth !== "All") {
-        const monthIndex = months.indexOf(selectedMonth) + 1; 
-        const itemMonth = parseInt(item.entry_date.split('-')[1], 10);
-        matchesMonth = monthIndex === itemMonth;
+        // SAFEGUARD: Check if the date actually exists before splitting it
+        if (!item.entry_date) {
+            matchesMonth = false;
+        } else {
+            const monthIndex = months.indexOf(selectedMonth) + 1; 
+            const itemMonth = parseInt(item.entry_date.split('-')[1], 10);
+            matchesMonth = monthIndex === itemMonth;
+        }
       }
+
+      // ... inside your filteredData.filter(item => { ...
+
+let matchesCandidateStatus = true;
+if (candidateStatusFilter !== "All") {
+    matchesCandidateStatus = item.candidate_status === candidateStatusFilter;
+}
+
+let matchesPaymentStatus = true;
+if (paymentStatusFilter !== "All") {
+    matchesPaymentStatus = item.payment_status === paymentStatusFilter;
+}
+
+// Update the return statement to include the new matches
+return matchesSearch && matchesDateRange && matchesMonth && matchesCandidateStatus && matchesPaymentStatus;
   
-      return matchesSearch && matchesDateRange && matchesMonth;
       
   }).sort((a, b) => {
       // --- NEW SORTING LOGIC ADDED HERE ---
@@ -519,68 +542,112 @@ const filteredData = revenueData.filter(item => {
       </div>
 
       {/* FILTERS SECTION */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-wrap items-end gap-4">
-        
-        <div className="flex-1 min-w-[200px]">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Search</label>
-            <div className="relative">
-                <input 
-                  type="text" 
-                  placeholder="Client, Candidate, or CRM..." 
-                  value={searchTerm} 
-                  onChange={(e) => setSearchTerm(e.target.value)} 
-                  className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-[#103c7f] transition bg-gray-50"
-                />
-                <div className="absolute inset-y-0 left-0 flex items-center px-3 text-gray-400"><Search size={14} /></div>
-            </div>
-        </div>
-
-        <div className="w-40 shrink-0">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Filter by Month</label>
-            <div className="relative">
-                <select 
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-2 pl-3 pr-8 rounded-lg text-xs font-bold shadow-sm focus:outline-none focus:border-[#103c7f] cursor-pointer"
-                >
-                    <option value="All">All Months</option>
-                    {months.map((m) => <option key={m} value={m}>{m}</option>)}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                    <Filter size={12} />
-                </div>
-            </div>
-        </div>
-
-        <div className="w-36 shrink-0">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Date From</label>
+<div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-wrap items-end gap-4">
+    
+    <div className="flex-1 min-w-[150px]">
+        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Search</label>
+        <div className="relative">
             <input 
-              type="date" 
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-3 rounded-lg text-xs font-bold shadow-sm focus:outline-none focus:border-[#103c7f] cursor-pointer"
+                type="text" 
+                placeholder="Client, Candidate, or CRM..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-[#103c7f] transition bg-gray-50"
             />
+            <div className="absolute inset-y-0 left-0 flex items-center px-3 text-gray-400"><Search size={14} /></div>
         </div>
+    </div>
 
-        <div className="w-36 shrink-0">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Date To</label>
-            <input 
-              type="date" 
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-3 rounded-lg text-xs font-bold shadow-sm focus:outline-none focus:border-[#103c7f] cursor-pointer"
-            />
-        </div>
-
-        {(searchTerm || selectedMonth !== "All" || dateFrom || dateTo) && (
-            <button 
-              onClick={handleClearFilters}
-              className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100 h-[34px]"
+    <div className="w-40 shrink-0">
+        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Payment Followup Month</label>
+        <div className="relative">
+            <select 
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-2 pl-3 pr-8 rounded-lg text-xs font-bold shadow-sm focus:outline-none focus:border-[#103c7f] cursor-pointer"
             >
-              Clear
-            </button>
-        )}
-      </div>
+                <option value="All">All Months</option>
+                {months?.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                <Filter size={12} />
+            </div>
+        </div>
+    </div>
+
+    {/* NEW: CANDIDATE STATUS FILTER */}
+    <div className="w-36 shrink-0">
+        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Candidate Status</label>
+        <div className="relative">
+            <select 
+                value={candidateStatusFilter}
+                onChange={(e) => setCandidateStatusFilter(e.target.value)}
+                className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-2 pl-3 pr-8 rounded-lg text-xs font-bold shadow-sm focus:outline-none focus:border-[#103c7f] cursor-pointer"
+            >
+                <option value="All">All Status</option>
+                <option value="Joined">Joined</option>
+                <option value="Working">Working</option>
+                <option value="Pending Join">Pending Join</option>
+                <option value="Absconded">Absconded</option>
+                <option value="Resigned">Resigned</option>
+                <option value="Terminate">Terminate</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                <Filter size={12} />
+            </div>
+        </div>
+    </div>
+
+    {/* NEW: PAYMENT STATUS FILTER */}
+    <div className="w-36 shrink-0">
+        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Payment Status</label>
+        <div className="relative">
+            <select 
+                value={paymentStatusFilter}
+                onChange={(e) => setPaymentStatusFilter(e.target.value)}
+                className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-2 pl-3 pr-8 rounded-lg text-xs font-bold shadow-sm focus:outline-none focus:border-[#103c7f] cursor-pointer"
+            >
+                <option value="All">All Status</option>
+                <option value="Received">Received</option>
+                <option value="Invoice Sent">Invoice Sent</option>
+                <option value="Pending">Pending</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                <Filter size={12} />
+            </div>
+        </div>
+    </div>
+
+    <div className="w-32 shrink-0">
+        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Date From</label>
+        <input 
+            type="date" 
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-3 rounded-lg text-xs font-bold shadow-sm focus:outline-none focus:border-[#103c7f] cursor-pointer"
+        />
+    </div>
+
+    <div className="w-32 shrink-0">
+        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Date To</label>
+        <input 
+            type="date" 
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-3 rounded-lg text-xs font-bold shadow-sm focus:outline-none focus:border-[#103c7f] cursor-pointer"
+        />
+    </div>
+
+    {/* CLEAR BUTTON (Updated condition) */}
+    {(searchTerm || selectedMonth !== "All" || dateFrom || dateTo || candidateStatusFilter !== "All" || paymentStatusFilter !== "All") && (
+        <button 
+            onClick={handleClearFilters}
+            className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100 h-[34px]"
+        >
+            Clear
+        </button>
+    )}
+</div>
       {/* PI GENERATION BUTTON (Shows only when rows are selected) */}
         {selectedRowIds.length > 0 && (
             <button 
@@ -600,13 +667,14 @@ const filteredData = revenueData.filter(item => {
                       <th className="p-3 border-r border-blue-800 text-center w-12">#</th>
                       <th className="p-3 border-r border-blue-800 min-w-[120px]">Submitted & CRM</th> 
                       <th className="p-3 border-r border-blue-800 min-w-[100px]">Payment From</th>
-                      <th className="p-3 border-r border-blue-800 min-w-[160px]">Client Name</th>
-                      <th className="p-3 border-r border-blue-800 min-w-[200px]">Candidate & Profile</th>
-                      <th className="p-3 border-r border-blue-800 text-center min-w-[110px]">Joining Date</th>
-                      <th className="p-3 border-r border-blue-800 text-center min-w-[130px]">Candidate Status</th>
-                      <th className="p-3 border-r border-blue-800 text-center min-w-[140px]">Payment Status</th>
+                      <th className="p-3 border-r border-blue-800 min-w-[150px]">Client Name</th>
+                      <th className="p-3 border-r border-blue-800 min-w-[180px]">Candidate & Profile</th>
+                      <th className="p-3 border-r border-blue-800 text-center min-w-[90px]">Joining Date</th>
+                      <th className="p-3 border-r border-blue-800 text-center min-w-[90px]">Candidate Status</th>
+                      <th className="p-3 border-r border-blue-800 text-center min-w-[120px]">Payment Followup</th>
+                      <th className="p-3 border-r border-blue-800 text-center min-w-[100px]">Payment Status</th>
                       <th className="p-3 border-r border-blue-800 text-center min-w-[180px]">PI</th>
-                     <th className="p-3 border-r border-blue-800 text-center min-w-[180px]">Action</th>
+                     <th className="p-3 border-r border-blue-800 text-center min-w-[160px]">Action</th>
             </tr>
                </thead>
                <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
@@ -669,17 +737,33 @@ const filteredData = revenueData.filter(item => {
 
                         {/* 6. Candidate Status */}
                         <td className="p-3 border-r border-gray-100 text-center align-middle">
-                            <span className={`px-2.5 py-1 rounded text-[10px] font-black uppercase border inline-flex items-center gap-1 ${
-                                item.candidate_status === 'Working' ? 'bg-green-50 text-green-700 border-green-200' : 
-                                item.candidate_status === 'Pending Join' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                'bg-red-50 text-red-700 border-red-200'
-                            }`}>
-                                {item.candidate_status === 'Working' && <CheckCircle size={10}/>}
-                                {item.candidate_status === 'Pending Join' && <Clock size={10}/>}
-                                {item.candidate_status === 'Absconded' && <AlertCircle size={10}/>}
-                                {item.candidate_status}
-                            </span>
-                        </td>
+    <span className={`px-2.5 py-1 rounded text-[10px] font-black uppercase border inline-flex items-center gap-1 ${
+        item.candidate_status === 'Working' ? 'bg-green-50 text-green-700 border-green-200' : 
+        item.candidate_status === 'Joined' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+        item.candidate_status === 'Absconded' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+        item.candidate_status === 'Resigned' ? 'bg-gray-100 text-gray-700 border-gray-300' :
+        item.candidate_status === 'Terminate' ? 'bg-red-50 text-red-700 border-red-200' :
+        'bg-gray-50 text-gray-500 border-gray-200' // Fallback for any old/unknown status
+    }`}>
+        {/* Render appropriate icons based on the new statuses */}
+        {(item.candidate_status === 'Working' || item.candidate_status === 'Joined') && <CheckCircle size={10}/>}
+        {(item.candidate_status === 'Absconded' || item.candidate_status === 'Terminate') && <AlertCircle size={10}/>}
+        {item.candidate_status === 'Resigned' && <Clock size={10}/>}
+        
+        {item.candidate_status}
+    </span>
+</td>
+
+{/* --- NEW COLUMN: Payment Followup Date --- */}
+<td className="p-3 border-r border-gray-100 text-center align-middle">
+    {item.payment_followup_date ? (
+        <span className="font-bold text-gray-700 flex items-center justify-center gap-1.5">
+            <Calendar size={12} className="text-blue-500"/> {item.payment_followup_date}
+        </span>
+    ) : (
+        <span className="text-[10px] text-gray-400 italic">Not Scheduled</span>
+    )}
+</td>
 
                         {/* 7. Payment Status */}
                         <td className="p-3 border-r border-gray-100 text-center align-middle">
@@ -740,7 +824,7 @@ const filteredData = revenueData.filter(item => {
           {/* बटन में w-full की जगह flex-1 लगाया है */}
            <button 
                onClick={() => handleViewHistory(item.revenue_id)}
-               className="flex-1 bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-600 hover:text-white px-2 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-1"
+               className="flex-1 bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-600 hover:text-white px-1 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-1"
            >
               <History size={12} /> History
           </button>

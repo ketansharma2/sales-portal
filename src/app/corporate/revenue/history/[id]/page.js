@@ -1143,6 +1143,7 @@ const remainingBalance = totalExpected - totalReceived;
                                         <option value="Invoice Sent">Invoice Sent</option>
                                         <option value="Partial Payment">Partial Payment</option>
                                         <option value="Received">Received</option>
+                                        <option value="Cancelled">Cancelled</option>
                                     </select>
                                 </div>
                             </div>
