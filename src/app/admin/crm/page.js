@@ -1,15 +1,21 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { 
-  Building2, Users, Phone, FileText, CheckCircle, 
+import {
+  Building2, Users, Phone, FileText, CheckCircle,
   MapPin, Calendar, Filter, Search, Eye, Activity,BarChart3, UploadCloud,
   Briefcase, MessageSquare, UserCheck, Share2, CheckSquare , X,ExternalLink,Download , Clock ,
 } from "lucide-react";
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
 export default function AdminCRMDashboard() {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
-  
+  const [stats, setStats] = useState({});
+  const [clients, setClients] = useState([]);
+  const [crmList, setCrmList] = useState([]);
+
   // --- FILTERS STATE ---
   const [searchQuery, setSearchQuery] = useState("");
   const [sectorFilter, setSectorFilter] = useState("All");
@@ -19,53 +25,138 @@ export default function AdminCRMDashboard() {
   // --- ADD THIS MODAL STATE ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [clientDetails, setClientDetails] = useState(null);
 
-  const handleViewClick = (client) => {
+  const fetchCrmList = async (sector) => {
+    try {
+      const query = supabase
+        .from('users')
+        .select('user_id, name, sector')
+        .contains('role', ['CRM'])
+
+      if (sector !== 'All') {
+        query.eq('sector', sector)
+      }
+    //   console.log('CRM List Query:', query.toSQL())
+      const { data: crmUsers } = await query
+      setCrmList(crmUsers?.map(u => ({ id: u.user_id, name: u.name })) || [])
+    } catch (error) {
+      console.error('Error fetching CRM list:', error)
+    }
+  };
+
+  const fetchClients = async () => {
+    try {
+     const session = JSON.parse(localStorage.getItem('session') || '{}');
+       
+      if (!session) return
+      console.log('Fetching clients with filters:', { sectorFilter, crmFilter, searchQuery, fromDate, toDate });
+      const params = new URLSearchParams()
+      if (sectorFilter !== 'All') params.append('sector', sectorFilter)
+      if (crmFilter !== 'All') params.append('crm', crmFilter)
+      if (searchQuery) params.append('search', searchQuery)
+      if (fromDate) params.append('fromDate', fromDate)
+      if (toDate) params.append('toDate', toDate)
+
+      const response = await fetch(`/api/admin/crm/clients?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+      const result = await response.json()
+      if (result.success) {
+        setClients(result.data)
+      }
+    } catch (error) {
+      console.error('Error fetching clients:', error)
+    }
+  };
+
+  const fetchData = async () => {
+    try {
+      // Fetch stats
+      await fetchStats(sectorFilter)
+
+      // Fetch clients
+      await fetchClients()
+
+      // Fetch CRM list based on current sector
+      await fetchCrmList(sectorFilter)
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching data:', error)
+      setLoading(false);
+    }
+  };
+
+  const handleViewClick = async (client) => {
     setSelectedClient(client);
     setIsModalOpen(true);
+    setClientDetails(null); // Reset while loading
+    // Fetch client details
+    try {
+     const session = JSON.parse(localStorage.getItem('session') || '{}');
+        if (!session) {
+        console.error('No session found')
+        return
+      }
+        console.log('Fetching details for client:', client);
+      const response = await fetch(`/api/admin/crm/client/${client.id}?sector=${client.sector}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+      const result = await response.json()
+      if (result.success) {
+        setClientDetails(result.data)
+      } else {
+        console.error('Failed to fetch client details:', result.error)
+      }
+    } catch (error) {
+      console.error('Error fetching client details:', error)
+    }
   };
-
-  // --- MOCK DATA ---
-  const crmList = ["Pooja Sharma", "Sanjay Dutt", "Neha Gupta", "Aarti Singh"];
-  
-  const stats = {
-    onboards: "145",
-    branches: "312",
-    contacts: "520",
-    conversations: "1,840",
-    uniqueProfiles: "4,250",
-    requirements: "380",
-    workbenchAllot: "215",
-    trackerShared: "110"
-  };
-
- const onboardedClients = [
-    { 
-      id: "CL-1021", date: "04 Apr 2026", company: "TechNova Solutions", sector: "Corporate",
-      crmName: "Pooja Sharma", contactPerson: "Vikram Malhotra", phone: "+91 9876543210", email: "vikram@technova.in", 
-      requirements: 12, branches: 4, contacts: 15, workbenchAllotted: 8, trackerStatus: "Shared", color: "bg-emerald-100 text-emerald-800" 
-    },
-    { 
-      id: "CL-1022", date: "02 Apr 2026", company: "Urban Builders", sector: "Domestic",
-      crmName: "Sanjay Dutt", contactPerson: "Ramesh Singh", phone: "+91 8765432109", email: "ramesh@urban.com", 
-      requirements: 5, branches: 1, contacts: 3, workbenchAllotted: 5, trackerStatus: "Pending", color: "bg-orange-100 text-orange-800" 
-    },
-    { 
-      id: "CL-1023", date: "28 Mar 2026", company: "Global Finance", sector: "Corporate",
-      crmName: "Aarti Singh", contactPerson: "Priya Desai", phone: "+91 7654321098", email: "priya@globalfin.in", 
-      requirements: 25, branches: 12, contacts: 45, workbenchAllotted: 15, trackerStatus: "Shared", color: "bg-emerald-100 text-emerald-800" 
-    },
-    { 
-      id: "CL-1024", date: "25 Mar 2026", company: "Apex Retail", sector: "Domestic",
-      crmName: "Neha Gupta", contactPerson: "Karan Johar", phone: "+91 6543210987", email: "karan@apex.in", 
-      requirements: 3, branches: 2, contacts: 8, workbenchAllotted: 1, trackerStatus: "Shared", color: "bg-emerald-100 text-emerald-800" 
-    },
-  ];
 
   useEffect(() => {
     setMounted(true);
-    setTimeout(() => setLoading(false), 600); // Simulate data fetch
+     fetchClients()
+
+    fetchData();
   }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      fetchClients();
+      fetchCrmList(sectorFilter);
+      fetchStats(sectorFilter);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sectorFilter, crmFilter, searchQuery, fromDate, toDate, mounted]);
+
+  const fetchStats = async (sector) => {
+    try {
+     const session = JSON.parse(localStorage.getItem('session') || '{}');
+      if (!session) return
+
+      const params = new URLSearchParams()
+      params.append('sector', sector)
+      if (fromDate) params.append('fromDate', fromDate)
+      if (toDate) params.append('toDate', toDate)
+
+      const response = await fetch(`/api/admin/crm/stats?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+      const result = await response.json()
+      if (result.success) {
+        setStats(result.data)
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error)
+    }
+  };
 
   if (!mounted) return null;
 
@@ -120,14 +211,14 @@ export default function AdminCRMDashboard() {
               {/* CRM Name Filter */}
               <div className="flex items-center bg-blue-50 border border-blue-100 rounded-xl px-3 py-1.5 gap-2 hover:border-[#103c7f]/30 transition-colors">
                 <Users size={12} className="text-blue-500" />
-                <select 
+                <select
                   className="bg-transparent text-xs font-bold text-[#103c7f] outline-none cursor-pointer uppercase"
                   value={crmFilter}
                   onChange={(e) => setCrmFilter(e.target.value)}
                 >
                   <option value="All">All CRMs</option>
                   {crmList.map(crm => (
-                    <option key={crm} value={crm}>{crm}</option>
+                    <option key={crm.id} value={crm.id}>{crm.name}</option>
                   ))}
                 </select>
               </div>
@@ -153,14 +244,14 @@ export default function AdminCRMDashboard() {
                         </h2>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <KpiCard title="Client Onboard" total={stats.onboards} icon={<Briefcase size={18} />} color="blue" />
-                        <KpiCard title="Branches" total={stats.branches} icon={<Building2 size={18} />} color="purple" />
-                        <KpiCard title="Client Contacts" total={stats.contacts} icon={<Phone size={18} />} color="teal" />
-                        <KpiCard title="Client Calling" total={stats.conversations} icon={<MessageSquare size={18} />} color="orange" />
-                        
-                        <KpiCard title="Unique Profiles" total={stats.uniqueProfiles} icon={<UserCheck size={18} />} color="blue" />
-                        <KpiCard title="No. of Positions" total={stats.requirements} icon={<FileText size={18} />} color="purple" />
-                        <KpiCard title="Tracker Shared" total={stats.trackerShared} icon={<Share2 size={18} />} color="teal" />
+                        <KpiCard title="Client Onboard" total={stats.onboards || 0} icon={<Briefcase size={18} />} color="blue" />
+                         <KpiCard title="Branches" total={stats.branches || 0} icon={<Building2 size={18} />} color="purple" />
+                         <KpiCard title="Client Contacts" total={stats.contacts || 0} icon={<Phone size={18} />} color="teal" />
+                         <KpiCard title="Client Calling" total={stats.conversations || 0} icon={<MessageSquare size={18} />} color="orange" />
+
+                         <KpiCard title="Unique Profiles" total={stats.uniqueProfiles || 0} icon={<UserCheck size={18} />} color="blue" />
+                         <KpiCard title="No. of Positions" total={stats.requirements || 0} icon={<FileText size={18} />} color="purple" />
+                         <KpiCard title="Tracker Shared To Clients" total={stats.trackerShared || 0} icon={<Share2 size={18} />} color="teal" />
                     </div>
                 </div>
 
@@ -186,12 +277,8 @@ export default function AdminCRMDashboard() {
                                     <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 border-b border-gray-100 bg-white text-center">Action</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {onboardedClients
-                                  .filter(c => sectorFilter === "All" || c.sector === sectorFilter)
-                                  .filter(c => crmFilter === "All" || c.crmName === crmFilter)
-                                  .filter(c => c.company.toLowerCase().includes(searchQuery.toLowerCase()))
-                                  .map((client, idx) => (
+                             <tbody className="divide-y divide-gray-100">
+                                 {clients.map((client, idx) => (
                                     <tr key={idx} className="hover:bg-slate-50 transition-all group align-middle">
                                         
                                         {/* Sector */}
@@ -246,7 +333,7 @@ export default function AdminCRMDashboard() {
 
                                     </tr>
                                 ))}
-                                {onboardedClients.length === 0 && (
+                                {clients.length === 0 && (
                                     <tr>
                                         <td colSpan="7" className="px-6 py-10 text-center text-gray-400 font-bold text-xs uppercase tracking-widest">
                                             No clients found matching your criteria.
@@ -263,9 +350,10 @@ export default function AdminCRMDashboard() {
       </div>
     {/* --- ADD THIS MODAL INVOCATION HERE --- */}
       {isModalOpen && selectedClient && (
-        <ClientViewModal 
-            client={selectedClient} 
-            onClose={() => setIsModalOpen(false)} 
+        <ClientViewModal
+            client={selectedClient}
+            clientDetails={clientDetails}
+            onClose={() => { setIsModalOpen(false); setClientDetails(null); }}
         />
       )}
     </div>
@@ -321,27 +409,43 @@ function KpiCard({ title, total, icon, color, onClick }) {
 /* ========================================================= */
 /* CLIENT VIEW MODAL COMPONENT                               */
 /* ========================================================= */
-function ClientViewModal({ client, onClose }) {
+function ClientViewModal({ client, onClose, clientDetails }) {
   const [activeTab, setActiveTab] = useState("Client Info");
   const [selectedBranch, setSelectedBranch] = useState("All");
-  
-  const tabs = ["Client Info", "Contacts", "Conversation", "Requirement", "Workbench", "Tracker"];
-  const branches = ["All", "Delhi HQ", "Mumbai Branch", "Bangalore Branch"];
+ const [isPopupOpen, setIsPopupOpen] = useState(false);
+ const [isJdViewModalOpen, setIsJdViewModalOpen] = useState(false);
+const [currentJdView, setCurrentJdView] = useState(null);
+const [popupContent, setPopupContent] = useState({ type: '', url: '', title: '' });
+  const tabs = ["Client Info", "Contacts", "Conversation", "Requirement",  "Tracker"];
 
-  // --- MOCK DATA FOR TABS ---
-  const mockData = {
-    clientInfo: [{ onboardDate: client.date, companyName: client.company, hqLocation: "Gurgaon, Haryana", clientType: "Category A", industry: "IT Services", contractLink: "https://drive.google.com/contract", tnc: "Signed", kycStatus: "Verified", kycDoc: "GST_Pan.pdf", gstDetails: "06AAACC1234D1Z5", emailSs: "Attached" }],
-    contacts: [{ name: client.contactPerson, email: client.email, phone: client.phone, designation: "HR Head", department: "Human Resources", primaryContact: "Yes", handling: "Recruitment & Onboarding" }, { name: "Aditi Rao", email: "a.rao@technova.in", phone: "+91 9988776655", designation: "Talent Acquisition", department: "HR", primaryContact: "No", handling: "Tech Hiring" }],
-    conversations: [{ date: "05 Apr 2026", mode: "Zoom Meeting", contactName: client.contactPerson, contactEmail: client.email, contactPhone: client.phone, discussion: "Discussed requirements for Frontend Devs. Need 5 heads.", nextFollowup: "10 Apr 2026" }],
-    requirements: [{ title: "Sr. React Developer", date: "04 Apr 2026", openings: 5, priority: "High", status: "Active", timeline: "30 Days", jdView: "View JD PDF" }],
-    workbench: [{ 
-        date: "2026-03-02", slot: "09:30 AM - 01:00 PM", tl: "Vikram Singh", rc: "Pooja",
-        profile: "Telecouncellor", pkg: "30k", req: "350",
-        cvs: "70", advSti: "15", conversion: "2", asset: "5", tRcvd: "2", tShared: "1",
-        rcNote: "Good response today. Focused mostly on Naukri database.", tlNote: "Asked Pooja to focus only on immediate joiners."
-    }],
-    tracker: [{ profile: "Frontend Developer", shareDate: "06 Apr 2026", shared: 15, shortlisted: 5, interviewed: 3, selected: 1, joining: "Pending" }]
+  const branches = clientDetails?.branches?.map(b => b.branch_name) || []
+  const allBranches = ["All", ...branches]
+const handleJdView = (requirement) => {
+  setCurrentJdView(requirement);
+  setIsJdViewModalOpen(true);
+};
+  // Use fetched data
+  const mockData = clientDetails || {
+    clientInfo: [{}],
+    contacts: [],
+    conversations: [],
+    requirements: [],
+    workbench: [],
+    tracker: []
   };
+
+ const handleLinkClick = (url, type, title) => {
+  // Google Docs Viewer for .docx files
+  if (type === 'CV View' && url) {
+    const viewerUrl = `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(url)}`;
+    setPopupContent({ url: viewerUrl, type, title });
+  } else if (url && (url.includes('.pdf') || type === 'contract' || type === 'kyc')) {
+    setPopupContent({ url, type, title });
+  } else {
+    setPopupContent({ url, type, title });
+  }
+  setIsPopupOpen(true);
+};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -424,7 +528,12 @@ function ClientViewModal({ client, onClose }) {
                                                             <tr className="hover:bg-slate-50 transition-colors">
                                                                 <th className="py-3.5 px-6 text-[#103c7f] font-bold w-1/3 md:w-1/4">Contract Link</th>
                                                                 <td className="py-3.5 px-6 text-blue-500 hover:text-blue-700 cursor-pointer flex items-center gap-1.5 font-bold hover:underline">
-                                                                    <ExternalLink size={14}/> View Contract
+                                                                    <button 
+    onClick={() => handleLinkClick(row.contractLink, 'contract', 'Contract Document')}
+    className="text-blue-500 hover:text-blue-700 flex items-center gap-1.5 font-bold hover:underline"
+  >
+    <ExternalLink size={14}/> View Contract
+  </button>
                                                                 </td>
                                                             </tr>
                                                             <tr className="hover:bg-slate-50 transition-colors">
@@ -440,7 +549,12 @@ function ClientViewModal({ client, onClose }) {
                                                             <tr className="hover:bg-slate-50 transition-colors">
                                                                 <th className="py-3.5 px-6 text-[#103c7f] font-bold w-1/3 md:w-1/4">KYC Doc</th>
                                                                 <td className="py-3.5 px-6 text-blue-500 hover:text-blue-700 cursor-pointer flex items-center gap-1.5 font-bold hover:underline">
-                                                                    <Download size={14}/> {row.kycDoc}
+                                                                    <button 
+    onClick={() => handleLinkClick(row.kycDoc, 'kyc', 'KYC Document')}
+    className="text-blue-500 hover:text-blue-700 flex items-center gap-1.5 font-bold hover:underline"
+  >
+     <ExternalLink size={14}/>{row.kycDoc}
+  </button>
                                                                 </td>
                                                             </tr>
                                                             <tr className="hover:bg-slate-50 transition-colors">
@@ -450,7 +564,12 @@ function ClientViewModal({ client, onClose }) {
                                                             <tr className="hover:bg-slate-50 transition-colors">
                                                                 <th className="py-3.5 px-6 text-[#103c7f] font-bold w-1/3 md:w-1/4">Email SS</th>
                                                                 <td className="py-3.5 px-6 text-blue-500 hover:text-blue-700 cursor-pointer flex items-center gap-1.5 font-bold hover:underline">
-                                                                    <ExternalLink size={14}/> View Attachment
+<button 
+    onClick={() => handleLinkClick(row.emailSs, 'email', 'Email SS')}
+    className="text-blue-500 hover:text-blue-700 flex items-center gap-1.5 font-bold hover:underline"
+  >
+    <ExternalLink size={14}/> {row.emailSs}
+  </button> View Attachment
                                                                 </td>
                                                             </tr>
                                                         </tbody>
@@ -479,9 +598,9 @@ function ClientViewModal({ client, onClose }) {
                                                 <td className="px-4 py-3 font-bold text-gray-500">{row.email}</td>
                                                 <td className="px-4 py-3 font-bold text-slate-600">{row.phone}</td>
                                                 <td className="px-4 py-3 font-bold text-[#103c7f]">{row.designation}</td>
-                                                <td className="px-4 py-3 font-bold text-slate-600">{row.department}</td>
-                                                <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${row.primaryContact === 'Yes' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{row.primaryContact}</span></td>
-                                                <td className="px-4 py-3 font-bold text-gray-500">{row.handling}</td>
+                                                <td className="px-4 py-3 font-bold text-slate-600">{row.dept}</td>
+                                                <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${row.is_primary === 'Yes' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{row.is_primary}</span></td>
+                                                <td className="px-4 py-3 font-bold text-gray-500">{row.handles}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -509,7 +628,7 @@ function ClientViewModal({ client, onClose }) {
                                                     <p className="text-[10px] text-gray-400">{row.contactEmail}</p>
                                                 </td>
                                                 <td className="px-4 py-3 font-semibold text-slate-600 max-w-sm whitespace-normal">{row.discussion}</td>
-                                                <td className="px-4 py-3 font-bold text-emerald-600 flex items-center gap-1 mt-2"><Clock size={12}/>{row.nextFollowup}</td>
+                                                <td className="px-4 py-3 font-bold text-emerald-600 flex items-center gap-1 mt-2"><Clock size={12}/>{row.next_follow_up}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -529,13 +648,18 @@ function ClientViewModal({ client, onClose }) {
                                     <tbody className="divide-y divide-gray-100">
                                         {mockData.requirements.map((row, i) => (
                                             <tr key={i} className="hover:bg-slate-50 transition-colors">
-                                                <td className="px-4 py-3 font-black text-[#103c7f]">{row.title}</td>
+                                                <td className="px-4 py-3 font-black text-[#103c7f]">{row.job_title}</td>
                                                 <td className="px-4 py-3 font-bold text-slate-600">{row.date}</td>
                                                 <td className="px-4 py-3 text-center font-black text-lg text-slate-700">{row.openings}</td>
                                                 <td className="px-4 py-3"><span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{row.priority}</span></td>
                                                 <td className="px-4 py-3 font-bold text-emerald-600">{row.status}</td>
                                                 <td className="px-4 py-3 font-bold text-slate-600">{row.timeline}</td>
-                                                <td className="px-4 py-3 text-blue-500 hover:underline cursor-pointer flex items-center gap-1"><FileText size={12}/> View JD</td>
+                                                <td className="px-4 py-3 text-blue-500 hover:underline cursor-pointer flex items-center gap-1"> <button 
+                            onClick={() => handleJdView(row)} 
+                            className="text-blue-500 hover:underline flex items-center gap-1"
+                        >
+                            <FileText size={12}/> View JD
+                        </button></td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -601,7 +725,7 @@ function ClientViewModal({ client, onClose }) {
 
                                                 <td className="px-4 py-3">
                                                     <p className="text-[10px] font-semibold text-slate-500 italic max-w-[150px] leading-snug whitespace-normal">
-                                                        "{row.rcNote}"
+                                                        {row.rcNote}
                                                     </p>
                                                 </td>
 
@@ -623,7 +747,7 @@ function ClientViewModal({ client, onClose }) {
                                 <>
                                     <thead className="bg-slate-50 border-b border-gray-200">
                                         <tr>
-                                            {["Profile", "Tracker Share Date", "Tracker Shared", "Shortlisted", "Interviewed", "Selected", "Joining", "Action"].map(h => (
+                                            {["Candidate Name","Profile", "Email Feedback", "Status", "Action"].map(h => (
                                                 <th key={h} className="px-4 py-3 text-[10px] uppercase font-black text-gray-400 text-center">{h}</th>
                                             ))}
                                         </tr>
@@ -631,16 +755,22 @@ function ClientViewModal({ client, onClose }) {
                                     <tbody className="divide-y divide-gray-100">
                                         {mockData.tracker.map((row, i) => (
                                             <tr key={i} className="hover:bg-slate-50 transition-colors text-center align-middle">
-                                                <td className="px-4 py-3 font-black text-[#103c7f]">{row.profile}</td>
-                                                <td className="px-4 py-3 font-bold text-slate-600 ">{row.shareDate}</td>
-                                                <td className="px-4 py-3 font-black text-slate-700 bg-slate-50">{row.shared}</td>
-                                                <td className="px-4 py-3 font-black text-blue-600 bg-blue-50/50">{row.shortlisted}</td>
-                                                <td className="px-4 py-3 font-black text-orange-600 bg-orange-50/50">{row.interviewed}</td>
-                                                <td className="px-4 py-3 font-black text-emerald-600 bg-emerald-50/50">{row.selected}</td>
-                                                <td className="px-4 py-3 font-bold text-gray-400">{row.joining}</td>
+                                                <td className="px-4 py-3 font-black text-[#103c7f]">{row.name}</td>
+                                                <td className="px-4 py-3 font-bold text-slate-600 ">{row.profile}</td>
+<td className="px-4 py-3 font-black text-slate-600 max-w-[220px]">
+  <div
+    className="truncate cursor-pointer"
+    title={row.feedback}
+  >
+    {row.feedback}
+  </div>
+</td>     
+
+  
+  <td className="px-4 py-3 font-bold text-slate-600 ">{row.interview_status || 'N/A'}</td>
                                                 <td className="px-4 py-3">
-                                                    <button className="bg-white border border-gray-200 text-[#103c7f] hover:bg-blue-50 hover:border-blue-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-sm flex items-center justify-center gap-1.5 mx-auto">
-                                                        <Eye size={12} /> History View
+                                                    <button  onClick={() => handleLinkClick(row.cv_url, 'CV View', 'CV View')} className="bg-white border border-gray-200 text-[#103c7f] hover:bg-blue-50 hover:border-blue-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-sm flex items-center justify-center gap-1.5 mx-auto">
+                                                        <Eye size={12} /> CV View
                                                     </button>
                                                 </td>
                                             </tr>
@@ -654,6 +784,131 @@ function ClientViewModal({ client, onClose }) {
             </div>
 
         </div>
+        {isPopupOpen && (
+  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm">
+    <div className="bg-white rounded-xl shadow-2xl w-[600px] max-w-[90vw] h-[500px] max-h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+      {/* Header */}
+      <div className="bg-[#103c7f] text-white px-5 py-3 flex justify-between items-center shrink-0">
+        <h3 className="text-xs font-black uppercase tracking-widest">{popupContent.title}</h3>
+        <button onClick={() => setIsPopupOpen(false)} className="p-1 hover:bg-white/10 rounded-full">
+          <X size={18} />
+        </button>
+      </div>
+      
+      {/* Content */}
+      <div className="flex-1 overflow-auto bg-slate-50 p-5">
+        {popupContent.url ? (
+          <iframe src={popupContent.url} className="w-full h-full border-0 rounded" title={popupContent.title} />
+        ) : (
+          <div className="text-center text-gray-500 mt-10">No content available</div>
+        )}
+      </div>
+      
+      {/* Footer */}
+      <div className="bg-gray-50 px-5 py-3 border-t border-gray-200 flex justify-end shrink-0">
+        <button onClick={() => setIsPopupOpen(false)} className="bg-[#103c7f] text-white px-4 py-1.5 rounded-lg text-xs font-bold">
+          Close
+        </button>
+      </div>
     </div>
+  </div>
+)}
+
+{isJdViewModalOpen && currentJdView && (
+    <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-xl flex justify-center items-center z-[10000] p-0 md:p-4">
+        <div className="bg-transparent w-full max-w-[800px] h-full md:h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 relative shadow-2xl rounded-2xl">
+            
+            {/* Header */}
+            <div className="bg-[#103c7f] text-white p-4 flex justify-between items-center shrink-0 border-b border-blue-900">
+                <div className="flex items-center gap-3">
+                    <FileText size={20} />
+                    <h3 className="font-bold text-lg uppercase tracking-wide">Job Description</h3>
+                </div>
+                <div className="flex gap-3">
+                    <button onClick={() => setIsJdViewModalOpen(false)} className="hover:bg-white/20 p-2 rounded-full transition">
+                        <X size={20}/>
+                    </button>
+                </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 min-h-0 overflow-y-auto bg-gray-200 p-4 md:p-8 custom-scrollbar">
+                <div className="bg-white w-full max-w-[210mm] min-h-[297mm] h-max mx-auto p-[10mm] md:p-[15mm] shadow-xl text-black font-['Calibri'] relative">
+                    
+                    {/* Header Logo */}
+                    <div className="mb-10">
+                        <img src="/maven-logo.png" alt="Maven Jobs" style={{ width: '220px', height: '70px', objectFit: 'contain' }} />
+                    </div>
+
+                    {/* Bordered Container */}
+                    <div className="border border-black p-8 min-h-[850px]">
+                        
+                        {/* Key Value Pairs */}
+                        <div className="space-y-4 mb-10 text-[15px] leading-relaxed">
+                            {currentJdView.job_title && <p><span className="font-bold">JOB TITLE : </span> {currentJdView.job_title}</p>}
+                            {currentJdView.location && <p><span className="font-bold">LOCATION : </span> {currentJdView.location}</p>}
+                            {currentJdView.experience && <p><span className="font-bold">EXPERIENCE : </span> {currentJdView.experience}</p>}
+                            {currentJdView.employment_type && <p><span className="font-bold">EMPLOYMENT TYPE : </span> {currentJdView.employment_type}</p>}
+                            {currentJdView.working_days && <p><span className="font-bold">WORKING DAYS : </span> {currentJdView.working_days}</p>}
+                            {currentJdView.timings && <p><span className="font-bold">TIMINGS : </span> {currentJdView.timings}</p>}
+                            {currentJdView.package_salary && <p><span className="font-bold">PACKAGE : </span> {currentJdView.package_salary}</p>}
+                            {currentJdView.tool_requirement && <p><span className="font-bold">TOOL REQUIREMENT : </span> {currentJdView.tool_requirement}</p>}
+                        </div>
+
+                        {/* Sections */}
+                        <div className="space-y-8 text-[15px]">
+                            {currentJdView.summary && (
+                                <div><h4 className="font-bold mb-2 uppercase text-[16px]">Job Summary :</h4><p className="leading-relaxed text-justify text-gray-800">{currentJdView.summary}</p></div>
+                            )}
+                            
+                            {currentJdView.rnr && (
+                                <div><h4 className="font-bold mb-2 uppercase text-[16px]">Role & Responsibilities :</h4>
+                                    <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                        {currentJdView.rnr.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                    </ul>
+                                </div>
+                            )}
+                            
+                            {currentJdView.skills && (
+                                <div><h4 className="font-bold mb-2 uppercase text-[16px]">Required Skills :</h4>
+                                    <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                        {currentJdView.skills.split(',').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                    </ul>
+                                </div>
+                            )}
+                            
+                            {currentJdView.preferred_qual && (
+                                <div><h4 className="font-bold mb-2 uppercase text-[16px]">Preferred Qualifications :</h4>
+                                    <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                        {currentJdView.preferred_qual.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                    </ul>
+                                </div>
+                            )}
+                            
+                            {currentJdView.company_offers && (
+                                <div><h4 className="font-bold mb-2 uppercase text-[16px]">What Company Offer :</h4>
+                                    <ul className="list-disc pl-5 space-y-1.5 text-gray-800">
+                                        {currentJdView.company_offers.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                    </ul>
+                                </div>
+                            )}
+                            
+                            {currentJdView.contact_details && (
+                                <div className="mt-12 pt-6 border-t border-black/20">
+                                    <h4 className="font-bold mb-3 uppercase text-[16px]">Contact Us To Apply :</h4>
+                                    <div className="whitespace-pre-line leading-loose text-gray-900 font-medium">{currentJdView.contact_details}</div>
+                                </div>
+                            )}
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+)}
+    </div>
+    
   );
 }
