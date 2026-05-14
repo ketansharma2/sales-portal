@@ -1,11 +1,14 @@
 "use client";
 import { useState, useEffect , useRef, useMemo } from "react";
+import dynamic from 'next/dynamic';
+
+import { useRouter, useSearchParams } from "next/navigation";
 import { 
   Search, Filter, Calendar, User, Briefcase, 
   Building2, Clock, CheckCircle, AlertCircle,
   History, IndianRupee , CheckSquare, X, Printer, FileText, FileCheck
 } from "lucide-react";
-import { useRouter } from 'next/navigation';
+
 
 // --- CONSTANTS ---
 const COMPANY_DATA = {
@@ -38,20 +41,34 @@ const STATES = [
   "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
 ];
 
-export default function RevenuePage() {
-   
+function RevenuePage() {
+    const searchParams = useSearchParams(); // Add this line
   // --- STATE ---
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState("All");
-  const [dateFrom, setDateFrom] = useState("");
-  const [candidateStatusFilter, setCandidateStatusFilter] = useState("All");
-const [paymentStatusFilter, setPaymentStatusFilter] = useState("All");
-  const [dateTo, setDateTo] = useState("");
+ const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || "");
+const [selectedMonth, setSelectedMonth] = useState(searchParams.get('month') || "All");
+const [dateFrom, setDateFrom] = useState(searchParams.get('from') || "");
+const [dateTo, setDateTo] = useState(searchParams.get('to') || "");
+const [candidateStatusFilter, setCandidateStatusFilter] = useState(searchParams.get('candidateStatus') || "All");
+const [paymentStatusFilter, setPaymentStatusFilter] = useState(searchParams.get('paymentStatus') || "All");
   const [revenueData, setRevenueData] = useState([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const previewRef = useRef(null);
-
+  
+  // Sync filters with URL
+useEffect(() => {
+    const params = new URLSearchParams();
+    
+    if (searchTerm) params.set('search', searchTerm);
+    if (selectedMonth !== "All") params.set('month', selectedMonth);
+    if (dateFrom) params.set('from', dateFrom);
+    if (dateTo) params.set('to', dateTo);
+    if (candidateStatusFilter !== "All") params.set('candidateStatus', candidateStatusFilter);
+    if (paymentStatusFilter !== "All") params.set('paymentStatus', paymentStatusFilter);
+    
+    const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+    window.history.replaceState({}, '', newUrl);
+}, [searchTerm, selectedMonth, dateFrom, dateTo, candidateStatusFilter, paymentStatusFilter]);
   // --- AMOUNT IN WORDS CONVERTER ---
   const numberToWords = (num) => {
     const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
@@ -1317,3 +1334,5 @@ return matchesSearch && matchesDateRange && matchesMonth && matchesCandidateStat
     </div>
   );
 }
+
+export default dynamic(() => Promise.resolve(RevenuePage), { ssr: false });
