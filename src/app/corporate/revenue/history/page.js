@@ -116,6 +116,7 @@ const [paymentStatusFilter, setPaymentStatusFilter] = useState("All");
 
   // --- FILTER LOGIC ---
 const filteredData = revenueData.filter(item => {
+  
       const matchesSearch = 
         item.candidate_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         item.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -123,27 +124,27 @@ const filteredData = revenueData.filter(item => {
       
       let matchesDateRange = true;
       if (dateFrom && dateTo) {
-          const itemDate = new Date(item.entry_date);
+          const itemDate = new Date(item.payment_follow_up);
           const from = new Date(dateFrom);
           const to = new Date(dateTo);
           to.setHours(23, 59, 59, 999);
           matchesDateRange = itemDate >= from && itemDate <= to;
       } else if (dateFrom) {
-          matchesDateRange = new Date(item.entry_date) >= new Date(dateFrom);
+          matchesDateRange = new Date(item.payment_follow_up) >= new Date(dateFrom);
       } else if (dateTo) {
           const to = new Date(dateTo);
           to.setHours(23, 59, 59, 999);
-          matchesDateRange = new Date(item.entry_date) <= to;
+          matchesDateRange = new Date(item.payment_follow_up) <= to;
       }
 
      let matchesMonth = true;
       if (selectedMonth !== "All") {
         // SAFEGUARD: Check if the date actually exists before splitting it
-        if (!item.entry_date) {
+        if (!item.payment_follow_up) {
             matchesMonth = false;
         } else {
             const monthIndex = months.indexOf(selectedMonth) + 1; 
-            const itemMonth = parseInt(item.entry_date.split('-')[1], 10);
+            const itemMonth = parseInt(item.payment_follow_up.split('-')[1], 10);
             matchesMonth = monthIndex === itemMonth;
         }
       }
@@ -756,9 +757,9 @@ return matchesSearch && matchesDateRange && matchesMonth && matchesCandidateStat
 
 {/* --- NEW COLUMN: Payment Followup Date --- */}
 <td className="p-3 border-r border-gray-100 text-center align-middle">
-    {item.payment_followup_date ? (
+    {item.payment_follow_up ? (
         <span className="font-bold text-gray-700 flex items-center justify-center gap-1.5">
-            <Calendar size={12} className="text-blue-500"/> {item.payment_followup_date}
+            <Calendar size={12} className="text-blue-500"/> {item.payment_follow_up}
         </span>
     ) : (
         <span className="text-[10px] text-gray-400 italic">Not Scheduled</span>
