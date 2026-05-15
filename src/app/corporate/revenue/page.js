@@ -1,15 +1,23 @@
 "use client";
-import { useState, useEffect } from "react";
-import { 
-  Users, Briefcase, CheckCircle, AlertCircle, 
-  Building2, Calendar, Clock,
+import { useState, useEffect , useMemo } from "react";
+import {
+  Users, Briefcase, CheckCircle, AlertCircle,
+  Building2, Calendar, Clock, Filter,
   Target, BellRing, ArrowRight, PhoneCall, ShieldAlert,
-  MessageSquare, IndianRupee, AlertTriangle
+  MessageSquare, IndianRupee, AlertTriangle, FileText
 } from "lucide-react";
 
 export default function RevenueDashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
+
+  // --- FILTER STATES (MOVED TO TOP) ---
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [clientFilter, setClientFilter] = useState("");
+  const [crmFilter, setCrmFilter] = useState("");
+  const [candStatusFilter, setCandStatusFilter] = useState("All");
+  const [payStatusFilter, setPayStatusFilter] = useState("All");
 
   // --- CONFIG ---
   const TODAY = new Date("2026-04-09");
@@ -65,6 +73,46 @@ export default function RevenueDashboard() {
   const targetProgress = Math.min((achievedRevenue / MONTHLY_REVENUE_TARGET) * 100, 100);
   const pipelineProgress = Math.min((pipelineRevenue / MONTHLY_REVENUE_TARGET) * 100, 100 - targetProgress);
 
+  // --- FILTERED DATA ---
+ // --- FILTERED DATA ---
+  const filteredData = useMemo(() => {
+    return data.filter(item => {
+      
+      // --- NEW DATE RANGE LOGIC ---
+      if (fromDate || toDate) {
+        if (!item.payment_due_date) return false;
+        
+        const itemDate = new Date(item.payment_due_date);
+        itemDate.setHours(0, 0, 0, 0); // Normalize time
+        
+        if (fromDate) {
+            const fDate = new Date(fromDate);
+            fDate.setHours(0, 0, 0, 0);
+            if (itemDate < fDate) return false;
+        }
+        
+        if (toDate) {
+            const tDate = new Date(toDate);
+            tDate.setHours(23, 59, 59, 999); // Include entire end day
+            if (itemDate > tDate) return false;
+        }
+      }
+      
+      // Rest of your filters remain exactly the same
+      if (clientFilter && !item.client_name?.toLowerCase().includes(clientFilter.toLowerCase())) return false;
+      if (crmFilter && !item.crm_name?.toLowerCase().includes(crmFilter.toLowerCase())) return false;
+      if (candStatusFilter !== "All" && item.candidate_status !== candStatusFilter) return false;
+      if (payStatusFilter !== "All") {
+        if (payStatusFilter === "Pending") {
+          if (item.payment_status !== "Pending") return false;
+        } else {
+          if (item.payment_status !== payStatusFilter) return false;
+        }
+      }
+      return true;
+    });
+  }, [data, fromDate, toDate, clientFilter, crmFilter, candStatusFilter, payStatusFilter]); // Updated dependencies
+
   // 2. UNIFIED ALERTS (Payments + Calls)
   const allAlerts = [];
   data.forEach(d => {
@@ -105,166 +153,369 @@ export default function RevenueDashboard() {
 
   // 3. Operational Metrics
   const totalPlacements = data.length;
-  const workingCandidates = data.filter(d => d.candidate_status === 'Working').length;
-  const pendingJoins = data.filter(d => d.candidate_status === 'Pending Join').length;
-  const abscondedCandidates = data.filter(d => d.candidate_status === 'Absconded').length;
 
-  if (loading) {
-    return <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center text-[#103c7f] font-bold uppercase tracking-widest">Loading Dashboard...</div>;
-  }
+  // --- CALCULATE KPI AGGREGATIONS FOR CARDS ---
+  // --- 5. KPI CALCULATIONS (Counts & Amounts) ---
+  const {
+      joinedCount,
+      workingCount,
+      abscondedCount,
+      resignedCount,
+      terminateCount,
+      // --- Payment Metrics (Count & Amount) ---
+      paymentMetrics
+  } = useMemo(() => {
+      let joined = 0, working = 0, absconded = 0, resigned = 0, terminate = 0;
+      
+      // Payment की गिनती और अमाउंट दोनों स्टोर करने के लिए ऑब्जेक्ट
+      const pMetrics = {
+          pending: { count: 0, amount: 0 },
+          invoiceSent: { count: 0, amount: 0 },
+          partial: { count: 0, amount: 0 },
+          received: { count: 0, amount: 0 },
+          cancelled: { count: 0, amount: 0 }
+      };
 
+      filteredData.forEach(item => {
+          // 1. Candidate Status Counts
+          if (item.candidate_status === 'Joined') joined++;
+          else if (item.candidate_status === 'Working') working++;
+          else if (item.candidate_status === 'Absconded') absconded++;
+          else if (item.candidate_status === 'Resigned') resigned++;
+          else if (item.candidate_status === 'Terminate') terminate++;
+
+          // 2. Payment Status Counts & Amounts
+          const pStatus = item.payment_status;
+          
+          // यहाँ हम amount निकाल रहे हैं (parseCurrency फंक्शन का इस्तेमाल करके)
+          const amount = parseCurrency(item.payment_amount || item.base_invoice); 
+
+          if (!pStatus || pStatus === 'Pending') {
+              pMetrics.pending.count++;
+              pMetrics.pending.amount += amount;
+          } else if (pStatus === 'Invoice Sent') {
+              pMetrics.invoiceSent.count++;
+              pMetrics.invoiceSent.amount += amount;
+          } else if (pStatus === 'Partial Payment') {
+              pMetrics.partial.count++;
+              pMetrics.partial.amount += amount;
+          } else if (pStatus === 'Received') {
+              pMetrics.received.count++;
+              pMetrics.received.amount += amount;
+          } else if (pStatus === 'Cancelled') {
+              pMetrics.cancelled.count++;
+              pMetrics.cancelled.amount += amount;
+          }
+      });
+
+      return {
+          joinedCount: joined,
+          workingCount: working,
+          abscondedCount: absconded,
+          resignedCount: resigned,
+          terminateCount: terminate,
+          paymentMetrics: pMetrics // यहाँ हम पूरा ऑब्जेक्ट भेज रहे हैं
+      };
+  }, [filteredData]);
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-6">
+    <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-2 md:p-3">
       
       {/* HEADER */}
-      <div className="flex flex-col mb-6">
-         <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight">Revenue & Targets</h1>
-         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Financial Health & Action Items for April 2026</p>
+      <div className="flex flex-col mb-2">
+         <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight">Revenue Overview</h1>
       </div>
 
       {/* --- MAIN CONTENT SPLIT --- */}
-      <div className="flex flex-col lg:flex-row gap-6">
+      <div className="flex flex-col lg:flex-row gap-4">
           
-          {/* LEFT SIDE: METRICS & TABLES */}
-          <div className="flex-1 w-full space-y-6">
-              
-              {/* --- REVENUE TARGET VS ACHIEVED --- */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-                  <div className="flex justify-between items-end mb-6">
-                      <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest flex items-center gap-2">
-                          <Target size={18} className="text-[#103c7f]"/> Monthly Revenue Target
-                      </h3>
-                      <div className="text-right">
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Target Set</p>
-                          <p className="text-xl font-black text-gray-800">{formatCurrency(MONTHLY_REVENUE_TARGET)}</p>
-                      </div>
-                  </div>
+         {/* LEFT SIDE: METRICS, FILTERS & TABLES */}
+<div className="flex-1 w-full space-y-3 min-w-0">
+    
+   {/* --- 1. ADVANCED FILTERS SECTION --- */}
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3">
+        <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-black text-[#103c7f] uppercase tracking-widest flex items-center gap-2">
+                <Filter size={14}/> Dashboard Filters
+            </h3>
+            {/* Clear All Condition Updated */}
+            {(fromDate || toDate || clientFilter || crmFilter || candStatusFilter !== "All" || payStatusFilter !== "All") && (
+                <button 
+                    onClick={() => {
+                        setFromDate("");
+                        setToDate("");
+                        setClientFilter("");
+                        setCrmFilter("");
+                        setCandStatusFilter("All");
+                        setPayStatusFilter("All");
+                    }}
+                    className="text-[10px] font-black text-red-500 hover:text-red-700 uppercase tracking-widest transition-colors"
+                >
+                    Clear All
+                </button>
+            )}
+        </div>
+        
+        {/* Changed grid to 6 cols to accommodate two date fields cleanly */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            
+            {/* FROM DATE Filter */}
+            <div>
+                <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1 block">From Date</label>
+                <input 
+                    type="date"
+                    value={fromDate} 
+                    onChange={e => setFromDate(e.target.value)} 
+                    className="w-full border border-gray-200 p-2 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] bg-gray-50 cursor-pointer"
+                />
+            </div>
 
-                  {/* Progress Bar */}
-                  <div className="w-full bg-gray-100 rounded-full h-6 mb-4 overflow-hidden flex relative shadow-inner">
-                      <div className="bg-emerald-500 h-full flex items-center justify-center text-[10px] text-white font-bold transition-all duration-1000" style={{ width: `${targetProgress}%` }}>
-                          {targetProgress > 5 ? `${targetProgress.toFixed(0)}%` : ''}
-                      </div>
-                      <div className="bg-blue-400 h-full opacity-80 flex items-center justify-center text-[10px] text-white font-bold transition-all duration-1000" style={{ width: `${pipelineProgress}%` }}></div>
-                  </div>
+            {/* TO DATE Filter */}
+            <div>
+                <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1 block">To Date</label>
+                <input 
+                    type="date"
+                    value={toDate} 
+                    onChange={e => setToDate(e.target.value)} 
+                    min={fromDate} // Prevents selecting a 'To' date earlier than 'From' date
+                    className="w-full border border-gray-200 p-2 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] bg-gray-50 cursor-pointer"
+                />
+            </div>
 
-                  {/* Metrics Breakdown */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
-                      <div>
-                          <p className="flex items-center gap-1.5 text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Achieved
-                          </p>
-                          <p className="text-xl lg:text-2xl font-black text-emerald-600">{formatCurrency(achievedRevenue)}</p>
-                      </div>
-                      <div>
-                          <p className="flex items-center gap-1.5 text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                              <span className="w-2 h-2 rounded-full bg-blue-400"></span> Pipeline
-                          </p>
-                          <p className="text-xl lg:text-2xl font-black text-blue-600">{formatCurrency(pipelineRevenue)}</p>
-                      </div>
-                      <div>
-                          <p className="flex items-center gap-1.5 text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                              <span className="w-2 h-2 rounded-full bg-gray-200"></span> Shortfall
-                          </p>
-                          <p className="text-xl lg:text-2xl font-black text-gray-800">
-                              {formatCurrency(Math.max(MONTHLY_REVENUE_TARGET - achievedRevenue - pipelineRevenue, 0))}
-                          </p>
-                      </div>
-                  </div>
-              </div>
+            {/* Client Name Filter */}
+            <div>
+                <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1 block">Client Name</label>
+                <input 
+                    type="text" 
+                    placeholder="Search Client..." 
+                    value={clientFilter} 
+                    onChange={e => setClientFilter(e.target.value)} 
+                    className="w-full border border-gray-200 p-2 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] bg-gray-50"
+                />
+            </div>
 
-              {/* --- CANDIDATE & OPERATIONAL METRICS --- */}
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 px-2">
-                  <Briefcase size={14} className="text-[#103c7f]"/> Operational Overview (April)
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3 group hover:border-[#103c7f] transition-all">
-                    <div className="p-2.5 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-[#103c7f] group-hover:text-white transition-colors"><Briefcase size={18}/></div>
-                    <div>
-                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Placed</p>
-                        <h3 className="text-xl font-black text-slate-800 leading-none">{totalPlacements}</h3>
+            {/* CRM Name Filter */}
+            <div>
+                <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1 block">CRM Name</label>
+                <input 
+                    type="text" 
+                    placeholder="Search CRM..." 
+                    value={crmFilter} 
+                    onChange={e => setCrmFilter(e.target.value)} 
+                    className="w-full border border-gray-200 p-2 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] bg-gray-50"
+                />
+            </div>
+
+            {/* Candidate Status Filter */}
+            <div>
+                <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1 block">Candidate Status</label>
+                <select 
+                    value={candStatusFilter} 
+                    onChange={e => setCandStatusFilter(e.target.value)} 
+                    className="w-full border border-gray-200 p-2 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] bg-gray-50 cursor-pointer"
+                >
+                    <option value="All">All Statuses</option>
+                    <option value="Working">Working</option>
+                    <option value="Joined">Joined</option>
+                    <option value="Absconded">Absconded</option>
+                    <option value="Resigned">Resigned</option>
+                    <option value="Terminate">Terminate</option>
+                </select>
+            </div>
+
+            {/* Payment Status Filter */}
+            <div>
+                <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1 block">Payment Status</label>
+                <select 
+                    value={payStatusFilter} 
+                    onChange={e => setPayStatusFilter(e.target.value)} 
+                    className="w-full border border-gray-200 p-2 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] bg-gray-50 cursor-pointer"
+                >
+                    <option value="All">All Statuses</option>
+                    <option value="Received">Received</option>
+                    <option value="Invoice Sent">Invoice Sent</option>
+                    <option value="Pending">Pending</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    {/* --- 2. KPI CARDS SECTION --- */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        
+        {/* Candidate Status KPIs */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-2 mb-4 border-b border-gray-100 pb-2">
+                <Users size={14} className="text-blue-500"/> Candidate Overview
+            </h3>
+           {/* 5 KPI Cards for Candidate Status */}
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+                
+                {/* 1. Joined (Green) */}
+                <div className="bg-green-50 p-3 rounded-lg border border-green-100 text-center">
+                    <p className="text-[9px] font-black text-green-600 uppercase tracking-widest mb-1">Joined</p>
+                    <h4 className="text-xl font-black text-green-700">{joinedCount || 0}</h4>
+                </div>
+
+                {/* 2. Working (Blue) */}
+                <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-center">
+                    <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Working</p>
+                    <h4 className="text-xl font-black text-blue-700">{workingCount || 0}</h4>
+                </div>
+
+                {/* 3. Absconded (Red) */}
+                <div className="bg-red-50 p-3 rounded-lg border border-red-100 text-center">
+                    <p className="text-[9px] font-black text-red-600 uppercase tracking-widest mb-1">Absconded</p>
+                    <h4 className="text-xl font-black text-red-700">{abscondedCount || 0}</h4>
+                </div>
+
+                {/* 4. Resigned (Orange/Amber) */}
+                <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 text-center">
+                    <p className="text-[9px] font-black text-orange-600 uppercase tracking-widest mb-1">Resigned</p>
+                    <h4 className="text-xl font-black text-orange-700">{resignedCount || 0}</h4>
+                </div>
+
+                {/* 5. Terminate (Slate/Gray) */}
+                <div className="bg-slate-100 p-3 rounded-lg border border-slate-200 text-center">
+                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">Terminate</p>
+                    <h4 className="text-xl font-black text-slate-700">{terminateCount || 0}</h4>
+                </div>
+                
+            </div>
+        </div>
+
+        {/* Payment Status KPIs */}
+      {/* Payment Status KPIs */}
+        {/* Payment Status KPIs */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col justify-between">
+            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-2 mb-4 border-b border-gray-100 pb-2">
+                <IndianRupee size={14} className="text-emerald-500"/> Payment Overview
+            </h3>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 h-full">
+                
+                {/* 1. Pending (Orange) */}
+                <div className="bg-orange-50 p-2 rounded-lg border border-orange-100 flex flex-col justify-center items-center text-center">
+                    <p className="text-[9px] font-black text-orange-600 uppercase tracking-widest mb-1">Pending</p>
+                    <h4 className="text-xl font-black text-orange-700 leading-none">{paymentMetrics.pending.count}</h4>
+                    <div className="mt-2 w-full pt-1.5 border-t border-orange-200/50">
+                        <span className="text-[10px] font-bold text-orange-800 tracking-wider">₹ {paymentMetrics.pending.amount.toLocaleString('en-IN')}</span>
                     </div>
                 </div>
 
-                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3 group hover:border-emerald-500 transition-all">
-                    <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-lg group-hover:bg-emerald-500 group-hover:text-white transition-colors"><CheckCircle size={18}/></div>
-                    <div>
-                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Active</p>
-                        <h3 className="text-xl font-black text-slate-800 leading-none">{workingCandidates}</h3>
+                {/* 2. Invoice Sent (Blue) */}
+                <div className="bg-blue-50 p-2 rounded-lg border border-blue-100 flex flex-col justify-center items-center text-center">
+                    <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Invoice Sent</p>
+                    <h4 className="text-xl font-black text-blue-700 leading-none">{paymentMetrics.invoiceSent.count}</h4>
+                    <div className="mt-2 w-full pt-1.5 border-t border-blue-200/50">
+                        <span className="text-[10px] font-bold text-blue-800 tracking-wider">₹ {paymentMetrics.invoiceSent.amount.toLocaleString('en-IN')}</span>
                     </div>
                 </div>
 
-                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3 group hover:border-amber-500 transition-all">
-                    <div className="p-2.5 bg-amber-50 text-amber-600 rounded-lg group-hover:bg-amber-500 group-hover:text-white transition-colors"><Clock size={18}/></div>
-                    <div>
-                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Pending</p>
-                        <h3 className="text-xl font-black text-slate-800 leading-none">{pendingJoins}</h3>
+                {/* 3. Partial Payment (Purple) */}
+                <div className="bg-purple-50 p-2.5 rounded-lg border border-purple-100 flex flex-col justify-center items-center text-center">
+                    <p className="text-[9px] font-black text-purple-600 uppercase tracking-widest mb-1">Partial</p>
+                    <h4 className="text-xl font-black text-purple-700 leading-none">{paymentMetrics.partial.count}</h4>
+                    <div className="mt-2 w-full pt-1.5 border-t border-purple-200/50">
+                        <span className="text-[10px] font-bold text-purple-800 tracking-wider">₹ {paymentMetrics.partial.amount.toLocaleString('en-IN')}</span>
                     </div>
                 </div>
 
-                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3 group hover:border-red-500 transition-all">
-                    <div className="p-2.5 bg-red-50 text-red-600 rounded-lg group-hover:bg-red-500 group-hover:text-white transition-colors"><AlertTriangle size={18}/></div>
-                    <div>
-                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Absconded</p>
-                        <h3 className="text-xl font-black text-slate-800 leading-none">{abscondedCandidates}</h3>
+                {/* 4. Received (Green) */}
+                <div className="bg-emerald-50 p-2.5 rounded-lg border border-emerald-100 flex flex-col justify-center items-center text-center">
+                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">Received</p>
+                    <h4 className="text-xl font-black text-emerald-700 leading-none">{paymentMetrics.received.count}</h4>
+                    <div className="mt-2 w-full pt-1.5 border-t border-emerald-200/50">
+                        <span className="text-[10px] font-bold text-emerald-800 tracking-wider">₹ {paymentMetrics.received.amount.toLocaleString('en-IN')}</span>
                     </div>
                 </div>
-              </div>
 
-              {/* --- RECENT PIPELINE / JOININGS --- */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 overflow-hidden">
-                  <div className="flex justify-between items-center mb-5">
-                      <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                          <Calendar size={14} className="text-[#103c7f]"/> Recent Placements
-                      </h3>
-                  </div>
+                {/* 5. Cancelled (Red) */}
+                <div className="bg-red-50 p-2.5 rounded-lg border border-red-100 flex flex-col justify-center items-center text-center">
+                    <p className="text-[9px] font-black text-red-600 uppercase tracking-widest mb-1">Cancelled</p>
+                    <h4 className="text-xl font-black text-red-700 leading-none">{paymentMetrics.cancelled.count}</h4>
+                    <div className="mt-2 w-full pt-1.5 border-t border-red-200/50">
+                        <span className="text-[10px] font-bold text-red-800 tracking-wider">₹ {paymentMetrics.cancelled.amount.toLocaleString('en-IN')}</span>
+                    </div>
+                </div>
 
-                  <div className="overflow-x-auto custom-scrollbar">
-                      <table className="w-full text-left text-xs whitespace-nowrap min-w-[600px]">
-                          <thead className="text-[10px] uppercase font-black text-gray-400 border-b border-gray-100">
-                              <tr>
-                                  <th className="pb-3 pr-4">Candidate / Client</th>
-                                  <th className="pb-3 pr-4">Joining Date</th>
-                                  <th className="pb-3 pr-4 text-center">Status</th>
-                                  <th className="pb-3 text-center">Payment</th>
-                              </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-50">
-                              {data.map((item, idx) => (
-                                  <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                      <td className="py-3 pr-4">
-                                          <div className="font-bold text-gray-800">{item.candidate_name} <span className="text-[10px] text-gray-400 ml-1">({item.position})</span></div>
-                                          <div className="text-[10px] font-bold text-[#103c7f] mt-0.5"><Building2 size={10} className="inline mr-1"/>{item.client_name}</div>
-                                      </td>
-                                      <td className="py-3 pr-4 font-mono text-gray-600 font-bold">
-                                          {item.joining_date}
-                                      </td>
-                                      <td className="py-3 pr-4 text-center">
-                                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border ${
-                                              item.candidate_status === 'Working' ? 'bg-green-50 text-green-700 border-green-200' : 
-                                              item.candidate_status === 'Pending Join' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                              'bg-red-50 text-red-700 border-red-200'
-                                          }`}>
-                                              {item.candidate_status}
-                                          </span>
-                                      </td>
-                                      <td className="py-3 text-center">
-                                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border ${
-                                              item.payment_status === 'Received' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
-                                              item.payment_status === 'Invoice Sent' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                              'bg-orange-50 text-orange-700 border-orange-200'
-                                          }`}>
-                                              {item.payment_status}
-                                          </span>
-                                      </td>
-                                  </tr>
-                              ))}
-                          </tbody>
-                      </table>
-                  </div>
-              </div>
+            </div>
+        </div>
+    </div>
 
-          </div>
+    {/* --- 3. DETAILED REVENUE TABLE --- */}
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-[500px]">
+        <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center shrink-0">
+            <h3 className="text-xs font-black text-[#103c7f] uppercase tracking-widest flex items-center gap-2">
+                <FileText size={14}/> Master Revenue Records
+            </h3>
+        </div>
+
+        <div className="overflow-x-auto overflow-y-auto custom-scrollbar flex-1">
+            <table className="w-full text-left text-xs whitespace-nowrap min-w-[950px]">
+                <thead className="bg-[#103c7f] text-white sticky top-0 z-10">
+                    <tr>
+                        <th className="p-2 text-[10px] uppercase font-bold border-r border-blue-800">CRM Name</th>
+                        <th className="p-2 text-[10px] uppercase font-bold border-r border-blue-800">Client Name</th>
+                        <th className="p-2 text-[10px] uppercase font-bold border-r border-blue-800">Candidate Name</th>
+                        <th className="p-2 text-[10px] uppercase font-bold border-r border-blue-800 text-center">Joining Date</th>
+                        <th className="p-2 text-[10px] uppercase font-bold border-r border-blue-800 text-center">Payment Due Date</th>
+                        <th className="p-2 text-[10px] uppercase font-bold border-r border-blue-800 text-right">Payment Amount (₹)</th>
+                        <th className="p-2 text-[10px] uppercase font-bold border-r border-blue-800 text-center">Payment Status</th>
+                        <th className="p-2 text-[10px] uppercase font-bold text-center">Candidate Status</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                    {/* Assuming filteredData is your array mapped to the table */}
+                    {filteredData && filteredData.length > 0 ? (
+                        filteredData.map((item, idx) => (
+                            <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                <td className="p-2 font-bold text-[#103c7f] border-r border-gray-50">{item.crm_name || "-"}</td>
+                                <td className="p-2 font-bold text-gray-800 border-r border-gray-50 flex items-center gap-1.5">
+                                    <Building2 size={12} className="text-gray-400"/> {item.client_name}
+                                </td>
+                                <td className="p-2 font-bold text-gray-800 border-r border-gray-50">{item.candidate_name}</td>
+                                <td className="p-2 text-center font-mono text-gray-600 border-r border-gray-50">{item.joining_date || "-"}</td>
+                                <td className="p-2 text-center font-mono font-bold text-indigo-600 border-r border-gray-50 bg-indigo-50/30">
+                                    {item.payment_due_date || "-"}
+                                </td>
+                                <td className="p-2 text-right font-black text-emerald-600 border-r border-gray-50">
+                                    {item.payment_amount ? `₹ ${parseInt(item.payment_amount).toLocaleString('en-IN')}` : "-"}
+                                </td>
+                                <td className="p-2 text-center border-r border-gray-50">
+                                    <span className={`px-2 py-1 rounded text-[9px] font-black uppercase border inline-block ${
+                                        item.payment_status === 'Received' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                                        item.payment_status === 'Invoice Sent' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                        'bg-orange-50 text-orange-700 border-orange-200'
+                                    }`}>
+                                        {item.payment_status || "Pending"}
+                                    </span>
+                                </td>
+                                <td className="p-2 text-center">
+                                    <span className={`px-2 py-1 rounded text-[9px] font-black uppercase border inline-flex items-center gap-1 justify-center ${
+                                        item.candidate_status === 'Working' ? 'bg-green-50 text-green-700 border-green-200' : 
+                                        item.candidate_status === 'Joined' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                        item.candidate_status === 'Absconded' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                        item.candidate_status === 'Resigned' ? 'bg-gray-100 text-gray-700 border-gray-300' :
+                                        item.candidate_status === 'Terminate' ? 'bg-red-50 text-red-700 border-red-200' :
+                                        'bg-amber-50 text-amber-700 border-amber-200'
+                                    }`}>
+                                        {item.candidate_status || "Pending Join"}
+                                    </span>
+                                </td>
+                            </tr>
+                        ))
+                    ) : (
+                        <tr>
+                            <td colSpan="8" className="p-10 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                No records found matching filters
+                            </td>
+                        </tr>
+                    )}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
           {/* RIGHT SIDE: UNIVERSAL ALERTS PANEL (Sticky) */}
           <div className="w-full lg:w-96 shrink-0">
