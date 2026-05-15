@@ -1065,6 +1065,13 @@ const fetchCrmDetails = async (clientId) => {
                         <div className="flex items-center justify-center gap-2">
                           {lead.sentToCrm ? (
                            <>
+                            <button
+                                onClick={() => handleAction(lead, "view")}
+                                className="p-1.5 text-gray-500 hover:text-blue-600 bg-white border border-gray-200 rounded hover:shadow-sm"
+                                title="View"
+                              >
+                                <Eye size={14} />
+                              </button>
       <span className="px-2 py-1 bg-gray-100 text-gray-400 text-xs font-bold rounded border border-gray-200">
         LOCKED
       </span>
