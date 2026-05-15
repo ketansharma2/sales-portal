@@ -3,6 +3,155 @@ import { NextResponse } from "next/server";
 import mammoth from "mammoth";
 import { supabaseServer } from '@/lib/supabase-server'
 
+// export async function GET(request) {
+//   try {
+//     // Authentication
+//     const authHeader = request.headers.get('authorization')
+//     if (!authHeader) {
+//       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+//     }
+//     const token = authHeader.replace('Bearer ', '')
+//     const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+//     if (authError || !user) {
+//       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+//     }
+
+//     const userId = user.user_id || user.id
+
+//     // First get user's own records
+//     const { data: myData, error: myError } = await supabaseServer
+//       .from('cv_parsing')
+//       .select('*')
+//       .eq('user_id', userId)
+//       .order('created_at', { ascending: false })
+
+//     // Then get records where other_users contains userId
+//     const { data: sharedData, error: sharedError } = await supabaseServer
+//       .from('cv_parsing')
+//       .select('*')
+//       .contains('other_users', [userId])
+//       .order('created_at', { ascending: false })
+
+//     if (myError || sharedError) {
+//       console.error('Fetch CV parsing error:', myError || sharedError)
+//       return NextResponse.json({
+//         error: 'Failed to fetch CV parsing data',
+//         details: myError?.message || sharedError?.message
+//       }, { status: 500 })
+//     }
+
+//     // Combine and mark shared records
+//     const allData = [...(myData || []), ...(sharedData || [])]
+    
+//     // Remove duplicates (in case user is in both)
+//     const uniqueData = allData.filter((item, index, self) => 
+//       index === self.findIndex((t) => t.id === item.id)
+//     )
+
+//     // Get all candidate IDs for fetching latest status
+//     const candidateIds = uniqueData.map(item => item.id)
+
+//     // Fetch conversations with post_id and remarks
+//     let latestStatusMap = new Map()
+//     let postIdToJobTitle = new Map()
+
+//     if (candidateIds.length > 0) {
+//       const { data: conversations, error: convError } = await supabaseServer
+//         .from('candidates_conversation')
+//         .select(`
+//           parsing_id,
+//           candidate_status,
+//           calling_date,
+//           created_at,
+//           remarks,
+//           post_id,
+//           user_id,
+//           users!inner(name)
+//         `)
+//         .in('parsing_id', candidateIds)
+//         .order('created_at', { ascending: false })
+
+//       if (convError) {
+//         console.error('[ERROR] Conversations fetch failed:', convError.message)
+//       }
+
+//       // Build post_id → job_title lookup using domestic_crm_jd and corporate_crm_jd
+//       if (conversations && conversations.length > 0) {
+//         const allPostIds = [...new Set(conversations.map(c => c.post_id).filter(id => id != null))]
+
+//         if (allPostIds.length > 0) {
+//           // First try domestic_crm_jd
+//           const { data: domesticJdData, error: domesticJdError } = await supabaseServer
+//             .from('domestic_crm_jd')
+//             .select('jd_id, job_title')
+//             .in('jd_id', allPostIds)
+
+//           if (!domesticJdError && domesticJdData) {
+//             domesticJdData.forEach(jd => postIdToJobTitle.set(jd.jd_id, jd.job_title))
+//           }
+
+//           // Then try corporate_crm_jd for any missing ones
+//           const remainingPostIds = allPostIds.filter(id => !postIdToJobTitle.has(id))
+//           if (remainingPostIds.length > 0) {
+//             const { data: corporateJdData, error: corporateJdError } = await supabaseServer
+//               .from('corporate_crm_jd')
+//               .select('jd_id, job_title')
+//               .in('jd_id', remainingPostIds)
+
+//             if (!corporateJdError && corporateJdData) {
+//               corporateJdData.forEach(jd => postIdToJobTitle.set(jd.jd_id, jd.job_title))
+//             }
+//           }
+//         }
+//       }
+
+//       // Build latest conversation data map per candidate
+//       conversations?.forEach(conv => {
+//         if (!latestStatusMap.has(conv.parsing_id)) {
+//           latestStatusMap.set(conv.parsing_id, {
+//             latest_status: conv.candidate_status || '-',
+//             latest_user: conv.users?.name || conv.user_id || '-',
+//             latest_date: conv.calling_date || '-',
+//             latest_remarks: conv.remarks || '-',
+//             latest_profile: postIdToJobTitle.get(conv.post_id) || '-'
+//           })
+//         }
+//       })
+//     }
+
+//     const processedData = uniqueData.map(item => {
+//       const statusInfo = latestStatusMap.get(item.id) || { 
+//         latest_status: '-', 
+//         latest_user: '-', 
+//         latest_date: '-',
+//         latest_remarks: '-',
+//         latest_profile: '-'
+//       }
+//       return {
+//         ...item,
+//         is_shared: item.other_users && item.other_users.includes(userId) && item.user_id !== userId,
+//         latest_status: statusInfo.latest_status,
+//         latest_user: statusInfo.latest_user,
+//         latest_date: statusInfo.latest_date,
+//         latest_remarks: statusInfo.latest_remarks,
+//         latest_profile: statusInfo.latest_profile
+//       }
+//     })
+
+//     return NextResponse.json({
+//       success: true,
+//       data: processedData
+//     })
+
+//   } catch (error) {
+//     console.error('Fetch CV parsing API error:', error)
+//     return NextResponse.json({
+//       error: 'Internal server error',
+//       details: error.message
+//     }, { status: 500 })
+//   }
+// }
+
 export async function GET(request) {
   try {
     // Authentication
@@ -18,19 +167,22 @@ export async function GET(request) {
 
     const userId = user.user_id || user.id
 
-    // First get user's own records
-    const { data: myData, error: myError } = await supabaseServer
-      .from('cv_parsing')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+    // Batch 1: Fetch CV parsing records in parallel
+    const [myResult, sharedResult] = await Promise.all([
+      supabaseServer
+        .from('cv_parsing')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false }),
+      supabaseServer
+        .from('cv_parsing')
+        .select('*')
+        .contains('other_users', [userId])
+        .order('created_at', { ascending: false })
+    ])
 
-    // Then get records where other_users contains userId
-    const { data: sharedData, error: sharedError } = await supabaseServer
-      .from('cv_parsing')
-      .select('*')
-      .contains('other_users', [userId])
-      .order('created_at', { ascending: false })
+    const { data: myData, error: myError } = myResult
+    const { data: sharedData, error: sharedError } = sharedResult
 
     if (myError || sharedError) {
       console.error('Fetch CV parsing error:', myError || sharedError)
@@ -51,74 +203,246 @@ export async function GET(request) {
     // Get all candidate IDs for fetching latest status
     const candidateIds = uniqueData.map(item => item.id)
 
-    // Fetch conversations with post_id and remarks
-    let latestStatusMap = new Map()
-    let postIdToJobTitle = new Map()
+    // If no candidates, return early
+    if (candidateIds.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: []
+      })
+    }
 
-    if (candidateIds.length > 0) {
-      const { data: conversations, error: convError } = await supabaseServer
-        .from('candidates_conversation')
-        .select(`
-          parsing_id,
-          candidate_status,
-          calling_date,
-          created_at,
-          remarks,
-          post_id,
-          user_id,
-          users!inner(name)
-        `)
-        .in('parsing_id', candidateIds)
-        .order('created_at', { ascending: false })
+    // Batch 2: Fetch conversations
+    const batchSize = 50
+    const conversationBatches = []
 
-      if (convError) {
-        console.error('[ERROR] Conversations fetch failed:', convError.message)
+    console.log('Total candidate IDs to fetch conversations for:', candidateIds.length);  
+    
+    // Split candidate IDs into batches
+    for (let i = 0; i < candidateIds.length; i += batchSize) {
+      const batch = candidateIds.slice(i, i + batchSize)
+      conversationBatches.push(
+        supabaseServer
+          .from('candidates_conversation')
+          .select(`
+            parsing_id,
+            candidate_status,
+            calling_date,
+            created_at,
+            remarks,
+            req_id,
+            user_id,
+            users!inner(name)
+          `)
+          .in('parsing_id', batch)
+          .order('created_at', { ascending: false })
+      )
+    }
+
+    // Execute conversation batches in parallel
+    const conversationResults = await Promise.allSettled(conversationBatches)
+    
+    // Collect all successful conversations
+    let allConversations = []
+    conversationResults.forEach(result => {
+      if (result.status === 'fulfilled' && !result.value.error) {
+        allConversations = [...allConversations, ...(result.value.data || [])]
+      } else if (result.status === 'rejected') {
+        console.error('Conversation batch failed:', result.reason)
+      }
+    })
+
+    console.log('Total conversations fetched:', allConversations.length);
+
+    // Extract unique jobpost IDs (req_id in conversation is actually jobpost_id)
+    const allJobpostIds = [...new Set(allConversations.map(c => c.req_id).filter(id => id != null))]
+    console.log('Unique jobpost IDs found:', allJobpostIds.length);
+    console.log('Sample jobpost IDs:', allJobpostIds.slice(0, 5));
+
+    // Step 1: Get req_id from jobpost tables
+    let jobpostIdToReqId = new Map() // Maps jobpost_id -> req_id
+    
+    if (allJobpostIds.length > 0) {
+      const domesticJobpostBatches = []
+      const corporateJobpostBatches = []
+      
+      // Split jobpost IDs into batches
+      for (let i = 0; i < allJobpostIds.length; i += batchSize) {
+        const batch = allJobpostIds.slice(i, i + batchSize)
+        
+        // Get req_id from domestic_crm_jobpost
+        domesticJobpostBatches.push(
+          supabaseServer
+            .from('domestic_crm_jobpost')
+            .select('id, req_id')
+            .in('id', batch)
+        )
+        
+        // Get req_id from corporate_crm_jobpost
+        corporateJobpostBatches.push(
+          supabaseServer
+            .from('corporate_crm_jobpost')
+            .select('id, req_id')
+            .in('id', batch)
+        )
       }
 
-      // Build post_id → job_title lookup using domestic_crm_jd and corporate_crm_jd
-      if (conversations && conversations.length > 0) {
-        const allPostIds = [...new Set(conversations.map(c => c.post_id).filter(id => id != null))]
+      // Execute all jobpost batches in parallel
+      const [domesticJobpostResults, corporateJobpostResults] = await Promise.all([
+        Promise.allSettled(domesticJobpostBatches),
+        Promise.allSettled(corporateJobpostBatches)
+      ])
 
-        if (allPostIds.length > 0) {
-          // First try domestic_crm_jd
-          const { data: domesticJdData, error: domesticJdError } = await supabaseServer
-            .from('domestic_crm_jd')
-            .select('jd_id, job_title')
-            .in('jd_id', allPostIds)
-
-          if (!domesticJdError && domesticJdData) {
-            domesticJdData.forEach(jd => postIdToJobTitle.set(jd.jd_id, jd.job_title))
-          }
-
-          // Then try corporate_crm_jd for any missing ones
-          const remainingPostIds = allPostIds.filter(id => !postIdToJobTitle.has(id))
-          if (remainingPostIds.length > 0) {
-            const { data: corporateJdData, error: corporateJdError } = await supabaseServer
-              .from('corporate_crm_jd')
-              .select('jd_id, job_title')
-              .in('jd_id', remainingPostIds)
-
-            if (!corporateJdError && corporateJdData) {
-              corporateJdData.forEach(jd => postIdToJobTitle.set(jd.jd_id, jd.job_title))
-            }
-          }
+      // Process domestic jobpost results
+      domesticJobpostResults.forEach(result => {
+        if (result.status === 'fulfilled' && !result.value.error && result.value.data) {
+          console.log('Domestic jobposts found:', result.value.data.length);
+          result.value.data.forEach(jobpost => {
+            jobpostIdToReqId.set(jobpost.id, jobpost.req_id)
+          })
         }
+      })
+    
+      // Process corporate jobpost results for missing IDs
+      const remainingJobpostIds = allJobpostIds.filter(id => !jobpostIdToReqId.has(id))
+      console.log('Remaining jobpost IDs for corporate:', remainingJobpostIds.length);
+      
+      if (remainingJobpostIds.length > 0) {
+        corporateJobpostResults.forEach(result => {
+          if (result.status === 'fulfilled' && !result.value.error && result.value.data) {
+            console.log('Corporate jobposts found:', result.value.data.length);
+            result.value.data.forEach(jobpost => {
+              if (!jobpostIdToReqId.has(jobpost.id)) {
+                jobpostIdToReqId.set(jobpost.id, jobpost.req_id)
+              }
+            })
+          }
+        })
+      }
+    }
+
+    console.log('Total jobpost to req_id mappings:', jobpostIdToReqId.size);
+
+    // Step 2: Get all unique req_ids from the jobpost mappings
+    const allReqIds = [...new Set(jobpostIdToReqId.values())]
+    console.log('Unique req_ids found from jobposts:', allReqIds.length);
+
+    // Step 3: Fetch job titles from reqs tables using the req_ids
+    let reqIdToJobTitle = new Map()
+
+    if (allReqIds.length > 0) {
+      const domesticReqBatches = []
+      const corporateReqBatches = []
+      
+      // Split req IDs into batches
+      for (let i = 0; i < allReqIds.length; i += batchSize) {
+        const batch = allReqIds.slice(i, i + batchSize)
+        
+        // Get job_title from domestic_crm_reqs
+        domesticReqBatches.push(
+          supabaseServer
+            .from('domestic_crm_reqs')
+            .select('req_id, job_title')
+            .in('req_id', batch)
+        )
+        
+        // Get job_title from corporate_crm_reqs
+        corporateReqBatches.push(
+          supabaseServer
+            .from('corporate_crm_reqs')
+            .select('req_id, job_title')
+            .in('req_id', batch)
+        )
       }
 
-      // Build latest conversation data map per candidate
-      conversations?.forEach(conv => {
-        if (!latestStatusMap.has(conv.parsing_id)) {
-          latestStatusMap.set(conv.parsing_id, {
-            latest_status: conv.candidate_status || '-',
-            latest_user: conv.users?.name || conv.user_id || '-',
-            latest_date: conv.calling_date || '-',
-            latest_remarks: conv.remarks || '-',
-            latest_profile: postIdToJobTitle.get(conv.post_id) || '-'
+      // Execute all req batches in parallel
+      const [domesticReqResults, corporateReqResults] = await Promise.all([
+        Promise.allSettled(domesticReqBatches),
+        Promise.allSettled(corporateReqBatches)
+      ])
+
+      // Process domestic req results
+      domesticReqResults.forEach(result => {
+        if (result.status === 'fulfilled' && !result.value.error && result.value.data) {
+          console.log('Domestic reqs with job titles:', result.value.data.length);
+          result.value.data.forEach(req => {
+            reqIdToJobTitle.set(req.req_id, req.job_title)
+          })
+        }
+      })
+    
+      // Process corporate req results for missing IDs
+      const remainingReqIds = allReqIds.filter(id => !reqIdToJobTitle.has(id))
+      console.log('Remaining req_ids for corporate:', remainingReqIds.length);
+      
+      if (remainingReqIds.length > 0) {
+        corporateReqResults.forEach(result => {
+          if (result.status === 'fulfilled' && !result.value.error && result.value.data) {
+            console.log('Corporate reqs with job titles:', result.value.data.length);
+            result.value.data.forEach(req => {
+              if (!reqIdToJobTitle.has(req.req_id)) {
+                reqIdToJobTitle.set(req.req_id, req.job_title)
+              }
+            })
+          }
+        })
+      }
+    }
+
+    console.log('Total job titles mapped:', reqIdToJobTitle.size);
+
+    // Batch 3: Fetch user names for all user_ids in conversations
+    const allUserIds = [...new Set(allConversations.map(c => c.user_id).filter(Boolean))]
+    let userMap = new Map()
+
+    if (allUserIds.length > 0) {
+      const userBatches = []
+      for (let i = 0; i < allUserIds.length; i += batchSize) {
+        const batch = allUserIds.slice(i, i + batchSize)
+        userBatches.push(
+          supabaseServer
+            .from('users')
+            .select('user_id, name')
+            .in('user_id', batch)
+        )
+      }
+
+      const userResults = await Promise.allSettled(userBatches)
+      userResults.forEach(result => {
+        if (result.status === 'fulfilled' && !result.value.error) {
+          result.value.data?.forEach(user => {
+            userMap.set(user.user_id, user.name)
           })
         }
       })
     }
 
+    // Build latest conversation data map per candidate
+    let latestStatusMap = new Map()
+    
+    // Sort by created_at to ensure we take the latest
+    const sortedConversations = [...allConversations].sort((a, b) => 
+      new Date(b.created_at) - new Date(a.created_at)
+    );
+    
+    sortedConversations.forEach(conv => {
+      if (!latestStatusMap.has(conv.parsing_id)) {
+        // Get req_id from jobpost_id, then get job_title from req_id
+        const reqId = jobpostIdToReqId.get(conv.req_id)
+        const jobTitle = reqId ? reqIdToJobTitle.get(reqId) : '-'
+        
+        console.log(`Mapping: parsing_id=${conv.parsing_id}, jobpost_id=${conv.req_id}, req_id=${reqId}, job_title=${jobTitle}`);
+        
+        latestStatusMap.set(conv.parsing_id, {
+          latest_status: conv.candidate_status || '-',
+          latest_user: userMap.get(conv.user_id) || conv.user_id || '-',
+          latest_date: conv.calling_date || '-',
+          latest_remarks: conv.remarks || '-',
+          latest_profile: jobTitle
+        })
+      }
+    })
+
+    // Process final data
     const processedData = uniqueData.map(item => {
       const statusInfo = latestStatusMap.get(item.id) || { 
         latest_status: '-', 
@@ -127,6 +451,7 @@ export async function GET(request) {
         latest_remarks: '-',
         latest_profile: '-'
       }
+      
       return {
         ...item,
         is_shared: item.other_users && item.other_users.includes(userId) && item.user_id !== userId,
@@ -140,7 +465,15 @@ export async function GET(request) {
 
     return NextResponse.json({
       success: true,
-      data: processedData
+      data: processedData,
+      meta: {
+        total: processedData.length,
+        conversations_fetched: allConversations.length,
+        jobpost_ids_fetched: allJobpostIds.length,
+        req_ids_fetched: allReqIds.length,
+        job_titles_mapped: reqIdToJobTitle.size,
+        users_fetched: allUserIds.length
+      }
     })
 
   } catch (error) {

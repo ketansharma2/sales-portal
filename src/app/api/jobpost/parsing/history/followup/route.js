@@ -53,7 +53,7 @@ export async function POST(request) {
       .from("candidates_conversation")
       .insert([
         {
-          post_id: req_id,
+          req_id: req_id,
           user_id: userId,
           parsing_id: candidate_id,
           apply_date: applyDate,
@@ -140,7 +140,7 @@ export async function PUT(request) {
 
     // 🟢 Build update object
     const updateData = {
-      post_id: req_id,
+      req_id: req_id,
       candidate_status: status,
       remarks: feedback,
       relevant_exp: relExp,
