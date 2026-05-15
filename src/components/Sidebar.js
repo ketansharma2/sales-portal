@@ -6,7 +6,8 @@ import {
   Users, Wallet, LayoutGrid, ShieldCheck, Store ,Briefcase,HelpCircle,Receipt,FileScan,FileBadge,
   Settings, FileText, Target, Search, BarChart, Phone,Calendar,MapPin,Truck,UserPlus,IndianRupee,UserCheck,Edit,Plus,
   Package,PhoneCall,ClipboardList,KanbanSquare,TableProperties, SunMedium, UploadCloud,Activity,History,LayoutDashboard,  Building2,
-  House,ShoppingCart, CalendarOff
+  House,ShoppingCart, CalendarOff,
+  UserCheck2Icon
 
 } from "lucide-react";
 
@@ -54,6 +55,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   else if (currentRole === "hod") {
     menuItems = [
       { name: "Dept. Overview", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
+      { name: "CRM Clients", href: `${roleBaseHref}/crm`, icon: <UserCheck2Icon size={20} /> },
+
       { name: "Corporate Sales", href: `${roleBaseHref}/corporate/sales`, icon: <Building2 size={20} /> },
       { name: "Corporate Delivery", href: `${roleBaseHref}/corporate/delivery`, icon: <Truck size={20} /> },
 
@@ -69,13 +72,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
 
   // --- SECTOR SPECIFIC ROLES (Inside /corporate or /domestic) ---
 
-  // 3. SUB-HOD (Inside Sector)
-  else if (currentRole === "subhod") {
-    menuItems = [
-      { name: "Sales DB", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
-      { name: "Delivery DB", href: `${roleBaseHref}`, icon: <FileText size={20} /> }, 
-    ];
-  } 
+  
   
   // 4. MANAGER
   else if (currentRole === "manager") {
