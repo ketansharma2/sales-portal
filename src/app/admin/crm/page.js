@@ -623,7 +623,7 @@ const handleJdView = (requirement) => {
                                                 <td className="px-4 py-3 font-bold text-slate-700">{row.date}</td>
                                                 <td className="px-4 py-3 font-bold text-orange-600">{row.mode}</td>
                                                 <td className="px-4 py-3">
-                                                    <p className="font-bold text-slate-800">{row.contactName}</p>
+                                                    <p className="font-bold text-slate-800">{row.contact_name}</p>
                                                     <p className="text-[10px] text-gray-500">{row.contactPhone}</p>
                                                     <p className="text-[10px] text-gray-400">{row.contactEmail}</p>
                                                 </td>
