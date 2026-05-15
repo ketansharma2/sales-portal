@@ -145,11 +145,26 @@ const domesticOpening =
       uniqueProfiles =  new Set(allNames).size
     }
 
+    const [corporateCountClients, domesticCountClients] = await Promise.all([
+  corporateMultiplier ? supabaseServer.from('corporate_crm_clients')
+    .select('client_id', { count: 'exact', head: true })
+    .eq('client_status', 'Active')  // ← Only this line added
+    .gte(fromDate ? 'onboarding_date' : 'created_at', fromDate || '1900-01-01')
+    .lte(fromDate ? 'onboarding_date' : 'created_at', toDate || '2100-12-31') : Promise.resolve({ count: 0 }),
+    
+  domesticMultiplier ? supabaseServer.from('domestic_crm_clients')
+    .select('client_id', { count: 'exact', head: true })
+    .eq('client_status', 'Active')  // ← Only this line added
+    .gte(fromDate ? 'onboarding_date' : 'created_at', fromDate || '1900-01-01')
+    .lte(fromDate ? 'onboarding_date' : 'created_at', toDate || '2100-12-31') : Promise.resolve({ count: 0 })
+])
+
     const stats = {
       onboards: (corporateClients.count || 0) + (domesticClients.count || 0),
       branches: (corporateBranches.count || 0) + (domesticBranches.count || 0),
       contacts: (corporateContacts.count || 0) + (domesticContacts.count || 0),
       conversations: (corporateConversations.count || 0) + (domesticConversations.count || 0),
+      totalActiveClients: (corporateCountClients.count || 0) + (domesticCountClients.count || 0), 
       uniqueProfiles: uniqueProfiles,
       requirements: corporateOpening + domesticOpening,
       workbenchAllot: (corporateWorkbench.count || 0) + (domesticWorkbench.count || 0),

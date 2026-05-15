@@ -244,7 +244,7 @@ export default function AdminCRMDashboard() {
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <KpiCard title="Client Onboard" total={stats.onboards || 0} icon={<Briefcase size={18} />} color="blue" />
-                        <KpiCard title="Active Clients" total={stats.activeClients || 0} icon={<UserCheck size={18} />}   color="green"/>
+                        <KpiCard title="Active Clients" total={stats.totalActiveClients || 0} icon={<UserCheck size={18} />}   color="green"/>
                          <KpiCard title="Branches" total={stats.branches || 0} icon={<Building2 size={18} />} color="purple" />
                          <KpiCard title="Client Contacts" total={stats.contacts || 0} icon={<Phone size={18} />} color="teal" />
                          <KpiCard title="Client Calling" total={stats.conversations || 0} icon={<MessageSquare size={18} />} color="orange" />                 
