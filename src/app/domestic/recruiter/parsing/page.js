@@ -324,6 +324,7 @@ useEffect(() => {
                 const transformedData = result.data.map(item => ({
                     id: item.id,
                     portal: item.portal || "NA",
+                    portal_date: item.portal_date || null,
                     portalDate: item.portal_date ? new Date(item.portal_date).toLocaleDateString("en-GB", {
                         day: "2-digit",
                         month: "short",
