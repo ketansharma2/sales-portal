@@ -177,34 +177,7 @@ export async function POST(request) {
     }
 
 
-    const insertData = {
-      user_id: user.id,
-      parsing_id,
-      req_id: req_id || null,
-      candidate_status: candidate_status || null,
-      remarks: remarks || null,
-      relevant_exp: relevant_exp || null,
-      curr_ctc: curr_ctc || null,
-      exp_ctc: exp_ctc || null,
-      sent_to_tl: sent_to_tl || null,
-      apply_date: apply_date || null,
-      calling_date: calling_date || null,
-      slot: slot || null
-    }
 
-    const { data, error } = await supabaseServer
-      .from('candidates_conversation')
-      .insert([insertData])
-      .select()
-   
-
-    if (error) {
-      console.error('Insert conversation error:', error)
-      return NextResponse.json({
-        error: 'Failed to insert candidate conversation',
-        details: error.message
-      }, { status: 500 })
-    }
 
     const externalApiData = {
       unique_id: cvData.id,
@@ -245,6 +218,34 @@ export async function POST(request) {
    let externalResult = null;
     if (response.ok) {
       externalResult = await response.json();
+          const insertData = {
+      user_id: user.id,
+      parsing_id,
+      req_id: req_id || null,
+      candidate_status: candidate_status || null,
+      remarks: remarks || null,
+      relevant_exp: relevant_exp || null,
+      curr_ctc: curr_ctc || null,
+      exp_ctc: exp_ctc || null,
+      sent_to_tl: sent_to_tl || null,
+      apply_date: apply_date || null,
+      calling_date: calling_date || null,
+      slot: slot || null
+    }
+
+    const { data, error } = await supabaseServer
+      .from('candidates_conversation')
+      .insert([insertData])
+      .select()
+   
+
+    if (error) {
+      console.error('Insert conversation error:', error)
+      return NextResponse.json({
+        error: 'Failed to insert candidate conversation',
+        details: error.message
+      }, { status: 500 })
+    }
       console.log('✅ External API success:', externalResult);
     } else {
       console.error('❌ External API error:', response.status, await response.text());
