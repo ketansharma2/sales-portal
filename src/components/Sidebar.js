@@ -7,7 +7,8 @@ import {
   Settings, FileText, Target, Search, BarChart, Phone,Calendar,MapPin,Truck,UserPlus,IndianRupee,UserCheck,Edit,Plus,
   Package,PhoneCall,ClipboardList,KanbanSquare,TableProperties, SunMedium, UploadCloud,Activity,History,LayoutDashboard,  Building2,
   House,ShoppingCart, CalendarOff,
-  UserCheck2Icon
+  UserCheck2Icon,
+  FilesIcon
 
 } from "lucide-react";
 
@@ -167,7 +168,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   else if (currentRole === "revenue") {
     menuItems = [
       { name: "Dashboard", href: roleBaseHref, icon: <LayoutGrid size={20} /> },
-      { name: "Revenue Tracker", href: `${roleBaseHref}/history`, icon: <IndianRupee size={20} /> }, 
+      { name: "Revenue Tracker", href: `${roleBaseHref}/history`, icon: <IndianRupee size={20} /> },
+      // { name: "PI Manage", href: `${roleBaseHref}/pi`, icon: <FilesIcon size={20} /> },
     ];
   }
   // DEFAULT
