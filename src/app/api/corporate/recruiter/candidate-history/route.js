@@ -253,7 +253,7 @@ export async function POST(request) {
 
     // ✅ Call external API
     const response = await fetch(
-      "http://localhost:3000/api/candidate",
+      "https://seik6pgemh.us-east-1.awsapprunner.com/api/candidate",
       {
         method: "POST",
         headers: {
@@ -270,7 +270,7 @@ export async function POST(request) {
     } else {
       console.error('❌ External API error:', response.status, await response.text());
     }
-    
+
     return NextResponse.json({
       success: true,
       data: data[0],
