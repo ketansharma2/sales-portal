@@ -207,17 +207,9 @@ export async function POST(request) {
       resumeUrl: cvData.cv_url || "",
       designation: cvData.designation || "",
       location: cvData.location || "",
-      topSkills: Array.isArray(cvData.top_skills)
-        ? cvData.top_skills
-        : [],
-
-      skills: Array.isArray(cvData.skills_all)
-        ? cvData.skills_all
-        : [],
-
-      companyNamesAll: Array.isArray(cvData.company_names_all)
-        ? cvData.company_names_all
-        : [],
+      topSkills: cvData.top_skills || "",
+      skills: cvData.skills_all || "",
+      companyNamesAll: cvData.company_names_all || "",
       recentCompany: cvData.recent_company || "",
       portal: cvData.portal || "",
       portalDate: cvData.portal_date || "",
@@ -276,7 +268,7 @@ export async function POST(request) {
         details: error.message
       }, { status: 500 })
     }
-
+    
  return NextResponse.json({
       success: true,
       data: data[0],
