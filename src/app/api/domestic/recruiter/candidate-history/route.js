@@ -246,16 +246,18 @@ export async function POST(request) {
         details: error.message
       }, { status: 500 })
     }
+
+     return NextResponse.json({
+      success: true,
+      data: data[0],
+      externalResult: externalResult
+    })
       console.log('✅ External API success:', externalResult);
     } else {
       console.error('❌ External API error:', response.status, await response.text());
     }
     
-    return NextResponse.json({
-      success: true,
-      data: data[0],
-      externalResult: externalResult
-    })
+   
 
   } catch (error) {
     console.error('Post candidate history API error:', error)

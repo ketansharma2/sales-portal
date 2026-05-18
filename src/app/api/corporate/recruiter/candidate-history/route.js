@@ -198,7 +198,7 @@ export async function POST(request) {
 
 
 
-    console.log('Insert successful, data:', data)
+    
     const externalApiData = {
       unique_id: cvData.id,
       fullName: cvData.name || "",
@@ -269,17 +269,18 @@ export async function POST(request) {
       }, { status: 500 })
     }
     
-      console.log('✅ External API success:', externalResult);
-    } else {
-      console.error('❌ External API error:', response.status, await response.text());
-    }
-
-    return NextResponse.json({
+ return NextResponse.json({
       success: true,
       data: data[0],
       externalResult: externalResult
     })
 
+      console.log('✅ External API success:', externalResult);
+    } else {
+      console.error('❌ External API error:', response.status, await response.text());
+    }
+
+   
   } catch (error) {
     console.error('Post candidate history API error:', error)
     return NextResponse.json({
