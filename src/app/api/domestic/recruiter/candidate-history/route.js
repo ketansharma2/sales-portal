@@ -162,6 +162,20 @@ export async function POST(request) {
     if (!parsing_id) {
       return NextResponse.json({ error: 'Parsing ID is required' }, { status: 400 })
     }
+ const { data: cvData, error: cvError } = await supabaseServer
+      .from('cv_parsing')
+      .select('*')
+      .eq('id', parsing_id)
+      .single()
+
+    if (cvError) {
+      console.error('Error fetching cv_parsing data:', cvError)
+      return NextResponse.json({
+        error: 'Failed to fetch candidate data',
+        details: cvError.message
+      }, { status: 404 })
+    }
+
 
     const insertData = {
       user_id: user.id,
@@ -182,6 +196,7 @@ export async function POST(request) {
       .from('candidates_conversation')
       .insert([insertData])
       .select()
+   
 
     if (error) {
       console.error('Insert conversation error:', error)
@@ -191,9 +206,54 @@ export async function POST(request) {
       }, { status: 500 })
     }
 
+    const externalApiData = {
+      unique_id: cvData.id,
+      fullName: cvData.name || "",
+      email: cvData.email || "",
+      phone: cvData.mobile || "",
+      resumeUrl: cvData.cv_url || "",
+      designation: cvData.designation || "",
+      location: cvData.location || "",
+      topSkills: cvData.top_skills || "",
+      skills: cvData.skills_all || "",
+      companyNamesAll: cvData.company_names_all || "",
+      recentCompany: cvData.recent_company || "",
+      portal: cvData.portal || "",
+      portalDate: cvData.portal_date || "",
+      applyDate: apply_date || null,
+      experience: relevant_exp || cvData.experience || "",
+      ctcCurrent: curr_ctc || "",
+      ctcExpected: exp_ctc || "",
+      feedback: remarks || "",
+      remark: candidate_status || ""
+    }
+
+    console.log('📤 Sending to external API:', externalApiData)
+
+    // ✅ Call external API
+    const response = await fetch(
+      "http://localhost:3000/api/candidate",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(externalApiData),
+      }
+    );
+     
+   let externalResult = null;
+    if (response.ok) {
+      externalResult = await response.json();
+      console.log('✅ External API success:', externalResult);
+    } else {
+      console.error('❌ External API error:', response.status, await response.text());
+    }
+    
     return NextResponse.json({
       success: true,
-      data: data[0]
+      data: data[0],
+      externalResult: externalResult
     })
 
   } catch (error) {
