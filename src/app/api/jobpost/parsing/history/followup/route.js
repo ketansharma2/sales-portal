@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { supabaseServer } from '@/lib/supabase-server'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -144,11 +145,6 @@ export async function POST(request) {
           console.error('❌ External API error:', response.status, await response.text());
         }
 
-    // 🟢 Step 3: Response
-    return NextResponse.json({
-      success: true,
-      data
-    });
 
   } catch (err) {
     console.error("API Error:", err);
