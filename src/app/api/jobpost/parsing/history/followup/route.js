@@ -48,11 +48,63 @@ export async function POST(request) {
       );
     }
 
-    // 🟢 Step 2: Insert into DB
-    const { data, error } = await supabaseAdmin
-      .from("candidates_conversation")
-      .insert([
-        {
+
+        if (!candidate_id) {
+          console.log('Validation failed: missing candidate_id')
+          return NextResponse.json({ error: 'Candidate ID is required' }, { status: 400 })
+        }
+    
+        const { data: cvData, error: cvError } = await supabaseServer
+          .from('cv_parsing')
+          .select('*')
+          .eq('id', candidate_id)
+          .single()
+    
+    
+    
+    
+        
+        const externalApiData = {
+          unique_id: cvData.id,
+          fullName: cvData.name || "",
+          email: cvData.email || "",
+          phone: cvData.mobile || "",
+          resumeUrl: cvData.cv_url || "",
+          designation: cvData.designation || "",
+          location: cvData.location || "",
+          topSkills: cvData.top_skills || "",
+          skills: cvData.skills_all || "",
+          companyNamesAll: cvData.company_names_all || "",
+          recentCompany: cvData.recent_company || "",
+          portal: cvData.portal || "",
+          portalDate: cvData.portal_date || "",
+          applyDate: applyDate || null,
+          experience: cvData.experience || "",
+          ctcCurrent: currCtc || "",
+          ctcExpected: expCtc || "",
+          feedback: feedback || "",
+          remark: status || ""
+        }
+    
+        console.log('📤 Sending to external API:', externalApiData)
+    
+        // ✅ Call external API
+        const response = await fetch(
+          "https://seik6pgemh.us-east-1.awsapprunner.com/api/candidate",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(externalApiData),
+          }
+        );
+         
+       let externalResult = null;
+        if (response.ok) {
+          externalResult = await response.json();
+    
+              const insertData = {
           req_id: req_id,
           user_id: userId,
           parsing_id: candidate_id,
@@ -65,17 +117,32 @@ export async function POST(request) {
           remarks: feedback,
           slot: slot || null,
         }
-      ])
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Insert Error:", error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
-    }
+    
+        console.log('Inserting data:', insertData)
+    
+        const { data, error } = await supabaseServer
+          .from('candidates_conversation')
+          .insert([insertData])
+          .select()
+    
+        if (error) {
+          console.error('Insert conversation error:', error)
+          return NextResponse.json({
+            error: 'Failed to insert candidate conversation',
+            details: error.message
+          }, { status: 500 })
+        }
+        
+     return NextResponse.json({
+          success: true,
+          data: data[0],
+          externalResult: externalResult
+        })
+    
+          console.log('✅ External API success:', externalResult);
+        } else {
+          console.error('❌ External API error:', response.status, await response.text());
+        }
 
     // 🟢 Step 3: Response
     return NextResponse.json({
