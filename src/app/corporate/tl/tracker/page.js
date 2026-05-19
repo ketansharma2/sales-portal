@@ -745,19 +745,22 @@ export default function TLTrackerPage() {
                             </tr>
                             <tr className="bg-slate-800 text-white">
                                 {/* RC Columns */}
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest sticky left-0 bg-slate-900 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)] w-10 text-center border-t border-slate-700">RC CV</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest border-t border-slate-700">Recruiter Info</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest border-t border-slate-700">Profile & Slot</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest border-t border-slate-700">Candidate Info</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest border-t border-slate-700">Loc & Qual</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest border-t border-slate-700">Exp (T/R)</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest text-center border-t border-slate-700">CTC (C/E)</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest max-w-[150px] border-r border-slate-700 border-t border-slate-700">RC Feedback</th>
+                                <th className="py-2 px-2 text-[10px] font-black uppercase tracking-widest sticky left-0 bg-slate-900 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)] w-10 text-center border-t border-slate-700">RC CV</th>
+                                <th className="py-2 px-2 text-[10px] font-black uppercase tracking-widest border-t border-slate-700">Recruiter Info</th>
+                                <th className="py-2 px-2 text-[10px] font-black uppercase tracking-widest border-t border-slate-700">Profile & Slot</th>
+                                <th className="py-2 px-2 text-[10px] font-black uppercase tracking-widest border-t border-slate-700">Candidate Info</th>
+                                {/* max-w-[130px] lagakar whitespace-normal kiya taaki width control me rahe */}
+<th className="py-2 px-2 text-[10px] font-black uppercase tracking-widest border-t border-slate-700 max-w-[130px] whitespace-normal">
+    Loc & Qual
+</th>
+                                <th className="py-2 px-2 text-[10px] font-black uppercase tracking-widest border-t border-slate-700">Exp (T/R)</th>
+                                <th className="py-2 px-2 text-[10px] font-black uppercase tracking-widest text-center border-t border-slate-700">CTC (C/E)</th>
+                                <th className="py-2 px-2 text-[10px] font-black uppercase tracking-widest max-w-[180px] border-r border-slate-700 border-t border-slate-700">RC Feedback</th>
                                 
                                 {/* TL Columns */}
-                                <th className="py-2 px-3 text-[10px] font-black text-amber-300 uppercase tracking-widest border-t border-slate-700 bg-slate-800/80 w-52">TL Evaluation & Updated CV</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest sticky right-0 bg-slate-900 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)] text-center border-l border-slate-700 border-t border-slate-700 w-32">Actions</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest border-t border-slate-700 w-10 text-center bg-slate-800">
+                                <th className="py-2 px-2 text-[10px] font-black text-amber-300 uppercase tracking-widest border-t border-slate-700 bg-slate-800/80 w-52">TL Evaluation & Updated CV</th>
+                                <th className="py-2 px-2 text-[10px] font-black uppercase tracking-widest sticky right-0 bg-slate-900 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)] text-center border-l border-slate-700 border-t border-slate-700 w-32">Actions</th>
+                                <th className="py-2 px-2 text-[10px] font-black uppercase tracking-widest border-t border-slate-700 w-12 text-center bg-slate-800">
                                     <input 
                                         type="checkbox" 
                                         checked={filteredData.filter(r => !r.sentToCrm).length > 0 && selectedRows.length === filteredData.filter(r => !r.sentToCrm).length}
@@ -773,7 +776,7 @@ export default function TLTrackerPage() {
                                 <tr key={row.id} className={`hover:bg-emerald-50/30 transition-colors group ${selectedRows.includes(row.id) ? 'bg-amber-50/30' : ''}`}>
                                     
                                     {/* 1. RC CV View Button */}
-                                    <td className="py-2 px-3 sticky left-0 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] text-center">
+                                    <td className="py-2 px-2 sticky left-0 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] text-center">
                                         <button 
                                             onClick={() => openCVModal(row, 'rc')}
                                             disabled={!row.cv_url}
@@ -785,19 +788,19 @@ export default function TLTrackerPage() {
                                     </td>
 
                                     {/* RC SECTION CELLS */}
-                                    <td className="py-2 px-3 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors">
+                                    <td className="py-2 px-2 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors">
                                         <p className="text-[11px] font-black text-slate-800">{row.recruiterName}</p>
                                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
                                             <Calendar size={8}/> {row.sentDate}
                                         </p>
                                     </td>
 
-                                    <td className="py-2 px-3 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors">
+                                    <td className="py-2 px-2 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors">
                                         <p className="text-[10px] font-black text-indigo-700 uppercase">{row.profile}</p>
                                         <p className="text-[9px] font-bold text-slate-500 flex items-center gap-1"><Clock size={9}/> {row.slot}</p>
                                     </td>
 
-                                    <td className="py-2 px-3 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors">
+                                    <td className="py-2 px-2 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors">
                                         <p className="text-[11px] font-black text-slate-800">{row.name}</p>
                                         <div className="flex flex-col text-[9px] text-slate-500 font-bold gap-0.5">
                                             <span>{row.mobile}</span>
@@ -805,28 +808,31 @@ export default function TLTrackerPage() {
                                         </div>
                                     </td>
 
-                                    <td className="py-2 px-3 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors">
-                                        <p className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-                                            <MapPin size={9} className="text-slate-400"/> {row.location}
-                                        </p>
-                                        <p className="text-[9px] font-bold text-slate-500">{row.qualification}</p>
-                                    </td>
+                                   {/* max-w-[130px] aur text wrapping ensure ki */}
+<td className="py-2 px-2 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors max-w-[130px] whitespace-normal">
+    <p className="text-[11px] font-bold text-slate-700 flex items-center gap-1 break-words">
+        <MapPin size={9} className="text-slate-400 shrink-0"/> {row.location}
+    </p>
+    <p className="text-[9px] font-bold text-slate-500 mt-0.5 break-words line-clamp-2" title={row.qualification}>
+        {row.qualification}
+    </p>
+</td>
 
-                                    <td className="py-2 px-3 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors">
+                                    <td className="py-2 px-2 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors">
                                         <p className="text-[11px] font-black text-slate-800">{row.experience} <span className="text-[9px] font-bold text-slate-400 font-normal">Tot</span></p>
                                         <p className="text-[11px] font-black text-emerald-600">{row.relevantExp} <span className="text-[9px] font-bold text-emerald-400 font-normal">Rel</span></p>
                                     </td>
 
-                                    <td className="py-2 px-3 text-center bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors">
+                                    <td className="py-2 px-2 text-center bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors">
                                         <p className="text-[10px] font-bold text-slate-500">{row.cCTC} / <span className="text-emerald-700 font-black">{row.eCTC}</span></p>
                                     </td>
 
-                                    <td className="py-2 px-3 max-w-[150px] whitespace-normal bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors border-r border-slate-100">
+                                    <td className="py-2 px-2 max-w-[180px] whitespace-normal bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors border-r border-slate-100">
                                         <p className="text-[9px] font-bold text-slate-600 italic leading-snug">"{row.feedback}"</p>
                                     </td>
 
                                     {/* TL SECTION CELLS */}
-                                    <td className="py-2 px-3 w-52 whitespace-normal bg-amber-50/30 group-hover:bg-amber-50/60 transition-colors">
+                                    <td className="py-2 px-2 w-56 whitespace-normal bg-amber-50/30 group-hover:bg-amber-50/60 transition-colors">
                                         {row.cvUpdateStatus ? (
                                             <div className="space-y-1.5">
                                                 <div className="flex items-center justify-between">
@@ -852,7 +858,7 @@ export default function TLTrackerPage() {
                                     </td>
 
                                     {/* Actions (Sticky Right) */}
-                                    <td className="py-2 px-3 sticky right-0 bg-slate-50 group-hover:bg-amber-50/60 transition-colors z-10 border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] w-32">
+                                    <td className="py-2 px-2 sticky right-0 bg-slate-50 group-hover:bg-amber-50/60 transition-colors z-10 border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] w-32">
                                         
                                         {row.isSentToCRM ? (
                                             <div className="flex flex-col items-center justify-center gap-1">

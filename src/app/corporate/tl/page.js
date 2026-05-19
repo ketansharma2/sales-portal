@@ -410,9 +410,6 @@ export default function TLWorkbenchReport() {
             </div>
 
            {/* ============================================== */}
-            {/* --- SECTION 1: TL LEVEL HIGHLIGHTED CARDS --- */}
-            {/* ============================================== */}
-           {/* ============================================== */}
             {/* --- SECTION 1: TL LEVEL METRICS (CLEAN DESIGN) --- */}
             {/* ============================================== */}
             <div className="mb-4">
@@ -597,24 +594,29 @@ export default function TLWorkbenchReport() {
                     <table className="w-full text-left border-collapse min-w-[1300px]">
                         <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-10">
                             <tr>
-                                <th className="p-3 border-r border-blue-800 w-10 text-center">#</th>
-                                <th className="p-3 border-r border-blue-800 min-w-[100px]"><div className="flex items-center gap-1.5"><Calendar size={12}/> Date</div></th>
-                                <th className="p-3 border-r border-blue-800 min-w-[120px]"><div className="flex items-center gap-1.5"><Users size={12}/> Client</div></th>
-                                <th className="p-3 border-r border-blue-800 min-w-[160px]"><div className="flex items-center gap-1.5 text-yellow-300"><Users size={12}/> Recruiter & Slot</div></th>
+                                <th className="p-2 border-r border-blue-800 w-10 text-center">#</th>
+                                <th className="p-2 border-r border-blue-800 min-w-[80px]"><div className="flex items-center gap-1.5"><Calendar size={12}/> Date</div></th>
+                                <th className="p-2 border-r border-blue-800 min-w-[120px]"><div className="flex items-center gap-1.5"><Users size={12}/> Client</div></th>
+                                <th className="p-2 border-r border-blue-800 min-w-[160px]"><div className="flex items-center gap-1.5 text-yellow-300"><Users size={12}/> Recruiter & Slot</div></th>
                                 
                                 {/* Profile & JD Column */}
-                                <th className="p-3 border-r border-blue-800 min-w-[180px]"><div className="flex items-center gap-1.5"><Briefcase size={12}/> Profile & JD</div></th>
+                                <th className="p-2 border-r border-blue-800 min-w-[180px]"><div className="flex items-center gap-1.5"><Briefcase size={12}/> Profile & JD</div></th>
                                 
-                                <th className="p-3 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><IndianRupee size={12}/> Pkg / Req</div></th>
+{/* whitespace-nowrap lagane se icon aur text ek hi straight line me rahenge */}
+<th className="p-2 border-r border-blue-800 text-center whitespace-nowrap">
+  <div className="flex items-center justify-center gap-1.5">
+    <IndianRupee size={12}/> 
+    <span>Pkg / Req</span>
+  </div>
+</th>                                
+                                <th className="p-2 border-r border-blue-800 text-center bg-blue-600"><div className="flex items-center justify-center gap-1.5"><FileText size={12}/> CV Sourced</div></th>
+                                <th className="p-2 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> Adv STI</div></th>
+                                <th className="p-2 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><TrendingUp size={12}/> Conv.</div></th>
+                                <th className="p-2 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Database size={12}/> Asset</div></th>
+                                <th className="p-2 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><UserCheck size={12}/> Tracker Sent by Team</div></th>
                                 
-                                <th className="p-3 border-r border-blue-800 text-center bg-blue-600"><div className="flex items-center justify-center gap-1.5"><FileText size={12}/> CV Sourced</div></th>
-                                <th className="p-3 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> Adv STI</div></th>
-                                <th className="p-3 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><TrendingUp size={12}/> Conv.</div></th>
-                                <th className="p-3 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Database size={12}/> Asset</div></th>
-                                <th className="p-3 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><UserCheck size={12}/> Tracker Sent by Team</div></th>
-                                
-                                <th className="p-3 border-r border-blue-800 w-48"><div className="flex items-center gap-1.5"><MessageSquare size={12}/> RC Notes</div></th>
-                                <th className="p-3 w-48 bg-[#0d316a] text-yellow-300"><div className="flex items-center gap-1.5"><Settings size={12}/> TL Remarks</div></th>
+                                <th className="p-2 border-r border-blue-800 w-44"><div className="flex items-center gap-1.5"><MessageSquare size={12}/> RC Notes</div></th>
+                                <th className="p-2 w-48 bg-[#0d316a] text-yellow-300"><div className="flex items-center gap-1.5"><Settings size={12}/> TL Remarks</div></th>
                             </tr>
                         </thead>
                         <tbody className="text-xs text-gray-800 font-medium divide-y divide-gray-200">
@@ -625,13 +627,13 @@ export default function TLWorkbenchReport() {
                                     return (
                                         <tr key={row.workbench_id || index} className="hover:bg-blue-50/50 transition">
                                             
-                                            <td className="p-3 border-r border-gray-200 text-center text-gray-400 font-bold bg-gray-50">{index + 1}</td>
+                                            <td className="p-2 border-r border-gray-200 text-center text-gray-400 font-bold bg-gray-50">{index + 1}</td>
                                             
                                             {/* Date */}
-                                            <td className="p-3 border-r border-gray-200 font-bold text-gray-600 bg-gray-50">{row.date}</td>
+                                            <td className="p-2 border-r border-gray-200 font-bold text-gray-600 bg-gray-50">{row.date}</td>
                                             
                                             {/* Client */}
-                                            <td className="p-3 border-r border-gray-200 font-bold text-[#103c7f]">{row.client_name || '-'}</td>
+                                            <td className="p-2 border-r border-gray-200 font-bold text-[#103c7f]">{row.client_name || '-'}</td>
                                             
                                             {/* Recruiter & Slot Combined Column */}
                                             <td className="p-2 border-r border-gray-200">
@@ -646,7 +648,7 @@ export default function TLWorkbenchReport() {
                                             </td>
                                             
                                            {/* Profile & JD View Button */}
-                                            <td className="p-3 border-r border-gray-200">
+                                            <td className="p-2 border-r border-gray-200">
                                                 <div className="flex flex-col items-start gap-1.5">
                                                     <span className="font-black text-[#103c7f] leading-tight">{row.job_title}</span>
                                                     <button 
@@ -658,10 +660,12 @@ export default function TLWorkbenchReport() {
                                                 </div>
                                             </td>
                                             
-                                            {/* Pkg / Req */}
-                                            <td className="p-3 border-r border-gray-200 text-center">
-                                                <span className="text-green-700 font-bold">{row.package}</span> <span className="text-gray-300 mx-1">|</span> <span className="text-gray-800 font-black">{row.requirement}</span>
-                                            </td>
+                                           {/* whitespace-nowrap lagane se browser line break nahi karega */}
+<td className="p-2 border-r border-gray-200 text-center whitespace-nowrap">
+    <span className="text-green-700 font-bold">{row.package}</span> 
+    <span className="text-gray-300 mx-1">|</span> 
+    <span className="text-gray-800 font-black">{row.requirement}</span>
+</td>
 
                                             {/* CV Column */}
                                             <td className="p-2 border-r border-gray-200 text-center bg-blue-50/50">
@@ -672,18 +676,18 @@ export default function TLWorkbenchReport() {
                                             </td>
 
                                             {/* Performance Data Group */}
-                                            <td className="p-3 border-r border-gray-200 text-center font-black text-purple-700 bg-purple-50/20">{row.advance_sti}</td>
-                                            <td className="p-3 border-r border-gray-200 text-center font-black text-green-700 bg-green-50/20">{row.conversion}</td>
-                                            <td className="p-3 border-r border-gray-200 text-center font-black text-orange-600 bg-orange-50/20">{row.asset}</td>
-                                            <td className="p-3 border-r border-gray-200 text-center font-black text-gray-800 bg-gray-50">{row.tracker_sent}</td>
+                                            <td className="p-2 border-r border-gray-200 text-center font-black text-purple-700 bg-purple-50/20">{row.advance_sti}</td>
+                                            <td className="p-2 border-r border-gray-200 text-center font-black text-green-700 bg-green-50/20">{row.conversion}</td>
+                                            <td className="p-2 border-r border-gray-200 text-center font-black text-orange-600 bg-orange-50/20">{row.asset}</td>
+                                            <td className="p-2 border-r border-gray-200 text-center font-black text-gray-800 bg-gray-50">{row.tracker_sent}</td>
 
                                             {/* RC Notes */}
-                                            <td className="p-3 text-[11px] text-gray-600 italic bg-yellow-50/30">
+                                            <td className="p-2 text-[11px] text-gray-600 italic bg-yellow-50/30">
                                                 {row.rc_remarks ? `"${row.rc_remarks}"` : <span className="text-gray-400 not-italic">No notes</span>}
                                             </td>
 
                                             {/* TL Remarks */}
-                                            <td className="p-3 text-[11px] font-bold text-[#103c7f] bg-blue-50/20 border-l border-blue-100">
+                                            <td className="p-2 text-[11px] font-bold text-[#103c7f] bg-blue-50/20 border-l border-blue-100">
                                                 {row.tl_remarks ? row.tl_remarks : <span className="text-gray-400 font-normal italic">No remark added</span>}
                                             </td>
 

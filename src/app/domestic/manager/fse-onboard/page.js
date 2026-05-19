@@ -599,58 +599,58 @@ const handleAction = async (id, action) => {
               <tr className="bg-[#103c7f] text-white text-[11px] font-bold uppercase tracking-wide">
                 {activeTab === "onboard" ? (
                   <>
-                    <th className="px-4 py-2 whitespace-nowrap border-r border-blue-800">
+                    <th className="px-2 py-2 whitespace-nowrap border-r border-blue-800">
                       FSE Name & Sent Date
                     </th>
-                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap">
+                    <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">
                       Company & Type
                     </th>
-                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap">
+                    <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">
                       State & Location
                     </th>
-                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap">
+                    <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">
                       LatestContact Info
                     </th>
-                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap">
+                    <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">
                       Latest Followup
                     </th>
-                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap w-1/4">
+                    <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap w-1/4">
                       Remarks
                     </th>
-                    <th className="px-4 py-2 border-r border-blue-800 text-center whitespace-nowrap">
+                    <th className="px-2 py-2 border-r border-blue-800 text-center whitespace-nowrap">
                       Status / Sub-Status
                     </th>
-                    <th className="px-4 py-2 text-center whitespace-nowrap bg-[#0d316a] sticky right-0 z-20">
+                    <th className="px-2 py-2 text-center whitespace-nowrap bg-[#0d316a] sticky right-0 z-20">
                       Action
                     </th>
                   </>
                 ) : (
                   <>
-                    <th className="px-3 py-2 border-r border-blue-800 text-center">
+                    <th className="px-2 py-2 border-r border-blue-800 text-center">
                       Sourcing Date & Mode
                     </th>
-                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap">
+                    <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">
                       Company & Category
                     </th>
-                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap">
+                    <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">
                       State & Location
                     </th>
-                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap">
+                    <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">
                       Latest Contact Info
                     </th>
-                    <th className="px-3 py-2 border-r border-blue-800 text-center">
+                    <th className="px-2 py-2 border-r border-blue-800 text-center">
                       Followup date & Mode
                     </th>
-                    <th className="px-4 py-2 border-r border-blue-800 whitespace-nowrap w-1/4">
+                    <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap w-1/4">
                       Remarks
                     </th>
-                    <th className="px-4 py-2 border-r border-blue-800 text-center whitespace-nowrap">
+                    <th className="px-2 py-2 border-r border-blue-800 text-center whitespace-nowrap">
                       Status / Sub-Status
                     </th>
-                    <th className="px-4 py-2 border-r border-blue-800 text-center whitespace-nowrap">
+                    <th className="px-2 py-2 border-r border-blue-800 text-center whitespace-nowrap">
                       Projection
                     </th>
-                    <th className="px-4 py-2 text-center whitespace-nowrap bg-[#0d316a] sticky right-0 z-20">
+                    <th className="px-2 py-2 text-center whitespace-nowrap bg-[#0d316a] sticky right-0 z-20">
                       Action
                     </th>
                   </>
@@ -690,7 +690,7 @@ const handleAction = async (id, action) => {
                   >
                     {activeTab === "onboard" && (
                       <>
-                        <td className="px-4 py-2 border-r border-gray-100 whitespace-nowrap">
+                        <td className="px-2 py-2 border-r border-gray-100 whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="font-bold text-[#103c7f]">
                               {lead.fse_name || lead.fseName || "Unknown"}
@@ -706,7 +706,7 @@ const handleAction = async (id, action) => {
                           </div>
                         </td>
 
-                        <td className="px-4 py-2 border-r border-gray-100 whitespace-nowrap">
+                        <td className="px-2 py-2 border-r border-gray-100 whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="font-bold text-gray-800">
                               {lead.company_name || lead.company}
@@ -717,7 +717,7 @@ const handleAction = async (id, action) => {
                           </div>
                         </td>
 
-                        <td className="px-4 py-2 border-r border-gray-100 whitespace-nowrap">
+                        <td className="px-2 py-2 border-r border-gray-100 whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="font-bold text-gray-700">
                               {lead.location}
@@ -728,7 +728,7 @@ const handleAction = async (id, action) => {
                           </div>
                         </td>
 
-                        <td className="px-4 py-2 border-r border-gray-100 whitespace-nowrap">
+                        <td className="px-2 py-2 border-r border-gray-100 whitespace-nowrap">
                           <div className="flex flex-col gap-0.5">
                             <span className="font-bold text-gray-700">
                               {lead.contact_person || lead.name || "N/A"}
@@ -743,7 +743,7 @@ const handleAction = async (id, action) => {
                           </div>
                         </td>
 
-                        <td className="px-3 py-2 border-r border-gray-100 text-center">
+                        <td className="px-2 py-2 border-r border-gray-100 text-center">
                           <div className="flex flex-col items-start">
                             <span className="font-bold text-orange-600 whitespace-nowrap">
                               {lead.latest_contact_date ||
@@ -757,13 +757,13 @@ const handleAction = async (id, action) => {
                         </td>
 
                         <td
-                          className="px-4 py-2 border-r border-gray-100 text-gray-500 italic truncate max-w-xs"
+                          className="px-2 py-2 border-r border-gray-100 text-gray-500 italic truncate max-w-xs"
                           title={lead.remarks || lead.remark}
                         >
                           "{lead.remarks || lead.remark || "No remarks"}"
                         </td>
 
-                        <td className="px-4 py-2 border-r border-gray-100 text-center">
+                        <td className="px-2 py-2 border-r border-gray-100 text-center">
                           <div className="flex flex-col items-center gap-1">
                             <span
                               className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
@@ -784,7 +784,7 @@ const handleAction = async (id, action) => {
                           </div>
                         </td>
 
-                        <td className="px-4 py-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_10px_rgba(0,0,0,0.05)]">
+                        <td className="px-2 py-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_10px_rgba(0,0,0,0.05)]">
   <div className="flex items-center justify-center gap-2">
     
     {/* View Button - Always Visible */}

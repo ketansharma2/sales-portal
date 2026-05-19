@@ -736,7 +736,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
      {/* TABLE AREA - Compact, Clean, Scrollable */}
       <div className="bg-white border border-gray-100  flex-1 overflow-hidden shadow-sm relative z-0 flex flex-col mt-1 rounded-none">
         <div className="w-full h-full overflow-auto custom-scrollbar">
-          <table className="min-w-[1100px] text-left text-xs border-collapse relative table-fixed">      
+          <table className="max-w-[1100px] text-left text-xs border-collapse relative table-fixed">      
              
             {/* STICKY HEADER */}
             <thead className="sticky top-0 z-20 bg-[#103c7f] text-white font-bold uppercase tracking-widest text-[10px] shadow-md">
@@ -756,16 +756,16 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
 
               {/* Level 2: Column Headers */}
               <tr>
-                <th className="px-4 py-3 border-r border-white/10 min-w-[100px] whitespace-nowrap">Sourcing Date</th>
-                <th className="px-4 py-3 border-r border-white/10 min-w-[220px]">Company & Category</th>
-                <th className="px-4 py-3 border-r border-white/10 min-w-[160px]">Location & State</th>
+                <th className="px-2 py-2 border-r border-white/10 min-w-[100px] whitespace-nowrap">Sourcing Date</th>
+                <th className="px-2 py-2 border-r border-white/10 min-w-[220px]">Company & Category</th>
+                <th className="px-2 py-2 border-r border-white/10 min-w-[120px]">Location & State</th>
                  
-                <th className="px-4 py-3 border-r border-white/10 min-w-[120px] bg-[#15468f] whitespace-nowrap">Followup Date</th>
+                <th className="px-2 py-2 border-r border-white/10 min-w-[100px] bg-[#15468f] whitespace-nowrap">Followup Date</th>
                 {/* REMARKS: Wider width */}
-                <th className="px-4 py-3 border-r border-white/10 min-w-[350px] bg-[#15468f]">Latest Remarks</th>
-                <th className="px-4 py-3 border-r border-white/10 min-w-[120px] bg-[#15468f] whitespace-nowrap">Next Followup</th>
-                <th className="px-4 py-3 border-r border-white/10 min-w-[160px] bg-[#15468f]">Status & Sub-status</th>
-                <th className="px-4 py-3 border-r border-white/10 min-w-[120px] bg-[#15468f]">Projection</th>
+                <th className="px-2 py-2 border-r border-white/10 min-w-[250px] bg-[#15468f]">Latest Remarks</th>
+                <th className="px-2 py-2 border-r border-white/10 min-w-[100px] bg-[#15468f] whitespace-nowrap">Next Followup</th>
+                <th className="px-2 py-2 border-r border-white/10 min-w-[140px] bg-[#15468f]">Status & Sub-status</th>
+                <th className="px-2 py-2 border-r border-white/10 min-w-[80px] bg-[#15468f]">Projection</th>
               </tr>
             </thead>
 
@@ -789,12 +789,12 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
                   <tr key={idx} className="hover:bg-blue-50/40 transition-colors duration-150 group border-b border-gray-100 last:border-0">
                      
                     {/* Sourcing Date */}
-                    <td className="px-4 py-2.5 text-gray-600 font-semibold whitespace-nowrap text-[11px]">
+                    <td className="px-2 py-2 text-gray-600 font-semibold whitespace-nowrap text-[11px]">
                       {lead.sourcing_date}
                     </td>
 
                     {/* Company & Category */}
-                    <td className="px-4 py-2.5 ">
+                    <td className="px-2 py-2 ">
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-2">
                           <span className="font-black text-[#103c7f] text-sm uppercase tracking-tight truncate max-w-[180px]" title={lead.company_name}>
@@ -815,7 +815,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
                     </td>
 
                     {/* Location */}
-                    <td className="px-4 py-2.5 text-gray-700 font-medium ">
+                    <td className="px-2 py-2 text-gray-700 font-medium ">
                       <div className="flex items-center gap-1.5">
                         <MapPin size={11} className="text-gray-400"/>
                         <span className="truncate max-w-[140px] text-[11px]" title={`${lead.location}, ${lead.state}`}>
@@ -825,19 +825,19 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
                     </td>
 
                     {/* Followup Date */}
-                    <td className="px-4 py-2.5 text-gray-500 font-semibold italic whitespace-nowrap text-[11px]">
+                    <td className="px-2 py-2 text-gray-500 font-semibold italic whitespace-nowrap text-[11px]">
                       {lead.latest_contact_date || '--'}
                     </td>
 
                     {/* REMARKS: Handling Long Text with line-clamp */}
-                    <td className="px-4 py-2.5 min-w-[350px]">
+                    <td className="px-2 py-2 min-w-[270px]">
                       <p className="text-gray-600 text-[11px] font-medium leading-snug line-clamp-2 hover:line-clamp-none transition-all cursor-default" title={lead.remarks}>
                         {lead.remarks || <span className="text-gray-300 italic">No remarks available</span>}
                       </p>
                     </td>
 
                     {/* Next Followup */}
-                    <td className="px-4 py-2.5 whitespace-nowrap">
+                    <td className="px-2 py-2 whitespace-nowrap">
                       {lead.next_follow_up ? (
                         <span className="text-orange-600 bg-orange-50 px-2 py-0.5 rounded font-bold text-[10px] border border-orange-100">
                           {lead.next_follow_up}
@@ -848,7 +848,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
                     </td>
 
                     {/* Status */}
-                    <td className="px-4 py-2.5">
+                    <td className="px-2 py-2">
                       <div className="flex flex-col">
                         <span className="font-black text-[#103c7f] uppercase text-[10px] tracking-wide">
                           {lead.status || 'NO STATUS'}
@@ -860,7 +860,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
                     </td>
 
                     {/* Projection */}
-                    <td className="px-4 py-2.5">
+                    <td className="px-2 py-2">
                       <span className={`px-2 py-0.5 rounded font-bold text-[9px] uppercase border whitespace-nowrap ${
                         lead.projection && lead.projection.includes('>') 
                           ? 'bg-green-50 text-green-700 border-green-100' 
@@ -871,7 +871,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
                     </td>
 
                     {/* ACTIONS - STICKY RIGHT */}
-                    <td className="px-3 py-2.5 sticky right-0 bg-white group-hover:bg-blue-50/40 transition-colors border-l border-gray-100 z-10 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
+                    <td className="px-2 py-2 sticky right-0 bg-white group-hover:bg-blue-50/40 transition-colors border-l border-gray-100 z-10 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
                       {lead.sent_to_sm ? (
                         <div className="flex items-center justify-center gap-2">
                           <button

@@ -504,10 +504,10 @@ const handleSaveTarget = async () => {
   });
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-6 pb-20">
+    <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-2 md:p-2 pb-20">
       
       {/* --- HEADER, TABS & ADD BUTTON ROW --- */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-6 shrink-0">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-3 gap-6 shrink-0">
          
          {/* Left: Title & Subtitle */}
          <div>
@@ -556,7 +556,7 @@ const handleSaveTarget = async () => {
       </div>
 
       {/* FILTERS SECTION */}
-      <div className={`p-4 rounded-xl border shadow-sm mb-6 flex flex-wrap items-end gap-4 bg-white ${activeDeptTab === "Sales" ? "border-emerald-100" : "border-blue-100"}`}>
+      <div className={`p-4 rounded-xl border shadow-sm mb-3 flex flex-wrap items-end gap-4 bg-white ${activeDeptTab === "Sales" ? "border-emerald-100" : "border-blue-100"}`}>
         <div className="w-36 shrink-0">
             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Month</label>
             <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-3 rounded-lg text-xs font-bold outline-none cursor-pointer">

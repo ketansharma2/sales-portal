@@ -1041,84 +1041,78 @@ export default function SalesManagerDashboard() {
                                 <KpiCard title="Total Onboard" total={stats?.kpiData?.onboarded?.total || 0} icon={<Briefcase size={18}/>} color="teal" onClick={() => {}} />
                             </div>
                         </div>
-                        {/* ROW 2 & 3: NORMAL AND STARTUP CLIENTS (HIGHLIGHTED) */}
-                        <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl shadow-sm w-full">
-                            <div className="flex flex-col lg:flex-row gap-6">
-                                
-                                {/* 2. Normal Clients */}
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <UserCheck size={16} className="text-[#103c7f]" />
-                                        <h2 className="text-xs font-black text-[#103c7f] uppercase tracking-widest">
-                                            2. Normal Clients
-                                        </h2>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <KpiCard title="Leads" total={stats?.kpiData.normal.leads} icon={<Search size={18} />} color="blue" onClick={() => {}} />
-                                        <KpiCard title="Calls" total={stats?.kpiData.normal.calls} icon={<Phone size={18} />} color="blue" onClick={() => {}} />
-                                    </div>
-                                </div>
+                      {/* ========================================================= */}
+{/* ROW 2, 3 & 4: COMBINED INTO ONE SINGLE SEAMLESS ROW       */}
+{/* ========================================================= */}
+<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 w-full mb-4">
+    
+    {/* 2. Normal Clients */}
+    <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+        <div>
+            <div className="flex items-center gap-2 mb-3">
+                <UserCheck size={16} className="text-[#103c7f]" />
+                <h2 className="text-xs font-black text-[#103c7f] uppercase tracking-widest">
+                    2. Normal Clients
+                </h2>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <KpiCard title="Leads" total={stats?.kpiData.normal.leads} icon={<Search size={18} />} color="blue" onClick={() => {}} />
+                <KpiCard title="Calls" total={stats?.kpiData.normal.calls} icon={<Phone size={18} />} color="blue" onClick={() => {}} />
+            </div>
+        </div>
+    </div>
 
-                                <div className="hidden lg:block w-px bg-blue-200/50"></div>
+    {/* 3. Startup Clients */}
+    <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+        <div>
+            <div className="flex items-center gap-2 mb-3">
+                <Rocket size={16} className="text-orange-600" />
+                <h2 className="text-xs font-black text-orange-600 uppercase tracking-widest">
+                    3. Startup Clients
+                </h2>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <KpiCard title="Leads" total={stats?.kpiData?.startup?.leads || 0} icon={<Search size={18} />} color="orange" onClick={() => {}} />
+                <KpiCard title="Calls" total={stats?.kpiData?.startup?.calls || 0} icon={<Phone size={18} />} color="orange" onClick={() => {}} />
+            </div>
+        </div>
+    </div>
 
-                                {/* 3. Startup Clients */}
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <Rocket size={16} className="text-orange-600" />
-                                        <h2 className="text-xs font-black text-orange-600 uppercase tracking-widest">
-                                            3. Startup Clients
-                                        </h2>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <KpiCard title="Leads" total={stats?.kpiData?.startup?.leads || 0} icon={<Search size={18} />} color="orange" onClick={() => {}} />
-                                        <KpiCard title="Calls" total={stats?.kpiData?.startup?.calls || 0} icon={<Phone size={18} />} color="orange" onClick={() => {}} />
-                                    </div>
-                                </div>
+    {/* 4. Master Union Clients */}
+    <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+        <div>
+            <div className="flex items-center gap-2 mb-3">
+                <Briefcase size={16} className="text-purple-700" />
+                <h2 className="text-xs font-black text-purple-700 uppercase tracking-widest">
+                    4. Master Union
+                </h2>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <KpiCard title="Leads" total={stats?.kpiData.masterUnion.company} icon={<Briefcase size={18} />} color="purple" onClick={() => {}} />
+                <KpiCard title="Calls" total={stats?.kpiData.masterUnion.calling} icon={<Phone size={18} />} color="purple" onClick={() => {}} />
+            </div>
+        </div>
+    </div>
 
-                            </div>
-                        </div>
+</div>
 
-                        {/* ROW 4 & 5: MASTER UNION AND FRANCHISE (HIGHLIGHTED - ONE ROW) */}
-                        <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-2xl shadow-sm w-full">
-                            {/* Changed to xl:flex-row so standard cards have enough space on smaller laptops */}
-                            <div className="flex flex-col xl:flex-row gap-6 items-stretch">
-                                
-                                {/* 4. Master Union Clients */}
-                                <div className="flex-[3]">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <Briefcase size={16} className="text-purple-700" />
-                                        <h2 className="text-xs font-black text-purple-700 uppercase tracking-widest">
-                                            4. Master Union
-                                        </h2>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                        <KpiCard title="Leads" total={stats?.kpiData.masterUnion.company} icon={<Briefcase size={18} />} color="purple" onClick={() => {}} />
-                                        <KpiCard title="Profiles" total={stats?.kpiData.masterUnion.profiles} icon={<UserCheck size={18} />} color="purple" onClick={() => {}} />
-                                        <KpiCard title="Calls" total={stats?.kpiData.masterUnion.calling} icon={<Phone size={18} />} color="purple" onClick={() => {}} />
-                                    </div>
-                                </div>
-
-                                {/* Vertical Divider */}
-                                <div className="hidden xl:block w-px bg-indigo-200/50"></div>
-
-                                {/* 5. Franchise Pipeline */}
-                                <div className="flex-[4]">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <Award size={16} className="text-emerald-700" />
-                                        <h2 className="text-xs font-black text-emerald-700 uppercase tracking-widest">
-                                            5. Franchise Pipeline
-                                        </h2>
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                        <KpiCard title="Discussed" total={stats?.kpiData.franchise.discussed.total} icon={<Phone size={18} />} color="green" onClick={() => {}} />
-                                        <KpiCard title="Form Ask" total={stats?.kpiData.franchise.formAsk.total} icon={<FileText size={18} />} color="green" onClick={() => {}} />
-                                        <KpiCard title="Shared" total={stats?.kpiData.franchise.formShared.total} icon={<Send size={18} />} color="green" onClick={() => {}} />
-                                        <KpiCard title="Accepted" total={stats?.kpiData.franchise.accepted.total} icon={<CheckCircle size={18} />} color="green" onClick={() => {}} />
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>
+{/* ========================================================= */}
+{/* ROW 5: FRANCHISE PIPELINE (DEDICATED FULL-WIDTH ROW)     */}
+{/* ========================================================= */}
+<div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-2xl shadow-sm w-full">
+    <div className="flex items-center gap-2 mb-3">
+        <Award size={16} className="text-emerald-700" />
+        <h2 className="text-xs font-black text-emerald-700 uppercase tracking-widest">
+            5. Franchise Pipeline
+        </h2>
+    </div>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KpiCard title="Discussed" total={stats?.kpiData.franchise.discussed.total} icon={<Phone size={18} />} color="green" onClick={() => {}} />
+        <KpiCard title="Form Ask" total={stats?.kpiData.franchise.formAsk.total} icon={<FileText size={18} />} color="green" onClick={() => {}} />
+        <KpiCard title="Shared" total={stats?.kpiData.franchise.formShared.total} icon={<Send size={18} />} color="green" onClick={() => {}} />
+        <KpiCard title="Accepted" total={stats?.kpiData.franchise.accepted.total} icon={<CheckCircle size={18} />} color="green" onClick={() => {}} />
+    </div>
+</div>
 
                         {/* CONVERSATION LOG TABLE */}
                         <div className="mt-6">

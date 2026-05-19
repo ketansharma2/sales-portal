@@ -762,7 +762,7 @@ export default function LeadsTablePage() {
        </div>
 
         {/* 2. FILTERS BAR (Real-time, No Button) */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-4 flex flex-row flex-nowrap gap-2 items-end overflow-x-auto whitespace-nowrap">
+        <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-200 mb-4 flex flex-row flex-nowrap gap-2 items-end overflow-x-auto whitespace-nowrap">
           
           {/* Filter 1: From Date */}
           <div className="flex-shrink-0 w-32">
@@ -789,7 +789,7 @@ export default function LeadsTablePage() {
           </div>
 
           {/* Filter 3: Company Name */}
-          <div className="flex-shrink-0 w-44">
+          <div className="flex-shrink-0 w-40">
              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Company/Contact Person</label>
              <div className="relative">
                <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
@@ -804,7 +804,7 @@ export default function LeadsTablePage() {
           </div>
 
           {/* Filter 4: Location (State/City) */}
-          <div className="flex-shrink-0 w-44">
+          <div className="flex-shrink-0 w-40">
              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Location / State</label>
              <div className="relative">
                <MapPin className="absolute left-3 top-2.5 text-gray-400" size={14} />
@@ -819,7 +819,7 @@ export default function LeadsTablePage() {
           </div>
 
           {/* Filter 5: Status */}
-          <div className="flex-shrink-0 w-36">
+          <div className="flex-shrink-0 w-32">
              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Status</label>
              <div className="relative">
                <ListFilter className="absolute left-3 top-2.5 text-gray-400" size={14} />
@@ -839,7 +839,7 @@ export default function LeadsTablePage() {
           </div>
 
           {/* Filter 6: Sub-Status */}
-          <div className="flex-shrink-0 w-48">
+          <div className="flex-shrink-0 w-36">
              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Sub-Status</label>
              <div className="relative">
                <Filter className="absolute left-3 top-2.5 text-gray-400" size={14} />
@@ -888,7 +888,7 @@ export default function LeadsTablePage() {
            </div>
 
             {/* Filter 8: Startup */}
-            <div className="flex-shrink-0 w-32">
+            <div className="flex-shrink-0 w-30">
                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Startup</label>
                <div className="relative">
                  <select

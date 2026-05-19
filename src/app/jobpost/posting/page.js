@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import {
   Calendar, User, Briefcase, FileText, CheckCircle,
-  X, ExternalLink, Clock, Building2, MapPin, Download,
+  X, ExternalLink, Clock, Building2, MapPin, Download,Search,
   Globe, Link as LinkIcon, PlusCircle, Trash2, PlayCircle, PauseCircle,
   Database, BarChart2, Edit2, Loader2 // Naye icons CV tracking ke liye + Loader2
 } from "lucide-react";
@@ -14,6 +14,9 @@ export default function JobPosterPanel() {
   const [postings, setPostings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   // Fetch JDs from API
   useEffect(() => {
@@ -536,8 +539,20 @@ const handleStatusChange = async (jdId, newStatus, jobType) => {
   }
 };
 
-  // --- HELPERS ---
-  const getActiveCount = (details) => {
+// --- FILTERED POSTINGS ---
+  const filteredPostings = postings.filter(post => {
+    const matchesSearch = !searchTerm || 
+      post.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.job_title?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesDateFrom = !dateFrom || (post.date && post.date >= dateFrom);
+    const matchesDateTo = !dateTo || (post.date && post.date <= dateTo);
+    
+    return matchesSearch && matchesDateFrom && matchesDateTo;
+  });
+
+   // --- HELPERS ---
+   const getActiveCount = (details) => {
     if (!details || !Array.isArray(details)) return 0;
     return details.filter(d => d.stage === 'Active' || d.stage === 'Open').length;
   };
@@ -549,82 +564,142 @@ const handleStatusChange = async (jdId, newStatus, jobType) => {
   return (
     <div className="min-h-screen bg-gray-50 font-['Calibri'] p-2 print:p-0 print:bg-white">
       
-      {/* 1. HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-3 gap-4 print:hidden">
-         <div>
-             <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
-                 <ExternalLink size={24}/> Job Posting Panel
-             </h1>
-             <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">Manage & Track Published Links</p>
-         </div>
-         
-          {/* Simple Stats Card */}
-           <div className="flex gap-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex-wrap">
-               {/* TOTAL POSTS */}
-               <div className="text-center px-4 border-r border-gray-100">
-                   <p className="text-[10px] font-bold text-gray-400 uppercase">Total Posts</p>
-                   <p className="text-xl font-black text-slate-800">
-                      {Array.isArray(postings) ? postings.length : 0}
-                   </p>
-               </div>
+      {/* 1. HEADER & INTERACTIVE FILTERS */}
+<div className="flex flex-col gap-4 mb-3 print:hidden">
+  
+  {/* Top Heading & Simple Stats Card */}
+  <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+    <div>
+      <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
+        <ExternalLink size={24}/> Job Posting Panel
+      </h1>
+      <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">Manage & Track Published Links</p>
+    </div>
+    
+    {/* Simple Stats Card */}
+    <div className="flex gap-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex-wrap">
+      {/* TOTAL POSTS */}
+      <div className="text-center px-4 border-r border-gray-100">
+        <p className="text-[10px] font-bold text-gray-400 uppercase">Total Posts</p>
+        <p className="text-xl font-black text-slate-800">
+          {Array.isArray(postings) ? postings.length : 0}
+        </p>
+      </div>
 
-               {/* PENDING */}
-               <div className="text-center px-4 border-r border-gray-100">
-                   <p className="text-[10px] font-bold text-gray-400 uppercase">Pending</p>
-                   <p className="text-xl font-black text-orange-500">
-                      {Array.isArray(postings) ? postings.filter(p =>  p.status === 'Pending').length : 0}
-                   </p>
-               </div>
+      {/* PENDING */}
+      <div className="text-center px-4 border-r border-gray-100">
+        <p className="text-[10px] font-bold text-gray-400 uppercase">Pending</p>
+        <p className="text-xl font-black text-orange-500">
+          {Array.isArray(postings) ? postings.filter(p => p.status === 'Pending').length : 0}
+        </p>
+      </div>
 
-               {/* OPEN */}
-               <div className="text-center px-4 border-r border-gray-100">
-                   <p className="text-[10px] font-bold text-gray-400 uppercase">Open</p>
-                   <p className="text-xl font-black text-green-600">
-                      {Array.isArray(postings) ? postings.filter(p => p.status === 'Open' || p.jdStatus === 'Live').length : 0}
-                   </p>
-               </div>
+      {/* OPEN */}
+      <div className="text-center px-4 border-r border-gray-100">
+        <p className="text-[10px] font-bold text-gray-400 uppercase">Open</p>
+        <p className="text-xl font-black text-green-600">
+          {Array.isArray(postings) ? postings.filter(p => p.status === 'Open' || p.jdStatus === 'Live').length : 0}
+        </p>
+      </div>
 
-               {/* PAUSED */}
-               <div className="text-center px-4 border-r border-gray-100">
-                   <p className="text-[10px] font-bold text-gray-400 uppercase">Paused</p>
-                   <p className="text-xl font-black text-gray-500">
-                      {Array.isArray(postings) ? postings.filter(p => p.status === 'Paused').length : 0}
-                   </p>
-               </div>
+      {/* PAUSED */}
+      <div className="text-center px-4 border-r border-gray-100">
+        <p className="text-[10px] font-bold text-gray-400 uppercase">Paused</p>
+        <p className="text-xl font-black text-gray-500">
+          {Array.isArray(postings) ? postings.filter(p => p.status === 'Paused').length : 0}
+        </p>
+      </div>
 
-               {/* FLAGGED */}
-               <div className="text-center px-4 border-r border-gray-100">
-                   <p className="text-[10px] font-bold text-gray-400 uppercase">Flagged</p>
-                   <p className="text-xl font-black text-yellow-600">
-                      {Array.isArray(postings) ? postings.filter(p => p.status === 'Flagged').length : 0}
-                   </p>
-               </div>
+      {/* FLAGGED */}
+      <div className="text-center px-4 border-r border-gray-100">
+        <p className="text-[10px] font-bold text-gray-400 uppercase">Flagged</p>
+        <p className="text-xl font-black text-yellow-600">
+          {Array.isArray(postings) ? postings.filter(p => p.status === 'Flagged').length : 0}
+        </p>
+      </div>
 
-               {/* CLOSED */}
-               <div className="text-center px-4 border-r border-gray-100">
-                   <p className="text-[10px] font-bold text-gray-400 uppercase">Closed</p>
-                   <p className="text-xl font-black text-red-500">
-                      {Array.isArray(postings) ? postings.filter(p => p.status === 'Closed' || p.jdStatus === 'Deleted').length : 0}
-                   </p>
-               </div>
+      {/* CLOSED */}
+      <div className="text-center px-4 border-r border-gray-100">
+        <p className="text-[10px] font-bold text-gray-400 uppercase">Closed</p>
+        <p className="text-xl font-black text-red-500">
+          {Array.isArray(postings) ? postings.filter(p => p.status === 'Closed' || p.jdStatus === 'Deleted').length : 0}
+        </p>
+      </div>
 
-               {/* TOTAL CVs */}
-               <div className="text-center px-4 border-r border-gray-100">
-                   <p className="text-[10px] font-bold text-gray-400 uppercase">CVs</p>
-                   <p className="text-xl font-black text-indigo-600">
-                      {Array.isArray(postings) ? postings.reduce((sum, p) => sum + (p.cvLogs?.reduce((s, log) => s + Number(log.count || 0), 0) || 0), 0) : 0}
-                   </p>
-               </div>
+      {/* TOTAL CVs */}
+      <div className="text-center px-4 border-r border-gray-100">
+        <p className="text-[10px] font-bold text-gray-400 uppercase">CVs</p>
+        <p className="text-xl font-black text-indigo-600">
+          {Array.isArray(postings) ? postings.reduce((sum, p) => sum + (p.cvLogs?.reduce((s, log) => s + Number(log.count || 0), 0) || 0), 0) : 0}
+        </p>
+      </div>
 
-               {/* TOTAL CALLS */}
-               <div className="text-center px-4">
-                   <p className="text-[10px] font-bold text-gray-400 uppercase">Calls</p>
-                   <p className="text-xl font-black text-emerald-600">
-                      {Array.isArray(postings) ? postings.reduce((sum, p) => sum + (p.cvLogs?.reduce((s, log) => s + Number(log.callingCount || 0), 0) || 0), 0) : 0}
-                   </p>
-               </div>
-           </div>
-       </div>
+      {/* TOTAL CALLS */}
+      <div className="text-center px-4">
+        <p className="text-[10px] font-bold text-gray-400 uppercase">Calls</p>
+        <p className="text-xl font-black text-emerald-600">
+          {Array.isArray(postings) ? postings.reduce((sum, p) => sum + (p.cvLogs?.reduce((s, log) => s + Number(log.callingCount || 0), 0) || 0), 0) : 0}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {/* NEW: DUAL FILTER CONTROLLER ENGINE */}
+ <div className="w-full bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row gap-4 items-end">
+  
+  {/* 1. Client & Profile Omni Search Bar */}
+  <div className="flex-1 w-full">
+    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1 ml-0.5">Search Matrix</label>
+    <div className="relative group">
+      <input 
+        type="text" 
+        placeholder="Search Client or Profile Name..." 
+        value={searchTerm} 
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-gray-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:border-blue-500 focus:bg-white transition-all shadow-inner"
+      />
+      <Search size={14} className="absolute left-3 top-2.5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+    </div>
+  </div>
+
+  {/* 2. Date Range Filter (From -> To received date mapping) */}
+  <div className="flex flex-row gap-2 items-center w-full sm:w-auto">
+    <div className="w-full sm:w-36">
+      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1 ml-0.5">Received From</label>
+      <input 
+        type="date" 
+        value={dateFrom} 
+        onChange={(e) => setDateFrom(e.target.value)}
+        className="w-full bg-slate-50 border border-gray-200 text-slate-700 py-1 px-2.5 rounded-lg text-xs font-bold shadow-inner focus:outline-none focus:border-blue-500 focus:bg-white transition-all cursor-pointer"
+      />
+    </div>
+    <div className="w-full sm:w-36">
+      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1 ml-0.5">Received To</label>
+      <input 
+        type="date" 
+        value={dateTo} 
+        onChange={(e) => setDateTo(e.target.value)}
+        className="w-full bg-slate-50 border border-gray-200 text-slate-700 py-1 px-2.5 rounded-lg text-xs font-bold shadow-inner focus:outline-none focus:border-blue-500 focus:bg-white transition-all cursor-pointer"
+      />
+    </div>
+  </div>
+
+  {/* NEW: DYNAMIC CLEAR FILTERS BUTTON */}
+  {(searchTerm || dateFrom || dateTo) && (
+    <button
+      onClick={() => {
+        setSearchTerm("");
+        setDateFrom("");
+        setDateTo("");
+      }}
+      className="w-full sm:w-auto px-4 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm hover:shadow active:scale-95 h-[30px] flex items-center justify-center whitespace-nowrap"
+    >
+      Clear Filters
+    </button>
+  )}
+
+</div>
+</div>
 
         {/* 2. TABLE */}
         {loading ? (
@@ -665,7 +740,7 @@ const handleStatusChange = async (jdId, newStatus, jobType) => {
                        </tr>
                    </thead>
                    <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
-                       {Array.isArray(postings) && postings.length > 0 ? postings.map((post) => {
+                       {Array.isArray(filteredPostings) && filteredPostings.length > 0 ? filteredPostings.map((post) => {
                          const activeCount = getActiveCount(post.publishingDetails || []);
                          const totalCVs = getTotalCVs(post.cvLogs);
 
@@ -758,15 +833,15 @@ const handleStatusChange = async (jdId, newStatus, jobType) => {
                                  </button>
                              </td>
 
+</tr>
+                          );
+                        }) : (
+                          <tr>
+                            <td colSpan="8" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest">
+                              {postings.length > 0 ? 'No postings match your filters' : 'No postings found'}
+                            </td>
                           </tr>
-                         );
-                       }) : (
-                         <tr>
-                           <td colSpan="8" className="p-12 text-center text-gray-400 font-bold uppercase tracking-widest">
-                             No postings found
-                           </td>
-                         </tr>
-                       )}
+                        )}
                  </tbody>
               </table>
           </div>

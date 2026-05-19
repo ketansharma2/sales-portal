@@ -234,25 +234,29 @@ export default function AdminCRMDashboard() {
                 
                 {/* ========================================= */}
                 {/* KPI ROW: 8 CARDS (2 ROWS X 4 COLS)        */}
-                {/* ========================================= */}
-                <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-2xl shadow-sm w-full">
-                    <div className="flex items-center gap-2 mb-3">
-                        <Activity size={16} className="text-indigo-700" />
-                        <h2 className="text-xs font-black text-indigo-700 uppercase tracking-widest">
-                            CRM Client Metrics
-                        </h2>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <KpiCard title="Client Onboard" total={stats.onboards || 0} icon={<Briefcase size={18} />} color="blue" />
-                        <KpiCard title="Active Clients" total={stats.totalActiveClients || 0} icon={<UserCheck size={18} />}   color="green"/>
-                         <KpiCard title="Branches" total={stats.branches || 0} icon={<Building2 size={18} />} color="purple" />
-                         <KpiCard title="Client Contacts" total={stats.contacts || 0} icon={<Phone size={18} />} color="teal" />
-                         <KpiCard title="Client Calling" total={stats.conversations || 0} icon={<MessageSquare size={18} />} color="orange" />                 
-                         <KpiCard title="Unique Profiles" total={stats.uniqueProfiles || 0} icon={<UserCheck size={18} />} color="blue" />
-                         <KpiCard title="No. of Positions" total={stats.requirements || 0} icon={<FileText size={18} />} color="purple" />
-                         <KpiCard title="Tracker Shared To Clients" total={stats.trackerShared || 0} icon={<Share2 size={18} />} color="teal" />
-                    </div>
-                </div>
+               {/* ========================================= */}
+{/* CRM Client Metrics - Clean 8 Card Grid Row */}
+{/* ========================================= */}
+<div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-2xl shadow-sm w-full">
+    <div className="flex items-center gap-2 mb-3">
+        <Activity size={16} className="text-indigo-700" />
+        <h2 className="text-xs font-black text-indigo-700 uppercase tracking-widest">
+            CRM Client Metrics
+        </h2>
+    </div>
+    
+    {/* Clean Grid System: Small screens par 2/4 cards, Large screens par perfectly 8 cards single line me */}
+    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+        <KpiCard title="Client Onboard" total={stats.onboards || 0} icon={<Briefcase size={18} />} color="blue" />
+        <KpiCard title="Active Clients" total={stats.totalActiveClients || 0} icon={<UserCheck size={18} />} color="green"/>
+        <KpiCard title="Branches" total={stats.branches || 0} icon={<Building2 size={18} />} color="purple" />
+        <KpiCard title="Client Contacts" total={stats.contacts || 0} icon={<Phone size={18} />} color="teal" />
+        <KpiCard title="Client Calling" total={stats.conversations || 0} icon={<MessageSquare size={18} />} color="orange" />                 
+        <KpiCard title="Unique Profiles" total={stats.uniqueProfiles || 0} icon={<UserCheck size={18} />} color="blue" />
+        <KpiCard title="No. of Positions" total={stats.requirements || 0} icon={<FileText size={18} />} color="purple" />
+        <KpiCard title="Tracker Shared To Clients" total={stats.trackerShared || 0} icon={<Share2 size={18} />} color="teal" />
+    </div>
+</div>
 
 {/* ========================================= */}
                 {/* DATA TABLE: ONBOARDED CLIENTS             */}

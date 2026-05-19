@@ -322,7 +322,7 @@ export default function RecruiterWorkbenchPage() {
     );
 
     return (
-        <div className="min-h-screen bg-gray-50 font-['Calibri'] p-4 md:p-6 relative">
+        <div className="min-h-screen bg-gray-50 font-['Calibri'] p-2 md:p-2 relative">
             
             {/* HEADER & SEARCH */}
             <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">

@@ -920,38 +920,38 @@ const fetchCrmDetails = async (clientId) => {
           <table className="w-full table-auto border-collapse text-left sticky">
             <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-50 shadow-md">
               <tr>
-                <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap">
+                <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">
                   Arrived
                 </th>
-                <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap">
+                <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">
                   Sourced Date
                 </th>
-                <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap min-w-[140px]">
+                <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap min-w-[140px]">
                   Company / Category
                 </th>
-                <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap">
+                <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">
                   City & State
                 </th>
-                <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap min-w-[150px]">
+                <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap min-w-[150px]">
                   Contact Info
                 </th>
-                <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap min-w-[180px]">
+                <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap min-w-[180px]">
                   Latest Interaction
                 </th>
-                <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap">
+                <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap">
                   Next Follow Up
                 </th>
-                <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap text-center">
+                <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap text-center">
                   Status/Substatus
                 </th>
-                 <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap text-center">
+                 <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap text-center">
                    Franchise Status
                  </th>
-                 <th className="px-4 py-3 border-r border-blue-800 whitespace-nowrap text-center">
+                 <th className="px-2 py-2 border-r border-blue-800 whitespace-nowrap text-center">
                    Projection
                  </th>
 
-                 <th className="px-4 py-3 text-center bg-[#0d316a] sticky right-0 z-50 min-w-[200px] shadow-lg">
+                 <th className="px-2 py-2 text-center bg-[#0d316a] sticky right-0 z-50 min-w-[200px] shadow-lg">
                    Action
                  </th>
               </tr>
@@ -965,7 +965,7 @@ const fetchCrmDetails = async (clientId) => {
                       key={lead.id}
                       className="hover:bg-blue-50/50 transition duration-150 group"
                     >
-                      <td className="px-4 py-3 border-r border-gray-100 whitespace-nowrap">
+                      <td className="px-2 py-2 border-r border-gray-100 whitespace-nowrap">
                         <div className="flex flex-col">
                           <span className="text-gray-600 font-bold">
                             {lead.arrivedDate || "-"}
@@ -977,20 +977,20 @@ const fetchCrmDetails = async (clientId) => {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 border-r border-gray-100 whitespace-nowrap text-gray-500">
+                      <td className="px-2 py-2 border-r border-gray-100 whitespace-nowrap text-gray-500">
                         {lead.sourcingDate || "-"}
                       </td>
-                      <td className="px-4 py-3 border-r border-gray-100 whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-[#103c7f] text-sm">
-                            {lead.company}
-                          </span>
-                          <span className="text-[10px] text-gray-400 font-bold uppercase">
-                            {lead.category}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 border-r border-gray-100 whitespace-nowrap">
+                     <td className="px-2 py-2 border-r border-gray-100 max-w-[140px]"> {/* Fixed absolute limit lagayi */}
+  <div className="flex flex-col min-w-0"> {/* min-w-0 flex child truncate ko force karne ke liye zaroori hai */}
+    <span className="font-bold text-[#103c7f] text-sm truncate" title={lead.company}>
+      {lead.company}
+    </span>
+    <span className="text-[10px] text-gray-400 font-bold uppercase truncate" title={lead.category}>
+      {lead.category}
+    </span>
+  </div>
+</td>
+                      <td className="px-2 py-2 border-r border-gray-100 whitespace-nowrap">
                         <div className="font-bold text-gray-700">
                           {lead.city || lead.districtCity || "-"}
                         </div>
@@ -998,7 +998,7 @@ const fetchCrmDetails = async (clientId) => {
                           {lead.state}
                         </div>
                       </td>
-                      <td className="px-4 py-3 border-r border-gray-100 whitespace-nowrap">
+                      <td className="px-2 py-2 border-r border-gray-100 whitespace-nowrap">
                         <div className="flex flex-col gap-0.5">
                           <span className="font-bold text-gray-700">
                             {contact.name}
@@ -1011,7 +1011,7 @@ const fetchCrmDetails = async (clientId) => {
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 border-r border-gray-100 max-w-[180px]">
+                      <td className="px-2 py-2 border-r border-gray-100 max-w-[180px]">
                         <div className="flex flex-col">
                           <span className="text-[10px] font-bold text-gray-400">
                             {lead.interactions?.[0]?.date || "-"}
@@ -1024,10 +1024,10 @@ const fetchCrmDetails = async (clientId) => {
                           </p>
                         </div>
                       </td>
-                      <td className="px-4 py-3 border-r border-gray-100 whitespace-nowrap font-bold text-orange-600 text-center">
+                      <td className="px-2 py-2 border-r border-gray-100 whitespace-nowrap font-bold text-orange-600 text-center">
                         {lead.nextFollowup || "-"}
                       </td>
-                      <td className="px-4 py-3 border-r border-gray-100 whitespace-nowrap text-center">
+                      <td className="px-2 py-2 border-r border-gray-100 whitespace-nowrap text-center">
                         <div className="flex flex-col items-center gap-1">
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${lead.status === "Interested" ? "bg-green-50 text-green-700 border-green-200" : lead.status === "Onboard" ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-purple-50 text-purple-700 border-purple-200"}`}
@@ -1042,7 +1042,7 @@ const fetchCrmDetails = async (clientId) => {
                         </div>
                       </td>
                      
-                       <td className="px-4 py-3 border-r border-gray-100 whitespace-nowrap text-center">
+                       <td className="px-2 py-2 border-r border-gray-100 whitespace-nowrap text-center">
                          {lead.franchiseStatus ? (
                            <span className="bg-orange-50 text-orange-700 border border-orange-200 px-2 py-0.5 rounded text-[10px] font-bold">
                              {lead.franchiseStatus}
@@ -1051,7 +1051,7 @@ const fetchCrmDetails = async (clientId) => {
                            <span className="text-gray-300">-</span>
                          )}
                        </td>
-                       <td className="px-4 py-3 border-r border-gray-100 whitespace-nowrap text-center">
+                       <td className="px-2 py-2 border-r border-gray-100 whitespace-nowrap text-center">
                          <div className="flex flex-col items-center gap-1">
                            <span
                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${lead.projection ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-gray-50 text-gray-600 border-gray-200"}`}
@@ -1061,7 +1061,7 @@ const fetchCrmDetails = async (clientId) => {
                          </div>
                        </td>
 
-                       <td className="px-4 py-3 text-center sticky right-0 bg-white group-hover:bg-blue-50/20 border-l border-gray-200 z-10 whitespace-nowrap shadow-[-4px_0px_8px_-4px_rgba(0,0,0,0.05)]">
+                       <td className="px-2 py-2 text-center sticky right-0 bg-white group-hover:bg-blue-50/20 border-l border-gray-200 z-10 whitespace-nowrap shadow-[-4px_0px_8px_-4px_rgba(0,0,0,0.05)]">
                         <div className="flex items-center justify-center gap-2">
                           {lead.sentToCrm ? (
                            <>

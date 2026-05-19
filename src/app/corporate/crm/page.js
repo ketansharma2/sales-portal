@@ -759,25 +759,46 @@ export default function CRMDashboard() {
         <div className="flex-1 overflow-y-auto flex flex-col  p-5 space-y-6 bg-slate-50">
           
           {/* --- ROW 1: DATABASE OVERVIEW (LIFETIME) --- */}
-          <div className="shrink-0">
-             <span className="text-[10px] font-bold text-[#103c7f] bg-blue-100 px-2 py-0.5 rounded border border-blue-200 ">
-                    {dateRange.from} <span className="mx-1 text-gray-400">to</span> {dateRange.to}
-                </span>
-            {/* <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-              <Briefcase size={14}/> Database Overview (Lifetime)
-            </h3> */}
-            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
-              {totalStats.map((stat, idx) => (
-                <div key={idx} className="bg-white p-2.5 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center hover:shadow-md transition-all mt-2">
-                  <div className={`p-1.5 rounded-full ${stat.bg} mb-1.5`}>
-                    <stat.icon size={14} className={stat.color} />
-                  </div>
-                  <h4 className="text-lg font-black text-slate-700 leading-none">{stat.value}</h4>
-                  <p className="text-[9px] font-bold text-gray-400 uppercase mt-1 leading-tight">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+         {/* --- ROW 1: DATABASE OVERVIEW (LIFETIME) --- */}
+{/* --- ROW 1: DATABASE OVERVIEW (LIFETIME) --- */}
+<div className="shrink-0 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-4">
+  
+  {/* Header Section */}
+  <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-100 pb-3">
+    <div className="flex items-center gap-2 border-l-4 border-blue-600 pl-2 py-0.5">
+      <h3 className="text-xs font-black text-[#0b1b3d] uppercase tracking-widest flex items-center gap-2">
+        <Briefcase size={14}/> Database Overview (Lifetime)
+      </h3>
+    </div>
+    <span className="text-[10px] font-black text-[#103c7f] bg-blue-50 px-2 py-1 rounded-xl border border-blue-100 uppercase tracking-wider">
+      {dateRange.from} <span className="mx-1 text-gray-400 font-normal">to</span> {dateRange.to}
+    </span>
+  </div>
+
+  {/* 3-Row Balanced Grid (6 + 6 + 5 Layout with bottom row centering) */}
+ {/* Left-aligned clean grid view without unexpected spacing */}
+<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+  {totalStats.map((stat, idx) => (
+    <div 
+      key={idx} 
+      className="p-3.5 bg-white rounded-xl border border-slate-200 border-t-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between h-24 min-w-[150px] sm:min-w-[160px] lg:min-w-0 group"
+      style={{ borderTopColor: stat.color ? undefined : '#103c7f' }}
+    >
+      <div className="flex justify-between items-start gap-1 w-full">
+        <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight group-hover:text-slate-700 transition-colors line-clamp-2">
+          {stat.label}
+        </p>
+        <div className={`p-1.5 rounded-lg shrink-0 scale-90 ${stat.bg || 'bg-slate-50'} ${stat.color || 'text-slate-600'}`}>
+          <stat.icon size={14} />
+        </div>
+      </div>
+      <div className="mt-auto">
+        <h4 className="text-2xl font-black text-slate-900 tracking-tight leading-none">{stat.value}</h4>
+      </div>
+    </div>
+  ))}
+</div>
+</div>
 
 
           {/* --- ROW 3: DETAILED TABLE --- */}
