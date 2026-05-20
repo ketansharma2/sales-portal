@@ -677,13 +677,13 @@ export default function TLDomesticTargetPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-6 pb-20">
+    <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-2 md:p-2 pb-20">
       
       {/* ========================================== */}
       {/* 1. MY TARGETS (Assigned by CRM) SECTION    */}
       {/* ========================================== */}
-      <div className="mb-10">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4">
+      <div className="mb-5">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-2 gap-4">
              <div>
                 <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
                     <CheckCircle size={24} className="text-emerald-500"/> Domestic Targets (TL)
@@ -706,16 +706,16 @@ export default function TLDomesticTargetPage() {
                 <table className="w-full text-left border-collapse min-w-[1000px]">
                    <thead className="text-white text-[10px] uppercase font-bold sticky top-0 z-10 shadow-sm tracking-widest bg-emerald-700">
                       <tr>
-                         <th className="p-3 border-r border-white/10 w-24 text-center">Period</th>
-                         <th className="p-3 border-r border-white/10 w-24 text-center">Work Days</th>
-                         <th className="p-3 border-r border-white/10 w-56">Assigned By</th>
-                         <th className="p-3 border-r border-white/10 min-w-[200px]">Guideline</th>
-                         <th className="p-3 border-r border-white/10 w-40">KPI Metric</th>
-                         <th className="p-3 border-r border-white/10 text-center w-24">Freq.</th>
-                         <th className="p-3 border-r border-white/10 text-center bg-black/10 w-24">Target</th>
-                         <th className="p-3 border-r border-white/10 text-center bg-black/10 w-24">Achieved</th>
-                         <th className="p-3 border-r border-white/10 text-center bg-black/20 w-24">%</th>
-                         <th className="p-3 text-center bg-black/10 sticky right-0 z-20 w-20 shadow-[-4px_0px_5px_rgba(0,0,0,0.1)]">Action</th>
+                         <th className="p-2 border-r border-white/10 w-24 text-center">Period</th>
+                         <th className="p-2 border-r border-white/10 w-24 text-center">Work Days</th>
+                         <th className="p-2 border-r border-white/10 w-56">Assigned By</th>
+                         <th className="p-2 border-r border-white/10 min-w-[200px]">Guideline</th>
+                         <th className="p-2 border-r border-white/10 w-40">KPI Metric</th>
+                         <th className="p-2 border-r border-white/10 text-center w-24">Freq.</th>
+                         <th className="p-2 border-r border-white/10 text-center bg-black/10 w-24">Target</th>
+                         <th className="p-2 border-r border-white/10 text-center bg-black/10 w-24">Achieved</th>
+                         <th className="p-2 border-r border-white/10 text-center bg-black/20 w-24">%</th>
+                         <th className="p-2 text-center bg-black/10 sticky right-0 z-20 w-20 shadow-[-4px_0px_5px_rgba(0,0,0,0.1)]">Action</th>
                       </tr>
                    </thead>
                    <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
@@ -741,34 +741,34 @@ export default function TLDomesticTargetPage() {
                           return (
                           <tr key={item.id || idx} className="hover:bg-emerald-50/30 transition group">
                              
-                             <td className="p-3 border-r border-gray-100 text-center align-middle">
+                             <td className="p-2 border-r border-gray-100 text-center align-middle">
                                 <div className="flex flex-col items-center gap-1">
                                    <span className="font-black text-gray-800">{item.month}</span>
                                    <span className="text-[9px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{item.year}</span>
                                 </div>
                              </td>
 
-                             <td className="p-3 border-r border-gray-100 text-center align-middle">
+                             <td className="p-2 border-r border-gray-100 text-center align-middle">
                                  <span className="font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100 text-[11px]">
                                      {item.workingDays} <span className="text-[9px] text-emerald-500 uppercase">Days</span>
                                  </span>
                              </td>
 
-                             <td className="p-3 border-r border-gray-100 align-middle">
+                             <td className="p-2 border-r border-gray-100 align-middle">
                                  <div className="flex flex-col gap-1">
                                      <span className="font-black text-gray-900 flex items-center gap-1.5"><User size={12} className="text-emerald-500"/> {item.assignedBy}</span>
                                      <span className="font-bold text-gray-400 text-[9px] uppercase tracking-wider flex items-center gap-1"><Briefcase size={10}/>{item.assignedRole}</span>
                                  </div>
                              </td>
                              
-                             <td className="p-3 border-r border-gray-100 align-middle"><p className="text-[11px] text-gray-600 leading-relaxed">{item.guideline}</p></td>
-                             <td className="p-3 border-r border-gray-100 align-middle"><span className="font-bold text-emerald-700 flex items-center gap-1.5"><BarChart2 size={12}/>{item.kpi_metric}</span></td>
+                             <td className="p-2 border-r border-gray-100 align-middle"><p className="text-[11px] text-gray-600 leading-relaxed">{item.guideline}</p></td>
+                             <td className="p-2 border-r border-gray-100 align-middle"><span className="font-bold text-emerald-700 flex items-center gap-1.5"><BarChart2 size={12}/>{item.kpi_metric}</span></td>
                              
-                             <td className="p-3 border-r border-gray-100 text-center align-middle">
+                             <td className="p-2 border-r border-gray-100 text-center align-middle">
                                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${item.frequency === 'Daily' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-purple-50 text-purple-600 border-purple-200'}`}>{item.frequency}</span>
                              </td>
                              
- <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50">
+ <td className="p-2 border-r border-gray-100 text-center align-middle bg-gray-50/50">
      <div className="flex flex-col items-center">
          <span className="text-sm font-mono font-black text-gray-800">{displayTarget?.toLocaleString('en-IN')}</span>
          {item.frequency === 'Daily' && (
@@ -778,7 +778,7 @@ export default function TLDomesticTargetPage() {
          )}
      </div>
  </td>
-                               <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50">
+                               <td className="p-2 border-r border-gray-100 text-center align-middle bg-gray-50/50">
                                  <div className="flex flex-col items-center">
                                      <span className="text-sm font-mono font-black text-emerald-700">
                                        {isAccuracyKPI ? `${achievedValue}%` : achievedValue.toLocaleString('en-IN')}
@@ -794,7 +794,7 @@ export default function TLDomesticTargetPage() {
                                  </div>
                                </td>
                              
-                             <td className="p-3 border-r border-gray-100 text-center align-middle">
+                             <td className="p-2 border-r border-gray-100 text-center align-middle">
                                  <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
                              </td>
                              
@@ -819,13 +819,13 @@ export default function TLDomesticTargetPage() {
           </div>
       </div>
 
-      <hr className="border-gray-200 mb-8" />
+      <hr className="border-gray-200 mb-4" />
 
       {/* ========================================== */}
       {/* 2. TEAM ASSIGNMENT SECTION (RC Only) */}
       {/* ========================================== */}
       
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-2 gap-4">
          <div>
             <h1 className="text-2xl font-black text-[#103c7f] uppercase tracking-tight flex items-center gap-2">
                 <Target size={24} className="text-emerald-500"/> Team Targets
@@ -841,7 +841,7 @@ export default function TLDomesticTargetPage() {
       </div>
 
       {/* FILTERS SECTION */}
-      <div className="p-4 rounded-xl border shadow-sm mb-6 flex flex-wrap items-end gap-4 bg-white border-gray-200">
+      <div className="p-4 rounded-xl border shadow-sm mb-2 flex flex-wrap items-end gap-4 bg-white border-gray-200">
         <div className="w-36 shrink-0">
             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Month</label>
             <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-3 rounded-lg text-xs font-bold outline-none cursor-pointer">
@@ -881,16 +881,16 @@ export default function TLDomesticTargetPage() {
             <table className="w-full text-left border-collapse min-w-[1100px]">
                <thead className="text-white text-[10px] uppercase font-bold sticky top-0 z-10 shadow-sm tracking-widest bg-[#103c7f]">
                   <tr>
-                     <th className="p-3 border-r border-white/10 w-24 text-center">Period</th>
-                     <th className="p-3 border-r border-white/10 w-24 text-center">Work Days</th>
-                     <th className="p-3 border-r border-white/10 w-56">Assigned To</th>
-                     <th className="p-3 border-r border-white/10 min-w-[200px]">Guideline</th>
-                     <th className="p-3 border-r border-white/10 w-40">KPI Metric</th>
-                     <th className="p-3 border-r border-white/10 text-center w-24">Freq.</th>
-                     <th className="p-3 border-r border-white/10 text-center bg-black/10 w-24">Target</th>
-                     <th className="p-3 border-r border-white/10 text-center bg-black/10 w-24">Achieved</th>
-                     <th className="p-3 border-r border-white/10 text-center bg-black/20 w-24">%</th>
-                     <th className="p-3 text-center bg-black/10 sticky right-0 z-20 w-32 shadow-[-4px_0px_5px_rgba(0,0,0,0.1)]">Action</th>
+                     <th className="p-2 border-r border-white/10 w-24 text-center">Period</th>
+                     <th className="p-2 border-r border-white/10 w-24 text-center">Work Days</th>
+                     <th className="p-2 border-r border-white/10 w-56">Assigned To</th>
+                     <th className="p-2 border-r border-white/10 min-w-[200px]">Guideline</th>
+                     <th className="p-2 border-r border-white/10 w-40">KPI Metric</th>
+                     <th className="p-2 border-r border-white/10 text-center w-24">Freq.</th>
+                     <th className="p-2 border-r border-white/10 text-center bg-black/10 w-24">Target</th>
+                     <th className="p-2 border-r border-white/10 text-center bg-black/10 w-24">Achieved</th>
+                     <th className="p-2 border-r border-white/10 text-center bg-black/20 w-24">%</th>
+                     <th className="p-2 border-r border-white/10 text-center bg-black/20 w-24">Action</th>
                   </tr>
                </thead>
                 <tbody className="text-xs text-gray-700 font-medium divide-y divide-gray-100">
@@ -919,31 +919,31 @@ export default function TLDomesticTargetPage() {
                          return (
                          <tr key={item.id} className="hover:bg-emerald-50/30 transition group">
                             
-                            <td className="p-3 border-r border-gray-100 text-center align-middle">
+                            <td className="p-2 border-r border-gray-100 text-center align-middle">
                                <div className="flex flex-col items-center gap-1">
                                   <span className="font-black text-gray-800">{item.month}</span>
                                   <span className="text-[9px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{item.year}</span>
                                </div>
                             </td>
                             
-                            <td className="p-3 border-r border-gray-100 text-center align-middle">
+                            <td className="p-2 border-r border-gray-100 text-center align-middle">
                                 <span className="font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100 text-[11px]">
                                     {item.workingDays} <span className="text-[9px] text-emerald-500 uppercase">Days</span>
                                 </span>
                             </td>
 
-                            <td className="p-3 border-r border-gray-100 align-middle">
+                            <td className="p-2 border-r border-gray-100 align-middle">
                                 <div className="flex flex-col gap-1">
                                     <span className="font-black text-gray-900 flex items-center gap-1.5"><User size={12} className="text-emerald-500"/> {item.assignedTo}</span>
                                     <span className="font-bold text-gray-400 text-[9px] uppercase tracking-wider flex items-center gap-1"><Briefcase size={10}/>{item.role}</span>
                                 </div>
                             </td>
-                            <td className="p-3 border-r border-gray-100 align-middle"><p className="text-[11px] text-gray-600 leading-relaxed">{item.guideline}</p></td>
-                            <td className="p-3 border-r border-gray-100 align-middle"><span className="font-bold text-emerald-700 flex items-center gap-1.5"><BarChart2 size={12}/>{item.kpi_metric}</span></td>
-                            <td className="p-3 border-r border-gray-100 text-center align-middle">
+                            <td className="p-2 border-r border-gray-100 align-middle"><p className="text-[11px] text-gray-600 leading-relaxed">{item.guideline}</p></td>
+                            <td className="p-2 border-r border-gray-100 align-middle"><span className="font-bold text-emerald-700 flex items-center gap-1.5"><BarChart2 size={12}/>{item.kpi_metric}</span></td>
+                            <td className="p-2 border-r border-gray-100 text-center align-middle">
                                 <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${item.frequency === 'Daily' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-purple-50 text-purple-600 border-purple-200'}`}>{item.frequency}</span>
                             </td>
-<td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50">
+<td className="p-2 border-r border-gray-100 text-center align-middle bg-gray-50/50">
     <div className="flex flex-col items-center">
         <span className="text-sm font-mono font-black text-gray-800">{displayTarget?.toLocaleString('en-IN')}</span>
         {item.frequency === 'Daily' && (
@@ -953,7 +953,7 @@ export default function TLDomesticTargetPage() {
         )}
     </div>
 </td>
-                              <td className="p-3 border-r border-gray-100 text-center align-middle bg-gray-50/50">
+                              <td className="p-2 border-r border-gray-100 text-center align-middle bg-gray-50/50">
                                 <div className="flex flex-col items-center">
                                     <span className="text-sm font-mono font-black text-emerald-700">
                                       {isAccuracyKPI ? `${achievedValue}%` : achievedValue.toLocaleString('en-IN')}
@@ -968,24 +968,25 @@ export default function TLDomesticTargetPage() {
                                     )}
                                 </div>
                               </td>
-                            <td className="p-3 border-r border-gray-100 text-center align-middle">
+                            <td className="p-2 border-r border-gray-100 text-center align-middle">
                                 <span className={`px-2 py-1 rounded-md text-[10px] font-black inline-flex items-center gap-0.5 border ${percColor}`}>{percentage} <Percent size={10}/></span>
                             </td>
                             
-                            {/* ACTION COLUMN */}
-                            <td className="p-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)] align-middle group-hover:bg-emerald-50 transition-colors">
-                               <div className="flex flex-row items-center gap-2 w-full px-1 justify-center">
-                                   <button onClick={() => handleOpenModal(item)} className="flex-1 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-1 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-1 min-w-[50px]">
-                                       <Edit size={10} /> Edit
-                                   </button>
-                                   <button onClick={() => {
-                                        setViewData({ role: item.role, assignedTo: item.assignedTo, kpi_metric: item.kpi_metric });
-                                        setIsViewModalOpen(true);
-                                   }} className="flex-1 bg-white border border-gray-200 text-gray-700 hover:bg-gray-800 hover:text-white px-1 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-1 min-w-[50px]">
-                                       <Eye size={10} /> View
-                                   </button>
-                               </div>
-                            </td>
+                            {/* ACTION COLUMN - FIXED Z-INDEX LAYER BLENDING */}
+{/* Isme z-index ko drop karke 'z-0' kar diya hai, taaki scroll hote waqt ye header ke niche se nikle */}
+<td className="p-2 text-center bg-white sticky right-0 z-0 border-l border-gray-200 shadow-[-4px_0px_5px_rgba(0,0,0,0.05)] align-middle group-hover:bg-emerald-50 transition-colors">
+   <div className="flex flex-row items-center gap-2 w-full px-1 justify-center">
+       <button onClick={() => handleOpenModal(item)} className="flex-1 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-1 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-1 min-w-[50px]">
+           <Edit size={10} /> Edit
+       </button>
+       <button onClick={() => {
+           setViewData({ role: item.role, assignedTo: item.assignedTo, kpi_metric: item.kpi_metric });
+           setIsViewModalOpen(true);
+       }} className="flex-1 bg-white border border-gray-200 text-gray-700 hover:bg-gray-800 hover:text-white px-1 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-1 min-w-[50px]">
+           <Eye size={10} /> View
+       </button>
+   </div>
+</td>
                          </tr>
                      )})
                   ) : (

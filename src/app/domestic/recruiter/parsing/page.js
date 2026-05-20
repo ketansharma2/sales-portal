@@ -609,10 +609,10 @@ useEffect(() => {
     };
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-6 relative">
+        <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-2 md:p-2 relative">
             
          {/* --- COMPACT HEADER & UPLOAD SECTION (SINGLE ROW) --- */}
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 mb-6 flex flex-col xl:flex-row items-center justify-between gap-6 animate-in fade-in zoom-in-95 duration-500">
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-3 mb-4 flex flex-col xl:flex-row items-center justify-between gap-6 animate-in fade-in zoom-in-95 duration-500">
                 
                 {/* Left: Header Info */}
                 <div className="shrink-0 flex flex-col items-center xl:items-start text-center xl:text-left">
@@ -784,158 +784,168 @@ useEffect(() => {
 
                         {/* Wrapper div for both Vertical and Horizontal scrolling */}
                         <div className="overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar pb-4 relative">
-                            <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1700px]">
-                                
-                                 {/* Sticky Header */}
-                                 <thead className="sticky top-0 z-20">
-                                     <tr className="bg-white border-b-2 border-slate-100">
-                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest sticky left-0 bg-white z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] w-16 text-center">CV</th>
-                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Latest Status</th>
-                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Latest Profile</th>
-                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Remarks</th>
-                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Portal Info</th>
-                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Candidate Details</th>
-                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Location / Gender</th>
-                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Qualification</th>
-                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Experience / Company</th>
-                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Top Skills</th>
-                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest max-w-[200px]">All Skills & Companies</th>
-                                         <th className="py-3 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest sticky right-0 bg-slate-50 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] text-center border-l border-slate-200 w-28">Actions</th>
-                                     </tr>
-                                 </thead>
+                         <table className="w-full text-left border-collapse whitespace-nowrap max-w-[1500px]">
+    
+    {/* Sticky Header Setup */}
+    <thead className="sticky top-0 z-20 shadow-sm select-none">
+        <tr className="bg-slate-900 text-white text-[10px] uppercase font-black tracking-widest">
+            <th className="py-2 px-2 sticky left-0 bg-slate-900 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)] w-12 text-center border-b border-slate-700">CV</th>
+            <th className="py-2 px-2 border-b border-slate-700 max-w-[120px]">Latest Status</th>
+            <th className="py-2 px-2 border-b border-slate-700 max-w-[120px]">Latest Profile</th>
+            <th className="py-2 px-2 border-b border-slate-700 max-w-[150px] whitespace-normal">Remarks</th>
+            <th className="py-2 px-2 border-b border-slate-700 max-w-[80px]">Portal Info</th>
+            <th className="py-2 px-2 border-b border-slate-700 max-w-[150px] whitespace-normal">Candidate Details</th>
+            <th className="py-2 px-2 border-b border-slate-700 max-w-[110px]">Location / Gender</th>
+            <th className="py-2 px-2 border-b border-slate-700 max-w-[120px]">Qualification</th>
+            <th className="py-2 px-2 border-b border-slate-700 max-w-[130px]">Experience / Company</th>
+            <th className="py-2 px-2 border-b border-slate-700 max-w-[140px]">Top Skills</th>
+            <th className="py-2 px-2 border-b border-slate-700 max-w-[150px]">All Skills & Companies</th>
+            <th className="py-2 px-2 sticky right-0 bg-slate-900 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)] text-center border-l border-slate-700 border-b border-slate-700 w-28">Actions</th>
+        </tr>
+    </thead>
 
-                                <tbody className="divide-y divide-slate-100 bg-white">
-                                    {filteredParsedData.map((row) => (
-                                        <tr
-                                            key={row.id}
-                                            // onClick={() => navigateToHistory(row.id)} // Clicking ROW redirects to new page
-                                            className={`hover:bg-blue-50/30 transition-colors group  ${row.is_shared ? 'bg-blue-100' : ''}`}
-                                        >
-                                            
-                                            {/* 1. CV View Button (Sticky Left) */}
-                                            <td className="py-3 px-4 sticky left-0 bg-white group-hover:bg-blue-50/30 transition-colors z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] text-center">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation(); // Prevents row click
-                                                        if (row.cvUrl) {
-                                                            // Try to open in modal first
-                                                            setSelectedCandidateCV(row);
-                                                            setCvModalOpen(true);
-                                                        } else {
-                                                            // If no CV URL, show alert
-                                                            alert("No CV available for this candidate");
-                                                        }
-                                                    }}
-                                                    className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center mx-auto transition-colors"
-                                                    title={row.cvUrl ? "View Original CV" : "No CV Available"}
-                                                >
-                                                    <File size={14} />
-                                                </button>
-                                            </td>
+    {/* Body Section Area */}
+    <tbody className="divide-y divide-slate-100 bg-white">
+        {filteredParsedData.map((row) => (
+            <tr
+                key={row.id}
+                className={`hover:bg-blue-50/30 transition-colors group ${row.is_shared ? 'bg-blue-100/70' : ''}`}
+            >
+                
+                {/* 1. CV View Button (Sticky Left) */}
+                <td className="py-2 px-2 sticky left-0 bg-white group-hover:bg-slate-50 transition-colors z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] text-center">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (row.cvUrl) {
+                                setSelectedCandidateCV(row);
+                                setCvModalOpen(true);
+                            } else {
+                                alert("No CV available for this candidate");
+                            }
+                        }}
+                        className="w-7 h-7 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center mx-auto transition-colors"
+                        title={row.cvUrl ? "View Original CV" : "No CV Available"}
+                    >
+                        <File size={13} />
+                    </button>
+                </td>
 
-                                             {/* 2. Latest Candidate Status */}
-                                             <td className="py-3 px-4">
-                                                 <div className="flex flex-col">
-                                                     <span className="text-[10px] font-bold text-indigo-600 uppercase">{row.latest_status || '-'}</span>
-                                                     <span className="text-[9px] font-medium text-slate-500 mt-0.5">{row.latest_user || '-'}</span>
-                                                     <span className="text-[8px] font-medium text-slate-400 mt-0.5">{row.latest_date || '-'}</span>
-                                                 </div>
-                                             </td>
+                {/* 2. Latest Candidate Status (Truncated Tooltip) */}
+                <td className="py-2 px-2 max-w-[120px]">
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-[10px] font-black text-indigo-600 uppercase truncate" title={row.latest_status || '-'}>{row.latest_status || '-'}</span>
+                        <span className="text-[9px] font-bold text-slate-500 mt-0.5 truncate" title={row.latest_user || '-'}>{row.latest_user || '-'}</span>
+                        <span className="text-[8px] font-semibold text-slate-400 mt-0.5 truncate" title={row.latest_date || '-'}>{row.latest_date || '-'}</span>
+                    </div>
+                </td>
 
-                                             {/* 2a. Latest Profile (Job Title) */}
-                                             <td className="py-3 px-4">
-                                                 <p className="text-[10px] font-bold text-slate-700">{row.latest_profile || '-'}</p>
-                                             </td>
+                {/* 3. Latest Profile (Truncated Tooltip) */}
+                <td className="py-2 px-2 max-w-[100px]">
+                    <p className="text-[10px] font-black text-slate-700 truncate" title={row.latest_profile || '-'}>
+                        {row.latest_profile || '-'}
+                    </p>
+                </td>
 
-                                             {/* 2b. Remarks */}
-                                             <td className="py-3 px-4 max-w-[200px]">
-                                                 <p className="text-[9px] text-slate-600 italic truncate" title={row.latest_remarks}>
-                                                     {row.latest_remarks ? `"${row.latest_remarks}"` : 'No remarks'}
-                                                 </p>
-                                             </td>
+                {/* 4. Remarks (FULL VIEW - HEIGHT BREAK) */}
+                <td className="py-2 px-2 max-w-[150px] whitespace-normal break-words">
+                    <p className="text-[9px] font-bold text-slate-600 italic leading-normal">
+                        {row.latest_remarks ? `"${row.latest_remarks}"` : 'No remarks'}
+                    </p>
+                </td>
 
-                                             {/* 3. Portal & Portal Date */}
-                                             <td className="py-3 px-4">
-                                                <p className="text-[11px] font-black text-[#103c7f] uppercase">{row.portal}</p>
-                                                <p className="text-[10px] font-bold text-slate-500 mt-0.5">{row.portalDate}</p>
-                                            </td>
+                {/* 5. Portal Info (Truncated Tooltip) */}
+                <td className="py-2 px-2 max-w-[80px]">
+                    <div className="flex flex-col min-w-0">
+                        <p className="text-[11px] font-black text-[#103c7f] uppercase truncate" title={row.portal}>{row.portal}</p>
+                        <p className="text-[10px] font-bold text-slate-500 mt-0.5 truncate" title={row.portalDate}>{row.portalDate}</p>
+                    </div>
+                </td>
 
-                                            {/* 4, 5 & 6. Name, Email, Mobile */}
-                                            <td className="py-3 px-4">
-                                                <p className="text-xs font-black text-slate-800">{row.name}</p>
-                                                <div className="flex flex-col text-[10px] text-slate-500 font-bold mt-0.5 gap-0.5">
-                                                    <span className="flex items-center gap-1"><Search size={9}/> {row.mobile}</span>
-                                                    <span className="lowercase text-blue-500">{row.email}</span>
-                                                </div>
-                                            </td>
+                {/* 6. Candidate Details (FULL VIEW - HEIGHT BREAK) */}
+                <td className="py-2 px-2 max-w-[150px] whitespace-normal break-words">
+                    <p className="text-xs font-black text-slate-800 leading-tight">{row.name}</p>
+                    <div className="flex flex-col text-[10px] text-slate-500 font-bold mt-1 gap-0.5">
+                        <span className="flex items-center gap-1"><Search size={9} className="shrink-0"/> {row.mobile}</span>
+                        <span className="lowercase text-blue-500 break-all">{row.email}</span>
+                    </div>
+                </td>
 
-                                            {/* 7 & 8. Location & Gender */}
-                                            <td className="py-3 px-4">
-                                                <p className="text-xs font-bold text-slate-700 flex items-center gap-1"><MapPin size={10} className="text-slate-400"/>{row.location}</p>
-                                                <p className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-wider">{row.gender}</p>
-                                            </td>
+                {/* 7. Location & Gender (Truncated Tooltip) */}
+                <td className="py-2 px-2 max-w-[110px]">
+                    <div className="flex flex-col min-w-0">
+                        <p className="text-xs font-bold text-slate-700 flex items-center gap-1 truncate" title={row.location}>
+                            <MapPin size={9} className="text-slate-400 shrink-0"/>{row.location}
+                        </p>
+                        <p className="text-[10px] font-black text-slate-400 mt-0.5 uppercase tracking-wider truncate" title={row.gender}>{row.gender}</p>
+                    </div>
+                </td>
 
-                                            {/* 9 & 13. Qualification & College */}
-                                            <td className="py-3 px-4">
-                                                <p className="text-[11px] font-black text-slate-700">{row.qualification}</p>
-                                                <p className="text-[10px] font-bold text-slate-500 mt-0.5 max-w-[150px] truncate" title={row.collegeName}>{row.collegeName}</p>
-                                            </td>
+                {/* 8. Qualification (Truncated Tooltip) */}
+                <td className="py-2 px-2 max-w-[100px]">
+                    <div className="flex flex-col min-w-0">
+                        <p className="text-[11px] font-black text-slate-700 truncate" title={row.qualification}>{row.qualification}</p>
+                        <p className="text-[10px] font-bold text-slate-400 mt-0.5 truncate" title={row.collegeName}>{row.collegeName}</p>
+                    </div>
+                </td>
 
-                                            {/* 10 & 12. Experience & Recent Company */}
-                                            <td className="py-3 px-4">
-                                                <span className="bg-orange-50 text-orange-700 border border-orange-100 px-2 py-0.5 rounded text-[10px] font-black tracking-widest">{row.experience}</span>
-                                                <p className="text-[10px] font-bold text-slate-500 mt-1.5 max-w-[150px] truncate" title={row.recentCompany}>{row.recentCompany}</p>
-                                            </td>
+                {/* 9. Experience & Company (Truncated Tooltip) */}
+                <td className="py-2 px-2 max-w-[130px]">
+                    <div className="min-w-0">
+                        <span className="bg-orange-50 text-orange-700 border border-orange-100 px-1.5 py-0.5 rounded text-[9px] font-black tracking-widest">{row.experience}</span>
+                        <p className="text-[10px] font-bold text-slate-500 mt-1.5 truncate" title={row.recentCompany}>{row.recentCompany}</p>
+                    </div>
+                </td>
 
-                                            {/* 11. Top Skills */}
-                                            <td className="py-3 px-4">
-                                                <div className="flex flex-wrap gap-1 max-w-[150px]">
-                                                    {row.topSkills.split(',').map((skill, i) => (
-                                                        <span key={i} className="bg-slate-100 text-slate-600 text-[9px] font-bold px-1.5 py-0.5 rounded">{skill.trim()}</span>
-                                                    ))}
-                                                </div>
-                                            </td>
+                {/* 10. Top Skills */}
+                <td className="py-2 px-2 max-w-[140px]">
+                    <div className="flex flex-wrap gap-1">
+                        {row.topSkills.split(',').map((skill, i) => (
+                            <span key={i} className="bg-slate-100 text-slate-600 text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 truncate max-w-[130px]" title={skill.trim()}>
+                                {skill.trim()}
+                            </span>
+                        ))}
+                    </div>
+                </td>
 
-                                            {/* 14 & 15. All Skills & All Companies (Truncated) */}
-                                            <td className="py-3 px-4 max-w-[200px]">
-                                                <div className="text-[9px] font-bold text-slate-400 mb-1 truncate" title={row.allSkills}>
-                                                    <span className="text-slate-600">Skills:</span> {row.allSkills}
-                                                </div>
-                                                <div className="text-[9px] font-bold text-slate-400 truncate" title={row.allCompanies}>
-                                                    <span className="text-slate-600">Comps:</span> {row.allCompanies}
-                                                </div>
-                                            </td>
+                {/* 11. All Skills & All Companies (Truncated Tooltip) */}
+                <td className="py-2 px-2 max-w-[150px]">
+                    <div className="min-w-0 flex flex-col gap-0.5">
+                        <div className="text-[9px] font-bold text-slate-400 truncate" title={row.allSkills}>
+                            <span className="text-slate-600 font-extrabold">Skills:</span> {row.allSkills}
+                        </div>
+                        <div className="text-[9px] font-bold text-slate-400 truncate" title={row.allCompanies}>
+                            <span className="text-slate-600 font-extrabold">Comps:</span> {row.allCompanies}
+                        </div>
+                    </div>
+                </td>
 
-                                            {/* 16. Action (History Button) */}
-                                           <td className="py-3 px-4 sticky right-0 bg-slate-50 group-hover:bg-blue-50 transition-colors z-10 border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] w-28">
-    <div className="flex flex-col items-center justify-center gap-2">
-        {/* History Button */}
-        <button
-            onClick={(e) => {
-                e.stopPropagation(); // Prevents double firing since row is also clickable
-                navigateToHistory(row.id);
-            }}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#103c7f] text-white rounded hover:bg-blue-900 transition-colors font-black text-[10px] uppercase tracking-widest shadow-sm w-full justify-center"
-        >
-            <History size={12} /> History
-        </button>
-        
-        {/* Sent to TL Badge - Only shows when sent_to_tl is true */}
-        {row.sent_to_tl === true && (
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-md text-[9px] font-black uppercase tracking-wider border border-emerald-200 w-full justify-center">
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                Sent to TL
-            </div>
-        )}
-        
-       
-    </div>
-</td>
+                {/* 12. Action (History Button - Sticky Right) */}
+                <td className="py-2 px-2 sticky right-0 bg-slate-50 group-hover:bg-blue-50/50 transition-colors z-10 border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] w-28">
+                    <div className="flex flex-col items-center justify-center gap-1.5">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigateToHistory(row.id);
+                            }}
+                            className="flex items-center gap-1 px-3 py-1 bg-[#103c7f] text-white rounded hover:bg-blue-900 transition-colors font-black text-[9px] uppercase tracking-widest shadow-sm w-full justify-center h-[26px]"
+                        >
+                            <History size={11} /> History
+                        </button>
+                        
+                        {row.sent_to_tl === true && (
+                            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[8px] font-black uppercase tracking-wider border border-emerald-200 w-full justify-center select-none">
+                                <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse shrink-0"></div>
+                                Sent to TL
+                            </div>
+                        )}
+                    </div>
+                </td>
 
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+            </tr>
+        ))}
+    </tbody>
+</table>
                         </div>
                     </>
                 )}

@@ -729,187 +729,200 @@ export default function TLTrackerPage() {
                     
                 </div>
 
-                {/* Table Wrapper - Compact */}
-                <div className="overflow-x-auto overflow-y-auto max-h-[65vh] custom-scrollbar pb-2 relative">
-                    <table className="w-full text-left border-collapse whitespace-nowrap min-w-max">
-                        
-                        {/* Sticky Header */}
-                        <thead className="sticky top-0 z-20">
-                            <tr className="bg-slate-900 text-white">
-                                <th colSpan="8" className="py-1.5 px-3 text-[10px] font-black uppercase tracking-widest border-r border-slate-700 bg-blue-900/40 text-center">
-                                    <div className="flex items-center justify-center gap-1.5 text-blue-200"><User size={12}/> Recruiter (RC) Section</div>
-                                </th>
-                                <th colSpan="2" className="py-1.5 px-3 text-[10px] font-black uppercase tracking-widest bg-amber-900/40 text-center">
-                                    <div className="flex items-center justify-center gap-1.5 text-amber-200 "><ShieldCheck size={12}/> Team Lead (TL) Section</div>
-                                </th>
-                            </tr>
-                            <tr className="bg-slate-800 text-white">
-                                {/* RC Columns */}
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest sticky left-0 bg-slate-900 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)] w-10 text-center border-t border-slate-700">RC CV</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest border-t border-slate-700">Recruiter Info</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest border-t border-slate-700">Profile & Slot</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest border-t border-slate-700">Candidate Info</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest border-t border-slate-700">Loc & Qual</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest border-t border-slate-700">Exp (T/R)</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest text-center border-t border-slate-700">CTC (C/E)</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest max-w-[150px] border-r border-slate-700 border-t border-slate-700">RC Feedback</th>
-                                
-                                {/* TL Columns */}
-                                <th className="py-2 px-3 text-[10px] font-black text-amber-300 uppercase tracking-widest border-t border-slate-700 bg-slate-800/80 w-52">TL Evaluation & Updated CV</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest sticky right-0 bg-slate-900 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)] text-center border-l border-slate-700 border-t border-slate-700 w-32">Actions</th>
-                                <th className="py-2 px-3 text-[10px] font-black uppercase tracking-widest border-t border-slate-700 w-10 text-center bg-slate-800">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={filteredData.filter(r => !r.sentToCrm).length > 0 && selectedRows.length === filteredData.filter(r => !r.sentToCrm).length}
-                                        onChange={toggleSelectAll}
-                                        className="w-4 h-4 cursor-pointer"
-                                    />
-                                </th>
-                            </tr>
-                        </thead>
+                {/* Table Wrapper Component */}
+<div className="overflow-x-auto overflow-y-auto max-h-[70vh] custom-scrollbar pb-2 relative rounded-xl border border-slate-200">
+    <table className="w-full text-left border-collapse whitespace-nowrap min-w-max">
+        
+        {/* Sticky Header Setup */}
+        <thead className="sticky top-0 z-20">
+            <tr className="bg-slate-900 text-white">
+                <th colSpan="8" className="py-1.5 px-2 text-[10px] font-black uppercase tracking-widest border-r border-slate-700 bg-blue-900/40 text-center">
+                    <div className="flex items-center justify-center gap-1.5 text-blue-200"><User size={12}/> Recruiter (RC) Section</div>
+                </th>
+                <th colSpan="2" className="py-1.5 px-2 text-[10px] font-black uppercase tracking-widest bg-amber-900/40 text-center">
+                    <div className="flex items-center justify-center gap-1.5 text-amber-200 "><ShieldCheck size={12}/> Team Lead (TL) Section</div>
+                </th>
+            </tr>
+            <tr className="bg-slate-800 text-white text-[10px] uppercase font-black tracking-widest">
+                <th className="py-2 px-2 sticky left-0 bg-slate-900 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)] w-10 text-center border-t border-slate-700">RC CV</th>
+                <th className="py-2 px-2 border-t border-slate-700 max-w-[120px]">Recruiter Info</th>
+                <th className="py-2 px-2 border-t border-slate-700 max-w-[120px]">Profile & Slot</th>
+                <th className="py-2 px-2 border-t border-slate-700 max-w-[140px]">Candidate Info</th>
+                <th className="py-2 px-2 border-t border-slate-700 max-w-[130px]">Loc & Qual</th>
+                <th className="py-2 px-2 border-t border-slate-700 w-20 text-center">Exp (T/R)</th>
+                <th className="py-2 px-2 border-t border-slate-700 w-24 text-center">CTC (C/E)</th>
+                <th className="py-2 px-2 max-w-[140px] border-r border-slate-700 border-t border-slate-700">RC Feedback</th>
+                
+                <th className="py-2 px-2 text-amber-300 border-t border-slate-700 bg-slate-800/80 max-w-[180px]">TL Evaluation & Updated CV</th>
+                <th className="py-2 px-2 sticky right-0 bg-slate-900 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)] text-center border-l border-slate-700 border-t border-slate-700 w-32">Actions</th>
+                <th className="py-2 px-2 border-t border-slate-700 w-10 text-center bg-slate-800">
+                    <input 
+                        type="checkbox" 
+                        checked={filteredData.filter(r => !r.sentToCrm).length > 0 && selectedRows.length === filteredData.filter(r => !r.sentToCrm).length}
+                        onChange={toggleSelectAll}
+                        className="w-4 h-4 cursor-pointer animate-none"
+                    />
+                </th>
+            </tr>
+        </thead>
 
-                        <tbody className="divide-y divide-slate-100 bg-white">
-                            {filteredData.map((row) => (
-                                <tr key={row.id} className={`hover:bg-emerald-50/30 transition-colors group ${selectedRows.includes(row.id) ? 'bg-amber-50/30' : ''}`}>
-                                    
-                                    {/* 1. RC CV View Button */}
-                                    <td className="py-2 px-3 sticky left-0 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] text-center">
-                                        <button 
-                                            onClick={() => openCVModal(row, 'rc')}
-                                            disabled={!row.cv_url}
-                                            className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 flex items-center justify-center mx-auto transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                                            title={row.cv_url ? "View Recruiter's CV" : "No CV available"}
-                                        >
-                                            <FileText size={12} />
-                                        </button>
-                                    </td>
+        {/* Dense Table Body Area */}
+        <tbody className="divide-y divide-slate-100 bg-white">
+            {filteredData.map((row) => (
+                <tr key={row.id} className={`hover:bg-emerald-50/30 transition-colors group ${selectedRows.includes(row.id) ? 'bg-amber-50/30' : ''}`}>
+                    
+                    {/* 1. RC CV View Button */}
+                    <td className="py-2 px-2 sticky left-0 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] text-center">
+                        <button 
+                            onClick={() => openCVModal(row, 'rc')}
+                            disabled={!row.cv_url}
+                            className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 flex items-center justify-center mx-auto transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            title={row.cv_url ? "View Recruiter's CV" : "No CV available"}
+                        >
+                            <FileText size={12} />
+                        </button>
+                    </td>
 
-                                    {/* RC SECTION CELLS */}
-                                    <td className="py-2 px-3 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors">
-                                        <p className="text-[11px] font-black text-slate-800">{row.recruiterName}</p>
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                                            <Calendar size={8}/> {row.sentDate}
-                                        </p>
-                                    </td>
+                    {/* 2. Recruiter Info (Controlled) */}
+                    <td className="py-2 px-2 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors max-w-[120px]">
+                        <div className="min-w-0 flex flex-col">
+                            <p className="text-[11px] font-black text-slate-800 truncate" title={row.recruiterName}>{row.recruiterName}</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1 truncate" title={row.sentDate}>
+                                <Calendar size={8}/> {row.sentDate}
+                            </p>
+                        </div>
+                    </td>
 
-                                    <td className="py-2 px-3 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors">
-                                        <p className="text-[10px] font-black text-indigo-700 uppercase">{row.profile}</p>
-                                        <p className="text-[9px] font-bold text-slate-500 flex items-center gap-1"><Clock size={9}/> {row.slot}</p>
-                                    </td>
+                    {/* 3. Profile & Slot (Controlled) */}
+                    <td className="py-2 px-2 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors max-w-[120px]">
+                        <div className="min-w-0 flex flex-col">
+                            <p className="text-[10px] font-black text-indigo-700 uppercase truncate" title={row.profile}>{row.profile}</p>
+                            <p className="text-[9px] font-bold text-slate-500 flex items-center gap-1 truncate" title={row.slot}><Clock size={9}/> {row.slot}</p>
+                        </div>
+                    </td>
 
-                                    <td className="py-2 px-3 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors">
-                                        <p className="text-[11px] font-black text-slate-800">{row.name}</p>
-                                        <div className="flex flex-col text-[9px] text-slate-500 font-bold gap-0.5">
-                                            <span>{row.mobile}</span>
-                                            <span className="lowercase text-blue-500">{row.email}</span>
+                    {/* 4. Candidate Info (Controlled) */}
+                    <td className="py-2 px-2 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors max-w-[140px]">
+                        <div className="min-w-0 flex flex-col">
+                            <p className="text-[11px] font-black text-slate-800 truncate" title={row.name}>{row.name}</p>
+                            <div className="flex flex-col text-[9px] text-slate-500 font-bold gap-0.5">
+                                <span className="truncate" title={row.mobile}>{row.mobile}</span>
+                                <span className="lowercase text-blue-500 truncate" title={row.email}>{row.email}</span>
+                            </div>
+                        </div>
+                    </td>
+
+                    {/* 5. Loc & Qual (Controlled) */}
+                    <td className="py-2 px-2 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors max-w-[100px]">
+                        <div className="min-w-0 flex flex-col">
+                            <p className="text-[11px] font-bold text-slate-700 flex items-center gap-1 truncate" title={row.location}>
+                                <MapPin size={9} className="text-slate-400 shrink-0"/> {row.location}
+                            </p>
+                            <p className="text-[9px] font-bold text-slate-500 truncate" title={row.qualification}>{row.qualification}</p>
+                        </div>
+                    </td>
+
+                    {/* 6. Exp Tracker */}
+                    <td className="py-2 px-2 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors text-center w-20">
+                        <p className="text-[11px] font-black text-slate-800">{row.experience} <span className="text-[9px] font-bold text-slate-400 font-normal">T</span></p>
+                        <p className="text-[11px] font-black text-emerald-600">{row.relevantExp} <span className="text-[9px] font-bold text-emerald-400 font-normal">R</span></p>
+                    </td>
+
+                    {/* 7. CTC Matrices */}
+                    <td className="py-2 px-2 text-center bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors w-24">
+                        <p className="text-[10px] font-bold text-slate-500">{row.cCTC} / <span className="text-emerald-700 font-black">{row.eCTC}</span></p>
+                    </td>
+
+                    {/* max-w-[150px] fixed rahega par text niche ki taraf wrap hokar poora dikhega */}
+<td className="py-2 px-2 max-w-[180px] whitespace-normal break-words bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors border-r border-slate-100">
+    <p className="text-[10px] font-bold text-slate-600 italic leading-normal">
+        "{row.feedback}"
+    </p>
+</td>
+
+                   {/* Isme bhi review text truncate nahi hoga, niche automatic shift ho jayega */}
+<td className="py-2 px-2 max-w-[180px] whitespace-normal break-words bg-amber-50/30 group-hover:bg-amber-50/60 transition-colors">
+    {row.cvUpdateStatus ? (
+        <div className="space-y-1.5 flex flex-col">
+            <div className="flex items-center justify-between gap-1 w-full flex-wrap">
+                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border shrink-0 ${getStatusColor(row.cvUpdateStatus)}`}>
+                    {row.cvUpdateStatus}
+                </span>
+                {row.redacted_cv_url && (
+                    <button 
+                        onClick={() => openCVModal(row, 'tl')}
+                        className="flex items-center gap-1 text-[8px] font-black bg-white border border-amber-200 text-amber-700 px-1.5 py-0.5 rounded hover:bg-amber-100 transition-colors shrink-0"
+                    >
+                        <FileCheck size={9}/> View TL CV
+                    </button>
+                )}
+            </div>
+            {row.tlReview && (
+                <p className="text-[10px] font-medium text-slate-700 italic border-l-2 border-amber-300 pl-1.5 leading-normal">
+                    "{row.tlReview}"
+                </p>
+            )}
+        </div>
+    ) : (
+        <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1"><AlertCircle size={10}/> Pending Eval</span>
+    )}
+</td>
+
+                    {/* 10. Actions Column */}
+                    <td className="py-2 px-2 sticky right-0 bg-slate-50 group-hover:bg-amber-50/60 transition-colors z-10 border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] w-32">
+                        {row.isSentToCRM ? (
+                            <div className="flex flex-col items-center justify-center gap-1">
+                                <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-1.5 rounded text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1 w-full shadow-sm">
+                                    <CheckCircle2 size={12}/> Sent to CRM
+                                </span>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center gap-1.5">
+                                <button 
+                                    onClick={() => openTLUpdateModal(row)}
+                                    className={`w-full py-1.5 px-2 rounded flex items-center justify-center gap-1 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm border ${
+                                        row.cvUpdateStatus 
+                                        ? 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200' 
+                                        : 'bg-[#103c7f] text-white border-[#103c7f] hover:bg-blue-900'
+                                    }`}
+                                >
+                                    <Edit size={10}/> {row.cvUpdateStatus ? 'Edit Eval' : 'Evaluate'}
+                                </button>
+
+                                {row.cvUpdateStatus && (
+                                    row.sentToCrm ? (
+                                        <div className="w-full py-1.5 px-2 rounded bg-green-50 text-green-700 border border-green-200 flex items-center justify-center gap-1 font-black text-[9px] uppercase tracking-widest truncate" title={`SENT TO ${row.sentToCrmName}`}>
+                                            <CheckCircle2 size={10}/> SENT TO {row.sentToCrmName}
                                         </div>
-                                    </td>
+                                    ) : (
+                                        <button 
+                                            onClick={() => handleSendToCRM(row)}
+                                            className="w-full py-1.5 px-2 rounded bg-emerald-600 text-white border border-emerald-700 hover:bg-emerald-700 flex items-center justify-center gap-1 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
+                                        >
+                                            <Send size={10}/> To CRM
+                                        </button>
+                                    )
+                                )}
+                            </div>
+                        )}
+                    </td>
 
-                                    <td className="py-2 px-3 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors">
-                                        <p className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-                                            <MapPin size={9} className="text-slate-400"/> {row.location}
-                                        </p>
-                                        <p className="text-[9px] font-bold text-slate-500">{row.qualification}</p>
-                                    </td>
+                    {/* 11. Checkbox Element */}
+                    <td className="py-2 px-2 text-center bg-slate-800">
+                        <input 
+                            type="checkbox" 
+                            checked={selectedRows.includes(row.id)}
+                            onChange={() => toggleSelectRow(row.id)}
+                            disabled={!!row.sentToCrm}
+                            className={`w-4 h-4 cursor-pointer accent-amber-500 ${row.sentToCrm ? 'opacity-30 cursor-not-allowed' : ''}`}
+                        />
+                    </td>
 
-                                    <td className="py-2 px-3 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors">
-                                        <p className="text-[11px] font-black text-slate-800">{row.experience} <span className="text-[9px] font-bold text-slate-400 font-normal">Tot</span></p>
-                                        <p className="text-[11px] font-black text-emerald-600">{row.relevantExp} <span className="text-[9px] font-bold text-emerald-400 font-normal">Rel</span></p>
-                                    </td>
-
-                                    <td className="py-2 px-3 text-center bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors">
-                                        <p className="text-[10px] font-bold text-slate-500">{row.cCTC} / <span className="text-emerald-700 font-black">{row.eCTC}</span></p>
-                                    </td>
-
-                                    <td className="py-2 px-3 max-w-[150px] whitespace-normal bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors border-r border-slate-100">
-                                        <p className="text-[9px] font-bold text-slate-600 italic leading-snug">"{row.feedback}"</p>
-                                    </td>
-
-                                    {/* TL SECTION CELLS */}
-                                    <td className="py-2 px-3 w-52 whitespace-normal bg-amber-50/30 group-hover:bg-amber-50/60 transition-colors">
-                                        {row.cvUpdateStatus ? (
-                                            <div className="space-y-1.5">
-                                                <div className="flex items-center justify-between">
-                                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${getStatusColor(row.cvUpdateStatus)}`}>
-                                                        {row.cvUpdateStatus}
-                                                    </span>
-                                                    {/* TL CV View Button */}
-                                                    {row.redacted_cv_url && (
-                                                        <button 
-                                                            onClick={() => openCVModal(row, 'tl')}
-                                                            className="flex items-center gap-1 text-[8px] font-black bg-white border border-amber-200 text-amber-700 px-1.5 py-0.5 rounded hover:bg-amber-100 transition-colors"
-                                                            title="View TL Updated CV"
-                                                        >
-                                                            <FileCheck size={9}/> View TL CV
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                {row.tlReview && <p className="text-[9px] font-medium text-slate-700 italic border-l-2 border-amber-300 pl-1.5 leading-tight">"{row.tlReview}"</p>}
-                                            </div>
-                                        ) : (
-                                            <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1"><AlertCircle size={10}/> Pending Eval</span>
-                                        )}
-                                    </td>
-
-                                    {/* Actions (Sticky Right) */}
-                                    <td className="py-2 px-3 sticky right-0 bg-slate-50 group-hover:bg-amber-50/60 transition-colors z-10 border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] w-32">
-                                        
-                                        {row.isSentToCRM ? (
-                                            <div className="flex flex-col items-center justify-center gap-1">
-                                                <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-1.5 rounded text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1 w-full shadow-sm">
-                                                    <CheckCircle2 size={12}/> Sent to CRM
-                                                </span>
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col items-center justify-center gap-1.5">
-                                                {/* Evaluate / Edit TL Modal */}
-                                                <button 
-                                                    onClick={() => openTLUpdateModal(row)}
-                                                    className={`w-full py-1.5 px-2 rounded flex items-center justify-center gap-1 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm border ${
-                                                        row.cvUpdateStatus 
-                                                        ? 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200' 
-                                                        : 'bg-[#103c7f] text-white border-[#103c7f] hover:bg-blue-900'
-                                                    }`}
-                                                >
-                                                    <Edit size={10}/> {row.cvUpdateStatus ? 'Edit Eval' : 'Evaluate'}
-                                                </button>
-
-                                                {/* Send to CRM */}
-                                                {row.cvUpdateStatus && (
-                                                    row.sentToCrm ? (
-<div className="w-full py-1.5 px-2 rounded bg-green-50 text-green-700 border border-green-200 flex items-center justify-center gap-1 font-black text-[9px] uppercase tracking-widest">
-    <CheckCircle2 size={10}/> SENT TO {row.sentToCrmName}
+                </tr>
+            ))}
+        </tbody>
+    </table>
 </div>
-                                                    ) : (
-                                                        <button 
-                                                            onClick={() => handleSendToCRM(row)}
-                                                            className="w-full py-1.5 px-2 rounded bg-emerald-600 text-white border border-emerald-700 hover:bg-emerald-700 flex items-center justify-center gap-1 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
-                                                        >
-                                                            <Send size={10}/> To CRM
-                                                        </button>
-                                                    )
-                                                )}
-                                            </div>
-                                        )}
-
-                                    </td>
-
-                                    {/* Checkbox */}
-                                    <td className="py-2 px-2 text-center bg-slate-800">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={selectedRows.includes(row.id)}
-                                            onChange={() => toggleSelectRow(row.id)}
-                                            disabled={!!row.sentToCrm}
-                                            className={`w-4 h-4 cursor-pointer accent-amber-500 ${row.sentToCrm ? 'opacity-30 cursor-not-allowed' : ''}`}
-                                        />
-                                    </td>
-
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
             </div>
 
           

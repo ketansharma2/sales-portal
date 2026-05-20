@@ -189,7 +189,7 @@ export default function RCDomesticTargetPage() {
   const filteredMyTargets = myTargetsData.filter(t => t.month === myTargetMonth);
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-6 pb-20">
+    <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-2 md:p-2 pb-20">
       
       {/* ========================================== */}
       {/* 1. MY TARGETS (Assigned by TL) SECTION     */}
