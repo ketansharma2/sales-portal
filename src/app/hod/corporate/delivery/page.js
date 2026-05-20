@@ -1,87 +1,245 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   Users, UserCheck, Calendar, Search, Clock, 
   CheckCircle2, XCircle, AlertCircle, PhoneCall, FileText, 
-  TrendingUp, Award, Zap, Briefcase, SlidersHorizontal, ChevronDown
+  TrendingUp, Award, Zap, Briefcase, SlidersHorizontal, ChevronDown,Target, X
 } from "lucide-react";
 
 export default function CorporateDeliveryPage() {
-  // --- 1. FILTER STATES ---
+  const [crmOptions, setCrmOptions] = useState([]);
+  const [accuracyModalOpen, setAccuracyModalOpen] = useState(false);
+  const [rcAccuracyModalOpen, setRcAccuracyModalOpen] = useState(false);
+  const [tlOptions, setTlOptions] = useState([]);
+  const [rcOptions, setRcOptions] = useState([]);
+  const [selectedCrm, setSelectedCrm] = useState(null);
+  const [selectedTl, setSelectedTl] = useState(null);
   const [crmFilter, setCrmFilter] = useState("All");
   const [tlFilter, setTlFilter] = useState("All");
   const [rcFilter, setRcFilter] = useState("All");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [mounted, setMounted] = useState(false);
 
-  // --- 2. SAMPLE DATA ENGINE ---
-  const deliveryData = useMemo(() => {
-    return [
-      { id: 1, crm: "Vikas", tl: "Megha", rc: "Anjali", date: "2026-05-10", cv_parsed: 195, calls: 520, adv_sti: 110, asset: 55, tracker_to_tl: 95, tracker_to_crm: 75, tracker_to_client: 68, shortlisted: 50, interviewed: 32, selected: 15, joining: 5, ghosted: 2, rejected: 12, delayed_cv: 4 },
-      { id: 2, crm: "Priya", tl: "Rohan", rc: "Karan", date: "2026-05-14", cv_parsed: 130, calls: 410, adv_sti: 85, asset: 38, tracker_to_tl: 78, tracker_to_crm: 60, tracker_to_client: 52, shortlisted: 38, interviewed: 24, selected: 10, joining: 3, ghosted: 1, rejected: 7, delayed_cv: 1 },
-      { id: 3, crm: "Vikas", tl: "Rohan", rc: "Anjali", date: "2026-05-18", cv_parsed: 210, calls: 580, adv_sti: 130, asset: 62, tracker_to_tl: 115, tracker_to_crm: 92, tracker_to_client: 80, shortlisted: 64, interviewed: 40, selected: 18, joining: 7, ghosted: 3, rejected: 14, delayed_cv: 2 }
-    ];
+  const [metrics, setMetrics] = useState({
+    trackerToClient: 0, shortlisted: 0, interviewed: 0, selected: 0, joining: 0, ghosted: 0, rejected: 0,
+    trackerToCrm: 0, delayedCv: 0, cvParsed: 0, calls: 0, advSti: 0, asset: 0, trackerToTl: 0,
+    pipeline: 0, tlPipelineCv: 0, tlAccuracy: "0.0", rcConversion: "0.0", rcAccuracy: "0.0"
+  });
+  const [metricsLoading, setMetricsLoading] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
   }, []);
 
-  // Extract unique names dynamically for the dropdown options
-  const uniqueNames = useMemo(() => {
-    return {
-      crms: Array.from(new Set(deliveryData.map(item => item.crm))),
-      tls: Array.from(new Set(deliveryData.map(item => item.tl))),
-      rcs: Array.from(new Set(deliveryData.map(item => item.rc)))
-    };
-  }, [deliveryData]);
-
-  // --- 3. DYNAMIC FILTER FILTERING ---
-  const filteredData = useMemo(() => {
-    return deliveryData.filter(item => {
-      const matchesCrm = crmFilter === "All" || item.crm === crmFilter;
-      const matchesTl = tlFilter === "All" || item.tl === tlFilter;
-      const matchesRc = rcFilter === "All" || item.rc === rcFilter;
-      
-      let matchesDate = true;
-      if (dateFrom && dateTo) {
-        const itemDate = new Date(item.date);
-        matchesDate = itemDate >= new Date(dateFrom) && itemDate <= new Date(dateTo);
+  useEffect(() => {
+    const fetchCrms = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const response = await fetch('/api/hod/corporate/delivery/filters?type=crms', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setCrmOptions(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching CRMs:', error);
       }
-      return matchesCrm && matchesTl && matchesRc && matchesDate;
-    });
-  }, [deliveryData, crmFilter, tlFilter, rcFilter, dateFrom, dateTo]);
-
-  // --- 4. BUSINESS PERFORMANCE MATHEMATICS ---
-  const metrics = useMemo(() => {
-    let aggs = {
-      trackerToClient: 0, shortlisted: 0, interviewed: 0, selected: 0, joining: 0, ghosted: 0, rejected: 0,
-      trackerToCrm: 0, delayedCv: 0,
-      cvParsed: 0, calls: 0, advSti: 0, asset: 0, trackerToTl: 0
     };
 
-    filteredData.forEach(item => {
-      aggs.trackerToClient += item.tracker_to_client;
-      aggs.shortlisted += item.shortlisted;
-      aggs.interviewed += item.interviewed;
-      aggs.selected += item.selected;
-      aggs.joining += item.joining;
-      aggs.ghosted += item.ghosted;
-      aggs.rejected += item.rejected;
-      aggs.trackerToCrm += item.tracker_to_crm;
-      aggs.delayedCv += item.delayed_cv;
-      aggs.cvParsed += item.cv_parsed;
-      aggs.calls += item.calls;
-      aggs.advSti += item.adv_sti;
-      aggs.asset += item.asset;
-      aggs.trackerToTl += item.tracker_to_tl;
+    if (mounted) {
+      fetchCrms();
+    }
+  }, [mounted]);
+
+  const handleCrmChange = async (e) => {
+    const val = e.target.value; // now user_id or "All"
+    setCrmFilter(val);
+    setTlFilter("All"); setRcFilter("All");
+    setTlOptions([]); setRcOptions([]);
+    
+    if (val !== "All") {
+      const crm = crmOptions.find(c => c.user_id === val);
+      if (crm) {
+        setSelectedCrm(crm);
+        try {
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const res = await fetch(`/api/hod/corporate/delivery/filters?type=tls&sector=${crm.sector || 'Corporate'}`, {
+            headers: { 'Authorization': `Bearer ${session.access_token}` }
+          });
+          const data = await res.json();
+          if (data.success) setTlOptions(data.data || []);
+        } catch (error) {
+          console.error('Error fetching TLs:', error);
+        }
+      }
+    } else {
+      setSelectedCrm(null);
+    }
+  };
+
+  const handleTlChange = async (e) => {
+    const val = e.target.value;
+    setTlFilter(val); setRcFilter("All"); setRcOptions([]);
+    const tl = tlOptions.find(t => t.user_id === val);
+    
+    if (tl) {
+      setSelectedTl(tl);
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const res = await fetch(`/api/hod/corporate/delivery/filters?type=rcs&tlId=${tl.user_id}`, {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        });
+        const data = await res.json();
+        if (data.success) setRcOptions(data.data || []);
+      } catch (error) {
+        console.error('Error fetching RCs:', error);
+      }
+    } else setSelectedTl(null);
+  };
+
+const fetchMetrics = async () => {
+  try {
+    setMetricsLoading(true);
+    const session = JSON.parse(localStorage.getItem('session') || '{}');
+    const params = new URLSearchParams();
+    if (crmFilter !== 'All') {
+      params.append('user_id', crmFilter);  // ✅ Pass the selected CRM's user_id
+    }
+
+     if (tlFilter !== 'All') {
+    params.append('tl_id', tlFilter);
+    }
+      if (rcFilter !== 'All') {
+      params.append('rc_id', rcFilter);
+     params.append('rc_id', rcFilter);
+      params.append('rc_id', rcFilter);
+    }
+    if (dateFrom) {
+      params.append('from', dateFrom);
+      params.append('from', dateFrom);
+      params.append('from', dateFrom);
+    }
+    if (dateTo) {
+      params.append('to', dateTo);
+      params.append('to', dateTo);
+      params.append('to', dateTo);
+    }
+     
+    if (dateFrom) params.append('from', dateFrom);
+    if (dateTo) params.append('to', dateTo);
+
+    const [crmRes, tlRes, rcRes, cvRes, stiRes] = await Promise.all([
+      fetch(`/api/hod/corporate/delivery/crm-metrics?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      }),
+      fetch(`/api/hod/corporate/delivery/tl-metrics?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      }),
+      fetch(`/api/hod/corporate/delivery/rc-metrics?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      }),
+       fetch(`/api/hod/corporate/delivery/rc-metrics/total-cvs?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      }),
+      fetch(`/api/hod/corporate/delivery/rc-metrics/total-sti?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      })
+    ]);
+
+    const [crmData, tlData, rcData, cvData, stiData] = await Promise.all([
+      crmRes.json(),
+      tlRes.json(),
+      rcRes.json(),
+      cvRes.json(),
+      stiRes.json()
+    ]);
+
+    // Calculate KPIs from CRM data array
+    // Your API returns { success: true, data: [...] }
+    const candidates = crmData?.success ? crmData.data : [];
+      let filteredCandidates = candidates;
+    
+    if (dateFrom) {
+      filteredCandidates = filteredCandidates.filter(c => 
+        c.shared_date && c.shared_date >= dateFrom
+      );
+    }
+    
+    if (dateTo) {
+      filteredCandidates = filteredCandidates.filter(c => 
+        c.shared_date && c.shared_date <= dateTo
+      );
+    }
+    // Map statuses from your data - note: using latest_interview_status field
+    const kpiCounts = {
+      shared: filteredCandidates.length,
+      shortlisted: filteredCandidates.filter(c => c.latest_interview_status === 'Shortlisted').length,
+      interviewed: filteredCandidates.filter(c => c.latest_interview_status === 'Interviewed').length,
+      selected: filteredCandidates.filter(c => c.latest_interview_status === 'Selected').length,
+      joining: filteredCandidates.filter(c => c.latest_interview_status === 'Joining').length,
+      pipeline: filteredCandidates.filter(c => c.latest_interview_status === 'Pipeline').length,
+      ghosted: filteredCandidates.filter(c => c.latest_interview_status === 'Ghosted').length,
+      rejected: filteredCandidates.filter(c => c.latest_interview_status === 'Rejected').length,
+    };
+
+    console.log('Calculated CRM KPIs:', rcData);
+
+    // Merge all metrics properly
+    setMetrics({
+      // CRM metrics
+      trackerToClient: kpiCounts.shared,
+      shortlisted: kpiCounts.shortlisted,
+      interviewed: kpiCounts.interviewed,
+      selected: kpiCounts.selected,
+      joining: kpiCounts.joining,
+      pipeline: kpiCounts.pipeline,
+      ghosted: kpiCounts.ghosted,
+      rejected: kpiCounts.rejected,
+      
+      // TL metrics - adjust based on your actual TL API response structure
+      trackerToCrm: tlData?.success ? (tlData.data?.trackerToCrm || 0) : 0,
+      delayedCv: tlData?.success ? (tlData.data?.delayedCv || 0) : 0,
+      tlPipelineCv: tlData?.success ? (tlData.data?.tlPipelineCv || 0) : 0,
+      tlAccuracy: tlData?.success && tlData.data?.trackerToCrm > 0 
+  ? Math.round(((tlData.data?.joining || 0) / (tlData.data?.trackerToCrm || 0) * 100)).toString()
+  : "0",
+        joining: tlData?.success ? (tlData.data?.joining || 0) : 0,
+      rejectedCv: tlData?.success ? (tlData.data?.rejectedCv || 0) : 0,
+      // RC metrics - adjust based on your actual RC API response structure
+     
+      calls: rcData?.success ? (rcData.totalCalls || 0) : 0,
+     
+      asset: rcData?.success ? (rcData.asset || 0) : 0,
+      trackerToTl: rcData?.success ? (rcData.newTrackerSent + rcData.oldTrackerSent || 0) : 0,
+      rcConversion: rcData?.success ? (rcData.conversions || "0.0") : "0.0",
+      rcAccuracy: rcData?.success && rcData.trackerSent > 0 
+  ? Math.round((rcData.jdMatchCount || 0) / (rcData.trackerSent || 0) * 100)
+  : 0,
+  jdMatchCount
+: rcData?.success ? (rcData.jdMatchCount || 0) : 0,
+      asset: rcData?.success ? (rcData.totalAssets || 0) : 0,
+      cvParsed: cvData?.success ? (cvData.data?.cvParsed || 0) : 0,
+      advSti: stiData?.success ? (stiData.data?.advSti || 0) : 0
     });
+    
+  } catch (error) {
+    console.error('Error fetching delivery metrics:', error);
+  } finally {
+    setMetricsLoading(false);
+  }
+};
 
-    const pipeline = aggs.selected - aggs.joining;
-    const tlPipelineCv = aggs.trackerToCrm - aggs.interviewed;
+  useEffect(() => {
+    if (mounted) {
+      fetchMetrics();
+    }
+  }, [crmFilter, tlFilter, rcFilter, dateFrom, dateTo, mounted]);
 
-    const tlAccuracy = aggs.trackerToCrm > 0 ? ((aggs.interviewed / aggs.trackerToCrm) * 100).toFixed(1) : "0.0";
-    const rcConversion = aggs.calls > 0 ? ((aggs.trackerToTl / aggs.calls) * 100).toFixed(1) : "0.0";
-    const rcAccuracy = aggs.trackerToTl > 0 ? ((aggs.trackerToCrm / aggs.trackerToTl) * 100).toFixed(1) : "0.0";
+  // Static sample data removed - CRM card now uses real API data from crm-metrics
 
-    return { ...aggs, pipeline, tlPipelineCv, tlAccuracy, rcConversion, rcAccuracy };
-  }, [filteredData]);
+  // Metrics now come from API via fetchMetrics
 
   return (
     <div className="min-h-screen bg-[#f4f6f9] font-['Calibri',sans-serif] p-2 md:p-2 text-slate-800 antialiased">
@@ -108,11 +266,11 @@ export default function CorporateDeliveryPage() {
             <div className="relative">
               <select 
                 value={crmFilter}
-                onChange={(e) => setCrmFilter(e.target.value)}
+                onChange={handleCrmChange}
                 className="w-full pl-3 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none appearance-none focus:border-blue-600 focus:bg-white transition-all shadow-inner cursor-pointer"
               >
                 <option value="All">All CRMs</option>
-                {uniqueNames.crms.map(name => <option key={name} value={name}>{name}</option>)}
+                {crmOptions.map(c => <option key={c.user_id} value={c.user_id}>{c.name}</option>)}
               </select>
               <ChevronDown size={14} className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" />
             </div>
@@ -123,11 +281,11 @@ export default function CorporateDeliveryPage() {
             <div className="relative">
               <select 
                 value={tlFilter}
-                onChange={(e) => setTlFilter(e.target.value)}
+                onChange={handleTlChange}
                 className="w-full pl-3 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none appearance-none focus:border-blue-600 focus:bg-white transition-all shadow-inner cursor-pointer"
               >
                 <option value="All">All Team Leaders</option>
-                {uniqueNames.tls.map(name => <option key={name} value={name}>{name}</option>)}
+                {tlOptions.map(t => <option key={t.user_id} value={t.user_id}>{t.name}</option>)}
               </select>
               <ChevronDown size={14} className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" />
             </div>
@@ -142,7 +300,7 @@ export default function CorporateDeliveryPage() {
                 className="w-full pl-3 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none appearance-none focus:border-blue-600 focus:bg-white transition-all shadow-inner cursor-pointer"
               >
                 <option value="All">All Recruiters</option>
-                {uniqueNames.rcs.map(name => <option key={name} value={name}>{name}</option>)}
+                {rcOptions.map(r => <option key={r.user_id} value={r.user_id}>{r.name}</option>)}
               </select>
               <ChevronDown size={14} className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" />
             </div>
@@ -208,9 +366,9 @@ export default function CorporateDeliveryPage() {
           <div className="flex flex-row gap-3 overflow-x-auto pb-1 scrollbar-thin">
             <CompactCard name="Tracker sent to CRM" value={metrics.trackerToCrm} icon={<FileText size={14}/>} theme="indigo" />
             <CompactCard name="pipeline CV" value={metrics.tlPipelineCv} icon={<Clock size={14}/>} theme="blue" hint="Pending schedule breakdown" />
-            <CompactCard name="rejected CV" value={metrics.rejected} icon={<XCircle size={14}/>} theme="red" />
+            <CompactCard name="rejected CV" value={metrics.rejectedCv} icon={<XCircle size={14}/>} theme="red" />
             <CompactCard name="Joining" value={metrics.joining} icon={<UserCheck size={14}/>} theme="green" />
-            <CompactCard name="Accuracy %" value={`${metrics.tlAccuracy}%`} icon={<TrendingUp size={14}/>} theme="emerald" />
+            <CompactCard name="Accuracy %" value={`${metrics.tlAccuracy}%`} icon={<TrendingUp size={14}/>} theme="emerald"  onClick={() => setAccuracyModalOpen(true)} />
             
             {/* EXPLICIT DESIGN: Delayed Pipeline CV Box Shape */}
             <div className={`p-3.5 bg-white rounded-xl border border-slate-200 border-t-4 flex flex-col justify-between min-w-[160px] max-w-[160px] h-24 shrink-0 transition-all shadow-sm ${
@@ -246,10 +404,17 @@ export default function CorporateDeliveryPage() {
             <CompactCard name="New CV Parsed" value={metrics.cvParsed} icon={<FileText size={14}/>} theme="teal" />
             <CompactCard name="Candidate  calling" value={metrics.calls} icon={<PhoneCall size={14}/>} theme="blue" />
             <CompactCard name="Adv STI" value={metrics.advSti} icon={<TrendingUp size={14}/>} theme="indigo" />
-            <CompactCard name="Conversion" value={`${metrics.rcConversion}%`} icon={<Zap size={14}/>} theme="purple" hint="Call shift rate matrix" />
+            <CompactCard name="Conversion" value={`${metrics.rcConversion}`} icon={<Zap size={14}/>} theme="purple" hint="Call shift rate matrix" />
             <CompactCard name="Asset" value={metrics.asset} icon={<Users size={14}/>} theme="amber" />
-            <CompactCard name="Accuracy %" value={`${metrics.rcAccuracy}%`} icon={<Award size={14}/>} theme="emerald" hint="TL validation score" />
-            <CompactCard name="Tracker sent to TL" value={metrics.trackerToTl} icon={<CheckCircle2 size={14}/>} theme="green" />
+<CompactCard 
+  name="Accuracy %" 
+  value={`${metrics.rcAccuracy}%`} 
+  icon={<Award size={14}/>} 
+  theme="emerald" 
+  hint="TL validation score" 
+  onClick={() => setRcAccuracyModalOpen(true)}  // ✅ Changed to RC modal
+/>     
+       <CompactCard name="Tracker sent to TL" value={metrics.trackerToTl} icon={<CheckCircle2 size={14}/>} theme="green" />
           </div>
         </div>
 
@@ -263,12 +428,102 @@ export default function CorporateDeliveryPage() {
         .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
       `}} />
 
+      {/* RC Accuracy Modal */}
+{rcAccuracyModalOpen && (
+  <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4" onClick={() => setRcAccuracyModalOpen(false)}>
+    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+      
+      {/* Header */}
+      <div className="bg-teal-600 p-4 flex justify-between items-center text-white shrink-0">
+        <h3 className="font-black text-lg uppercase tracking-wide flex items-center gap-2">
+          <Target size={20}/> RC Accuracy Details
+        </h3>
+        <div className="flex items-center gap-3">
+          <div className="bg-white/20 px-3 py-1 rounded-full">
+            <span className="text-lg font-black">{metrics.rcAccuracy}%</span>
+          </div>
+          <button onClick={() => setRcAccuracyModalOpen(false)} className="hover:bg-white/20 p-1 rounded-full transition bg-white/10">
+            <X size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="p-6 pb-0">
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">JD Match Count</p>
+            <p className="text-3xl font-black text-blue-800">{metrics.jdMatchCount || 0}</p>
+          </div>
+          <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+            <p className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Tracker Sent to TL</p>
+            <p className="text-3xl font-black text-green-800">{metrics.trackerToTl}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer Strip */}
+      <div className="bg-gray-100 p-3 text-center border-t border-gray-200">
+        <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+          JD Match Count / Tracker Sent to TL × 100
+        </p>
+      </div>
+
+    </div>
+  </div>
+)}
+
+      {/* Accuracy Modal */}
+{accuracyModalOpen && (
+  <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4" onClick={() => setAccuracyModalOpen(false)}>
+    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl border-4 border-white overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+      
+      {/* Header */}
+      <div className="bg-cyan-600 p-4 flex justify-between items-center text-white shrink-0">
+        <h3 className="font-black text-lg uppercase tracking-wide flex items-center gap-2">
+          <Target size={20}/> Accuracy Details
+        </h3>
+        <div className="flex items-center gap-3">
+          <div className="bg-white/20 px-3 py-1 rounded-full">
+            <span className="text-lg font-black">{metrics.tlAccuracy}%</span>
+          </div>
+          <button onClick={() => setAccuracyModalOpen(false)} className="hover:bg-white/20 p-1 rounded-full transition bg-white/10">
+            <X size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="p-6 pb-0">
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Trackers Sent TO CRM</p>
+            <p className="text-3xl font-black text-blue-800">{metrics.trackerToCrm}</p>
+          </div>
+          <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+            <p className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Candidates Joined</p>
+            <p className="text-3xl font-black text-green-800">{metrics.joining}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer Strip */}
+      <div className="bg-gray-100 p-3 text-center border-t border-gray-200">
+        <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+          Candidates Joined / Trackers Sent TO CRM × 100
+        </p>
+      </div>
+
+    </div>
+  </div>
+)}
+
     </div>
   );
 }
 
 {/* --- REUSABLE CANVA ULTRA-COMPACT RECTANGLE CARD COMPONENT --- */}
-function CompactCard({ name, value, icon, theme, hint }) {
+function CompactCard({ name, value, icon, theme, hint,onClick }) {
   const styles = {
     blue: { bg: "border-t-blue-500 bg-gradient-to-b from-white to-blue-50/5", icon: "bg-blue-50 text-blue-600" },
     indigo: { bg: "border-t-indigo-500 bg-gradient-to-b from-white to-indigo-50/5", icon: "bg-indigo-50 text-indigo-600" },
@@ -284,7 +539,7 @@ function CompactCard({ name, value, icon, theme, hint }) {
   const current = styles[theme] || styles.blue;
 
   return (
-    <div className={`p-3.5 bg-white rounded-xl border border-slate-200 border-t-4 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between min-w-[160px] max-w-[160px] h-24 shrink-0 group ${current.bg}`}>
+    <div  onClick={onClick} className={`p-3.5 bg-white rounded-xl border border-slate-200 border-t-4 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between min-w-[160px] max-w-[160px] h-24 shrink-0 group ${current.bg}`}>
       <div className="flex justify-between items-start gap-1 w-full">
         <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider leading-tight group-hover:text-slate-600 transition-colors line-clamp-2">
           {name}
