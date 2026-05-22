@@ -6,13 +6,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { 
   Search, Filter, Calendar, User, Briefcase, 
   MapPin, Phone, Mail, History, X, Download, FileText, 
-  Building2, GraduationCap, CheckCircle, AlertCircle, Clock,Eye
+  Building2, GraduationCap, CheckCircle, AlertCircle, Clock, Eye
 } from "lucide-react";
 
 // --- DUMMY DATA ---
 const DUMMY_CANDIDATES = [
   {
     id: "CAN-001",
+    cv_url: "/path-to-cv-1.pdf", // ADD THIS
     latest_status: "Interview Scheduled",
     latest_profile: "Senior React Developer",
     remarks: "Good communication, technically sound in hooks.",
@@ -112,38 +113,54 @@ function CVByJobPostPage() {
     setTimeout(() => setLoading(false), 500);
   }, []);
 
-  // --- FILTER LOGIC ---
-  const filteredData = useMemo(() => {
-    return DUMMY_CANDIDATES.filter(cand => {
-      // Global Search
-      if (filters.globalSearch) {
-        const query = filters.globalSearch.toLowerCase();
-        if (!cand.name.toLowerCase().includes(query) && 
-            !cand.email.toLowerCase().includes(query) && 
-            !cand.latest_profile.toLowerCase().includes(query) &&
-            !cand.top_skills.some(s => s.toLowerCase().includes(query))) {
-          return false;
-        }
-      }
-      
-      // Individual Field Filters
-      if (filters.candidateName && !cand.name.toLowerCase().includes(filters.candidateName.toLowerCase())) return false;
-      if (filters.email && !cand.email.toLowerCase().includes(filters.email.toLowerCase())) return false;
-      if (filters.phone && !cand.phone.includes(filters.phone)) return false;
-      if (filters.profileSearch && !cand.latest_profile.toLowerCase().includes(filters.profileSearch.toLowerCase())) return false;
+// --- FILTER LOGIC ---
+   const filteredData = useMemo(() => {
+     return DUMMY_CANDIDATES.filter(cand => {
+       // Global Search
+       if (filters.globalSearch) {
+         const query = filters.globalSearch.toLowerCase();
+         const name = cand.name?.toLowerCase() || '';
+         const email = cand.email?.toLowerCase() || '';
+         const profile = cand.latest_profile?.toLowerCase() || '';
+         const skills = cand.top_skills || [];
+         
+         if (!name.includes(query) && 
+             !email.includes(query) && 
+             !profile.includes(query) &&
+             !skills.some(s => (s || '').toLowerCase().includes(query))) {
+           return false;
+         }
+       }
+       
+       // Individual Field Filters
+       const candidateName = filters.candidateName?.toLowerCase() || '';
+       const filterEmail = filters.email?.toLowerCase() || '';
+       const filterPhone = filters.phone || '';
+       const filterProfile = filters.profileSearch?.toLowerCase() || '';
+       
+       const cName = cand.name?.toLowerCase() || '';
+       const cEmail = cand.email?.toLowerCase() || '';
+       const cPhone = cand.phone || '';
+       const cProfile = cand.latest_profile?.toLowerCase() || '';
+       
+       if (candidateName && !cName.includes(candidateName)) return false;
+       if (filterEmail && !cEmail.includes(filterEmail)) return false;
+       if (filterPhone && !cPhone.includes(filterPhone)) return false;
+       if (filterProfile && !cProfile.includes(filterProfile)) return false;
 
-      // Date Range Filter (Using Portal Date for filtering)
-      if (filters.fromDate || filters.toDate) {
-        const itemDate = new Date(cand.portal_date);
-        itemDate.setHours(0, 0, 0, 0);
-        
-        if (filters.fromDate && itemDate < new Date(filters.fromDate)) return false;
-        if (filters.toDate) {
-          const tDate = new Date(filters.toDate);
-          tDate.setHours(23, 59, 59, 999);
-          if (itemDate > tDate) return false;
-        }
-      }
+// Date Range Filter (Using Portal Date for filtering)
+       if (filters.fromDate || filters.toDate) {
+         if (!cand.portal_date) return false;
+         const itemDate = new Date(cand.portal_date);
+         itemDate.setHours(0, 0, 0, 0);
+         
+         if (filters.fromDate && itemDate < new Date(filters.fromDate)) return false;
+         if (filters.toDate) {
+           const tDate = new Date(filters.toDate);
+           tDate.setHours(23, 59, 59, 999);
+           if (itemDate > tDate) return false;
+         }
+       }
 
       return true;
     });
@@ -157,11 +174,12 @@ function CVByJobPostPage() {
     setHistoryModal({ isOpen: true, candidate });
   };
 
-  const getStatusStyle = (status) => {
-    if (status.includes("Scheduled") || status.includes("Joined") || status.includes("Pending Join")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
-    if (status.includes("Rejected") || status.includes("Not")) return "bg-red-50 text-red-700 border-red-200";
-    return "bg-blue-50 text-blue-700 border-blue-200";
-  };
+const getStatusStyle = (status) => {
+     if (!status) return "bg-blue-50 text-blue-700 border-blue-200";
+     if (status.includes("Scheduled") || status.includes("Joined") || status.includes("Pending Join")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
+     if (status.includes("Rejected") || status.includes("Not")) return "bg-red-50 text-red-700 border-red-200";
+     return "bg-blue-50 text-blue-700 border-blue-200";
+   };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-2 md:p-2 pb-20">
@@ -463,4 +481,3 @@ function CVByJobPostPage() {
   );
 }
 
-export default CVByJobPostPage;
