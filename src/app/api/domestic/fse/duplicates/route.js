@@ -17,7 +17,7 @@ export async function GET(request) {
     // Get all clients for this user
     const { data: clients, error: clientsError } = await supabaseServer
       .from('domestic_clients')
-      .select('client_id, company_name, user_id, sourcing_date')
+      .select('client_id, company_name, state, location, sourcing_date, user_id')
       .eq('user_id', user.id)
 
     if (clientsError) {
@@ -25,18 +25,24 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Failed to fetch clients' }, { status: 500 })
     }
 
-    // Group clients by lowercase company_name to find duplicates
+    // Group clients by combo key (company_name|state|location) to find duplicates
     const companyGroups = {}
     clients?.forEach(client => {
       const lowerCompanyName = client.company_name?.toLowerCase().trim() || ''
-      if (lowerCompanyName) {
-        if (!companyGroups[lowerCompanyName]) {
-          companyGroups[lowerCompanyName] = []
+      const state = client.state?.toLowerCase().trim() || ''
+      const location = client.location?.toLowerCase().trim() || ''
+      const comboKey = `${lowerCompanyName}|${state}|${location}`
+
+      if (lowerCompanyName && state && location && comboKey !== '||') {
+        if (!companyGroups[comboKey]) {
+          companyGroups[comboKey] = []
         }
-        companyGroups[lowerCompanyName].push({
+        companyGroups[comboKey].push({
           client_id: client.client_id,
           company_name: client.company_name,
-          sourcing_date: client.sourcing_date
+          sourcing_date: client.sourcing_date,
+          state: client.state,
+          location: client.location
         })
       }
     })

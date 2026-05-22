@@ -477,25 +477,29 @@ export async function POST(request) {
       projections[projectionKeys[i]] = count
     }
 
-    // Count duplicates using SQL-like logic (LOWER(TRIM(company_name)))
+    // Count duplicates using combo key: company_name + state + location
     const { data: allClients, error: allClientsError } = await supabaseServer
       .from('domestic_clients')
-      .select('client_id, company_name')
+      .select('client_id, company_name, state, location')
       .eq('user_id', user.id)
 
     if (allClientsError) {
       console.error('All clients error:', allClientsError)
     }
 
-    // Group clients by lowercase trimmed company_name to find duplicates
+    // Group clients by combo key (company_name|state|location) to find duplicates
     const companyGroups = {}
     allClients?.forEach(client => {
       const lowerTrimmedName = client.company_name?.toLowerCase().trim() || ''
-      if (lowerTrimmedName && lowerTrimmedName !== '') {
-        if (!companyGroups[lowerTrimmedName]) {
-          companyGroups[lowerTrimmedName] = []
+      const state = client.state?.toLowerCase().trim() || ''
+      const location = client.location?.toLowerCase().trim() || ''
+      const comboKey = `${lowerTrimmedName}|${state}|${location}`
+
+      if (lowerTrimmedName && state && location && comboKey !== '||') {
+        if (!companyGroups[comboKey]) {
+          companyGroups[comboKey] = []
         }
-        companyGroups[lowerTrimmedName].push(client.client_id)
+        companyGroups[comboKey].push(client.client_id)
       }
     })
 

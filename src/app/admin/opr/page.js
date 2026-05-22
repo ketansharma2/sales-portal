@@ -22,12 +22,12 @@ export default function OperationsReport() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-3 md:p-6 font-['Cambria',sans-serif]">
+    <div className="min-h-screen bg-slate-50 p-2 md:p-2 font-['Cambria',sans-serif]">
       
       {/* ========================================================= */}
       {/* UNIFIED HEADER (Visible on Screen AND Print)               */}
       {/* ========================================================= */}
-      <div className="flex justify-between items-center mb-6 max-w-7xl mx-auto border-b-2 border-[#103c7f] pb-4">
+      <div className="flex justify-between items-center mb-3 max-w-7xl mx-auto border-b-2 border-[#103c7f] pb-4">
         <div className="flex items-center gap-4">
           <img src="/maven-logo.png" alt="Maven Logo" className="h-10 md:h-12 w-auto object-contain" />
           <div>
@@ -47,68 +47,54 @@ export default function OperationsReport() {
       {/* ========================================================= */}
       {/* TIER 1: EXECUTIVE SCREEN DASHBOARD (Hidden on Print)     */}
       {/* ========================================================= */}
-      <div className="print:hidden max-w-7xl mx-auto space-y-6 mb-6">
+      <div className="print:hidden max-w-7xl mx-auto space-y-3 mb-3">
         
-        {/* INTERACTIVE CONTROLS / SECTOR TOGGLES */}
-        <div className="flex items-center justify-between bg-white p-2 rounded-xl border border-gray-200 shadow-sm flex-wrap gap-2">
-          <div className="flex gap-1.5">
-            {["All", "Corporate", "Domestic", "Tech"].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                  activeTab === tab 
-                    ? "bg-[#103c7f] text-white shadow-sm" 
-                    : "text-gray-500 hover:bg-gray-100"
-                }`}
-              >
-                {tab === "All" ? "Complete View" : `${tab} Section`}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border border-amber-100 text-[11px] font-bold uppercase tracking-wide">
-            <AlertTriangle size={12}/> System Warning: 3,333 Domestic Duplicates Detected
-          </div>
-        </div>
+      {/* INTERACTIVE CONTROLS / SECTOR TOGGLES & DATE FILTER */}
+<div className="flex items-center justify-between bg-white p-2 rounded-xl border border-gray-200 shadow-sm flex-wrap gap-4">
+  
+  {/* Left Side: Category Toggles */}
+  <div className="flex gap-1.5 overflow-x-auto">
+    {["All", "Sales", "Delivery", "Tech"].map((tab) => (
+      <button
+        key={tab}
+        onClick={() => setActiveTab(tab)}
+        className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+          activeTab === tab 
+            ? "bg-[#103c7f] text-white shadow-sm" 
+            : "text-gray-500 hover:bg-gray-100"
+        }`}
+      >
+        {tab === "All" ? "Complete View" : `${tab} Section`}
+      </button>
+    ))}
+  </div>
 
-        {/* HIGH-IMPACT METRICS PERFORMANCE CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          
-          {/* Card 1: Sales Revenue Volume */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-start gap-4">
-            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><TrendingUp size={20}/></div>
-            <div className="space-y-1">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Pipeline Volume</p>
-              <h3 className="text-xl font-black text-gray-800">₹ {totals.totalCtc.toFixed(2)} Lakh</h3>
-              <p className="text-[10px] text-gray-500 font-bold uppercase">{totals.totalRequirements} Active Open Requirements mapped</p>
-            </div>
-          </div>
+  {/* Right Side: Date Range Filter */}
+  <div className="flex items-center gap-2 border-l border-gray-200 pl-4">
+    <div className="flex items-center gap-2">
+      <input 
+        type="date" 
+        className="text-[10px] p-1.5 border border-gray-200 rounded-lg text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#103c7f]"
+        onChange={(e) => setStartDate(e.target.value)}
+      />
+      <span className="text-[10px] font-bold text-gray-400">TO</span>
+      <input 
+        type="date" 
+        className="text-[10px] p-1.5 border border-gray-200 rounded-lg text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#103c7f]"
+        onChange={(e) => setEndDate(e.target.value)}
+      />
+    </div>
+    
+    <button 
+      onClick={() => { /* reset logic */ }}
+      className="ml-2 px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-lg hover:bg-gray-900 transition-all uppercase tracking-wider"
+    >
+      All
+    </button>
+  </div>
+</div>
 
-          {/* Card 2: Operations Funnel At-A-Glance */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-start gap-4">
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><Layers size={20}/></div>
-            <div className="flex-1 space-y-1">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Conversion Funnel Velocity</p>
-              <div className="flex items-center gap-2 text-xs font-black text-gray-700 pt-0.5">
-                <span title="CV Parsed">{totals.totalCvParsed} Parse</span> ➔ 
-                <span title="Interviews" className="text-indigo-600">{totals.totalInterviews} Intv</span> ➔ 
-                <span title="Joinings" className="text-red-500">0 Join</span>
-              </div>
-              <p className="text-[10px] text-amber-600 font-bold uppercase">Severe drop-off identified post-interview</p>
-            </div>
-          </div>
-
-          {/* Card 3: Technical Constraints & Support */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-start gap-4">
-            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl"><Activity size={20}/></div>
-            <div className="space-y-1">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Internal Tech Health</p>
-              <h3 className="text-xl font-black text-gray-800">{totals.openJobPosts} Active Job Posts</h3>
-              <p className="text-[10px] text-gray-500 font-bold uppercase">100+ Legacy Data Management sheets require cleanup</p>
-            </div>
-          </div>
-
-        </div>
+      
 
       </div>
 
@@ -121,7 +107,7 @@ export default function OperationsReport() {
           <tbody className="divide-y divide-gray-400">
             
             {/* ======================= SALES SECTION ======================= */}
-            {(activeTab === "All" || activeTab === "Corporate" || activeTab === "Domestic") && (
+            {(activeTab === "All" || activeTab === "Sales") && (
               <>
                 <tr>
                   <td rowSpan={8} className="vertical-title border border-gray-400 font-bold bg-[#e2efda] text-gray-800 text-sm md:text-base w-8 print:w-6" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>Sales</td>              
@@ -203,7 +189,7 @@ export default function OperationsReport() {
             )}
 
             {/* ======================= DELIVERY SECTION ======================= */}
-            {(activeTab === "All" || activeTab === "Corporate" || activeTab === "Domestic") && (
+            {(activeTab === "All" || activeTab === "Delivery") && (
               <>
                 <tr>
                   <td rowSpan={8} className="vertical-title border border-gray-400 font-bold bg-[#cfe2f3] text-gray-800 text-sm md:text-base w-8 print:w-6" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>Delivery</td>              
@@ -473,7 +459,7 @@ export default function OperationsReport() {
         @media print {
           @page {
             size: A4 portrait;
-            margin: 2mm 2mm 2mm 2mm; /* Top, Right, Bottom, LEFT (Extra room left) */
+            margin: 2mm 2mm 2mm 1mm; /* Top, Right, Bottom, LEFT (Extra room left) */
           }
           
           /* FORCE BACKGROUND COLORS */
@@ -511,7 +497,7 @@ export default function OperationsReport() {
           table {
             width: 100% !important;
             max-width: 100% !important;
-            height: 84vh !important; 
+            height: 86vh !important; 
             border-collapse: collapse !important;
             table-layout: auto !important; 
           }
@@ -519,7 +505,7 @@ export default function OperationsReport() {
           th, td {
             border: 1px solid #4b5563 !important; 
             padding: 4px !important; 
-            font-size: 11px !important; 
+            font-size: 14px !important; 
             word-wrap: break-word !important;
           }
           

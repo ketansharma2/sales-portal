@@ -242,16 +242,22 @@ export async function GET(request) {
       });
     }
 
-    // Filter for duplicates - clients with duplicate company names
+    // Filter for duplicates - clients with duplicate combo: company_name + state + location
     if (duplicateFilter === 'true') {
-      // Group clients by lowercase trimmed company_name
+      // Group clients by combo key (company_name|state|location)
       const companyGroups = {};
       filteredData.forEach(client => {
-        const key = client.company_name?.toLowerCase().trim() || '';
-        if (!companyGroups[key]) {
-          companyGroups[key] = [];
+        const companyName = client.company_name?.toLowerCase().trim() || '';
+        const state = client.state?.toLowerCase().trim() || '';
+        const location = client.location?.toLowerCase().trim() || '';
+        const comboKey = `${companyName}|${state}|${location}`;
+        
+        if (companyName && state && location) {
+          if (!companyGroups[comboKey]) {
+            companyGroups[comboKey] = [];
+          }
+          companyGroups[comboKey].push(client);
         }
-        companyGroups[key].push(client);
       });
 
       // Keep only companies with duplicates (more than 1 client)
