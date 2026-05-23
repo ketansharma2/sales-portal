@@ -70,7 +70,7 @@ export async function POST(request) {
     if (revenueId) {
       // Get existing kyc_link array
       const { data: existingRecord, error: fetchError } = await supabaseServer
-        .from('domestic_crm_revenue')
+        .from('domestic_revenue')
         .select('kyc_link')
         .eq('id', revenueId)
         .single()
@@ -82,7 +82,7 @@ export async function POST(request) {
       }
 
       const { data: updatedRevenue, error: updateError } = await supabaseServer
-        .from('domestic_crm_revenue')
+        .from('domestic_revenue')
         .update({ kyc_link: newKycLinks })
         .eq('id', revenueId)
         .select()
@@ -139,7 +139,7 @@ export async function DELETE(request) {
 
     // Get existing kyc_link array
     const { data: existingRecord, error: fetchError } = await supabaseServer
-      .from('domestic_crm_revenue')
+      .from('domestic_revenue')
       .select('kyc_link')
       .eq('id', revenueId)
       .single()
@@ -166,7 +166,7 @@ export async function DELETE(request) {
 
     // Update the record
     const { data: updatedRevenue, error: updateError } = await supabaseServer
-      .from('domestic_crm_revenue')
+      .from('domestic_revenue')
       .update({ kyc_link: newKycLinks })
       .eq('id', revenueId)
       .select()

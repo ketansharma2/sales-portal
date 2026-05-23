@@ -932,7 +932,7 @@ export default function EmailHistoryPage() {
                                           </div>
 
                                           {/* KYC Doc */}
-                                          <div>
+                                          {/* <div>
                                               <label className="text-[10px] font-black text-emerald-600 uppercase block mb-1.5">KYC Doc</label>
                                               <div className="flex flex-col items-start gap-3">
                                                   {revenueForm.kycDoc ? (
@@ -993,7 +993,7 @@ export default function EmailHistoryPage() {
                                                       }}
                                                   />
                                               </div>
-                                          </div>
+                                          </div> */}
 
                                     </div>
                                 </div>

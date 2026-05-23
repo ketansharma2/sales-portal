@@ -77,3 +77,67 @@ export async function POST(request) {
     }, { status: 500 })
   }
 }
+
+
+ export async function PUT(request) {
+   try {
+     // Authentication
+     const authHeader = request.headers.get('authorization')
+     if (!authHeader) {
+       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+     }
+     const token = authHeader.replace('Bearer ', '')
+     const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+     if (authError || !user) {
+       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+     }
+
+     const currentUserId = user.user_id || user.id
+     const body = await request.json()
+     const { id, sent_to_revenue } = body
+
+     if (!id) {
+       return NextResponse.json({ error: 'Email ID is required' }, { status: 400 })
+     }
+
+     // Verify this email belongs to the current user
+     const { data: existingEmail, error: fetchError } = await supabaseServer
+       .from('domestic_crm_emails')
+       .select('id')
+       .eq('id', id)
+       .eq('user_id', currentUserId)
+       .single()
+
+     if (fetchError || !existingEmail) {
+       return NextResponse.json({ error: 'Email not found or unauthorized' }, { status: 404 })
+     }
+
+     // Update sent_to_revenue field
+     const { data: updatedEmail, error: updateError } = await supabaseServer
+       .from('domestic_crm_emails')
+       .update({ sent_to_revenue: sent_to_revenue || null })
+       .eq('id', id)
+       .select()
+       .single()
+
+     if (updateError) {
+       console.error('Update email error:', updateError)
+       return NextResponse.json({ 
+         error: 'Failed to update email',
+         details: updateError.message 
+       }, { status: 500 })
+     }
+
+     return NextResponse.json({ 
+       success: true, 
+       data: updatedEmail 
+     })
+
+   } catch (error) {
+     console.error('Update email error:', error)
+     return NextResponse.json({ 
+       error: 'Internal server error',
+       details: error.message 
+     }, { status: 500 })
+   }
+ }

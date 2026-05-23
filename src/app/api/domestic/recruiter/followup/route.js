@@ -29,7 +29,7 @@ export async function GET(request) {
 
     // Fetch revenue data where recruiter_id matches current user
     const { data: revenue, error } = await supabaseServer
-      .from('domestic_crm_revenue')
+      .from('domestic_revenue')
       .select('*')
       .eq('recruiter_id', recruiterId)
       .order('created_at', { ascending: false })

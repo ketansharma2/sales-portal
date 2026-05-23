@@ -53,7 +53,7 @@ export async function GET(request) {
 
     // Fetch revenue data where recruiter_id matches any of the recruiters under this TL
     const { data: revenue, error } = await supabaseServer
-      .from('domestic_crm_revenue')
+      .from('domestic_revenue')
       .select('*')
       .in('recruiter_id', recruiterIds)
       .order('created_at', { ascending: false })
