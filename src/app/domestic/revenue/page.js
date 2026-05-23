@@ -11,70 +11,8 @@ export default function DomesticRevenueDashboard() {
   // --- 1. STATE INITIALIZATION ---
   const [loading, setLoading] = useState(true);
   
-  // --- DUMMY DATA ---
-  // API की जगह अब हम डमी डेटा का इस्तेमाल कर रहे हैं
-  const [data, setData] = useState([
-    {
-      id: 1, crm_name: "Rahul Verma", client_name: "Tech Mahindra", candidate_name: "Amit Sharma", 
-      candidate_status: "Working", joining_date: "2026-02-10", 
-      payment_amount: "45000", payment_status: "Invoice Sent", payment_due_date: "2026-05-20",
-      retention_amount: "15000", retention_status: "In Progress", retention_target_date: "2026-05-10"
-    },
-    {
-      id: 2, crm_name: "Priya Singh", client_name: "TCS", candidate_name: "Neha Gupta", 
-      candidate_status: "Joined", joining_date: "2026-05-01", 
-      payment_amount: "55000", payment_status: "Pending", payment_due_date: "2026-06-01",
-      retention_amount: "20000", retention_status: "In Progress", retention_target_date: "2026-08-01"
-    },
-    {
-      id: 3, crm_name: "Rahul Verma", client_name: "Infosys", candidate_name: "Vikash Kumar", 
-      candidate_status: "Working", joining_date: "2026-01-15", 
-      payment_amount: "60000", payment_status: "Received", payment_due_date: "2026-02-15",
-      retention_amount: "25000", retention_status: "Eligible", retention_target_date: "2026-04-15"
-    },
-    {
-      id: 4, crm_name: "Sneha Patil", client_name: "Wipro", candidate_name: "Karan Johar", 
-      candidate_status: "Absconded", joining_date: "2026-03-05", 
-      payment_amount: "40000", payment_status: "Cancelled", payment_due_date: "2026-04-05",
-      retention_amount: "10000", retention_status: "Missed", retention_target_date: "2026-06-05"
-    },
-    {
-      id: 5, crm_name: "Priya Singh", client_name: "HCL", candidate_name: "Rohan Das", 
-      candidate_status: "Resigned", joining_date: "2025-12-01", 
-      payment_amount: "70000", payment_status: "Received", payment_due_date: "2026-01-01",
-      retention_amount: "30000", retention_status: "Missed", retention_target_date: "2026-03-01"
-    },
-    {
-      id: 6, crm_name: "Rahul Verma", client_name: "Tech Mahindra", candidate_name: "Pooja Hegde", 
-      candidate_status: "Working", joining_date: "2025-10-10", 
-      payment_amount: "50000", payment_status: "Received", payment_due_date: "2025-11-10",
-      retention_amount: "15000", retention_status: "Received", retention_target_date: "2026-01-10"
-    },
-    {
-      id: 7, crm_name: "Sneha Patil", client_name: "Cognizant", candidate_name: "Manish Pandey", 
-      candidate_status: "Working", joining_date: "2026-04-20", 
-      payment_amount: "48000", payment_status: "Invoice Sent", payment_due_date: "2026-05-18",
-      retention_amount: "18000", retention_status: "In Progress", retention_target_date: "2026-07-20"
-    },
-    {
-      id: 8, crm_name: "Priya Singh", client_name: "TCS", candidate_name: "Simran Kaur", 
-      candidate_status: "Terminate", joining_date: "2026-02-25", 
-      payment_amount: "42000", payment_status: "Partial Payment", payment_due_date: "2026-03-25",
-      retention_amount: "12000", retention_status: "Missed", retention_target_date: "2026-05-25"
-    },
-    {
-      id: 9, crm_name: "Rahul Verma", client_name: "Infosys", candidate_name: "Abhishek Jain", 
-      candidate_status: "Working", joining_date: "2026-01-05", 
-      payment_amount: "65000", payment_status: "Received", payment_due_date: "2026-02-05",
-      retention_amount: "22000", retention_status: "Invoice Sent", retention_target_date: "2026-04-05"
-    },
-    {
-      id: 10, crm_name: "Sneha Patil", client_name: "Wipro", candidate_name: "Riya Sharma", 
-      candidate_status: "Working", joining_date: "2026-03-15", 
-      payment_amount: "52000", payment_status: "Received", payment_due_date: "2026-04-15",
-      retention_amount: "20000", retention_status: "In Progress", retention_target_date: "2026-06-15"
-    }
-  ]);
+  // Real data from API (populated via fetch)
+  const [data, setData] = useState([]);
 
   // Filter States
   const [fromDate, setFromDate] = useState("");
@@ -89,12 +27,33 @@ export default function DomesticRevenueDashboard() {
   // --- CONFIG ---
   const TODAY = new Date("2026-05-16");
 
-  // --- 2. FETCH DATA (Commented out API, using setTimeOut to simulate loading) ---
+  // --- 2. FETCH DATA FROM API ---
   useEffect(() => {
-    // Simulate network request delay
-    setTimeout(() => {
+    const fetchRevenueData = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+
+        const response = await fetch('/api/domestic/revenue/history', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          setData(result.data);
+        } else {
+          setData([]);
+        }
+      } catch (error) {
+        console.error('Error fetching domestic revenue history:', error);
+        setData([]);
+      } finally {
         setLoading(false);
-    }, 800);
+      }
+    };
+
+    fetchRevenueData();
   }, []);
 
   // --- 3. HELPER FUNCTIONS ---
@@ -212,21 +171,21 @@ export default function DomesticRevenueDashboard() {
       if (d.payment_status !== 'Received' && d.payment_status !== 'Cancelled' && d.payment_due_date) {
           const payDiff = calculateDaysDiff(d.payment_due_date);
           if (payDiff <= 2) {
-              allAlerts.push({
-                  id: `pay-${d.id}`, type: 'Base Payment', title: d.client_name, subtitle: `Inv: ₹ ${parseCurrency(d.payment_amount).toLocaleString('en-IN')}`, 
-                  dueDate: d.payment_due_date, diffDays: payDiff, actionText: "Update Base"
-              });
+               allAlerts.push({
+                   id: `pay-${d.revenue_id}`, type: 'Base Payment', title: d.client_name, subtitle: `Inv: ₹ ${parseCurrency(d.payment_amount || d.base_invoice).toLocaleString('en-IN')}`, 
+                   dueDate: d.payment_due_date, diffDays: payDiff, actionText: "Update Base"
+               });
           }
       }
       
       // Retention Eligibility Alert (If Target date is within 5 days or passed)
-      if (d.retention_target_date && d.retention_status === 'In Progress' && d.candidate_status === 'Working') {
+      if (d.retention_target_date) {
           const retDiff = calculateDaysDiff(d.retention_target_date);
           if (retDiff <= 5) {
-               allAlerts.push({
-                  id: `ret-${d.id}`, type: 'Retention Due', title: d.client_name, subtitle: `${d.candidate_name} completes tenure`, 
-                  dueDate: d.retention_target_date, diffDays: retDiff, actionText: "Raise Invoice"
-              });
+                allAlerts.push({
+                   id: `ret-${d.revenue_id}`, type: 'Retention Due', title: d.client_name, subtitle: `${d.candidate_name} completes tenure`, 
+                   dueDate: d.retention_target_date, diffDays: retDiff, actionText: "Raise Invoice"
+               });
           }
       }
   });
@@ -545,10 +504,10 @@ export default function DomesticRevenueDashboard() {
                                             {item.payment_due_date || "-"}
                                         </td>
                                         
-                                        {/* 7. Base Amount */}
-                                        <td className="p-2 text-right font-black text-gray-600 border-r border-gray-50">
-                                            {item.payment_amount ? `₹ ${parseInt(item.payment_amount).toLocaleString('en-IN')}` : "-"}
-                                        </td>
+                                         {/* 7. Payment Amount (aligned with corporate - uses total_with_gst) */}
+                                         <td className="p-2 text-right font-black text-emerald-600 border-r border-gray-50">
+                                             {item.total_with_gst ? `₹ ${parseInt(item.total_with_gst).toLocaleString('en-IN')}` : "-"}
+                                         </td>
                                         
                                         {/* 8. Payment Status */}
                                         <td className="p-2 text-center border-r border-gray-50 overflow-hidden">

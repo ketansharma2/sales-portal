@@ -45,7 +45,7 @@ export default function DomesticCandidateHistoryPage() {
       payment_from: "", client_name: "", candidate_name: "", position: "",
       client_email: "", client_phone: "", candidate_email: "", candidate_phone: "", 
       offer_salary: "", payment_terms: "", joining_date: "", payment_days: "",
-      retention_month: "", retention_amount: ""
+      retention_month: "", retention_amount: "",retention_amount_crm: ""
   });
   
    const [revenueForm, setRevenueForm] = useState({
@@ -53,6 +53,7 @@ export default function DomesticCandidateHistoryPage() {
        total_with_gst: "",
        payment_due_date: "",
        payment_follow_up: "" ,
+       retention_with_gst: "",
        pi_date: "",
        retention_amount: "",
        retention_target_date: "",
@@ -69,79 +70,152 @@ export default function DomesticCandidateHistoryPage() {
    const [isSavingPayment, setIsSavingPayment] = useState(false);
    const [isSavingRetention, setIsSavingRetention] = useState(false);
 
-    // --- DUMMY DATA FETCHING ---
-    useEffect(() => {
-      // Simulate API loading time
-      setTimeout(() => {
-          // Mock Record Data
-          const record = {
-              sent_date: '2026-02-05',
-              crm_name: 'Rahul Verma',
-              tl_name: 'Suresh Raina',
-              rc_name: 'Priya Singh',
-              payment_from: 'Client',
-              client_name: 'Tech Mahindra',
-              candidate_name: 'Amit Sharma',
-              profile: 'Senior Java Developer',
-              client_email: 'hr@techmahindra.com',
-              client_mobile: '9876543210',
-              candidate_email: 'amit.sharma@example.com',
-              candidate_mobile: '9123456789',
-              offer_salary: '1200000',
-              terms: '8.33',
-              joining_date: '2026-02-10',
-              payment_days: '45',
-              payment_amount: '99960',
-              total_with_gst: '117953',
-              payment_due_date: '2026-03-27',
-              payment_follow_up: '2026-03-25',
-              pi_date: '2026-02-15',
-              retention_amount: '25000',
-              retention_target_date: '2026-05-10',
-              retention_status: 'Eligible',
-              candidate_status: 'Working'
-          };
+     // --- REAL DATA FETCHING (Exact same pattern as corporate) ---
+     const fetchData = async () => {
+       if (!params?.id) return;
+       setLoading(true);
 
-          setMainForm({
-              entry_date: record.sent_date, crm_name: record.crm_name, tl_name: record.tl_name, entered_by_rc: record.rc_name,
-              payment_from: record.payment_from, client_name: record.client_name, candidate_name: record.candidate_name, position: record.profile,
-              client_email: record.client_email, client_phone: record.client_mobile, candidate_email: record.candidate_email, candidate_phone: record.candidate_mobile, 
-              offer_salary: record.offer_salary, payment_terms: record.terms, joining_date: record.joining_date, payment_days: record.payment_days
-          });
+       try {
+         const session = JSON.parse(localStorage.getItem('session') || '{}');
+         const token = session.access_token;
 
-          setRevenueForm({
-              base_invoice: record.payment_amount, total_with_gst: record.total_with_gst, payment_due_date: record.payment_due_date,
-              payment_follow_up: record.payment_follow_up, pi_date: record.pi_date, retention_amount: record.retention_amount,
-              retention_target_date: record.retention_target_date, retention_status: record.retention_status
-          });
+         // Fetch revenue record by ID (using history route with query param, same as corporate)
+         const response = await fetch(`/api/domestic/revenue/history?revenue_id=${params.id}`, {
+           headers: { 'Authorization': `Bearer ${token}` }
+         });
 
-          // Mock History Logs
-          setData({
-              candidate_name: record.candidate_name,
-              position: record.profile,
-              client_name: record.client_name,
-              candidate_status: record.candidate_status,
-              kyc_doc: ["https://dummyimage.com/pdf/pan_card.pdf", "https://dummyimage.com/pdf/aadhar.pdf"],
-              candidate_history: [
-                  { id: 1, followup_date: '2026-04-10', next_followup_date: '2026-05-10', conversation: 'Candidate is doing well. Completed 2 months successfully.', candidate_status: 'Working', loggedBy: 'Priya Singh' },
-                  { id: 2, followup_date: '2026-02-10', next_followup_date: '2026-02-15', conversation: 'Candidate joined today. Docs submitted.', candidate_status: 'Joined', loggedBy: 'Rahul Verma' }
-              ],
-              client_history: [
-                  { id: 1, followup_date: '2026-03-25', next_followup_date: '2026-03-27', conversation: 'Reminded HR about the base payment due on 27th.', loggedBy: 'Suresh Raina' }
-              ],
-              payment_history: [
-                  { id: 1, date: '2026-03-28', amount_received: '117953', payment_status: 'Received', remark: 'Full base amount received via NEFT. UTR: SBI123456789', loggedBy: 'Finance Team' },
-                  { id: 2, date: '2026-02-15', amount_received: '0', payment_status: 'Invoice Sent', remark: 'PI sent to client for base payment.', loggedBy: 'Finance Team' }
-              ],
-              retention_history: [
-                  { id: 1, date: '2026-05-11', next_followup_date: '2026-05-15', retention_status: 'Eligible', remark: 'Candidate completed 3 months target. Preparing to send retention invoice.', loggedBy: 'Rahul Verma' },
-                  { id: 2, date: '2026-02-10', next_followup_date: '2026-05-10', retention_status: 'In Progress', remark: 'Target date set to May 10th for 25k bonus.', loggedBy: 'System' }
-              ]
-          });
+         const result = await response.json();
 
-          setLoading(false);
-      }, 600);
-    }, []);
+         if (response.ok && result.success && result.data) {
+           const record = result.data;
+
+           // Set main form data
+           setMainForm({
+               entry_date: record.sent_date || '',
+               crm_name: record.crm_name || '',
+               tl_name: record.tl_name || '',
+               entered_by_rc: record.rc_name || '',
+               payment_from: record.payment_from || '',
+               client_name: record.client_name || '',
+               candidate_name: record.candidate_name || '',
+               position: record.profile || '',
+               client_email: record.client_email || '',
+               client_phone: record.client_mobile || '',
+               candidate_email: record.candidate_email || '',
+               candidate_phone: record.candidate_mobile || '',
+               offer_salary: record.offer_salary ? String(record.offer_salary).replace(/,/g, '') : '',
+               payment_terms: record.terms ? String(record.terms).replace('%', '') : '',
+               joining_date: record.joining_date || '',
+               payment_days: record.payment_days ? String(record.payment_days) : '',
+               retention_month: record.retention_month ? String(record.retention_month) : '',
+               retention_amount: record.retention_amount ? String(record.retention_amount) : '',
+                retention_amount_crm: record.retention_amount_crm ? String(record.retention_amount_crm) : ''
+           });
+
+           // Set revenue form
+           setRevenueForm({
+               base_invoice: record.base_invoice || '',
+               total_with_gst: record.total_with_gst || '',
+               retention_with_gst: record.retention_with_gst || '',
+               payment_due_date: record.payment_due_date || '',
+               payment_follow_up: record.payment_follow_up || '',
+               pi_date: record.pi_date || '',
+               retention_amount: record.retention_amount || '',
+               retention_target_date: record.retention_target_date || '',
+               retention_status: record.retention_status || 'In Progress'
+           });
+
+           // Set basic data
+           const uiData = {
+               ...record,
+               position: record.profile,
+               rc_name: record.rc_name || '',
+               tl_name: record.tl_name || '',
+               candidate_status: record.candidate_status || 'Working',
+               kyc_doc: record.kyc_doc || [],
+               candidate_history: [],
+               client_history: [],
+               payment_history: [],
+               retention_history: []
+           };
+
+           setData(uiData);
+
+           // Fetch all track histories in parallel (exact same as corporate + retention)
+           try {
+             const session2 = JSON.parse(localStorage.getItem('session') || '{}');
+             const token2 = session2.access_token;
+
+             const [candidateRes, clientRes, paymentRes, retentionRes] = await Promise.all([
+               fetch(`/api/domestic/revenue/candidate-track?revenue_id=${params.id}`, { headers: { 'Authorization': `Bearer ${token2}` } }),
+               fetch(`/api/domestic/revenue/client-track?revenue_id=${params.id}`, { headers: { 'Authorization': `Bearer ${token2}` } }),
+               fetch(`/api/domestic/revenue/payment-track?revenue_id=${params.id}`, { headers: { 'Authorization': `Bearer ${token2}` } }),
+               fetch(`/api/domestic/revenue/retention-track?revenue_id=${params.id}`, { headers: { 'Authorization': `Bearer ${token2}` } })
+             ]);
+
+             const [candidateResult, clientResult, paymentResult, retentionResult] = await Promise.all([
+               candidateRes.ok ? candidateRes.json() : Promise.resolve({ success: false, data: [] }),
+               clientRes.ok ? clientRes.json() : Promise.resolve({ success: false, data: [] }),
+               paymentRes.ok ? paymentRes.json() : Promise.resolve({ success: false, data: [] }),
+               retentionRes.ok ? retentionRes.json() : Promise.resolve({ success: false, data: [] })
+             ]);
+
+             setData(prev => ({
+               ...prev,
+               candidate_history: candidateResult.success ? candidateResult.data.map(t => ({
+                 id: t.track_id || t.id,
+                 followup_date: t.date,
+                 next_followup_date: t.next_follow_up || '',
+                 conversation: t.remarks || '',
+                 candidate_status: t.candidate_status || '',
+                 loggedBy: t.loggedBy || 'Unknown',
+                 created_at: t.created_at
+               })).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) : [],
+               client_history: clientResult.success ? clientResult.data.map(t => ({
+                 id: t.track_id || t.id,
+                 followup_date: t.date,
+                 next_followup_date: t.next_follow_up || '',
+                 conversation: t.remarks || '',
+                 loggedBy: t.loggedBy || 'Unknown',
+                 created_at: t.created_at
+               })).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) : [],
+               payment_history: paymentResult.success ? paymentResult.data.map(t => ({
+                 id: t.track_id || t.id,
+                 date: t.date,
+                 amount_received: t.amount_received || 0,
+                 payment_status: t.payment_status || '',
+                 remark: t.remarks || '',
+                 loggedBy: t.loggedBy || 'Unknown',
+                 created_at: t.created_at
+               })).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) : [],
+               retention_history: retentionResult.success ? retentionResult.data.map(t => ({
+                 id: t.revenue_id || t.id,
+                 date: t.date,
+                 next_followup_date: t.next_follow_up || '',
+                 retention_status: t.retention_status || '',
+                 remark: t.remarks || '',
+                 loggedBy: t.loggedBy || 'Unknown',
+                 created_at: t.created_at
+               })).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) : []
+             }));
+
+           } catch (trackErr) {
+             console.error('Failed to fetch track histories:', trackErr);
+           }
+
+         }
+       } catch (error) {
+         console.error('Error fetching domestic revenue detail:', error);
+         setData({ candidate_history: [], client_history: [], payment_history: [], retention_history: [] });
+       } finally {
+         setLoading(false);
+       }
+     };
+
+     useEffect(() => {
+       if (!params?.id) return;
+       fetchData();
+     }, [params.id]);
 
   // --- HANDLERS ---
   const handleOpenModal = (type) => {
@@ -177,39 +251,147 @@ export default function DomesticCandidateHistoryPage() {
    };
 
    // DUMMY SAVE - CRM
-   const handleSaveCRMDetails = async () => {
-       setIsEditingCRMData(false);
-       alert('CRM details updated successfully! (Dummy Mode)');
-   };
+    const handleSaveCRMDetails = async () => {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
 
-   // DUMMY SAVE - REVENUE
-   const handleSaveRevenueDetails = async () => {
-       setIsEditingRevenue(false);
-       alert('Financial details saved successfully! (Dummy Mode)');
-   };
+        try {
+            const res = await fetch(`/api/domestic/revenue/history`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    revenue_id: params.id,
+                    ...mainForm
+                })
+            });
+
+            const result = await res.json();
+
+            if (res.ok && result.success) {
+                setIsEditingCRMData(false);
+                await fetchData(); // refresh
+            } else {
+                alert('Failed to update CRM details: ' + (result.error || 'Unknown error'));
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error updating CRM details');
+        }
+    };
+
+    const handleSaveRevenueDetails = async () => {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+
+        try {
+            const res = await fetch(`/api/domestic/revenue/history`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    revenue_id: params.id,
+                    ...revenueForm
+                })
+            });
+
+            const result = await res.json();
+
+            if (res.ok && result.success) {
+                setIsEditingRevenue(false);
+                await fetchData(); // refresh
+            } else {
+                alert('Failed to update revenue details: ' + (result.error || 'Unknown error'));
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error updating revenue details');
+        }
+    };
 
    // DUMMY SAVE - LOGS
-   const handleSaveLog = async () => {
-       const userName = 'Current User (Dummy)';
-       const updatedData = { ...data };
+    const handleSaveLog = async () => {
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const token = session.access_token;
+        const revenue_id = params.id;
 
-       if (modalType === 'candidate') {
-           updatedData.candidate_history.unshift({ id: Math.random(), followup_date: candForm.followup_date, next_followup_date: candForm.next_followup_date, conversation: candForm.conversation, candidate_status: candForm.candidate_status, loggedBy: userName });
-       }
-       else if (modalType === 'client') {
-           updatedData.client_history.unshift({ id: Math.random(), followup_date: clientForm.followup_date, next_followup_date: clientForm.next_followup_date, conversation: clientForm.conversation, loggedBy: userName });
-       }
-       else if (modalType === 'payment') {
-           updatedData.payment_history.unshift({ id: Math.random(), date: payForm.date, amount_received: payForm.amount_received, payment_status: payForm.payment_status, remark: payForm.remark, loggedBy: userName });
-       }
-       else if (modalType === 'retention') {
-           updatedData.retention_history.unshift({ id: Math.random(), date: retForm.date, next_followup_date: retForm.next_followup_date, retention_status: retForm.retention_status, remark: retForm.remark, loggedBy: userName });
-       }
+        let endpoint = '';
+        let body = { revenue_id };
 
-       setData(updatedData);
-       setIsModalOpen(false);
-       alert(`${modalType} log saved! (Dummy Mode)`);
-   };
+        if (modalType === 'candidate') {
+            setIsSavingCandidate(true);
+            endpoint = '/api/domestic/revenue/candidate-track';
+            body = {
+                ...body,
+                date: candForm.followup_date,
+                next_follow_up: candForm.next_followup_date,
+                candidate_status: candForm.candidate_status,
+                remarks: candForm.conversation
+            };
+        } else if (modalType === 'client') {
+            setIsSavingClient(true);
+            endpoint = '/api/domestic/revenue/client-track';
+            body = {
+                ...body,
+                date: clientForm.followup_date,
+                next_follow_up: clientForm.next_followup_date,
+                remarks: clientForm.conversation
+            };
+        } else if (modalType === 'payment') {
+            setIsSavingPayment(true);
+            endpoint = '/api/domestic/revenue/payment-track';
+            body = {
+                ...body,
+                date: payForm.date,
+                amount_received: payForm.amount_received,
+                payment_status: payForm.payment_status,
+                remarks: payForm.remark
+            };
+        } else if (modalType === 'retention') {
+            setIsSavingRetention(true);
+            endpoint = '/api/domestic/revenue/retention-track';
+            body = {
+                ...body,
+                date: retForm.date,
+                next_followup_date: retForm.next_followup_date,
+                retention_status: retForm.retention_status,
+                remark: retForm.remark
+            };
+        }
+
+        try {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(body)
+            });
+
+            const result = await res.json();
+
+            if (res.ok && result.success) {
+                setIsModalOpen(false);
+                // Refresh all data (exact same as corporate pattern)
+                await fetchData();
+            } else {
+                alert(`Failed to save ${modalType} log: ${result.error || 'Unknown error'}`);
+            }
+        } catch (err) {
+            console.error('Save log error:', err);
+            alert(`Error saving ${modalType} log`);
+        } finally {
+            setIsSavingCandidate(false);
+            setIsSavingClient(false);
+            setIsSavingPayment(false);
+            setIsSavingRetention(false);
+        }
+    };
 
   // Calculate total received from history logs
   const totalReceived = data?.payment_history?.reduce((acc, curr) => acc + (parseInt(curr.amount_received) || 0), 0) || 0;
@@ -417,7 +599,7 @@ export default function DomesticCandidateHistoryPage() {
                               {isEditingCRMData ? (
                                   <input type="number" placeholder="0" value={mainForm.retention_amount} onChange={e => setMainForm({...mainForm, retention_amount: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-blue-500 bg-white"/>
                               ) : (
-                                  <p className="text-sm font-bold text-blue-700 font-mono">₹ {mainForm.retention_amount || "0"}</p>
+                                  <p className="text-sm font-bold text-blue-700 font-mono">₹ {mainForm.retention_amount_crm || "0"}</p>
                               )}
                           </div>
                       </div>
@@ -499,7 +681,7 @@ export default function DomesticCandidateHistoryPage() {
                       {isEditingRevenue ? (
                           <input 
                               type="number" 
-                              value={revenueForm.total_with_gst || ""} 
+                              value={revenueForm.retention_with_gst || ""} 
                               onChange={e => setRevenueForm({...revenueForm, total_with_gst: e.target.value})} 
                               placeholder="0.00" 
                               className="w-full border border-emerald-200 p-2.5 rounded-lg text-sm font-black text-emerald-700 outline-none focus:border-emerald-500 bg-white shadow-sm"
@@ -607,19 +789,7 @@ export default function DomesticCandidateHistoryPage() {
                   {/* Retention Status */}
                   <div>
                       <label className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1 block">Retention Status</label>
-                      {isEditingRevenue ? (
-                          <select 
-                              value={revenueForm.retention_status} 
-                              onChange={e => setRevenueForm({...revenueForm, retention_status: e.target.value})} 
-                              className="w-full border border-blue-200 p-2.5 rounded-lg text-sm font-bold text-gray-700 outline-none focus:border-blue-500 bg-white shadow-sm cursor-pointer"
-                          >
-                              <option value="In Progress">In Progress</option>
-                              <option value="Eligible">Eligible</option>
-                              <option value="Invoice Sent">Invoice Sent</option>
-                              <option value="Received">Received</option>
-                              <option value="Missed">Missed/Forfeited</option>
-                          </select>
-                      ) : (
+                     
                           <span className={`inline-block px-3 py-2 rounded-lg text-sm font-black uppercase border shadow-sm w-full ${
                               revenueForm.retention_status === 'Received' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
                               revenueForm.retention_status === 'Invoice Sent' ? 'bg-blue-50 text-blue-700 border-blue-200' :
@@ -629,7 +799,7 @@ export default function DomesticCandidateHistoryPage() {
                           }`}>
                               {revenueForm.retention_status || "In Progress"}
                           </span>
-                      )}
+                     
                   </div>
              </div>
            </div>
@@ -912,18 +1082,19 @@ export default function DomesticCandidateHistoryPage() {
                          </>
                      )}
 
-                     <div className="pt-3 mt-1 border-t border-gray-100">
-                         <button 
-                           onClick={handleSaveLog} 
-                           className={`w-full py-2.5 rounded-lg font-black uppercase tracking-widest text-white shadow-sm flex items-center justify-center gap-2 text-xs transition-colors ${
-                             modalType === 'candidate' ? 'bg-emerald-600 hover:bg-emerald-700' : 
-                             modalType === 'client' ? 'bg-indigo-600 hover:bg-indigo-700' : 
-                             modalType === 'retention' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-600 hover:bg-orange-700'
-                           }`}
-                         >
-                            <Save size={14}/> Save Log
-                         </button>
-                     </div>
+                      <div className="pt-3 mt-1 border-t border-gray-100">
+                          <button 
+                            onClick={handleSaveLog} 
+                            disabled={isSavingCandidate || isSavingClient || isSavingPayment || isSavingRetention}
+                            className={`w-full py-2.5 rounded-lg font-black uppercase tracking-widest text-white shadow-sm flex items-center justify-center gap-2 text-xs transition-colors disabled:opacity-70 ${
+                              modalType === 'candidate' ? 'bg-emerald-600 hover:bg-emerald-700' : 
+                              modalType === 'client' ? 'bg-indigo-600 hover:bg-indigo-700' : 
+                              modalType === 'retention' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-600 hover:bg-orange-700'
+                            }`}
+                          >
+                             {(isSavingCandidate || isSavingClient || isSavingPayment || isSavingRetention) ? 'Saving...' : <><Save size={14}/> Save Log</>}
+                          </button>
+                      </div>
 
                  </div>
              </div>

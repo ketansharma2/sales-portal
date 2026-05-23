@@ -42,40 +42,8 @@ function DomesticBillingPage() {
   const router = useRouter();
   const previewRef = useRef(null);
   
-  // --- DUMMY DATA FOR DOMESTIC REVENUE ---
-  const [revenueData, setRevenueData] = useState([
-    {
-      revenue_id: 101, sent_date: "2026-05-10", crm_name: "Rahul Verma", client_name: "Tech Mahindra", candidate_name: "Amit Sharma", profile: "Java Developer",
-      candidate_status: "Working", joining_date: "2026-02-10", ctc: 600000,
-      payment_amount: "45000", payment_status: "Invoice Sent", payment_due_date: "2026-05-20", payment_from: "Client", invoice_id: "INV-1001",
-      retention_amount: "15000", retention_status: "In Progress", retention_target_date: "2026-05-10"
-    },
-    {
-      revenue_id: 102, sent_date: null, crm_name: "Priya Singh", client_name: "TCS", candidate_name: "Neha Gupta", profile: "HR Executive",
-      candidate_status: "Joined", joining_date: "2026-05-01", ctc: 450000,
-      payment_amount: "35000", payment_status: "Pending", payment_due_date: "2026-06-01", payment_from: "Client", invoice_id: null,
-      retention_amount: "15000", retention_status: "In Progress", retention_target_date: "2026-08-01"
-    },
-    {
-      revenue_id: 103, sent_date: "2026-02-10", crm_name: "Rahul Verma", client_name: "Infosys", candidate_name: "Vikash Kumar", profile: "Frontend Dev",
-      candidate_status: "Working", joining_date: "2026-01-15", ctc: 800000,
-      payment_amount: "60000", payment_status: "Received", payment_due_date: "2026-02-15", payment_from: "Client", invoice_id: "INV-0985",
-      retention_amount: "25000", retention_status: "Eligible", retention_target_date: "2026-04-15"
-    },
-    {
-      revenue_id: 104, sent_date: "2026-03-20", crm_name: "Sneha Patil", client_name: "Wipro", candidate_name: "Karan Johar", profile: "Sales Manager",
-      candidate_status: "Absconded", joining_date: "2026-03-05", ctc: 500000,
-      payment_amount: "40000", payment_status: "Cancelled", payment_due_date: "2026-04-05", payment_from: "Candidate", invoice_id: null,
-      retention_amount: "10000", retention_status: "Missed", retention_target_date: "2026-06-05"
-    },
-     
-    {
-      revenue_id: 105, sent_date: "2025-12-15", crm_name: "Priya Singh", client_name: "HCL", candidate_name: "Rohan Das", profile: "Backend Dev",
-      candidate_status: "Resigned", joining_date: "2025-12-01", ctc: 900000,
-      payment_amount: "70000", payment_status: "Received", payment_due_date: "2026-01-01", payment_from: "Client", invoice_id: "INV-0950",
-      retention_amount: "30000", retention_status: "Missed", retention_target_date: "2026-03-01"
-    }
-  ]);
+  // --- REAL DATA FROM API (like corporate) ---
+  const [revenueData, setRevenueData] = useState([]);
 
   // Sync filters with URL
   useEffect(() => {
@@ -91,12 +59,34 @@ function DomesticBillingPage() {
     window.history.replaceState({}, '', newUrl);
   }, [searchTerm, dateFrom, dateTo, candidateStatusFilter, paymentStatusFilter, retentionStatusFilter]);
 
-   // Simulating Data Fetch
-   useEffect(() => {
-     setTimeout(() => {
-         setLoading(false);
-     }, 500);
-   }, []);
+    // Real Data Fetch from API (exact like corporate)
+    useEffect(() => {
+      const fetchRevenueData = async () => {
+        try {
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const token = session.access_token;
+
+          const response = await fetch('/api/domestic/revenue/history', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            setRevenueData(result.data);
+          } else {
+            setRevenueData([]);
+          }
+        } catch (error) {
+          console.error('Error fetching domestic revenue history:', error);
+          setRevenueData([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchRevenueData();
+    }, []);
 
   // --- HANDLERS ---
   const handleViewHistory = (id) => {
