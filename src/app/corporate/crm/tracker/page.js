@@ -1557,7 +1557,7 @@ useEffect(() => {
                                         message += `${i + 1}. ${row.name}\n`;
                                         message += `   - Profile: ${row.profile || '-'}\n`;
                                         message += `   - Location: ${row.location || '-'}\n`;
-                                        message += `   - Exp: ${row.experience || '0'} Years\n`;
+                                        message += `   - Exp: ${row.relevantExp || '0'} Years\n`;
                                         if (row.crmFeedback) {
                                             message += `   - Note: ${row.crmFeedback}\n`;
                                         }

@@ -419,7 +419,7 @@ export default function CRMClientTrackerPage() {
                         profile: row.profile,
                         location: row.location,
                         qualification: row.qualification,
-                        experience: row.experience,
+                        experience: row.relevantExp,
                         feedback: row.crmFeedback,
                         cv_url: row.tlCvName || '',
                         sent_via: 'Email'
@@ -457,7 +457,7 @@ export default function CRMClientTrackerPage() {
                         <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.profile || ""}</td>
                         <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.location || ""}</td>
                         <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.qualification || ""}</td>
-                        <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.experience || "0"} Years</td>
+                        <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0;">${row.relevantExp || "0"} Years</td>
                         <td style="padding: 16px 15px; color: #333; font-size: 14px; border-bottom: 1px solid #f0f0f0; line-height: 1.5; max-width: 250px;">${row.crmFeedback || ""}</td>
                         <td style="padding: 16px 15px; text-align: center; border-bottom: 1px solid #f0f0f0;">
                             ${row.tlCvName ? `<a href="${row.tlCvName}" target="_blank" style="display: inline-block; background-color: #e6d8f5; color: #5b3b8c; padding: 8px 24px; border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 13px;">CV</a>` : '-'}
@@ -1272,7 +1272,7 @@ setShareForm({ company: "", clientId: "", toEmail: "", mobileNumber: "", manualP
                                                     <input type="text" value={row.qualification} onChange={(e) => handleEditableDraftChange(row.id, 'qualification', e.target.value)} className="w-full text-xs font-bold border border-transparent hover:border-slate-300 focus:border-indigo-500 rounded px-2 py-1 outline-none"/>
                                                 </td>
                                                 <td className="p-2">
-                                                    <input type="text" value={String(row.experience || '')} onChange={(e) => handleEditableDraftChange(row.id, 'experience', e.target.value)} className="w-full text-xs font-bold border border-transparent hover:border-slate-300 focus:border-indigo-500 rounded px-2 py-1 outline-none"/>
+                                                    <input type="text" value={String(row.relevantExp || '')} onChange={(e) => handleEditableDraftChange(row.id, 'experience', e.target.value)} className="w-full text-xs font-bold border border-transparent hover:border-slate-300 focus:border-indigo-500 rounded px-2 py-1 outline-none"/>
                                                 </td>
                                                 <td className="p-2">
                                                     <textarea 
@@ -1455,7 +1455,7 @@ setShareForm({ company: "", clientId: "", toEmail: "", mobileNumber: "", manualP
                                                     <input type="text" value={row.qualification} onChange={(e) => handleEditableDraftChange(row.id, 'qualification', e.target.value)} className="w-full text-xs font-bold border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded px-2 py-1 outline-none"/>
                                                 </td>
                                                 <td className="p-2">
-                                                    <input type="text" value={String(row.experience || '')} onChange={(e) => handleEditableDraftChange(row.id, 'experience', e.target.value)} className="w-full text-xs font-bold border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded px-2 py-1 outline-none"/>
+                                                    <input type="text" value={String(row.relevantExp || '')} onChange={(e) => handleEditableDraftChange(row.id, 'experience', e.target.value)} className="w-full text-xs font-bold border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded px-2 py-1 outline-none"/>
                                                 </td>
                                                 <td className="p-2">
                                                     <textarea 
@@ -1543,7 +1543,7 @@ setShareForm({ company: "", clientId: "", toEmail: "", mobileNumber: "", manualP
                                         message += `${i + 1}. ${row.name}\n`;
                                         message += `   - Profile: ${row.profile || '-'}\n`;
                                         message += `   - Location: ${row.location || '-'}\n`;
-                                        message += `   - Exp: ${row.experience || '0'} Years\n`;
+                                        message += `   - Exp: ${row.relevantExp || '0'} Years\n`;
                                         if (row.crmFeedback) {
                                             message += `   - Note: ${row.crmFeedback}\n`;
                                         }
