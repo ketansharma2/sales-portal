@@ -241,16 +241,15 @@ export async function GET(request) {
       // Step 2: Count emails shared by current CRM user on that exact date
       const { count } = await supabaseServer
         .from('corporate_crm_emails')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.user_id || user.id)
+        .select('id', { count: 'exact', head: true })
         .in('conversation_id', conversationIds)
         .gte('shared_date', item.date)
         .lte('shared_date', item.date)
-
       return { workbench_id: item.workbench_id, tracker_shared_to_client: count || 0 }
     })
 
     const trackerSharedResults = await Promise.all(trackerSharedPromises)
+    
     const trackerSharedMap = new Map(trackerSharedResults.map(r => [r.workbench_id, r.tracker_shared_to_client]))
 
     // Fetch clients
@@ -289,7 +288,7 @@ export async function GET(request) {
     const tlMap = new Map((tlUsersData || []).map(u => [u.user_id, u.name]))
     const rcMap = new Map((rcUsersData || []).map(u => [u.user_id, u.name]))
     const crmMap = new Map((crmUsersData || []).map(u => [u.user_id, u.name]))
-
+     
     // Build the final response with joined data
     const formattedData = workbenchData.map(item => {
       const reqInfo = reqMap.get(item.req_id) || {}

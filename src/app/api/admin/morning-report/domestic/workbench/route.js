@@ -240,7 +240,6 @@ export async function GET(request) {
       const { count } = await supabaseServer
         .from('domestic_crm_emails')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.user_id || user.id)  // current CRM user
         .in('conversation_id', conversationIds)
         .gte('shared_date', item.date)
         .lte('shared_date', item.date)
