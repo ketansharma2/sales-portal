@@ -23,7 +23,7 @@ export default function DomesticCandidateHistoryPage() {
     const [isEditingRevenue, setIsEditingRevenue] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
    const [modalType, setModalType] = useState(""); 
-   const [kycFiles, setKycFiles] = useState(["https://dummyimage.com/pdf/sample-kyc1.pdf"]);
+    const [kycFiles, setKycFiles] = useState([]);
    const [isKycModalOpen, setIsKycModalOpen] = useState(false);
   
   // 3. PI Modal States
@@ -555,7 +555,7 @@ export default function DomesticCandidateHistoryPage() {
                   <div className="space-y-3 flex-1">
                       <div className="grid grid-cols-2 gap-2">
                           <div>
-                              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Monthly Salary</label>
+                              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Annual Salary</label>
                               {isEditingCRMData ? <input type="number" value={mainForm.offer_salary} onChange={e => setMainForm({...mainForm, offer_salary: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-emerald-500 bg-white"/> : <p className="text-sm font-bold text-emerald-700 font-mono">₹ {mainForm.offer_salary || "0"}</p>}
                           </div>
                           <div>
@@ -605,11 +605,25 @@ export default function DomesticCandidateHistoryPage() {
                       </div>
 
                       <div className="pt-2">
-                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">KYC Documents</label>
-                          <button onClick={() => setIsKycModalOpen(true)} className="bg-blue-50 hover:bg-blue-100 text-[#103c7f] border border-blue-200 w-full py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 shadow-sm">
-                              <Eye size={12} /> View Uploaded Docs
-                          </button>
-                      </div>
+                           <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">KYC Documents</label>
+                           <button onClick={() => {
+                               const files = data.kyc_doc
+                               if (files) {
+                                 // Handle both string (single file) and array formats
+                                 const filesArray = Array.isArray(files) ? files : (files ? [files] : [])
+                                 if (filesArray.length > 0) {
+                                   setKycFiles(filesArray)
+                                   setIsKycModalOpen(true)
+                                 } else {
+                                   alert('No KYC documents uploaded')
+                                 }
+                               } else {
+                                 alert('No KYC documents uploaded')
+                               }
+                             }} className="bg-blue-50 hover:bg-blue-100 text-[#103c7f] border border-blue-200 w-full py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                               <Eye size={12} /> View Uploaded Docs
+                           </button>
+                       </div>
                   </div>
               </div>
           </div>
@@ -681,7 +695,7 @@ export default function DomesticCandidateHistoryPage() {
                       {isEditingRevenue ? (
                           <input 
                               type="number" 
-                              value={revenueForm.retention_with_gst || ""} 
+                              value={revenueForm.total_with_gst || ""} 
                               onChange={e => setRevenueForm({...revenueForm, total_with_gst: e.target.value})} 
                               placeholder="0.00" 
                               className="w-full border border-emerald-200 p-2.5 rounded-lg text-sm font-black text-emerald-700 outline-none focus:border-emerald-500 bg-white shadow-sm"

@@ -718,43 +718,48 @@ export default function EmailHistoryPage() {
                                         </td>
 
                                         {/* Action Button (Sticky Right) */}
-                                        <td className="py-3 px-4 sticky right-0 bg-white transition-colors z-10 border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] w-[120px]">
-                                            <div className="flex justify-center items-center gap-2">
-                                                 <button 
-                                                     onClick={() => openViewJourneyModal(row)}
-                                                     className="py-2 px-3 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-600 hover:text-white flex items-center justify-center gap-1.5 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm"
-                                                     title="View Record"
-                                                 >
-                                                     <Eye size={12}/>
-                                                 </button>
+                                        <td className="py-3 px-4 sticky right-0 bg-white transition-colors z-10 border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] w-36">
+    <div className="flex items-center justify-center gap-1.5">
+        {/* View Journey Button - Icon Only */}
+        <button 
+            onClick={() => openViewJourneyModal(row)}
+            className="p-2 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+            title="View Journey"
+        >
+            <Eye size={14}/>
+        </button>
+        
+        {/* Send to Revenue Button - Icon Only */}
+        <button 
+            onClick={() => sendToRevenueTeam(row)}
+            disabled={row.sent_to_revenue}
+            className="p-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed transition-all shadow-sm"
+            title={row.sent_to_revenue ? "Already Sent to Revenue" : "Send to Revenue"}
+        >
+            {row.sent_to_revenue ? (
+                <CheckCircle2 size={14}/>
+            ) : (
+                <Send size={14}/>
+            )}
+        </button>
+        
+        {/* Delete Button - Icon Only */}
+         {!row.sent_to_revenue && (
+        <button
+            onClick={() => {
+                if (confirm(`Are you sure you want to delete this record for ${row.name}?`)) {
+                    handleDelete(row.id);
+                }
+            }}
+            className="p-2 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white transition-all shadow-sm"
+            title="Delete Record"
+        >
+            <Trash2 size={14}/>
+        </button>
+        )}
+    </div>
 
-                                                 {/* Send to Revenue - same as corporate */}
-                                                 <button
-                                                     onClick={() => sendToRevenueTeam(row)}
-                                                     disabled={row.sent_to_revenue}
-                                                     className={`py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 font-black text-[9px] uppercase tracking-widest transition-all shadow-sm border ${
-                                                         row.sent_to_revenue 
-                                                             ? 'bg-emerald-100 text-emerald-700 border-emerald-200 cursor-not-allowed' 
-                                                             : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-600 hover:text-white'
-                                                     }`}
-                                                     title={row.sent_to_revenue ? "Already Sent to Revenue" : "Send to Revenue"}
-                                                 >
-                                                     <Send size={12}/>
-                                                 </button>
-
-                                                 <button
-                                                     onClick={() => {
-                                                         if (confirm(`Are you sure you want to delete this record for ${row.name}?`)) {
-                                                             handleDelete(row.id);
-                                                         }
-                                                     }}
-                                                     className="p-2 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white transition-all shadow-sm"
-                                                     title="Delete Record"
-                                                 >
-                                                     <Trash2 size={14}/>
-                                                 </button>
-                                            </div>
-                                        </td>
+</td>
                                     </tr>
                                 ))
                             ) : (
@@ -919,7 +924,7 @@ export default function EmailHistoryPage() {
                                                           {/* Terms */}
                                                           <div>
                                                               <div className="flex items-center justify-between mb-1.5">
-                                                                  <label className="text-[10px] font-black text-emerald-600 uppercase">Terms (Annual)</label>
+                                                                  <label className="text-[10px] font-black text-emerald-600 uppercase">Terms</label>
                                                                   {revenueForm.terms !== '' && revenueForm.terms !== null && revenueForm.terms !== undefined ? (
                                                                       <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
                                                                           {revenueForm.terms}
@@ -974,7 +979,7 @@ export default function EmailHistoryPage() {
         <input 
             type="number" 
             className="w-full border border-emerald-200 rounded-lg p-2.5 pl-9 text-sm font-bold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 bg-white/70"
-            value={revenueForm.retentionMonth}
+             value={revenueForm.retentionMonth ?? ""}
             onChange={(e) => setRevenueForm({...revenueForm, retentionMonth: e.target.value})}
             placeholder="e.g. 3 or 6"
         />
@@ -1316,23 +1321,25 @@ export default function EmailHistoryPage() {
                
                                                              if (response.ok && result.success) {
                                                                  // Also update the email record with sent_to_revenue
-                                                                //  try {
-                                                                //      await fetch('/api/domestic/crm/emails', {
-                                                                //          method: 'PUT',
-                                                                //          headers: {
-                                                                //              'Authorization': `Bearer ${token}`,
-                                                                //              'Content-Type': 'application/json'
-                                                                //          },
-                                                                //          body: JSON.stringify({
-                                                                //              id: selectedCandidate.id,
-                                                                //              sent_to_revenue: revenueForm.revenueTeamId
-                                                                //          })
-                                                                //      });
-                                                                //  } catch (updateError) {
-                                                                //      console.error('Failed to update email sent_to_revenue:', updateError);
-                                                                //  }
-               
+                                                                 try {
+                                                                     await fetch('/api/domestic/crm/emails', {
+                                                                         method: 'PUT',
+                                                                         headers: {
+                                                                             'Authorization': `Bearer ${token}`,
+                                                                             'Content-Type': 'application/json'
+                                                                         },
+                                                                         body: JSON.stringify({
+                                                                             id: selectedCandidate.id,
+                                                                             sent_to_revenue: revenueForm.revenueTeamId
+                                                                         })
+                                                                     });
+                                                                     
+                                                                 } catch (updateError) {
+                                                                     console.error('Failed to update email sent_to_revenue:', updateError);
+                                                                 }
+                                               
                                                                  alert('Successfully sent to Revenue Team!');
+                                                                  window.location.reload();
                                                                  setIsRevenueModalOpen(false);
                                                                  setRevenueForm({
                                                                      clientId: '',

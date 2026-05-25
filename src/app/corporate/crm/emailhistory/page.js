@@ -658,6 +658,7 @@ export default function EmailHistoryPage() {
         </button>
         
         {/* Delete Button - Icon Only */}
+        {!row.sent_to_revenue && (
         <button
             onClick={() => {
                 if (confirm(`Are you sure you want to delete this record for ${row.name}?`)) {
@@ -669,6 +670,7 @@ export default function EmailHistoryPage() {
         >
             <Trash2 size={14}/>
         </button>
+         )}
     </div>
 </td>
 
