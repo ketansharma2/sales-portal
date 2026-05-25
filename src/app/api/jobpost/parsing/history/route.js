@@ -43,27 +43,74 @@ export async function GET(request) {
     const safeFollowups = followups || [];
  
     // 🟢 Step 3: Get all unique jd_ids (post_id is actually jd_id)
+    console.log('Raw followups data:', safeFollowups);
     const jdIds = safeFollowups
-      .map(f => f.post_id)
+      .map(f => f.req_id)
       .filter(Boolean);
+
+      console.log('JD IDs (as strings):', jdIds);
  
     // 🟢 Step 4: Fetch directly from CRM tables
-    const { data: domesticData } = await supabaseAdmin
-      .from("domestic_crm_jd")
-      .select("jd_id, client_name, job_title, sent_date")
-      .in("jd_id", jdIds);
+   const { data: domesticJobpostData } = await supabaseAdmin
+      .from("domestic_crm_jobpost")
+      .select("id, client_name, req_id, assigned_date")
+      .in("id", jdIds);
+       const safeDomesticJobpost = domesticJobpostData || [];
+    console.log('Domestic CRM Jobpost Data:', safeDomesticJobpost);
+    // Get all unique reqs_id
+    const reqsIds = safeDomesticJobpost
+      .map(j => j.req_id)
+      .filter(Boolean);
+    
+    // Fetch job titles from domestic_crm_reqs
+    const { data: domesticReqsData } = await supabaseAdmin
+      .from("domestic_crm_reqs")
+      .select("req_id, job_title")
+      .in("req_id", reqsIds);
+    
+    const reqsMap = new Map((domesticReqsData || []).map(r => [r.req_id, r.job_title]));
+    
+    // Combine domestic data
+    const domesticData = safeDomesticJobpost.map(jobpost => ({
+      id: jobpost.id,
+      client_name: jobpost.client_name,
+      job_title: reqsMap.get(jobpost.req_id) || "-",
+      assigned_date: jobpost.assigned_date
+    }));
  
-    const { data: corporateData } = await supabaseAdmin
-      .from("corporate_crm_jd")
-      .select("jd_id, client_name, job_title, sent_date")
-      .in("jd_id", jdIds);
+     const { data: corporateJobpostData } = await supabaseAdmin
+      .from("corporate_crm_jobpost")
+      .select("id, client_name, req_id, assigned_date")
+      .in("id", jdIds);
+       const safeCorporateJobpost = corporateJobpostData || [];
+    console.log('Corporate Jobpost Data:', safeCorporateJobpost);
+    // Get all unique reqs_id
+    const reqscIds = safeCorporateJobpost
+      .map(j => j.req_id)
+      .filter(Boolean);
+    
+    // Fetch job titles from corporate_crm_reqs
+    const { data: corporateReqsData } = await supabaseAdmin
+      .from("corporate_crm_reqs")
+      .select("req_id, job_title")
+      .in("id", reqscIds);
+    
+    const reqscMap = new Map((corporateReqsData || []).map(r => [r.req_id, r.job_title]));
+    
+    // Combine corporate data
+    const corporateData = safeCorporateJobpost.map(jobpost => ({
+      id: jobpost.id,
+      client_name: jobpost.client_name,
+      job_title: reqscMap.get(jobpost.req_id) || "-",
+      assigned_date: jobpost.assigned_date
+    }));
  
     const safeDomestic = domesticData || [];
     const safeCorporate = corporateData || [];
  
     // Create maps for quick lookup
-    const domesticMap = new Map(safeDomestic.map(d => [d.jd_id, d]));
-    const corporateMap = new Map(safeCorporate.map(c => [c.jd_id, c]));
+    const domesticMap = new Map(safeDomestic.map(d => [d.id, d]));
+    const corporateMap = new Map(safeCorporate.map(c => [c.id, c]));
  
     // Get user names
     const userIds = [...new Set(safeFollowups.map(f => f.user_id).filter(Boolean))];
@@ -72,15 +119,16 @@ export async function GET(request) {
       .select("user_id, name")
       .in("user_id", userIds);
     const userMap = new Map((usersData || []).map(u => [u.user_id, u.name]));
- 
+  console.log('Domestic CRM Data:', domesticData);
     // 🟢 Step 5: Build response
     const result = safeFollowups.map(f => {
-      const domestic = domesticMap.get(f.post_id);
-      const corporate = corporateMap.get(f.post_id);
- 
+      const domestic = domesticMap.get(f.req_id);
+      const corporate = corporateMap.get(f.req_id);
+       
+       
       return {
         id: f.conversation_id,
-        req_id: f.post_id,
+        req_id: f.req_id,
         company_name: domestic?.client_name || corporate?.client_name || "-",
         profile: domestic?.job_title || corporate?.job_title || "-",
         postDate: domestic?.sent_date || corporate?.sent_date || "-",
