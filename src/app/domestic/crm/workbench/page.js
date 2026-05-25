@@ -507,8 +507,10 @@ export default function CRMWorkbenchReport() {
                                 <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><TrendingUp size={12}/> Conv.</div></th>
                                 <th className="p-2.5 border-r border-blue-800 text-center"><div className="flex items-center justify-center gap-1.5"><Database size={12}/> Asset</div></th>
                                 
-                                <th className="p-2.5 border-r border-blue-800 text-center bg-gray-700/50"><div className="flex items-center justify-center gap-1.5"><UserCheck size={12}/> T. Rcvd</div></th>
-                                <th className="p-2.5 border-r border-blue-800 text-center bg-indigo-700/50"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> T. Shared</div></th>
+                                   <th className="p-2.5 border-r border-blue-800 text-center bg-gray-700/50"><div className="flex items-center justify-center gap-1.5"><UserCheck size={12}/> T. RC</div></th>
+                                <th className="p-2.5 border-r border-blue-800 text-center bg-gray-700/50"><div className="flex items-center justify-center gap-1.5"><UserCheck size={12}/> T. TL</div></th>
+
+                                <th className="p-2.5 border-r border-blue-800 text-center bg-indigo-700/50"><div className="flex items-center justify-center gap-1.5"><Send size={12}/> T. Client</div></th>
                                 
                                 {/* Notes & Remarks Headers */}
                                 <th className="p-2.5 border-r border-blue-800 min-w-[160px]"><div className="flex items-center gap-1.5"><MessageSquare size={12}/> RC Notes</div></th>
@@ -605,8 +607,9 @@ export default function CRMWorkbenchReport() {
                                             <td className="p-2.5 border-r border-gray-200 text-center font-black text-purple-700 bg-purple-50/20 align-top"><div className="mt-1">{row.advance_sti}</div></td>
                                             <td className="p-2.5 border-r border-gray-200 text-center font-black text-green-700 bg-green-50/20 align-top"><div className="mt-1">{row.today_conversion}</div></td>
                                             <td className="p-2.5 border-r border-gray-200 text-center font-black text-orange-600 bg-orange-50/20 align-top"><div className="mt-1">{row.today_asset}</div></td>
-                                            
-                                            <td className="p-2.5 border-r border-gray-200 text-center font-black text-gray-800 bg-gray-50 align-top"><div className="mt-1">{row.tracker_sent || 0}</div></td>
+                                              <td className="p-2.5 border-r border-gray-200 text-center font-black text-gray-800 bg-gray-50 align-top"><div className="mt-1">{row.tracker_sent_by_rc || 0}</div></td>
+                                             <td className="p-2.5 border-r border-gray-200 text-center font-black text-gray-800 bg-gray-50 align-top"><div className="mt-1">{row.tracker_sent_by_tl || 0}</div></td>
+
                                             <td className="p-2.5 border-r border-gray-200 text-center font-black text-indigo-700 bg-indigo-50/40 align-top"><div className="mt-1">{row.tracker_shared || 0}</div></td>
 
                                             {/* Fix: Notes & Remarks separated properly with align-top and borders */}

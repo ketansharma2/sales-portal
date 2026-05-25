@@ -208,9 +208,11 @@ export async function GET(request) {
         .from('candidates_conversation')
         .select('*', { count: 'exact', head: true })
         .eq('req_id', item.req_id)
-        .not('sent_to_crm', 'is', null)
-        .gte('crm_sent_date', from_date)
-        .lte('crm_sent_date', to_date)
+    .eq('user_id', item.sent_to_rc)
+    .eq('calling_date', item.date)
+    .not('sent_to_crm', 'is', null)
+    .gte('crm_sent_date', item.date)
+    .lte('crm_sent_date', item.date);
       
       return { workbench_id: item.workbench_id, tracker_sent_by_tl: count || 0 }
     })

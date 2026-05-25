@@ -185,6 +185,27 @@ export async function GET(request) {
         
         trackerShared = sharedCount || 0;
       }
+
+      const { count: trackerByRcCount } = await supabaseServer
+    .from('candidates_conversation')
+    .select('*', { count: 'exact', head: true })
+    .eq('req_id', item.req_id)
+    .eq('user_id', item.sent_to_rc)
+    .eq('calling_date', item.date)
+    .not('sent_to_tl', 'is', null)
+    .gte('sent_date', item.date)
+    .lte('sent_date', item.date);
+  
+  // ADD THIS: tracker_sent_by_tl (sent_to_crm not null AND crm_sent_date matches date)
+  const { count: trackerByTlCount } = await supabaseServer
+    .from('candidates_conversation')
+    .select('*', { count: 'exact', head: true })
+    .eq('req_id', item.req_id)
+    .eq('user_id', item.sent_to_rc)
+    .eq('calling_date', item.date)
+    .not('sent_to_crm', 'is', null)
+    .gte('crm_sent_date', item.date)
+    .lte('crm_sent_date', item.date);
       
       // Get unique parsing_ids from tracker rows
       const { data: trackerRows } = await supabaseServer
@@ -220,6 +241,8 @@ export async function GET(request) {
         cv_indeed,
         cv_other,
         totalCv: cv_naukri + cv_indeed + cv_other,
+        tracker_sent_by_rc: trackerByRcCount || 0,        // ← Add this
+        tracker_sent_by_tl: trackerByTlCount || 0,        // ← Add this
         tracker_shared: trackerShared
       };
     });
@@ -232,7 +255,8 @@ export async function GET(request) {
     const cvOtherMap = new Map(countsResults.map(r => [r.workbench_id, r.cv_other]));
     const totalCvMap = new Map(countsResults.map(r => [r.workbench_id, r.totalCv]));
     const trackerSharedMap = new Map(countsResults.map(r => [r.workbench_id, r.tracker_shared]));
-
+     const trackerSentByRcMap = new Map(countsResults.map(r => [r.workbench_id, r.tracker_sent_by_rc]));
+const trackerSentByTlMap = new Map(countsResults.map(r => [r.workbench_id, r.tracker_sent_by_tl]));
     // Create lookup maps
     const reqsMap = new Map(reqsData.map(r => [r.req_id, r]))
 
@@ -271,6 +295,8 @@ export async function GET(request) {
         cv_other: cvOtherMap.get(item.workbench_id) || 0,
         totalCv: totalCvMap.get(item.workbench_id) || 0,
         tracker_shared: trackerSharedMap.get(item.workbench_id) || 0,
+        tracker_sent_by_rc: trackerSentByRcMap.get(item.workbench_id) || 0,
+        tracker_sent_by_tl: trackerSentByTlMap.get(item.workbench_id) || 0,
         // TL remarks
         tl_remarks: item.tl_remarks || '',
         rc_remarks: item.rc_remarks || '',

@@ -1085,7 +1085,13 @@ export default function LeadsTablePage() {
                       <button onClick={() => handleAction(lead, 'add')} className="p-1 bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors" title="Interaction">
                         <Phone size={14} />
                       </button>
-                      <button onClick={() => handleAction(lead, 'send_to_manager')} className="p-1 bg-purple-50 text-purple-600 rounded hover:bg-purple-100 transition-colors" title="Send">
+                      <button onClick={() => {
+    if (!lead.email || lead.email.trim() === '') {
+      alert('❌ Email is mandatory! Please add an email address before sending to manager.');
+    } else {
+      handleAction(lead, 'send_to_manager');
+    }
+  }}  className="p-1 bg-purple-50 text-purple-600 rounded hover:bg-purple-100 transition-colors" title="Send">
                         <Send size={14} />
                       </button>
                     </>
