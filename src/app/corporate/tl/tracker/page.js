@@ -1027,6 +1027,29 @@ export default function TLTrackerPage() {
                                                     </div>
                                                 </div>
                                             )}
+
+                                               {previewData.linkedins_found?.length > 0 && (
+            <div className="mb-2">
+                <span className="text-[9px] font-bold text-slate-500 uppercase">🔗 LinkedIn Found:</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                    {previewData.linkedins_found.map((linkedin, idx) => (
+                        <span key={idx} className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">{linkedin}</span>
+                    ))}
+                </div>
+            </div>
+        )}
+        
+        {/* GitHub - ADD THIS */}
+        {previewData.githubs_found?.length > 0 && (
+            <div className="mb-2">
+                <span className="text-[9px] font-bold text-slate-500 uppercase">💻 GitHub Found:</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                    {previewData.githubs_found.map((github, idx) => (
+                        <span key={idx} className="text-[10px] bg-purple-100 text-purple-700 px-2 py-1 rounded font-medium">{github}</span>
+                    ))}
+                </div>
+            </div>
+        )}
                                             
                                             <div className="flex gap-2 mt-3">
                                                 <button 
