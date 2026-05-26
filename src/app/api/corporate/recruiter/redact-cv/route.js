@@ -85,7 +85,9 @@ export async function POST(request) {
         preview: true,
         message: redactResult.message,
         emails_found: redactResult.emails_found || [],
-        phones_found: redactResult.phones_found || []
+        phones_found: redactResult.phones_found || [],
+        linkedins_found: redactResult.linkedins_found || [],  // ← Add this
+        githubs_found: redactResult.githubs_found || [], 
       })
     }
 
