@@ -444,6 +444,8 @@ export default function TLTrackerPage() {
                     cv_parsing_id: cvParsingId,
                     emails_found: result.emails_found || [],
                     phones_found: result.phones_found || [],
+                    linkedins_found: result.linkedins_found || [],  // ← Add this
+                    githubs_found: result.githubs_found || [],      // ← Add this
                     message: result.message
                 });
                 setIsUpdatingCV(false);
