@@ -88,65 +88,73 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Failed to fetch leads database' }, { status: 500 })
     }
 
-    // Format the data - same structure as leadgen leads API
-    const formattedLeads = rawData?.map((lead) => {
-      // Sort interactions by date descending (latest first), pushing null dates to end
-      const sortedInteractions = lead.corporate_leads_interaction?.sort((a, b) => {
-        if (!a.date) return 1;
-        if (!b.date) return -1;
-        return new Date(b.date) - new Date(a.date);
-      }) || [];
-      const latestInteraction = sortedInteractions[0] || null
-      
-      // Find the leadgen name who sourced this lead
-      const leadgenUser = team.find(t => t.user_id === lead.leadgen_id)
-      
-      return {
-        id: lead.client_id,
-        sourcingDate: lead.sourcing_date ? new Date(lead.sourcing_date).toLocaleDateString('en-GB') : 'N/A',
-        company: lead.company,
-        category: lead.category,
-        state: lead.state,
-        location: lead.location,
-        districtCity: lead.district_city || '',
-        empCount: lead.emp_count,
-        reference: lead.reference,
-        startup: lead.startup,
-        projection: lead.projection,
-        status: latestInteraction?.status || 'New',
-        subStatus: latestInteraction?.sub_status || 'New Lead',
-        franchiseStatus: latestInteraction?.franchise_status || '',
-        latestFollowup: (latestInteraction && latestInteraction.date) 
-          ? new Date(latestInteraction.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) 
-          : 'N/A',
-        remarks: latestInteraction?.remarks || '',
-        nextFollowup: latestInteraction?.next_follow_up 
-          ? new Date(latestInteraction.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) 
-          : 'N/A',
-        // Contact info from latest interaction
-        contactPerson: latestInteraction?.contact_person || '',
-        contactNo: latestInteraction?.contact_no || latestInteraction?.phone || '',
-        email: latestInteraction?.email || '',
-        phone: latestInteraction?.contact_no || latestInteraction?.phone || '',
-        // Leadgen info
-        sourcedBy: leadgenUser?.name || 'Unknown',
-        leadgenId: lead.leadgen_id,
-        // Submission status
-        isSubmitted: lead.sent_to_sm || false,
-        // Interactions array for compatibility with existing table display
-        interactions: latestInteraction ? [{
-          date: latestInteraction.date,
-          person: latestInteraction.contact_person || 'N/A',
-          phone: latestInteraction.contact_no || '',
-          email: latestInteraction.email || '',
-          remarks: latestInteraction.remarks || '',
-          status: latestInteraction.status || '',
-          subStatus: latestInteraction.sub_status || '',
-          franchiseStatus: latestInteraction.franchise_status || '',
-          nextFollowUp: latestInteraction.next_follow_up || ''
-        }] : []
-      }
-    }) || []
+// Format the data - same structure as leadgen leads API
+     const formattedLeads = rawData?.map((lead) => {
+       // Sort interactions by date descending (latest first), pushing null dates to end
+       const sortedInteractions = lead.corporate_leads_interaction?.sort((a, b) => {
+         if (!a.date) return 1;
+         if (!b.date) return -1;
+         return new Date(b.date) - new Date(a.date);
+       }) || [];
+       const latestInteraction = sortedInteractions[0] || null
+       
+       // Check if ANY interaction has Contract Share (for filtering)
+       const everContractShare = lead.corporate_leads_interaction?.some(
+         interaction => interaction.sub_status === 'Contract Share'
+       ) || false
+       
+       // Find the leadgen name who sourced this lead
+       const leadgenUser = team.find(t => t.user_id === lead.leadgen_id)
+       
+return {
+          id: lead.client_id,
+          sourcingDate: lead.sourcing_date ? new Date(lead.sourcing_date).toLocaleDateString('en-GB') : 'N/A',
+          company: lead.company,
+          category: lead.category,
+          state: lead.state,
+          location: lead.location,
+          districtCity: lead.district_city || '',
+          empCount: lead.emp_count,
+          reference: lead.reference,
+          startup: lead.startup,
+          projection: lead.projection,
+          status: latestInteraction?.status || 'New',
+          subStatus: latestInteraction?.sub_status || 'New Lead',
+          franchiseStatus: latestInteraction?.franchise_status || '',
+          latestFollowup: (latestInteraction && latestInteraction.date) 
+            ? new Date(latestInteraction.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) 
+            : 'N/A',
+          latestFollowupRaw: latestInteraction?.date || null,
+          remarks: latestInteraction?.remarks || '',
+          nextFollowup: latestInteraction?.next_follow_up 
+            ? new Date(latestInteraction.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) 
+            : 'N/A',
+         // Contact info from latest interaction
+         contactPerson: latestInteraction?.contact_person || '',
+         contactNo: latestInteraction?.contact_no || latestInteraction?.phone || '',
+         email: latestInteraction?.email || '',
+         phone: latestInteraction?.contact_no || latestInteraction?.phone || '',
+         // Leadgen info
+         sourcedBy: leadgenUser?.name || 'Unknown',
+         leadgenId: lead.leadgen_id,
+         // Submission status
+         isSubmitted: lead.sent_to_sm || false,
+         // Historical sub-status check for Contract Share filter
+         everContractShare: everContractShare,
+         // Interactions array for compatibility with existing table display
+         interactions: latestInteraction ? [{
+           date: latestInteraction.date,
+           person: latestInteraction.contact_person || 'N/A',
+           phone: latestInteraction.contact_no || '',
+           email: latestInteraction.email || '',
+           remarks: latestInteraction.remarks || '',
+           status: latestInteraction.status || '',
+           subStatus: latestInteraction.sub_status || '',
+           franchiseStatus: latestInteraction.franchise_status || '',
+           nextFollowUp: latestInteraction.next_follow_up || ''
+         }] : []
+       }
+     }) || []
 
     return NextResponse.json({
       success: true,

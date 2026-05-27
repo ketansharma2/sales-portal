@@ -132,12 +132,20 @@ export async function GET(request) {
           });
         })
 
-        // Attach interactions to each lead
-        rawData = rawData.map(lead => ({
-          ...lead,
-          allInteractions: interactionsByClient[lead.client_id] || []
-        }))
-      }
+// Attach interactions to each lead
+         rawData = rawData.map(lead => {
+           const interactions = interactionsByClient[lead.client_id] || []
+           // Check if ANY interaction has Contract Share (for filtering)
+           const everContractShare = interactions.some(
+             interaction => (interaction.sub_status || interaction.subStatus) === 'Contract Share'
+           ) || false
+           return {
+             ...lead,
+             allInteractions: interactions,
+             everContractShare: everContractShare
+           }
+         })
+       }
     } else {
       // For All Leads Database tab: use corporate_leadgen_leads table
       // Get all leadgens under this manager
@@ -199,63 +207,73 @@ export async function GET(request) {
     }
 
     console.log("leads:",rawData);
-    // Format the data
-    let formattedLeads = rawData?.map((lead) => {
-      // For actionable tab, use allInteractions; for database tab, use corporate_leads_interaction
-      const interactions = lead.allInteractions || lead.corporate_leads_interaction || []
-      const latestInteraction = interactions.length > 0 ? interactions[0] : null
-      
-      return {
-        id: lead.client_id,
-        sourcingDate: lead.sourcing_date ? new Date(lead.sourcing_date).toLocaleDateString('en-GB') : 'N/A',
-        arrivedDate: lead.arrived_date ? new Date(lead.arrived_date).toLocaleDateString('en-GB') : 'N/A',
-        company: lead.company,
-        category: lead.category,
-        state: lead.state,
-        city: lead.city || '',
-        location: lead.location || lead.district_city || '',
-        districtCity: lead.district_city || '',
-        empCount: lead.emp_count,
-        reference: lead.reference,
-        startup: lead.startup,
-        projection: lead.projection,
-        status: latestInteraction?.status || 'New',
-        subStatus: latestInteraction?.sub_status || 'New Lead',
-        franchiseStatus: latestInteraction?.franchise_status || '',
-        latestFollowup: (latestInteraction && latestInteraction.date) 
-          ? new Date(latestInteraction.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) 
-          : 'N/A',
-        remarks: latestInteraction?.remarks || '',
-        latestRemark: latestInteraction?.remarks || '',
-        nextFollowup: latestInteraction?.next_follow_up 
-          ? new Date(latestInteraction.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
-          : (lead.next_follow_up 
-            ? new Date(lead.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
-            : 'N/A'),
-        contactPerson: latestInteraction?.contact_person || '',
-        contactNo: latestInteraction?.contact_no || '',
-        email: latestInteraction?.email || '',
-        phone: latestInteraction?.contact_no || '',
-        // Leadgen info
-        leadgenId: lead.leadgen_id || lead.user_id,
-        sourcedBy: lead.sourcedByName || lead.sourced_by || 'Unknown',
-        // Submission status
-        isSubmitted: lead.sent_to_sm || false,
-        sentToCrm: lead.sent_to_crm || false,
-        // Interactions array for compatibility
-        interactions: latestInteraction ? [{
-          date: latestInteraction.date,
-          person: latestInteraction.contact_person || 'N/A',
-          phone: latestInteraction.contact_no || '',
-          email: latestInteraction.email || '',
-          remarks: latestInteraction.remarks || '',
-          status: latestInteraction.status || '',
-          subStatus: latestInteraction.sub_status || '',
-          franchiseStatus: latestInteraction.franchise_status || '',
-          nextFollowUp: latestInteraction.next_follow_up || ''
-        }] : []
-      }
-    }) || []
+// Format the data
+     let formattedLeads = rawData?.map((lead) => {
+       // For actionable tab, use allInteractions; for database tab, use corporate_leads_interaction
+       const interactions = lead.allInteractions || lead.corporate_leads_interaction || []
+       const latestInteraction = interactions.length > 0 ? interactions[0] : null
+       
+       // Check if ANY interaction has Contract Share (for filtering) - already computed above
+       const everContractShare = lead.everContractShare || interactions.some(
+         interaction => (interaction.sub_status || interaction.subStatus) === 'Contract Share'
+       ) || false
+       
+return {
+          id: lead.client_id,
+          sourcingDate: lead.sourcing_date ? new Date(lead.sourcing_date).toLocaleDateString('en-GB') : 'N/A',
+          sourcingDateRaw: lead.sourcing_date || null,
+          arrivedDate: lead.arrived_date ? new Date(lead.arrived_date).toLocaleDateString('en-GB') : 'N/A',
+          arrivedDateRaw: lead.arrived_date || null,
+          company: lead.company,
+          category: lead.category,
+          state: lead.state,
+          city: lead.city || '',
+          location: lead.location || lead.district_city || '',
+          districtCity: lead.district_city || '',
+          empCount: lead.emp_count,
+          reference: lead.reference,
+          startup: lead.startup,
+          projection: lead.projection,
+          status: latestInteraction?.status || 'New',
+          subStatus: latestInteraction?.sub_status || 'New Lead',
+          franchiseStatus: latestInteraction?.franchise_status || '',
+          latestFollowup: (latestInteraction && latestInteraction.date) 
+            ? new Date(latestInteraction.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) 
+            : 'N/A',
+          latestFollowupRaw: latestInteraction?.date || null,
+          remarks: latestInteraction?.remarks || '',
+          latestRemark: latestInteraction?.remarks || '',
+         nextFollowup: latestInteraction?.next_follow_up 
+           ? new Date(latestInteraction.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
+           : (lead.next_follow_up 
+             ? new Date(lead.next_follow_up).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
+             : 'N/A'),
+         contactPerson: latestInteraction?.contact_person || '',
+         contactNo: latestInteraction?.contact_no || '',
+         email: latestInteraction?.email || '',
+         phone: latestInteraction?.contact_no || '',
+         // Leadgen info
+         leadgenId: lead.leadgen_id || lead.user_id,
+         sourcedBy: lead.sourcedByName || lead.sourced_by || 'Unknown',
+         // Submission status
+         isSubmitted: lead.sent_to_sm || false,
+         sentToCrm: lead.sent_to_crm || false,
+         // Historical sub-status check for Contract Share filter
+         everContractShare: everContractShare,
+         // Interactions array for compatibility
+         interactions: latestInteraction ? [{
+           date: latestInteraction.date,
+           person: latestInteraction.contact_person || 'N/A',
+           phone: latestInteraction.contact_no || '',
+           email: latestInteraction.email || '',
+           remarks: latestInteraction.remarks || '',
+           status: latestInteraction.status || '',
+           subStatus: latestInteraction.sub_status || '',
+           franchiseStatus: latestInteraction.franchise_status || '',
+           nextFollowUp: latestInteraction.next_follow_up || ''
+         }] : []
+       }
+     }) || []
 
     return NextResponse.json({ leads: formattedLeads, fseTeam: fseTeam || [] });
 

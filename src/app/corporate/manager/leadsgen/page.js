@@ -123,18 +123,19 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
   const [showEmailSuggestions, setShowEmailSuggestions] = useState(false);
   const [showPhoneSuggestions, setShowPhoneSuggestions] = useState(false);
 
-   // --- FILTER STATE ---
-   const [filters, setFilters] = useState({
-     fromDate: "",
-     toDate: "",
-     company: "",
-     location: "",
-     status: "All",
-     subStatus: "All",
-     sourcedBy: "All",
-     franchiseStatus: "All",
-     projection: "All",
-   });
+// --- FILTER STATE ---
+    const [filters, setFilters] = useState({
+      fromDate: "",
+      toDate: "",
+      company: "",
+      location: "",
+      status: "All",
+      subStatus: "All",
+      sourcedBy: "All",
+      franchiseStatus: "All",
+      startup: "All",
+      projection: "All",
+    });
 
 const fetchCrmDetails = async (clientId) => {
   try {
@@ -292,73 +293,81 @@ const fetchCrmDetails = async (clientId) => {
     fetchLeadgenUsers();
   }, [activeTab]);
 
-  // --- REAL-TIME FILTER LOGIC (SIMPLIFIED - API NOW FILTERS BY TAB) ---
-  useEffect(() => {
-    let result = leads;
+// --- REAL-TIME FILTER LOGIC (SIMPLIFIED - API NOW FILTERS BY TAB) ---
+   useEffect(() => {
+     let result = leads;
 
-    // API already filters by tab, so we only apply user-selected filters here
-    // 1. Apply User Selected Filters
-    if (filters.fromDate) {
-      result = result.filter((l) => {
-        // Use arrivedDate for actionable tab, latest interaction date for database tab
-        const latestInteraction = l.interactions && l.interactions.length > 0 ? l.interactions[0] : null;
-        const dateToFilter = activeTab === "database" 
-          ? latestInteraction?.date 
-          : l.arrivedDate;
-        if (!dateToFilter) return false;
-        const [day, month, year] = dateToFilter.split("/");
-        const filterDate = new Date(`${year}-${month}-${day}`);
-        return filterDate >= new Date(filters.fromDate);
-      });
-    }
-    if (filters.toDate) {
-      result = result.filter((l) => {
-        // Use arrivedDate for actionable tab, latest interaction date for database tab
-        const latestInteraction = l.interactions && l.interactions.length > 0 ? l.interactions[0] : null;
-        const dateToFilter = activeTab === "database" 
-          ? latestInteraction?.date 
-          : l.arrivedDate;
-        if (!dateToFilter) return false;
-        const [day, month, year] = dateToFilter.split("/");
-        const filterDate = new Date(`${year}-${month}-${day}`);
-        return filterDate <= new Date(filters.toDate);
-      });
-    }
-    if (filters.company) {
-      result = result.filter((l) =>
-        l.company.toLowerCase().includes(filters.company.toLowerCase()),
-      );
-    }
-    if (filters.location) {
-      result = result.filter(
-        (l) =>
-          (l.city && l.city.toLowerCase().includes(filters.location.toLowerCase())) ||
-          (l.districtCity && l.districtCity.toLowerCase().includes(filters.location.toLowerCase())) ||
-          (l.state && l.state.toLowerCase().includes(filters.location.toLowerCase())),
-      );
-    }
-    if (filters.status !== "All") {
-      result = result.filter((l) => l.status === filters.status);
-    }
-    if (filters.subStatus !== "All") {
-      result = result.filter((l) => 
-        (l.sub_status && l.sub_status === filters.subStatus) ||
-        (l.subStatus && l.subStatus === filters.subStatus)
-      );
-    }
-    if (filters.sourcedBy !== "All") {
-      result = result.filter((l) => l.sourcedBy === filters.sourcedBy);
-    }
-    if (filters.franchiseStatus !== "All") {
-      result = result.filter((l) =>
-        (l.franchiseStatus && l.franchiseStatus === filters.franchiseStatus)
-      );
-    }
-    if (filters.projection !== "All") {
-      result = result.filter((l) =>
-        (l.projection && l.projection === filters.projection)
-      );
-    }
+     // API already filters by tab, so we only apply user-selected filters here
+     // 1. Apply User Selected Filters
+     if (filters.fromDate) {
+       result = result.filter((l) => {
+         // Use arrivedDateRaw for actionable tab, latestFollowupRaw for database tab (YYYY-MM-DD format)
+         const dateToFilter = activeTab === "database" 
+           ? l.latestFollowupRaw
+           : l.arrivedDateRaw;
+         if (!dateToFilter) return false;
+         // Handle YYYY-MM-DD format
+         const leadDate = new Date(dateToFilter + 'T00:00:00Z');
+         return leadDate >= new Date(filters.fromDate);
+       });
+     }
+     if (filters.toDate) {
+       result = result.filter((l) => {
+         // Use arrivedDateRaw for actionable tab, latestFollowupRaw for database tab (YYYY-MM-DD format)
+         const dateToFilter = activeTab === "database" 
+           ? l.latestFollowupRaw
+           : l.arrivedDateRaw;
+         if (!dateToFilter) return false;
+         // Handle YYYY-MM-DD format
+         const leadDate = new Date(dateToFilter + 'T00:00:00Z');
+         return leadDate <= new Date(filters.toDate);
+       });
+     }
+if (filters.company) {
+       result = result.filter((l) =>
+         ((l.company || '').toLowerCase().includes(filters.company.toLowerCase()) ||
+          (l.contactPerson || '').toLowerCase().includes(filters.company.toLowerCase()))
+       );
+     }
+if (filters.location) {
+       result = result.filter(
+         (l) =>
+           ((l.districtCity || '') + ' ' + (l.state || '') + ' ' + (l.location || '')).toLowerCase().includes(filters.location.toLowerCase())
+       );
+     }
+if (filters.status !== "All") {
+       result = result.filter((l) => 
+         (l.status || '').trim().toLowerCase() === (filters.status || '').trim().toLowerCase()
+       );
+     }
+     if (filters.subStatus !== "All") {
+       result = result.filter((l) => 
+         (filters.subStatus === "Contract Share")
+           ? l.everContractShare
+           : ((l.sub_status || '').trim().toLowerCase() === (filters.subStatus || '').trim().toLowerCase() ||
+             (l.subStatus || '').trim().toLowerCase() === (filters.subStatus || '').trim().toLowerCase())
+       );
+     }
+     if (filters.sourcedBy !== "All") {
+       result = result.filter((l) => 
+         (l.sourcedBy || '').trim().toLowerCase() === (filters.sourcedBy || '').trim().toLowerCase()
+       );
+     }
+     if (filters.franchiseStatus !== "All") {
+       result = result.filter((l) =>
+         (l.franchiseStatus || '').trim().toLowerCase() === (filters.franchiseStatus || '').trim().toLowerCase()
+       );
+     }
+     if (filters.startup !== "All") {
+       result = result.filter((l) =>
+         (l.startup || '').trim().toLowerCase() === (filters.startup || '').trim().toLowerCase()
+       );
+     }
+     if (filters.projection !== "All") {
+       result = result.filter((l) =>
+         (l.projection || '').trim().toLowerCase() === (filters.projection || '').trim().toLowerCase()
+       );
+     }
 
     setFilteredLeads(result);
   }, [filters, leads, activeTab]);
@@ -708,39 +717,41 @@ const fetchCrmDetails = async (clientId) => {
         </div>
         <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200 gap-1">
           <button
-            onClick={() => {
-              setActiveTab("actionable");
-              setFilters({
-                fromDate: "",
-                toDate: "",
-                company: "",
-                location: "",
-                status: "All",
-                subStatus: "All",
-                sourcedBy: "All",
-                franchiseStatus: "All",
-                projection: "All",
-              });
-            }}
+onClick={() => {
+               setActiveTab("actionable");
+               setFilters({
+                 fromDate: "",
+                 toDate: "",
+                 company: "",
+                 location: "",
+                 status: "All",
+                 subStatus: "All",
+                 sourcedBy: "All",
+                 franchiseStatus: "All",
+                 startup: "All",
+                 projection: "All",
+               });
+             }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "actionable" ? "bg-[#103c7f] text-white shadow-md" : "text-gray-500 hover:bg-gray-50"}`}
           >
             <ListChecks size={16} /> Interested/Onboard Leads
           </button>
           <button
-            onClick={() => {
-              setActiveTab("database");
-              setFilters({
-                fromDate: "",
-                toDate: "",
-                company: "",
-                location: "",
-                status: "All",
-                subStatus: "All",
-                sourcedBy: "All",
-                franchiseStatus: "All",
-                projection: "All",
-              });
-            }}
+onClick={() => {
+               setActiveTab("database");
+               setFilters({
+                 fromDate: "",
+                 toDate: "",
+                 company: "",
+                 location: "",
+                 status: "All",
+                 subStatus: "All",
+                 sourcedBy: "All",
+                 franchiseStatus: "All",
+                 startup: "All",
+                 projection: "All",
+               });
+             }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "database" ? "bg-[#103c7f] text-white shadow-md" : "text-gray-500 hover:bg-gray-50"}`}
           >
             <Database size={16} /> All Leads Database
@@ -864,44 +875,59 @@ const fetchCrmDetails = async (clientId) => {
             ))}
           </select>
         </div>
-        <div className="col-span-1">
-          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
-            Franchise
-          </label>
-          <select
-            value={filters.franchiseStatus}
-            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] transition cursor-pointer"
-            onChange={(e) => handleFilterChange("franchiseStatus", e.target.value)}
-          >
-            <option value="All">All</option>
-            <option>Application Form Share</option>
-            <option>No Franchise Discuss</option>
-            <option>Not Interested</option>
-            <option>Will Think About It</option>
-            <option>Form Filled</option>
-            <option>Form Not Filled</option>
-          </select>
-        </div>
-        <div className="col-span-1">
-          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
-            Projection
-          </label>
-          <div className="relative">
-            <TrendingUp className="absolute left-3 top-2.5 text-gray-400" size={14} />
-            <select
-              value={filters.projection}
-              className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] transition cursor-pointer"
-              onChange={(e) => handleFilterChange("projection", e.target.value)}
-            >
-              <option value="All">All</option>
-              <option value="WP > 50">WP &gt; 50</option>
-              <option value="WP < 50">WP &lt; 50</option>
-              <option value="MP > 50">MP &gt; 50</option>
-              <option value="MP < 50">MP &lt; 50</option>
-              <option value="Not Projected">Not Projected</option>
-            </select>
-          </div>
-        </div>
+<div className="col-span-1">
+           <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
+             Franchise
+           </label>
+           <select
+             value={filters.franchiseStatus}
+             className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] transition cursor-pointer"
+             onChange={(e) => handleFilterChange("franchiseStatus", e.target.value)}
+           >
+             <option value="All">All</option>
+             <option>Application Form Share</option>
+             <option>No Franchise Discuss</option>
+             <option>Not Interested</option>
+             <option>Will Think About It</option>
+             <option>Form Filled</option>
+             <option>Form Not Filled</option>
+           </select>
+         </div>
+         <div className="col-span-1">
+           <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
+             Startup
+           </label>
+           <select
+             value={filters.startup}
+             className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] transition cursor-pointer"
+             onChange={(e) => handleFilterChange("startup", e.target.value)}
+           >
+             <option value="All">All</option>
+             <option>Yes</option>
+             <option>No</option>
+             <option>Master Union</option>
+           </select>
+         </div>
+         <div className="col-span-1">
+           <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
+             Projection
+           </label>
+           <div className="relative">
+             <TrendingUp className="absolute left-3 top-2.5 text-gray-400" size={14} />
+             <select
+               value={filters.projection}
+               className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] transition cursor-pointer"
+               onChange={(e) => handleFilterChange("projection", e.target.value)}
+             >
+               <option value="All">All</option>
+               <option value="WP > 50">WP &gt; 50</option>
+               <option value="WP < 50">WP &lt; 50</option>
+               <option value="MP > 50">MP &gt; 50</option>
+               <option value="MP < 50">MP &lt; 50</option>
+               <option value="Not Projected">Not Projected</option>
+             </select>
+           </div>
+         </div>
       </div>
 
       {/* 3. TABLE AREA - SEPARATE FOR EACH TAB */}
