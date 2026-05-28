@@ -16,6 +16,7 @@ import {
   File,
   Loader2 
 } from "lucide-react";
+import { Suspense } from "react"; 
 import jsPDF from "jspdf";
 import { useRouter, useSearchParams } from "next/navigation";
 function CVPreview({ url, name }) {
