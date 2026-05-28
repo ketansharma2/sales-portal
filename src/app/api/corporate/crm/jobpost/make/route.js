@@ -49,31 +49,45 @@ export async function GET(request) {
     }
 
 
-     const jdIds = [...new Set(jobpostData.map(item => item.id).filter(Boolean))]
-console.log('JD IDs for enrichment:', jdIds);
-    // ✅ Fetch posting_data (CV logs) for these JD IDs
-    let cvData = []
-    if (jdIds.length > 0) {
-      const { data: cvLogs, error: cvError } = await supabaseServer
-        .from('posting_data')
-        .select('*')
-        .in('jd_id', jdIds)
-        .order('date', { ascending: false })
+     // Get all jobpost IDs for counting CVs
+const jobpostIds = [...new Set(jobpostData.map(item => item.id).filter(Boolean))]
 
-      if (!cvError && cvLogs) {
-        cvData = cvLogs
+let cvCountMap = {};
+let latestConversationMap = {};
+
+if (jobpostIds.length > 0) {
+  // Fetch all conversations
+  const { data: conversations } = await supabaseServer
+    .from('candidates_conversation')
+    .select('*')
+    .in('req_id', jobpostIds)
+    .order('created_at', { ascending: false })
+
+  if (conversations) {
+    // Track latest conversation per candidate (parsing_id) within each jobpost
+    const candidateLatestMap = new Map(); // Key: `${req_id}_${parsing_id}`
+    
+    conversations.forEach(conv => {
+      const key = `${conv.req_id}_${conv.parsing_id}`;
+      
+      // Only count if this is the first time we see this candidate for this jobpost
+      if (!candidateLatestMap.has(key)) {
+        candidateLatestMap.set(key, conv);
+        
+        // Count only unique/latest candidates per jobpost
+        cvCountMap[conv.req_id] = (cvCountMap[conv.req_id] || 0) + 1;
+        
+        // Store latest conversation per jobpost (first one overall)
+        if (!latestConversationMap[conv.req_id]) {
+          latestConversationMap[conv.req_id] = conv;
+        }
       }
-    }
+    })
+  }
+}
 
     
-   const cvCountMap = {};
-
-cvData?.forEach(cv => {
-  const received = Number(cv.cv_received) || 0;
-
-  cvCountMap[cv.jd_id] =
-    (cvCountMap[cv.jd_id] || 0) + received;
-});
+   
     
     // Transform data to match expected format
     const transformedData = jobpostData.map(item => ({
@@ -85,7 +99,7 @@ cvData?.forEach(cv => {
       package: item.package,
       status: item.status || 'Assigned',
       jd_id: item.jd_id,
-      cv_count: cvCountMap[item.id] || 0,
+      cv_count:  cvCountMap[item.id] || 0, 
       req_data: reqDataMap[item.req_id] || null
     }))
 

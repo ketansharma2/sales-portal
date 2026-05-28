@@ -5,9 +5,9 @@ import {
   MapPin, IndianRupee, Calendar, Globe, Eye, Download
 } from "lucide-react";
 import jsPDF from "jspdf";
-
+import { useRouter } from "next/navigation"; // <-- यह लाइन जोड़ें
 export default function JobRequirementsPage() {
-  
+  const router = useRouter();
   // ==========================================
   // 1. ALL STATE DECLARATIONS FIRST
   // ==========================================
@@ -959,9 +959,12 @@ export default function JobRequirementsPage() {
 
                         {/* NEW: View CVs Button */}
                         <button
-                          onClick={() => {
-                            // Add your logic to view CVs here
-                            // e.g., openViewCVsModal(assignment.id)
+                           onClick={() => {
+                            // 2. यहाँ router.push का इस्तेमाल करें
+                            // अगर आप किसी स्पेसिफिक जॉब पोस्ट का ID भी भेजना चाहते हैं तो ऐसे भेजें: 
+                            // router.push(`cvbyjobpost?jobId=${item.id}`);
+                            
+                           router.push(`/corporate/crm/jobpost/cvbyjobpost?req_id=${assignment.req_data.req_id}`); 
                           }}
                           className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-md border border-indigo-100 transition-colors font-bold text-[10px] uppercase tracking-widest whitespace-nowrap"
                           title="View Candidate CVs"

@@ -216,7 +216,7 @@ export default function CVByJobPostPage() {
 
                 const session = JSON.parse(localStorage.getItem('session') || '{}');
 
-        const response = await fetch(`/api/domestic/crm/conversations/by-req?req_id=${req_id}`, {
+        const response = await fetch(`/api/corporate/crm/conversations/by-req?req_id=${req_id}`, {
           headers: {
             'Authorization': `Bearer ${session.access_token}`
           }
@@ -369,7 +369,7 @@ const filteredData = useMemo(() => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       // Fetch history for this specific candidate
-      const response = await fetch(`/api/domestic/crm/conversations/history?conversation_id=${candidate.parsing_id}`, {
+      const response = await fetch(`/api/corporate/crm/conversations/history?conversation_id=${candidate.parsing_id}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
