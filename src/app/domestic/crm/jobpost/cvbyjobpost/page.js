@@ -16,7 +16,7 @@ import {
   File,
   Loader2 
 } from "lucide-react";
-import { Suspense } from "react"; 
+import dynamic from 'next/dynamic'; 
 import jsPDF from "jspdf";
 import { useRouter, useSearchParams } from "next/navigation";
 function CVPreview({ url, name }) {
@@ -180,7 +180,7 @@ function CVPreview({ url, name }) {
     );
 }
 
-export default function CVByJobPostPage() {
+function CVByJobPostPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const req_id = searchParams.get('req_id');
@@ -1091,3 +1091,5 @@ const filteredData = useMemo(() => {
     </div>
   );
 }
+
+export default dynamic(() => Promise.resolve(CVByJobPostPage), { ssr: false });
