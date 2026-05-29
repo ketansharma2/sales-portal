@@ -1,6 +1,23 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
+function getNormalizedEmailForDuplicateCheck(email, name, portal) {
+  // Handle Indeed's random email pattern (e.g., rimpithakurxgcmg_zqd@indeedemail.com)
+  if (portal === 'Indeed' && email && email.includes('@indeedemail.com')) {
+    // Clean the name: lowercase, remove spaces, keep only letters
+    const cleanName = name
+      .toLowerCase()
+      .replace(/\s/g, '')
+      .replace(/[^a-z]/g, '')
+    
+    return `${cleanName}@indeedemail.normalized`
+  }
+  
+
+  
+  return email
+}
+
 export async function POST(request) {
   try {
     // Authentication
@@ -26,13 +43,69 @@ export async function POST(request) {
     }
 
     // Check for duplicate entry (name, email, and mobile) - case insensitive for name
-    const { data: existingRecord, error: checkError } = await supabaseServer
-      .from('cv_parsing')
-      .select('id, user_id, users(name)')
-      .ilike('name', data.name)
-      .eq('email', data.email)
-      .eq('mobile', data.mobile || 'NA')
-      .maybeSingle()
+   let existingRecord = null
+    let checkError = null
+
+    const normalizedName = data.name
+  ?.trim()
+  .toLowerCase()
+
+const normalizedMobile = (data.mobile || 'NA')
+  .replace(/\D/g, '')
+
+const normalizedEmail = getNormalizedEmailForDuplicateCheck(
+  data.email,
+  data.name,
+  data.portal
+)?.toLowerCase()
+    
+    // For Indeed users - check by name and mobile only (ignore the random email)
+    if (data.portal === 'Indeed' && data.email.includes('@indeedemail.com')) {
+      // Check if same name AND same mobile already exists (regardless of Indeed email)
+      const { data: record, error } = await supabaseServer
+        .from('cv_parsing')
+        .select('id, user_id, users(name), name, email, mobile, location, qualification, experience, portal, portal_date, cv_url')
+        .ilike('name', normalizedName)
+        .eq('mobile', normalizedMobile)
+
+          if (!error && record && record.length > 0) {
+        existingRecord = record[0]
+      }
+    
+      checkError = error
+      
+      // Also check if same name exists with any Indeed email (different random emails but same person)
+      if (!existingRecord) {
+        const { data: recordByName, error: errorByName } = await supabaseServer
+          .from('cv_parsing')
+          .select('id, user_id, users(name), name, email, mobile, location, qualification, experience, portal, portal_date, cv_url')
+          .ilike('name', normalizedName)
+          .ilike('email', '%@indeedemail.com')
+
+            if (!error && recordByName && recordByName.length > 0) {
+        existingRecord = recordByName[0]
+      }
+      checkError =  errorByName
+        
+      }
+    } 
+    // For non-Indeed users, do normal check
+    else {
+      const normalizedEmail = data.email?.toLowerCase()
+      
+      const { data: record, error } = await supabaseServer
+        .from('cv_parsing')
+        .select('id, user_id, users(name), name, email, mobile, location, qualification, experience, portal, portal_date, cv_url')
+        .ilike('name', normalizedName)
+        .eq('email', normalizedEmail)
+        .eq('mobile', normalizedMobile)
+
+         if (!error && record && record.length > 0) {
+        existingRecord = records[0]
+      }
+      
+      checkError = error
+    }
 
     if (checkError) {
       console.error('Duplicate check error:', checkError)
