@@ -233,6 +233,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
   // };
 
 const handleAction = async (id, action) => {
+  console.log("Action triggered:", { id, action });
   const lead = leads.find((l) => l.client_id === id || l.id === id);
   if (!lead) return;
 
@@ -258,6 +259,7 @@ const handleAction = async (id, action) => {
       alert("Failed to load CRM conversations");
     }
   } else if (action === 'regularView') {
+    console.log("Selected lead for regular view:", lead);
     // Open regular view with timeline for database tab
     setSelectedLead(lead);
     setModalType('view');
@@ -951,7 +953,7 @@ const handleAction = async (id, action) => {
                         <td className="px-4 py-2 text-center bg-white sticky right-0 z-10 border-l border-gray-200 shadow-[-4px_0px_10px_rgba(0,0,0,0.05)]">
                           <button
                             onClick={() =>
-                              handleAction(lead.client_id || lead.id, "view")
+                              handleAction(lead.client_id || lead.id, "regularView")
                             }
                             className="p-1.5 text-gray-500 bg-white border border-gray-200 hover:text-blue-600 hover:border-blue-200 rounded transition-colors shadow-sm"
                             title="View Details"
