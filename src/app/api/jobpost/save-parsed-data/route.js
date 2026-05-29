@@ -101,7 +101,7 @@ const normalizedEmail = getNormalizedEmailForDuplicateCheck(
         .eq('mobile', normalizedMobile)
 
          if (!error && record && record.length > 0) {
-        existingRecord = records[0]
+        existingRecord = record[0]
       }
       
       checkError = error
