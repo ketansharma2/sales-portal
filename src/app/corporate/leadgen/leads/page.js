@@ -68,6 +68,13 @@ export default function LeadsTablePage() {
        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
      };
 
+
+     useEffect(() => {
+  // When in edit mode and state changes, fetch districts
+  if (modalType === 'edit' && newLeadData.state) {
+    fetchDistricts(newLeadData.state);
+  }
+}, [newLeadData.state, modalType]);
      // Helper to convert date string to Date object for comparison
      // HTML date input returns YYYY-MM-DD format (e.g., "2026-02-09")
      // Creates date at midnight UTC to avoid timezone issues
@@ -171,14 +178,25 @@ export default function LeadsTablePage() {
       }
     };
 
+    // const fetchDistricts = (stateName) => {
+    //   if (!stateName) {
+    //     setDistrictsList([]);
+    //     return;
+    //   }
+    //   const districts = stateDistrictData[stateName] || [];
+    //   setDistrictsList(districts);
+    // };
+
     const fetchDistricts = (stateName) => {
-      if (!stateName) {
-        setDistrictsList([]);
-        return;
-      }
-      const districts = stateDistrictData[stateName] || [];
-      setDistrictsList(districts);
-    };
+  console.log('Fetching districts for state:', stateName);
+  if (!stateName) {
+    setDistrictsList([]);
+    return;
+  }
+  const districts = stateDistrictData[stateName] || [];
+  console.log('Districts found:', districts);
+  setDistrictsList(districts);
+};
 
     // Validate form fields for new lead
     const validateNewLeadForm = () => {
@@ -506,6 +524,9 @@ export default function LeadsTablePage() {
 
      // --- NEW CODE: Pre-fill data for Edit ---
      if (type === 'edit') {
+      if (lead.state) {
+    fetchDistricts(lead.state);
+  }
        setNewLeadData({
          company: lead.company || '',
          category: lead.category || '',
@@ -516,7 +537,7 @@ export default function LeadsTablePage() {
          reference: lead.reference || '',
          sourcing_date: lead.sourcingDate || '',
          startup: lead.startup || '',
-         district_city: lead.districtCity || '',
+         district_city: lead.districtCity || lead.district_city || '',
           projection: lead.projection || ''  // Add this line
        });
      }
