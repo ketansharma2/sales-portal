@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import {
   Search, Phone, Filter, X, Plus, Eye,
   Calendar, MapPin, ListFilter, ArrowRight, Send, Lock, Edit, Award, Users, Briefcase, ArrowLeft
+ 
 } from "lucide-react";
 
 function DetailsContent() {
@@ -20,6 +21,42 @@ function DetailsContent() {
   const isSubmittedFilter = searchParams.get('isSubmitted') || '';
   const cardType = searchParams.get('cardType') || '';
   const isAllData = searchParams.get('isAllData') === 'true';
+  const [searchTerm, setSearchTerm] = useState('');
+const [statusSearchTerm, setStatusSearchTerm] = useState('');
+const [subStatusSearchTerm, setSubStatusSearchTerm] = useState('');
+const [franchiseSearchTerm, setFranchiseSearchTerm] = useState('');
+
+// Status options array
+const statusOptions = [
+  'All', 'Interested', 'Not Interested', 'Not Picked', 'Onboard', 'Call Later', 'New'
+];
+
+// Sub-Status options array
+const subStatusOptions = [
+  'All', '2nd time not picked', 'Contract Share', 'Enough Vendor Empanelment',
+  'Hiring Sealed', 'Manager Ask', 'Meeting Align', 'Misaligned T&C',
+  'Not Right Person', 'Official Mail Ask', 'Reference Ask', 'Self Hiring',
+  'Ready To Visit', 'Callback', 'NA', 'New Lead'
+];
+
+// Franchise Status options array
+const franchiseOptions = [
+  'All', 'Application Form Share', 'No Franchise Discuss',
+  'Not Interested', 'Will Think About It', 'Form Filled', 'Form Not Filled'
+];
+
+// Filtered options based on search
+const filteredStatusOptions = statusOptions.filter(option =>
+  option.toLowerCase().includes(statusSearchTerm.toLowerCase())
+);
+
+const filteredSubStatusOptions = subStatusOptions.filter(option =>
+  option.toLowerCase().includes(subStatusSearchTerm.toLowerCase())
+);
+
+const filteredFranchiseOptions = franchiseOptions.filter(option =>
+  option.toLowerCase().includes(franchiseSearchTerm.toLowerCase())
+);
 
   // Get filter title for display
   const getFilterTitle = () => {
@@ -76,6 +113,59 @@ function DetailsContent() {
     franchise_status: ''
   });
 
+
+  const [filteredInteractions, setFilteredInteractions] = useState([]);
+// Combined filtering effect (status + subStatus + franchiseStatus + search)
+useEffect(() => {
+  // Start with all interactions
+  let filtered = [...interactions];
+  console.log('Applying filters on interactions:', statusFilter);
+  // 1. Filter by Status
+  if (statusFilter && statusFilter !== 'All') {
+    filtered = filtered.filter(item => 
+      (item.status || '').toLowerCase() === statusFilter.toLowerCase()
+    );
+    console.log(`After status filter (${statusFilter}):`, filtered.length, filtered); 
+  }
+  
+  // 2. Filter by Sub-Status
+  if (subStatusFilter && subStatusFilter !== 'All') {
+    filtered = filtered.filter(item => 
+      (item.sub_status || '').toLowerCase() === subStatusFilter.toLowerCase()
+    );
+  }
+  
+  // 3. Filter by Franchise Status
+  if (franchiseStatusFilter && franchiseStatusFilter !== 'All') {
+    filtered = filtered.filter(item => 
+      (item.franchise_status || '').toLowerCase() === franchiseStatusFilter.toLowerCase()
+    );
+  }
+  
+  // 4. Filter by Global Search (if search term exists)
+  if (searchTerm && searchTerm.trim()) {
+    const searchLower = searchTerm.toLowerCase();
+    filtered = filtered.filter(item => {
+      return (
+        (item.company || '').toLowerCase().includes(searchLower) ||
+        (item.category || '').toLowerCase().includes(searchLower) ||
+        (item.state || '').toLowerCase().includes(searchLower) ||
+        (item.district_city || '').toLowerCase().includes(searchLower) ||
+        (item.contact_person || '').toLowerCase().includes(searchLower) ||
+        (item.contact_no || '').toLowerCase().includes(searchLower) ||
+        (item.email || '').toLowerCase().includes(searchLower) ||
+        (item.status || '').toLowerCase().includes(searchLower) ||
+        (item.sub_status || '').toLowerCase().includes(searchLower) ||
+        (item.franchise_status || '').toLowerCase().includes(searchLower) ||
+        (item.remarks || '').toLowerCase().includes(searchLower) ||
+        (item.startup || '').toLowerCase().includes(searchLower)
+      );
+    });
+  }
+  
+  // Set the final filtered results
+  setFilteredInteractions(filtered);
+}, [interactions, statusFilter, subStatusFilter, franchiseStatusFilter, searchTerm]);
   const [editingInteractionId, setEditingInteractionId] = useState(null);
   const [suggestions, setSuggestions] = useState({ persons: [], nos: [], emails: [] });
 
@@ -102,11 +192,27 @@ function DetailsContent() {
   const fetchInteractions = async () => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
+
+         const addStatusFilters = (params) => {
+
+      if (statusFilter && statusFilter !== 'All') {
+        params.append('status', statusFilter);
+      }
+      if (subStatusFilter && subStatusFilter !== 'All') {
+        params.append('subStatus', subStatusFilter);
+      }
+      if (franchiseStatusFilter && franchiseStatusFilter !== 'All') {
+        params.append('franchiseStatus', franchiseStatusFilter);
+      }
+      
+      return params;
+    };
+
       
       // Check if cardType is 'calls' - fetch from calls-type-count API
        if (cardType === 'calls' || cardType === 'new_calls' || cardType === 'followup_calls') {
          const params = new URLSearchParams();
-         
+         addStatusFilters(params);
          // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
          if (isAllData) {
            params.append('dateRange', 'all');
@@ -124,6 +230,9 @@ function DetailsContent() {
          } else if (cardType === 'followup_calls') {
            params.append('type', 'followup');
          }
+
+
+         
         
         const queryString = params.toString();
         const response = await fetch(`/api/corporate/leadgen/calls-type-count?${queryString}`, {
@@ -167,7 +276,7 @@ function DetailsContent() {
       // Check if cardType is 'not_picked' - use new not-picked-count API
       if (cardType === 'not_picked') {
         const params = new URLSearchParams();
-        
+        addStatusFilters(params);
         // Default to 'all' if no date filters are provided, to match card count
         if (fromDateFilter && toDateFilter) {
           params.append('dateRange', 'specific');
@@ -219,6 +328,7 @@ function DetailsContent() {
       // Check if cardType is 'picked' - use new picked-count API
        if (cardType === 'picked') {
          const params = new URLSearchParams();
+         addStatusFilters(params);
          
          // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
          if (isAllData) {
@@ -273,7 +383,7 @@ function DetailsContent() {
       // Check if cardType is 'sent_to_manager' - use new sent-to-manager-count API
       if (cardType === 'sent_to_manager') {
         const params = new URLSearchParams();
-        
+        addStatusFilters(params);
         // Default to 'all' if no date filters are provided, to match card count
         if (fromDateFilter && toDateFilter) {
           params.append('dateRange', 'specific');
@@ -325,7 +435,7 @@ function DetailsContent() {
       // Check if cardType is 'interested' - use new interested-count API
       if (cardType === 'interested') {
         const params = new URLSearchParams();
-        
+        addStatusFilters(params);
         // Default to 'all' if no date filters are provided, to match card count
         if (fromDateFilter && toDateFilter) {
           params.append('dateRange', 'specific');
@@ -377,7 +487,7 @@ function DetailsContent() {
       // Check if cardType is 'contract' - use new contract-count API
       if (cardType === 'contract') {
         const params = new URLSearchParams();
-        
+        addStatusFilters(params);
         // Default to 'all' if no date filters are provided, to match card count
         if (fromDateFilter && toDateFilter) {
           params.append('dateRange', 'specific');
@@ -429,7 +539,7 @@ function DetailsContent() {
       // Check if cardType is 'franchise_discussed' - use new franchise-discussed API
       if (cardType === 'franchise_discussed') {
         const params = new URLSearchParams();
-        
+        addStatusFilters(params);
         // Default to 'all' if no date filters are provided, to match card count
         if (fromDateFilter && toDateFilter) {
           params.append('dateRange', 'specific');
@@ -481,6 +591,7 @@ function DetailsContent() {
       // Check if cardType is 'franchise_form_ask' - use common franchise-count API
       if (cardType === 'franchise_form_ask') {
         const params = new URLSearchParams();
+        addStatusFilters(params);
         params.append('status', 'application form share');
         
         if (fromDateFilter && toDateFilter) {
@@ -532,6 +643,7 @@ function DetailsContent() {
       // Check if cardType is 'franchise_form_shared' - use common franchise-count API
       if (cardType === 'franchise_form_shared') {
         const params = new URLSearchParams();
+        addStatusFilters(params);
         params.append('status', 'application form share');
         
         if (fromDateFilter && toDateFilter) {
@@ -583,7 +695,7 @@ function DetailsContent() {
       // Check if cardType is 'franchise_accepted' - use new franchise-accepted API
       if (cardType === 'franchise_accepted') {
         const params = new URLSearchParams();
-        
+        addStatusFilters(params);
         if (fromDateFilter && toDateFilter) {
           params.append('dateRange', 'specific');
           params.append('fromDate', fromDateFilter);
@@ -633,6 +745,7 @@ function DetailsContent() {
       // Check if cardType is 'onboard' - use new onboard-count API
        if (cardType === 'onboard') {
          const params = new URLSearchParams();
+         addStatusFilters(params);
          
          // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
          if (isAllData) {
@@ -705,7 +818,7 @@ function DetailsContent() {
       // If isTotalContacts, use contacts-count API (Total Contacts case)
       if (isTotalContacts) {
         const params = new URLSearchParams();
-        
+        addStatusFilters(params);
         // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
         if (isAllData) {
           params.append('dateRange', 'all');
@@ -760,7 +873,7 @@ function DetailsContent() {
       // If isStartupClientsCalls, use startup-calls API (Startup Clients Calls case)
       if (isStartupClientsCalls) {
         const params = new URLSearchParams();
-        
+        addStatusFilters(params);
         // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
         if (isAllData) {
           params.append('dateRange', 'all');
@@ -822,7 +935,7 @@ function DetailsContent() {
       
       if (isMasterUnionCalls) {
         const params = new URLSearchParams();
-        
+        addStatusFilters(params);
         // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
         if (isAllData) {
           params.append('dateRange', 'all');
@@ -875,7 +988,7 @@ function DetailsContent() {
       
       if (isMasterUnionLeads) {
         const params = new URLSearchParams();
-        
+        addStatusFilters(params);
         // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
         if (isAllData) {
           params.append('dateRange', 'all');
@@ -928,6 +1041,7 @@ function DetailsContent() {
       
       if (isNormalClientsCalls) {
         const params = new URLSearchParams();
+        addStatusFilters(params);
         // Pass date filters based on isAllData
         if (isAllData) {
           params.append('dateRange', 'all');
@@ -959,6 +1073,7 @@ function DetailsContent() {
       // If no filters (Total Leads case) or Normal Clients Leads case - use leads API
       if (!hasCardFilters || isNormalClientsLeads) {
         const params = new URLSearchParams();
+        addStatusFilters(params);
         if (fromDateFilter && toDateFilter) {
           params.append('fromDate', fromDateFilter);
           params.append('toDate', toDateFilter);
@@ -1010,6 +1125,7 @@ function DetailsContent() {
       // Check if isSubmittedFilter is set - use new sent-to-manager-count API
       if (isSubmittedFilter === 'true') {
         const params = new URLSearchParams();
+        addStatusFilters(params);
         
         // Default to 'all' if no date filters are provided, to match card count
         if (fromDateFilter && toDateFilter) {
@@ -1061,6 +1177,8 @@ function DetailsContent() {
       
       // Otherwise fetch interactions (for other cards with filters)
       const params = new URLSearchParams();
+      addStatusFilters(params);
+
       if (fromDateFilter && toDateFilter) {
         params.append('fromDate', fromDateFilter);
         params.append('toDate', toDateFilter);
@@ -1099,6 +1217,9 @@ function DetailsContent() {
       setLoading(false);
     }
   };
+
+  
+// Replace your fetchInteractions function with this updated version
 
   // Fetch single lead interactions for view modal
   const fetchLeadInteractions = async (clientId) => {
@@ -1173,7 +1294,7 @@ function DetailsContent() {
   // Apply filters when filter params change
   useEffect(() => {
     fetchInteractions();
-  }, [statusFilter, subStatusFilter, franchiseStatusFilter, fromDateFilter, toDateFilter, startupFilter, isSubmittedFilter]);
+  }, [statusFilter, subStatusFilter, franchiseStatusFilter, fromDateFilter, toDateFilter, startupFilter, isSubmittedFilter, searchTerm]);
 
   // Handle action
   const handleAction = async (interaction, type) => {
@@ -1305,40 +1426,188 @@ function DetailsContent() {
               </span>
             </p>
           </div>
+
         </div>
       </div>
 
       {/* 2. ACTIVE FILTERS DISPLAY */}
-      {(statusFilter !== 'All' || subStatusFilter !== 'All' || franchiseStatusFilter !== 'All' || (fromDateFilter && toDateFilter) || isSubmittedFilter === 'true') && (
-        <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-200 mb-4 flex flex-wrap gap-2 items-center">
-          <span className="text-xs font-bold text-gray-500 uppercase">Active Filters:</span>
-          {isSubmittedFilter === 'true' && (
-            <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs font-bold rounded border border-purple-200">
-              Sent to Manager
-            </span>
-          )}
-          {statusFilter !== 'All' && (
-            <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded border border-blue-200">
-              Status: {statusFilter}
-            </span>
-          )}
-          {subStatusFilter !== 'All' && (
-            <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs font-bold rounded border border-purple-200">
-              Sub-Status: {subStatusFilter}
-            </span>
-          )}
-          {franchiseStatusFilter !== 'All' && (
-            <span className="px-2 py-1 bg-green-50 text-green-700 text-xs font-bold rounded border border-green-200">
-              Franchise: {franchiseStatusFilter}
-            </span>
-          )}
-          {fromDateFilter && toDateFilter && (
-            <span className="px-2 py-1 bg-orange-50 text-orange-700 text-xs font-bold rounded border border-orange-200">
-              Date: {fromDateFilter} to {toDateFilter}
-            </span>
-          )}
-        </div>
+{/* 2. FILTERS & SEARCH SECTION (Combined) */}
+<div className="bg-white p-3 rounded-xl shadow-sm border border-gray-200 mb-4">
+  <div className="flex flex-wrap gap-4 items-end">
+    
+    {/* Global Search Bar - Integrated with filters */}
+    <div className="flex-1 min-w-[250px]">
+      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
+        Global Search
+      </label>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+        <input
+          type="text"
+          placeholder="Search by Company, Category, State, City, Contact Person, Phone, Email, Status, Sub-Status, Remarks..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:border-[#103c7f] focus:outline-none transition"
+        />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm('')}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
+      {searchTerm && (
+        <p className="text-xs text-gray-500 mt-1">
+          Found {filteredInteractions.length} result(s) for "{searchTerm}"
+        </p>
       )}
+    </div>
+
+    {/* Status Filter Dropdown */}
+    <div className="w-[160px]">
+      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
+        Status
+      </label>
+      <div className="relative">
+        <ListFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            const params = new URLSearchParams(searchParams);
+            params.set('status', e.target.value);
+            router.push(`?${params.toString()}`);
+          }}
+          className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:border-[#103c7f] outline-none appearance-none cursor-pointer"
+        >
+          <option value="All">All Status</option>
+          <option value="Interested">Interested</option>
+          <option value="Not Interested">Not Interested</option>
+          <option value="Not Picked">Not Picked</option>
+          <option value="Onboard">Onboard</option>
+          <option value="Call Later">Call Later</option>
+          <option value="New">New</option>
+        </select>
+      </div>
+    </div>
+
+    {/* Sub-Status Filter Dropdown */}
+    <div className="w-[180px]">
+      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
+        Sub-Status
+      </label>
+      <div className="relative">
+        <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+        <select
+          value={subStatusFilter}
+          onChange={(e) => {
+            const params = new URLSearchParams(searchParams);
+            params.set('subStatus', e.target.value);
+            router.push(`?${params.toString()}`);
+          }}
+          className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:border-[#103c7f] outline-none appearance-none cursor-pointer"
+        >
+          <option value="All">All</option>
+          <option value="2nd time not picked">2nd time not picked</option>
+          <option value="Contract Share">Contract Share</option>
+          <option value="Enough Vendor Empanelment">Enough Vendor Empanelment</option>
+          <option value="Hiring Sealed">Hiring Sealed</option>
+          <option value="Manager Ask">Manager Ask</option>
+          <option value="Meeting Align">Meeting Align</option>
+          <option value="Misaligned T&C">Misaligned T&C</option>
+          <option value="Not Right Person">Not Right Person</option>
+          <option value="Official Mail Ask">Official Mail Ask</option>
+          <option value="Reference Ask">Reference Ask</option>
+          <option value="Self Hiring">Self Hiring</option>
+          <option value="Ready To Visit">Ready To Visit</option>
+          <option value="Callback">Callback</option>
+          <option value="NA">NA</option>
+          <option value="New Lead">New Lead</option>
+        </select>
+      </div>
+    </div>
+
+    {/* Franchise Status Filter Dropdown */}
+    <div className="w-[180px]">
+      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
+        Franchise Status
+      </label>
+      <div className="relative">
+        <Award className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+        <select
+          value={franchiseStatusFilter}
+          onChange={(e) => {
+            const params = new URLSearchParams(searchParams);
+            params.set('franchiseStatus', e.target.value);
+            router.push(`?${params.toString()}`);
+          }}
+          className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:border-[#103c7f] outline-none appearance-none cursor-pointer"
+        >
+          <option value="All">All</option>
+          <option value="Application Form Share">Application Form Share</option>
+          <option value="No Franchise Discuss">No Franchise Discuss</option>
+          <option value="Not Interested">Not Interested</option>
+          <option value="Will Think About It">Will Think About It</option>
+          <option value="Form Filled">Form Filled</option>
+          <option value="Form Not Filled">Form Not Filled</option>
+        </select>
+      </div>
+    </div>
+
+    {/* Clear All Button */}
+    {(statusFilter !== 'All' || subStatusFilter !== 'All' || franchiseStatusFilter !== 'All' || searchTerm) && (
+      <button
+        onClick={() => {
+          const params = new URLSearchParams(searchParams);
+          params.delete('status');
+          params.delete('subStatus');
+          params.delete('franchiseStatus');
+          router.push(`?${params.toString()}`);
+          setSearchTerm('');
+        }}
+        className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors"
+      >
+        <X size={14} /> Clear All
+      </button>
+    )}
+  </div>
+</div>
+
+  
+
+    {/* 4. ACTIVE FILTERS DISPLAY */}
+    {(statusFilter !== 'All' || subStatusFilter !== 'All' || franchiseStatusFilter !== 'All' || (fromDateFilter && toDateFilter) || isSubmittedFilter === 'true') && (
+      <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-200 mb-4 flex flex-wrap gap-2 items-center">
+        <span className="text-xs font-bold text-gray-500 uppercase">Active Filters:</span>
+        {isSubmittedFilter === 'true' && (
+          <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs font-bold rounded border border-purple-200">
+            Sent to Manager
+          </span>
+        )}
+        {statusFilter !== 'All' && (
+          <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded border border-blue-200">
+            Status: {statusFilter}
+          </span>
+        )}
+        {subStatusFilter !== 'All' && (
+          <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs font-bold rounded border border-purple-200">
+            Sub-Status: {subStatusFilter}
+          </span>
+        )}
+        {franchiseStatusFilter !== 'All' && (
+          <span className="px-2 py-1 bg-green-50 text-green-700 text-xs font-bold rounded border border-green-200">
+            Franchise: {franchiseStatusFilter}
+          </span>
+        )}
+        {fromDateFilter && toDateFilter && (
+          <span className="px-2 py-1 bg-orange-50 text-orange-700 text-xs font-bold rounded border border-orange-200">
+            Date: {fromDateFilter} to {toDateFilter}
+          </span>
+        )}
+      </div>
+    )}
+
 
       {/* 3. THE TABLE */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex-1 overflow-x-auto overflow-y-auto">
@@ -1370,8 +1639,8 @@ function DetailsContent() {
                   Loading leads...
                 </td>
               </tr>
-            ) : interactions.length > 0 ? (
-              interactions.map((interaction, index) => {
+            ):  filteredInteractions.length > 0 ? (
+  filteredInteractions.map((interaction, index) =>{
                 const isLocked = interaction.isSubmitted;
                 return (
                   <tr
