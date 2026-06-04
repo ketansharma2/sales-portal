@@ -4,7 +4,7 @@ import Image from "next/image";
 import {
   Calendar, User, Briefcase, FileText, CheckCircle,
   X, ExternalLink, Clock, Building2, MapPin, Download,Search,
-  Globe, Link as LinkIcon, PlusCircle, Trash2, PlayCircle, PauseCircle,
+  Globe, Link as LinkIcon, PlusCircle, Trash2, PlayCircle, PauseCircle,Phone,
   Database, BarChart2, Edit2, Loader2 // Naye icons CV tracking ke liye + Loader2
 } from "lucide-react";
 
@@ -561,6 +561,18 @@ const handleStatusChange = async (jdId, newStatus, jobType) => {
     return logs.reduce((sum, log) => sum + Number(log.count || 0), 0);
   };
 
+  const getTotalCVsFromPortalData = (portalData) => {
+  if (!portalData) return 0;
+  let total = 0;
+  // Loop through dates and portals to sum totalCv
+  Object.values(portalData).forEach(dateData => {
+    Object.values(dateData).forEach(portalInfo => {
+      total += (portalInfo.totalCv || 0);
+    });
+  });
+  return total;
+};
+
   return (
     <div className="min-h-screen bg-gray-50 font-['Calibri'] p-2 print:p-0 print:bg-white">
       
@@ -630,7 +642,7 @@ const handleStatusChange = async (jdId, newStatus, jobType) => {
       <div className="text-center px-4 border-r border-gray-100">
         <p className="text-[10px] font-bold text-gray-400 uppercase">CVs</p>
         <p className="text-xl font-black text-indigo-600">
-          {Array.isArray(postings) ? postings.reduce((sum, p) => sum + (p.cvLogs?.reduce((s, log) => s + Number(log.count || 0), 0) || 0), 0) : 0}
+          {Array.isArray(postings) ? postings.reduce((sum, p) => sum + (p.portalDateWiseCounts ? Object.values(p.portalDateWiseCounts).reduce((s, dateData) => s + Object.values(dateData).reduce((subSum, portalData) => subSum + portalData.totalCv, 0), 0) : 0), 0) : 0}
         </p>
       </div>
 
@@ -638,7 +650,7 @@ const handleStatusChange = async (jdId, newStatus, jobType) => {
       <div className="text-center px-4">
         <p className="text-[10px] font-bold text-gray-400 uppercase">Calls</p>
         <p className="text-xl font-black text-emerald-600">
-          {Array.isArray(postings) ? postings.reduce((sum, p) => sum + (p.cvLogs?.reduce((s, log) => s + Number(log.callingCount || 0), 0) || 0), 0) : 0}
+          {Array.isArray(postings) ? postings.reduce((sum, p) => sum + (p.portalDateWiseCounts ? Object.values(p.portalDateWiseCounts).reduce((s, dateData) => s + Object.values(dateData).reduce((subSum, portalData) => subSum + portalData.totalCall, 0), 0) : 0), 0) : 0}
         </p>
       </div>
     </div>
@@ -822,16 +834,44 @@ const handleStatusChange = async (jdId, newStatus, jobType) => {
                              </td>
 
                              {/* NEW COLUMN: Data Received (CVs) */}
-                             <td className="p-2 text-center align-middle">
-                                 <button
-                                     onClick={() => handleOpenDataLog(post)}
-                                     className="inline-flex flex-col items-center justify-center p-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition border border-indigo-100 min-w-[80px]"
-                                     title="Click to Log CVs"
-                                 >
-                                     <span className="text-lg font-black">{totalCVs}</span>
-                                     <span className="text-[9px] font-bold uppercase tracking-widest flex items-center gap-1"><Database size={10}/> CVs</span>
-                                 </button>
-                             </td>
+                      <td className="p-2 text-center align-middle">
+  <button
+    onClick={() => handleOpenDataLog(post)}
+    className="group relative flex flex-col items-center justify-center p-2 rounded-xl bg-gradient-to-br from-indigo-50 to-white hover:from-indigo-100 hover:to-indigo-50 text-indigo-700 transition-all duration-200 border border-indigo-100 hover:border-indigo-200 shadow-sm hover:shadow-md min-w-[90px]"
+    title="Click to Log CVs & Calls"
+  >
+    {/* Stats Container */}
+    <div className="flex items-center justify-center gap-3 w-full">
+      {/* CV Section */}
+      <div className="flex flex-col items-center">
+        <div className="flex items-center gap-1 text-indigo-600">
+          <Database size={12} className="opacity-70" />
+          <span className="text-xl font-black">{post.uniqueCandidatesCount || 0}</span>
+        </div>
+        <span className="text-[8px] font-bold uppercase tracking-wider text-indigo-500/70">CVs</span>
+      </div>
+      
+      {/* Divider */}
+      <div className="w-px h-8 bg-indigo-200"></div>
+      
+      {/* Calls Section */}
+      <div className="flex flex-col items-center">
+        <div className="flex items-center gap-1 text-emerald-600">
+          <Phone size={12} className="opacity-70" />
+          <span className="text-xl font-black">{post.totalConversationsCount || 0}</span>
+        </div>
+        <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-500/70">Calls</span>
+      </div>
+    </div>
+    
+    {/* Bottom Label */}
+    <div className="mt-1.5 pt-1 border-t border-indigo-100 w-full text-center">
+      <span className="text-[7px] font-black uppercase tracking-wider text-indigo-400 group-hover:text-indigo-600 transition">
+        📊 Log Analytics
+      </span>
+    </div>
+  </button>
+</td>
 
 </tr>
                           );
@@ -859,7 +899,7 @@ const handleStatusChange = async (jdId, newStatus, jobType) => {
                                 <Database size={20}/> Track Data / CVs Received
                             </h2>
                             <p className="text-xs text-indigo-200 font-bold mt-1">
-                                {selectedJD.job_title} <span className="text-indigo-400 mx-1">•</span> Total Logged: {getTotalCVs(selectedJD.cvLogs)} CVs
+                                {selectedJD.job_title} <span className="text-indigo-400 mx-1">•</span> Total Logged: {getTotalCVsFromPortalData(selectedJD.portalDateWiseCounts)} CVs
                             </p>
                         </div>
                         <button onClick={() => setIsDataModalOpen(false)} className="hover:bg-white/20 p-1.5 rounded transition bg-white/10">
@@ -869,43 +909,12 @@ const handleStatusChange = async (jdId, newStatus, jobType) => {
 
                   <div className="flex-1 overflow-y-auto p-6 bg-gray-50 custom-scrollbar flex flex-col gap-6">
                         
-                      <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 border-b pb-2 flex items-center gap-1"><PlusCircle size={14}/> Log Sourcing & Calling</h4>
-                            <div className="flex flex-col md:flex-row gap-3 items-end">
-                                <div className="w-full md:w-[20%]">
-                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Received Date</label>
-                                    <input type="date" className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold outline-none focus:border-indigo-600" value={newLog.date} onChange={(e) => setNewLog({...newLog, date: e.target.value})}/>
-                                </div>
-                                <div className="w-full md:w-[30%]">
-                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Source / Platform</label>
-                                    <select className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold outline-none focus:border-indigo-600" value={newLog.platform} onChange={(e) => setNewLog({...newLog, platform: e.target.value})}>
-                                        {platformOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                                    </select>
-                                </div>
-                                <div className="w-full md:w-[20%]">
-                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">CVs Received</label>
-                                    <input type="number" min="0" placeholder="e.g. 5" className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold outline-none focus:border-indigo-600" value={newLog.count} onChange={(e) => setNewLog({...newLog, count: e.target.value})}/>
-                                </div>
-                                {/* NEW INPUT FOR CALLING */}
-                                <div className="w-full md:w-[20%]">
-                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Calling Done</label>
-                                    <input type="number" min="0" placeholder="e.g. 10" className="w-full border border-gray-300 rounded-lg p-2 text-sm font-bold outline-none focus:border-indigo-600" value={newLog.callingCount} onChange={(e) => setNewLog({...newLog, callingCount: e.target.value})}/>
-                                </div>
-                                <button onClick={editingLog ? handleUpdateLog : handleAddLog} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-5 py-2 rounded-lg transition shadow-md w-full md:w-auto shrink-0 whitespace-nowrap">
-                                    {editingLog ? 'Update Data' : 'Add Data'}
-                                </button>
-                                {editingLog && (
-                                    <button onClick={handleCancelEdit} className="bg-gray-500 hover:bg-gray-600 text-white font-bold text-sm px-5 py-2 rounded-lg transition shadow-md w-full md:w-auto shrink-0 whitespace-nowrap">
-                                        Cancel
-                                    </button>
-                                )}
-                            </div>
-                        </div>
+                   
 
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex-1 flex flex-col">
                             <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest m-5 mb-0 pb-2 border-b flex items-center gap-2"><BarChart2 size={16}/> Data History</h4>
                             <div className="p-5 overflow-y-auto">
-                                {!selectedJD.cvLogs || selectedJD.cvLogs.length === 0 ? (
+                                {!selectedJD.portalDateWiseCounts || Object.keys(selectedJD.portalDateWiseCounts).length === 0 ? (
                                     <div className="text-center py-10 text-gray-400 border-2 border-dashed border-gray-200 rounded-xl">
                                         <Database size={32} className="mx-auto mb-2 opacity-50"/>
                                         <p className="font-bold text-sm">No data logged yet.</p>
@@ -918,13 +927,21 @@ const handleStatusChange = async (jdId, newStatus, jobType) => {
                                                 <th className="p-3">Platform / Source</th>
                                                 <th className="p-3 text-center">CVs Received</th>
                                                 <th className="p-3 text-center">Calling Done</th> 
-                                                <th className="p-3 text-center">Action</th>
+                                               
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100 font-medium">
-                                            {selectedJD.cvLogs.map(log => (
-                                                <tr key={log.id} className="hover:bg-gray-50"><td className="p-3 text-gray-600 font-mono text-xs">{log.date}</td><td className="p-3 font-bold text-gray-800">{log.platform}</td><td className="p-3 text-center font-black text-indigo-600 bg-indigo-50/50">{log.count || 0}</td><td className="p-3 text-center font-black text-green-700 bg-green-50/50">{log.callingCount || 0}</td><td className="p-3 text-center"><button onClick={() => handleEditLog(log)} className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded transition mr-1"><Edit2 size={16}/></button></td></tr>
-                                            ))}
+                                            {Object.entries(selectedJD.portalDateWiseCounts).flatMap(([date, portals]) =>
+                                                Object.entries(portals).map(([portal, counts]) => (
+                                                    <tr key={`${date}-${portal}`} className="hover:bg-gray-50">
+                                                        <td className="p-3 text-gray-600 font-mono text-xs">{date}</td>
+                                                        <td className="p-3 font-bold text-gray-800">{portal}</td>
+                                                        <td className="p-3 text-center font-black text-indigo-600 bg-indigo-50/50">{counts.totalCv || 0}</td>
+                                                        <td className="p-3 text-center font-black text-green-700 bg-green-50/50">{counts.totalCall || 0}</td>
+                                                       
+                                                    </tr>
+                                                ))
+                                            )}
                                         </tbody>
                                     </table>
                                 )}

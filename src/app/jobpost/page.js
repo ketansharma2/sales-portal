@@ -57,8 +57,11 @@ export default function JobPosterReportDetailed() {
   useEffect(() => {
     const fetchDailyStats = async () => {
       setLoadingDaily(true);
+        const session = JSON.parse(localStorage.getItem('session') || '{}');
       try {
-        const res = await fetch(`/api/jobpost/daily-stats?date=${selectedDate}`);
+        const res = await fetch(`/api/jobpost/daily-stats?date=${selectedDate}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
         const data = await res.json();
         if (data.success) {
           setDailyPlatformStats(data.stats);
@@ -82,7 +85,10 @@ export default function JobPosterReportDetailed() {
   useEffect(() => {
     const fetchPlatformTotals = async () => {
       try {
-        const res = await fetch('/api/jobpost/platform-totals');
+           const session = JSON.parse(localStorage.getItem('session') || '{}');
+        const res = await fetch('/api/jobpost/platform-totals', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
         const data = await res.json();
         if (data.success) {
           setLifetimeTotals({
