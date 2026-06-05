@@ -43,7 +43,7 @@ export default function DomesticCandidateHistoryPage() {
   const [mainForm, setMainForm] = useState({ 
       entry_date: "", crm_name: "", tl_name: "", entered_by_rc: "",
       payment_from: "", client_name: "", candidate_name: "", position: "",
-      client_email: "", client_mobile: "", candidate_email: "", candidate_phone: "", 
+      client_email: "", client_mobile: "", candidate_email: "", candidate_mobile: "", 
       offer_salary: "", payment_terms: "", joining_date: "", payment_days: "",
       retention_month: "", retention_amount: "",retention_amount_crm: ""
   });
@@ -102,7 +102,7 @@ export default function DomesticCandidateHistoryPage() {
                client_email: record.client_email || '',
                client_mobile: record.client_mobile || '',
                candidate_email: record.candidate_email || '',
-               candidate_phone: record.candidate_mobile || '',
+               candidate_mobile: record.candidate_mobile || '',
                offer_salary: record.offer_salary ? String(record.offer_salary).replace(/,/g, '') : '',
                payment_terms: record.terms ? String(record.terms).replace('%', '') : '',
                joining_date: record.joining_date || '',
@@ -541,7 +541,7 @@ export default function DomesticCandidateHistoryPage() {
                       </div>
                       <div>
                           <label className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1 block">Candidate Phone</label>
-                          {isEditingCRMData ? <input type="text" value={mainForm.candidate_phone} onChange={e => setMainForm({...mainForm, candidate_phone: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 bg-white"/> : <p className="text-sm font-bold text-gray-800">{mainForm.candidate_phone || "N/A"}</p>}
+                          {isEditingCRMData ? <input type="text" value={mainForm.candidate_mobile} onChange={e => setMainForm({...mainForm, candidate_mobile: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 bg-white"/> : <p className="text-sm font-bold text-gray-800">{mainForm.candidate_mobile || "N/A"}</p>}
                       </div>
                   </div>
               </div>

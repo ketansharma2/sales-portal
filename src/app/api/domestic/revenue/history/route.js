@@ -212,9 +212,11 @@ export async function PUT(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
+    
+
     const body = await request.json()
     const { revenue_id, ...updateFields } = body
-
+    console.log("body:", body);
     if (!revenue_id) {
       return NextResponse.json({ error: 'Revenue ID is required' }, { status: 400 })
     }
