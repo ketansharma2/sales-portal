@@ -43,7 +43,7 @@ export default function DomesticCandidateHistoryPage() {
   const [mainForm, setMainForm] = useState({ 
       entry_date: "", crm_name: "", tl_name: "", entered_by_rc: "",
       payment_from: "", client_name: "", candidate_name: "", position: "",
-      client_email: "", client_phone: "", candidate_email: "", candidate_phone: "", 
+      client_email: "", client_mobile: "", candidate_email: "", candidate_phone: "", 
       offer_salary: "", payment_terms: "", joining_date: "", payment_days: "",
       retention_month: "", retention_amount: "",retention_amount_crm: ""
   });
@@ -100,7 +100,7 @@ export default function DomesticCandidateHistoryPage() {
                candidate_name: record.candidate_name || '',
                position: record.profile || '',
                client_email: record.client_email || '',
-               client_phone: record.client_mobile || '',
+               client_mobile: record.client_mobile || '',
                candidate_email: record.candidate_email || '',
                candidate_phone: record.candidate_mobile || '',
                offer_salary: record.offer_salary ? String(record.offer_salary).replace(/,/g, '') : '',
@@ -533,7 +533,7 @@ export default function DomesticCandidateHistoryPage() {
                       </div>
                       <div>
                           <label className="text-[9px] font-black text-orange-400 uppercase tracking-widest mb-1 block">Client Phone</label>
-                          {isEditingCRMData ? <input type="text" value={mainForm.client_phone} onChange={e => setMainForm({...mainForm, client_phone: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-orange-500 bg-white"/> : <p className="text-sm font-bold text-gray-800">{mainForm.client_phone || "N/A"}</p>}
+                          {isEditingCRMData ? <input type="text" value={mainForm.client_mobile} onChange={e => setMainForm({...mainForm, client_mobile: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-orange-500 bg-white"/> : <p className="text-sm font-bold text-gray-800">{mainForm.client_mobile || "N/A"}</p>}
                       </div>
                       <div className="pt-1 border-t border-gray-100">
                           <label className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1 mt-1 block">Candidate Email</label>
