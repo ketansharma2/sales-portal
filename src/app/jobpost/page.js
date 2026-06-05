@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { 
-  Calendar, Printer, FileSpreadsheet, Database, Briefcase, PhoneCall
+  Calendar, Printer, FileSpreadsheet, Database, Briefcase, PhoneCall,FileText
 } from "lucide-react";
 
 export default function JobPosterReportDetailed() {
@@ -27,7 +27,11 @@ export default function JobPosterReportDetailed() {
   };
 
   // --- API DATABASE 1: JOBS POSTED TODAY (from job_postings + domestic_crm_jd/corporate_crm_jd) ---
-  const [jobsPosted, setJobsPosted] = useState([]);
+const [jobsPosted, setJobsPosted] = useState({
+  jobs: [],
+  date: null,
+  total_jobs: 0
+});
   const [loadingJobs, setLoadingJobs] = useState(true);
 
   // Fetch jobs posted when selected date changes
@@ -35,10 +39,10 @@ export default function JobPosterReportDetailed() {
     const fetchJobsPosted = async () => {
       setLoadingJobs(true);
       try {
-        const res = await fetch(`/api/jobpost/jobs-posted?date=${selectedDate}`);
+        const res = await fetch(`/api/jobpost/report-date/jobs`);
         const data = await res.json();
         if (data.success) {
-          setJobsPosted(data.jobs);
+          setJobsPosted(data);
         }
       } catch (error) {
         console.error('Error fetching jobs posted:', error);
@@ -156,10 +160,19 @@ export default function JobPosterReportDetailed() {
               
               {/* === LEFT COLUMN: PART A (Jobs Posted) === */}
               <div className="w-full lg:w-[65%] print:w-[65%] border-r border-gray-200 flex flex-col">
-                  <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center gap-2">
-                      <Briefcase size={16} className="text-[#103c7f]"/>
-                      <h3 className="font-black text-[#103c7f] uppercase text-sm tracking-widest">Jobs Posted Today ({jobsPosted.length})</h3>
-                  </div>
+                  <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center justify-between">
+  <div className="flex items-center gap-2">
+    <Briefcase size={14} className="text-[#103c7f]" />
+    <h4 className="font-black text-[#103c7f] uppercase text-xs tracking-widest">
+      Jobs Posted ({jobsPosted.total_jobs})
+    </h4>
+    <span className="text-xs font-semibold text-gray-600">
+    Posted Date: {jobsPosted.date}
+  </span>
+  </div>
+
+ 
+</div>
                   
                   <div className="p-0 flex-1">
                     {loadingJobs ? (
@@ -168,30 +181,53 @@ export default function JobPosterReportDetailed() {
                         <span className="ml-3 text-gray-500 text-sm">Loading...</span>
                       </div>
                     ) : (
-                      <table className="w-full text-left text-sm">
-                          <thead className="bg-white border-b border-gray-200 text-[10px] uppercase text-gray-400 font-bold">
-                              <tr>
-                                  <th className="py-3 px-6 w-[20%]">Sector</th>
-                                  <th className="py-3 px-4 w-[35%]">Client Name</th>
-                                  <th className="py-3 px-4 w-[45%]">Profile Posted</th>
-                              </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100 text-gray-800">
-                              {jobsPosted.length > 0 ? jobsPosted.map(job => (
-                                  <tr key={job.id} className="hover:bg-gray-50">
-                                      <td className="py-3 px-6">
-                                          <span className={`text-[9px] px-2 py-1 rounded font-black uppercase tracking-widest ${job.sector === 'Domestic' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
-                                              {job.sector}
-                                          </span>
-                                      </td>
-                                      <td className="py-3 px-4 font-bold">{job.client}</td>
-                                      <td className="py-3 px-4 text-[#103c7f] font-bold">{job.profile}</td>
-                                  </tr>
-                              )) : (
-                                  <tr><td colSpan="3" className="py-6 text-center text-gray-400 italic text-sm">No new jobs posted today.</td></tr>
-                              )}
-                          </tbody>
-                      </table>
+                       <table className="w-full text-left text-xs">
+                                                    <thead className="bg-white border-b border-gray-200 text-[9px] uppercase text-gray-400 font-bold sticky top-0">
+                                                        <tr>
+                                                            <th className="py-2 px-4 w-[20%]">Sector</th>
+                                                            <th className="py-2 px-3 w-[20%]">Client</th>
+                                                            <th className="py-2 px-3 w-[20%]">Profile</th>
+                                                            <th className="py-2 px-3 w-[15%] text-center">Platform</th>
+                                                            <th className="py-2 px-3 w-[10%] text-center">JD View</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-100 text-gray-700">
+                                                        {jobsPosted.jobs.length > 0 ? jobsPosted.jobs.slice(0, 20).map(job => (
+                                                            <tr key={job.job_posting_id} className="hover:bg-gray-50">
+                                                                <td className="py-2 px-4">
+                                                                    <span className={`text-[8px] px-2 py-0.5 rounded font-black uppercase tracking-widest ${job.sector === 'Domestic' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
+                                                                        {job.sector}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-2 px-3 font-bold truncate max-w-[120px]">{job.client_name}</td>
+                                                                <td className="py-2 px-3 text-[#103c7f] font-bold truncate max-w-[160px]">{job.job_title}</td>
+                                                                <td className="py-2 px-3 font-bold truncate max-w-[80px] text-center">
+                                                                    {job.platforms && job.platforms.length > 0 ? (
+                                                                        <span className="text-[8px] px-1 py-0.5 rounded bg-blue-50 text-blue-700 font-bold">
+                                                                            {job.platforms.join(', ')}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-[8px] text-gray-400 italic">-</span>
+                                                                    )}
+                                                                </td>
+                                                                <td className="py-2 px-3 text-center">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setSelectedJD(job);
+                                                                            setIsJDPreviewOpen(true);
+                                                                        }}
+                                                                        title="Preview JD"
+                                                                        className="p-1.5 bg-red-50 text-red-600 border border-red-100 rounded hover:bg-red-600 hover:text-white transition"
+                                                                    >
+                                                                        <FileText size={14} />
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        )) : (
+                                                            <tr><td colSpan="4" className="py-4 text-center text-gray-400 italic text-xs">No jobs posted.</td></tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
                     )}
                   </div>
               </div>

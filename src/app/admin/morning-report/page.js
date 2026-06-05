@@ -61,7 +61,7 @@ export default function MorningReportPage() {
     // const [crmToDate, setCrmToDate] = useState(defaultDate);
     const [crmFromDate, setCrmFromDate] = useState(() => {
     const date = new Date();
-    date.setDate(date.getDate() - 7); // Default to last 7 days
+    date.setDate(date.getDate() - 1); // Default to last 7 days
     return date.toISOString().split('T')[0];
 });
 const [crmToDate, setCrmToDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -794,6 +794,10 @@ useEffect(() => {
         loading: true
     });
 
+     const [jobs, setJobs] = useState({  
+        jobs: [],
+    });
+
     // JD Preview Modal State
     const [isJDPreviewOpen, setIsJDPreviewOpen] = useState(false);
     const [selectedJD, setSelectedJD] = useState(null);
@@ -1031,7 +1035,7 @@ useEffect(() => {
                         selectedDate: data.selectedDate,
                         jobs: data.jobs || [],
                         stats: data.stats || [],
-                        totals: data.totals || { indeedCvs: 0, indeedCalls: 0, naukriCvs: 0, naukriCalls: 0 },
+                        totals: data.platformTotals || { indeedCvs: 0, indeedCalls: 0, naukriCvs: 0, naukriCalls: 0 },
                         loading: false
                     });
                 }
@@ -1040,6 +1044,29 @@ useEffect(() => {
                 setJobPostData(prev => ({ ...prev, loading: false }));
             }
         };
+
+
+         const fetchJobs = async () => {
+            try {
+                const session = JSON.parse(localStorage.getItem('session') || '{}');
+
+                // Fetch report date and all data from new unified API
+                const res = await fetch('/api/jobpost/report-date/jobs', {
+                    headers: { 'Authorization': `Bearer ${session.access_token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setJobs({                        
+                        jobs: data.jobs || [],
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching job post data:', error);
+                setJobs(prev => ({ ...prev, loading: false }));
+            }
+        };
+
+        fetchJobs();
 
         fetchJobPostData();
     }, []);
@@ -2189,13 +2216,22 @@ useEffect(() => {
 
                                     {/* LEFT COLUMN: Jobs Posted */}
                                     <div className="w-full lg:w-[65%] border-r border-gray-200 flex flex-col">
-                                        <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center gap-2">
-                                            <Briefcase size={14} className="text-[#103c7f]" />
-                                            <h4 className="font-black text-[#103c7f] uppercase text-xs tracking-widest">Jobs Posted ({jobPostData.jobs.length})</h4>
-                                        </div>
+                                        <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center justify-between">
+  <div className="flex items-center gap-2">
+    <Briefcase size={14} className="text-[#103c7f]" />
+    <h4 className="font-black text-[#103c7f] uppercase text-xs tracking-widest">
+      Jobs Posted ({jobs.jobs.length})
+    </h4>
+    <span className="text-xs font-semibold text-gray-600">
+    Posted Date: {jobs.jobs[0]?.date}
+  </span>
+  </div>
+
+ 
+</div>
 
                                         <div className="p-0 flex-1 max-h-[350px] overflow-y-auto">
-                                            {jobPostData.loading ? (
+                                            {jobs.loading ? (
                                                 <div className="flex items-center justify-center py-6">
                                                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#103c7f]"></div>
                                                     <span className="ml-2 text-gray-500 text-xs">Loading...</span>
@@ -2212,8 +2248,8 @@ useEffect(() => {
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-gray-100 text-gray-700">
-                                                        {jobPostData.jobs.length > 0 ? jobPostData.jobs.slice(0, 20).map(job => (
-                                                            <tr key={job.id} className="hover:bg-gray-50">
+                                                        {jobs.jobs.length > 0 ? jobs.jobs.slice(0, 20).map(job => (
+                                                            <tr key={job.job_posting_id} className="hover:bg-gray-50">
                                                                 <td className="py-2 px-4">
                                                                     <span className={`text-[8px] px-2 py-0.5 rounded font-black uppercase tracking-widest ${job.sector === 'Domestic' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
                                                                         {job.sector}
@@ -2323,12 +2359,12 @@ useEffect(() => {
                                                 <div className="flex justify-between items-center text-left px-2">
                                                     <div>
                                                         <p className="text-[8px] text-gray-300 uppercase">CVs</p>
-                                                        <p className="text-base font-black">{jobPostData.totals.indeedCvs}</p>
+                                                        <p className="text-base font-black">{jobPostData.totals?.indeed?.cvs || 0}</p>
                                                     </div>
                                                     <div className="w-px h-5 bg-blue-500"></div>
                                                     <div className="text-right">
                                                         <p className="text-[8px] text-gray-300 uppercase">Calls</p>
-                                                        <p className="text-base font-black text-green-400">{jobPostData.totals.indeedCalls}</p>
+                                                        <p className="text-base font-black text-green-400">{jobPostData.totals?.indeed?.calls || 0}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2339,12 +2375,12 @@ useEffect(() => {
                                                 <div className="flex justify-between items-center text-left px-2">
                                                     <div>
                                                         <p className="text-[8px] text-gray-300 uppercase">CVs</p>
-                                                        <p className="text-base font-black">{jobPostData.totals.naukriCvs}</p>
+                                                        <p className="text-base font-black">{jobPostData.totals?.naukri?.cvs || 0}</p>
                                                     </div>
                                                     <div className="w-px h-5 bg-blue-500"></div>
                                                     <div className="text-right">
                                                         <p className="text-[8px] text-gray-300 uppercase">Calls</p>
-                                                        <p className="text-base font-black text-green-400">{jobPostData.totals.naukriCalls}</p>
+                                                        <p className="text-base font-black text-green-400">{jobPostData.totals?.naukri?.calls || 0}</p>
                                                     </div>
                                                 </div>
                                             </div>
