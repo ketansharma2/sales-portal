@@ -301,9 +301,10 @@ const fetchCrmDetails = async (clientId) => {
      // 1. Apply User Selected Filters
      if (filters.fromDate) {
        result = result.filter((l) => {
+       
          // Use arrivedDateRaw for actionable tab, latestFollowupRaw for database tab (YYYY-MM-DD format)
          const dateToFilter = activeTab === "database" 
-           ? l.latestFollowupRaw
+           ? l.latestFollowup
            : l.arrivedDateRaw;
          if (!dateToFilter) return false;
          // Handle YYYY-MM-DD format
@@ -315,7 +316,7 @@ const fetchCrmDetails = async (clientId) => {
        result = result.filter((l) => {
          // Use arrivedDateRaw for actionable tab, latestFollowupRaw for database tab (YYYY-MM-DD format)
          const dateToFilter = activeTab === "database" 
-           ? l.latestFollowupRaw
+           ? l.latestFollowup
            : l.arrivedDateRaw;
          if (!dateToFilter) return false;
          // Handle YYYY-MM-DD format
