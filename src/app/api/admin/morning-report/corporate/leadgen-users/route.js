@@ -1,11 +1,17 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+import { supabaseServer } from '@/lib/supabase-server'
+import { NextResponse } from 'next/server'
+import { getUser } from '@/lib/auth-helper'
 
 export async function GET(request) {
     try {
+        // Authentication - user injected by middleware (no auth calls needed!)
+        const { user, error: authError } = getUser(request);
+        if (authError || !user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         // Fetch users where role contains 'LEADGEN' and sector is Corporate
-        const { data: users, error } = await supabase
+        const { data: users, error } = await supabaseServer
             .from('users')
             .select('user_id, name')
             .contains('role', ['LEADGEN'])

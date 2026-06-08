@@ -1,5 +1,6 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
+import { getUser } from '@/lib/auth-helper'
 
 function getNormalizedEmailForDuplicateCheck(email, name, portal) {
   // Handle Indeed's random email pattern (e.g., rimpithakurxgcmg_zqd@indeedemail.com)
@@ -20,15 +21,10 @@ function getNormalizedEmailForDuplicateCheck(email, name, portal) {
 
 export async function POST(request) {
   try {
-    // Authentication
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+    // Authentication - user injected by middleware (no auth calls needed!)
+    const { user, error: authError } = getUser(request);
     if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const userId = user.user_id || user.id
 

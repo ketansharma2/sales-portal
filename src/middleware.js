@@ -71,7 +71,18 @@ export async function middleware(request) {
     '/tl',
     '/revenue',
     '/jobpost',
-    '/operations'
+    '/operations',
+    '/api/admin',
+    '/api/hod',
+    '/api/manager',
+    '/api/fse',
+    '/api/corporate',
+    '/api/domestic',
+    '/api/recruiter',
+    '/api/tl',
+    '/api/revenue',
+    '/api/jobpost',
+    '/api/operations'
   ]
   
   // Check if current path is protected
@@ -79,8 +90,11 @@ export async function middleware(request) {
   
   // Allow public routes
   if (!isProtected) {
+    console.log(`[Middleware] Skipping non-protected route: ${pathname}`)
     return NextResponse.next()
   }
+  
+  console.log(`[Middleware] Processing protected route: ${pathname}`)
   
   // Get access token from cookie
   const token = request.cookies.get('access_token')?.value
@@ -170,6 +184,17 @@ export const config = {
     '/tl/:path*',
     '/revenue/:path*',
     '/jobpost/:path*',
-    '/operations/:path*'
+    '/operations/:path*',
+    '/api/admin/:path*',
+    '/api/hod/:path*',
+    '/api/manager/:path*',
+    '/api/fse/:path*',
+    '/api/corporate/:path*',
+    '/api/domestic/:path*',
+    '/api/recruiter/:path*',
+    '/api/tl/:path*',
+    '/api/revenue/:path*',
+    '/api/jobpost/:path*',
+    '/api/operations/:path*'
   ]
 }

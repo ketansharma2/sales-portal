@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { getUser } from "@/lib/auth-helper";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -267,12 +268,13 @@ function parseArrayField(value) {
 
 export async function GET(request) {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    // Authentication - user injected by middleware (no auth calls needed!)
+    const { user, error: authError } = getUser(request);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-const { data, error } = await supabaseAdmin
-  .from('users')
-  .select('user_id')
-  .contains('role', ['JOBPOST']);
+    const today = new Date().toISOString().split('T')[0];
 
     // 1. Get max date from candidates_conversation (apply_date column) where date != today
     const { data: conversationDates, error: conversationError } = await supabaseAdmin

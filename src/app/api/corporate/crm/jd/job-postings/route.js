@@ -1,19 +1,15 @@
-import { createClient } from "@supabase/supabase-js";
-import { NextResponse } from "next/server";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
-
-// Get Supabase admin client with service role key for bypassing RLS
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { supabaseServer } from '@/lib/supabase-server'
+import { NextResponse } from 'next/server'
+import { getUser } from '@/lib/auth-helper'
 
 export async function POST(request) {
   try {
+    // Authentication - user injected by middleware (no auth calls needed!)
+    const { user, error: authError } = getUser(request);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { jd_id, user_id, platform, live_url, current_stage, posted_on } = body;
 
@@ -39,7 +35,7 @@ export async function POST(request) {
       insertData.user_id = user_id;
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabaseServer
       .from("job_postings")
       .insert([insertData])
       .select()
@@ -62,11 +58,17 @@ export async function POST(request) {
 
 export async function GET(request) {
   try {
+    // Authentication - user injected by middleware (no auth calls needed!)
+    const { user, error: authError } = getUser(request);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const jd_id = searchParams.get("jd_id");
     const user_id = searchParams.get("user_id");
 
-    let query = supabaseAdmin.from("job_postings").select("*");
+    let query = supabaseServer.from("job_postings").select("*");
 
     if (jd_id) {
       query = query.eq("jd_id", jd_id);
@@ -95,6 +97,12 @@ export async function GET(request) {
 
 export async function PUT(request) {
   try {
+    // Authentication - user injected by middleware (no auth calls needed!)
+    const { user, error: authError } = getUser(request);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id, platform, live_url, current_stage, posted_on } = body;
 
@@ -111,7 +119,7 @@ export async function PUT(request) {
     if (current_stage !== undefined) updateData.current_stage = current_stage;
     if (posted_on !== undefined) updateData.posted_on = posted_on;
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabaseServer
       .from("job_postings")
       .update(updateData)
       .eq("id", id)
@@ -135,6 +143,12 @@ export async function PUT(request) {
 
 export async function DELETE(request) {
   try {
+    // Authentication - user injected by middleware (no auth calls needed!)
+    const { user, error: authError } = getUser(request);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -145,7 +159,7 @@ export async function DELETE(request) {
       );
     }
 
-    const { error } = await supabaseAdmin
+    const { error } = await supabaseServer
       .from("job_postings")
       .delete()
       .eq("id", id);

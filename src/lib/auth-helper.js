@@ -25,6 +25,13 @@ export function getUser(request) {
     const userRole = request.headers.get('x-user-role')
     
     if (!userId || !userEmail) {
+      // For debugging: log what headers are available
+      console.log('[getUser] No user headers found. Available headers:', {
+        hasUserId: !!userId,
+        hasUserEmail: !!userEmail,
+        hasAuth: !!request.headers.get('authorization'),
+        hasCookie: !!request.headers.get('cookie')
+      })
       return { user: null, error: 'User not authenticated' }
     }
     
@@ -38,6 +45,7 @@ export function getUser(request) {
       error: null
     }
   } catch (error) {
+    console.error('[getUser] Error:', error)
     return { user: null, error: 'Failed to get user' }
   }
 }

@@ -1,31 +1,21 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
+import { getUserWithProfile } from '@/lib/auth-helper'
 
 export async function POST(request) {
   try {
-    // Authentication
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+    // Authentication - user injected by middleware (no auth calls needed!)
+    const { user, profile, error: authError } = getUserWithProfile(request);
     if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user has HOD role
-    const { data: userProfile, error: profileError } = await supabaseServer
-      .from('users')
-      .select('role')
-      .eq('user_id', user.id)
-      .single()
-
-    if (profileError || !userProfile) {
+    // Check if user has HOD role (from cached profile data)
+    if (!profile || !profile.role) {
       return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
     }
 
-    if (!userProfile.role || !userProfile.role.includes('HOD')) {
+    if (!profile.role.includes('HOD')) {
       return NextResponse.json({ error: 'Access denied. HOD role required.' }, { status: 403 })
     }
 
