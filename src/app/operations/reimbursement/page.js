@@ -638,7 +638,7 @@ export default function HRReimbursementPage() {
                             <p className="text-sm font-bold">
                               No payment history available.
                             </p>
-                          </div> //git add
+                          </div> 
                         </td>
                       </tr>
                     )}
