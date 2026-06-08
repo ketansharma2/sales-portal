@@ -203,14 +203,14 @@ export default function HRReimbursementPage() {
 
   // Handle bulk approve (only verified claims)
   const handleBulkApprove = async () => {
-    const verifiedClaimIds = Array.from(hrVerifiedClaims);
+    const selectedClaimIds = Array.from(selectedClaims);
 
-    if (verifiedClaimIds.length === 0) {
-      alert("Please verify claims before approving");
+    if (selectedClaimIds.length === 0) {
+      alert("Please select claims to approve");
       return;
     }
 
-    if (confirm(`Approve ${verifiedClaimIds.length} verified claim(s)?`)) {
+    if (confirm(`Approve ${selectedClaimIds.length} selected claim(s)?`)) {
       try {
         const session = JSON.parse(localStorage.getItem("session") || "{}");
         const response = await fetch("/api/operations/bulk-approve-payment", {
@@ -219,20 +219,16 @@ export default function HRReimbursementPage() {
             Authorization: `Bearer ${session.access_token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ exp_ids: verifiedClaimIds }),
+          body: JSON.stringify({ exp_ids: selectedClaimIds }),
         });
         const data = await response.json();
         if (data.success) {
-          // Refresh data
           fetchPendingPayouts();
           fetchPaymentHistory();
-          // Reset selections
           setSelectedClaims(new Set());
-          setHrVerifiedClaims(new Set());
-          setShowBulkApprove(false);
-          alert(`Successfully approved ${verifiedClaimIds.length} claims`);
+          alert(`Successfully approved ${selectedClaimIds.length} claims`);
         } else {
-          alert("Failed to process: " + data.error);
+          alert("Failed to process: " + (data.error || "Unknown error"));
         }
       } catch (error) {
         console.error("Bulk approve error:", error);
@@ -325,13 +321,13 @@ export default function HRReimbursementPage() {
                 HODs
               </button>
             </div>
-            {hrVerifiedClaims.size > 0 && (
+            {selectedClaims.size > 0 && (
               <button
                 onClick={handleBulkApprove}
                 className="px-4 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-all flex items-center gap-2 text-[11px] font-bold shadow-sm"
               >
                 <CreditCard size={14} />
-                Bulk Approve ({hrVerifiedClaims.size})
+                Bulk Approve ({selectedClaims.size})
               </button>
             )}
           </div>
@@ -373,7 +369,6 @@ export default function HRReimbursementPage() {
                       <th className="px-6 py-4 text-left">Amount</th>
                       <th className="px-6 py-4 text-center">Receipt</th>
                       <th className="px-6 py-4 text-center w-48">HR Action</th>
-                      <th className="px-6 py-4 text-center">HR Verify</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 text-xs font-medium text-gray-700">
@@ -481,23 +476,25 @@ export default function HRReimbursementPage() {
                               >
                                 <CreditCard size={12} /> Payment Done
                               </button>
+                              <input
+                                type="checkbox"
+                                checked={selectedClaims.has(claim.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedClaims((prev) =>
+                                      new Set(prev).add(claim.id),
+                                    );
+                                  } else {
+                                    setSelectedClaims((prev) => {
+                                      const newSet = new Set(prev);
+                                      newSet.delete(claim.id);
+                                      return newSet;
+                                    });
+                                  }
+                                }}
+                                className="rounded border-gray-300 w-4 h-4 cursor-pointer"
+                              />
                             </div>
-                          </td>
-
-                          <td className="px-6 py-4 text-center">
-                            <button
-                              onClick={() => handleHrVerify(claim.id)}
-                              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1.5 mx-auto ${
-                                hrVerifiedClaims.has(claim.id)
-                                  ? "bg-green-500 text-white"
-                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                              }`}
-                            >
-                              <CheckCircle size={12} />
-                              {hrVerifiedClaims.has(claim.id)
-                                ? "Verified"
-                                : "Verify"}
-                            </button>
                           </td>
                         </tr>
                       ))
