@@ -1,49 +1,19 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { getUserWithProfile } from "@/lib/auth";
 
 export async function GET(request) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'No authorization header' }, { status: 401 });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    
-    // Verify the token and get user
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const { user, profile, error } = await getUserWithProfile(request);
     
     if (error || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    // Get user_id from users table using the auth user id
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('user_id')
-      .eq('email', user.email)
-      .single();
-
-    if (userError || !userData) {
-      // Fallback: use the auth user's id
-      return NextResponse.json({ 
-        id: user.id,
-        user_id: user.id,
-        email: user.email,
-        name: user.user_metadata?.name || user.email
-      });
+      return NextResponse.json({ error: error || 'Unauthorized' }, { status: 401 });
     }
 
     return NextResponse.json({ 
       id: user.id,
-      user_id: userData.user_id,
+      user_id: profile?.user_id || user.id,
       email: user.email,
-      name: user.user_metadata?.name || user.email
+      name: profile?.name || user.user_metadata?.name || user.email
     });
   } catch (error) {
     console.error('Error getting current user:', error);

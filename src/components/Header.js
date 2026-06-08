@@ -127,7 +127,12 @@ export default function Header() {
     joiningDate: "12 Aug, 2024"
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
     localStorage.removeItem("user");
     localStorage.removeItem("isLoggedIn");
     router.push("/");

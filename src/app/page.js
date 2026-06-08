@@ -13,7 +13,6 @@ export default function LoginPage() {
   const [showRoleSelector, setShowRoleSelector] = useState(false);
   const [availableRoles, setAvailableRoles] = useState([]);
   const [userData, setUserData] = useState(null);
-  const [sessionData, setSessionData] = useState(null);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -36,7 +35,6 @@ export default function LoginPage() {
           // Show role selector
           setAvailableRoles(data.availableRoles);
           setUserData(data.user);
-          setSessionData(data.session);
           setShowRoleSelector(true);
           
           // Check if JOBPOST is in available roles - only store redirectUrl for that case
@@ -50,7 +48,6 @@ export default function LoginPage() {
         } else {
           // Single role: proceed
           localStorage.setItem('user', JSON.stringify(data.user));
-          localStorage.setItem('session', JSON.stringify(data.session));
 
           // Check for redirectUrl first (e.g., JOBPOST role)
           if (data.redirectUrl) {
@@ -86,7 +83,6 @@ export default function LoginPage() {
     // Set current_role
     const updatedUser = { ...userData, current_role: selectedRole };
     localStorage.setItem('user', JSON.stringify(updatedUser));
-    localStorage.setItem('session', JSON.stringify(sessionData));
 
     // Check for stored redirectUrl first (e.g., JOBPOST role)
     const redirectUrl = localStorage.getItem('redirectUrl');

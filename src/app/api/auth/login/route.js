@@ -56,11 +56,6 @@ export async function POST(request) {
         manager_id: profileData.manager_id,
         hod_id: profileData.hod_id,
         sector: profileData.sector
-      },
-      session: {
-        access_token: authData.session.access_token,
-        refresh_token: authData.session.refresh_token,
-        expires_at: authData.session.expires_at
       }
     }
 
@@ -119,7 +114,17 @@ export async function POST(request) {
       }
     }
 
-    return NextResponse.json(responseData)
+    const response = NextResponse.json(responseData)
+    
+    response.cookies.set('access_token', authData.session.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7
+    })
+    
+    return response
 
   } catch (error) {
     console.error('Login API error:', error)
