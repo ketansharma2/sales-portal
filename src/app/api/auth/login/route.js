@@ -1,5 +1,6 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
+import jwt from 'jsonwebtoken'
 
 export async function POST(request) {
   try {
@@ -114,14 +115,32 @@ export async function POST(request) {
       }
     }
 
+    // Create custom JWT with profile data cached (eliminates DB calls in middleware)
+    const customTokenPayload = {
+      sub: authData.user.id,
+      email: authData.user.email,
+      user_metadata: authData.user.user_metadata || {},
+      app_metadata: authData.user.app_metadata || {},
+      aud: authData.user.aud,
+      role: authData.user.role,
+      exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 14), // 14 days
+      // Cache profile data in JWT to eliminate database calls
+      profile_role: profileData.role,
+      profile_sector: profileData.sector,
+      profile_manager_id: profileData.manager_id,
+      profile_hod_id: profileData.hod_id
+    }
+
+    const customToken = jwt.sign(customTokenPayload, process.env.NEXT_PUBLIC_SUPABASE_URL || 'fallback-secret')
+
     const response = NextResponse.json(responseData)
     
-    response.cookies.set('access_token', authData.session.access_token, {
+    response.cookies.set('access_token', customToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 7
+      maxAge: 60 * 60 * 24 * 14
     })
     
     return response
