@@ -55,14 +55,7 @@ export default function FseOnboardPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const session = JSON.parse(localStorage.getItem("session") || "{}");
-      const token = session?.access_token;
-
-      if (!token) {
-        console.error("No auth token found");
-        setLoading(false);
-        return;
-      }
+      // Authentication handled by middleware via HttpOnly cookie - no manual token needed
 
       if (activeTab === "database") {
         // Fetch from All Database API
@@ -82,10 +75,7 @@ export default function FseOnboardPage() {
         queryParams.append("limit", showAll ? "all" : "100");
 
         const response = await fetch(
-          `/api/corporate/manager/all-clients-database?${queryParams.toString()}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
+          `/api/corporate/manager/all-clients-database?${queryParams.toString()}`
         );
         const data = await response.json();
 
@@ -108,10 +98,7 @@ export default function FseOnboardPage() {
           queryParams.append("status", filters.status);
 
         const response = await fetch(
-          `/api/corporate/manager/fse-onboard?${queryParams.toString()}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
+          `/api/corporate/manager/fse-onboard?${queryParams.toString()}`
         );
         const data = await response.json();
 
