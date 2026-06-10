@@ -1,11 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth-helper";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { supabaseServer } from "@/lib/supabase-server";
 
 // GET - Find max date from job_postings and posting_data tables (excluding today)
 // and fetch all report data for that date
@@ -14,7 +9,7 @@ const supabaseAdmin = createClient(
 //     const today = new Date().toISOString().split('T')[0];
 
 //     // 1. Get max date from job_postings table (posted_on column) where date != today
-//     const { data: jobPostingsData, error: jobPostingsError } = await supabaseAdmin
+//     const { data: jobPostingsData, error: jobPostingsError } = await supabaseServer
 //       .from('job_postings')
 //       .select('posted_on')
 //       .neq('posted_on', today)
@@ -31,7 +26,7 @@ const supabaseAdmin = createClient(
 //       : null;
 
 //     // 2. Get max date from posting_data table (date column) where date != today
-//     const { data: postingData, error: postingDataError } = await supabaseAdmin
+//     const { data: postingData, error: postingDataError } = await supabaseServer
 //       .from('posting_data')
 //       .select('date')
 //       .neq('date', today)
@@ -77,7 +72,7 @@ const supabaseAdmin = createClient(
 //     }
 
 //     // 4. Fetch jobs posted for the selected date
-//     const { data: jobPostings, error: jobsError } = await supabaseAdmin
+//     const { data: jobPostings, error: jobsError } = await supabaseServer
 //       .from('job_postings')
 //       .select('id, jd_id, posted_on, platform')
 //       .eq('posted_on', selectedDate);
@@ -93,11 +88,11 @@ const supabaseAdmin = createClient(
 
 //       // Fetch JD details
 //       const [domesticJDs, corporateJDs] = await Promise.all([
-//         supabaseAdmin
+//         supabaseServer
 //           .from('domestic_crm_jd')
 //           .select('*')
 //           .in('jd_id', uniqueJdIds),
-//         supabaseAdmin
+//         supabaseServer
 //           .from('corporate_crm_jd')
 //           .select('*')
 //           .in('jd_id', uniqueJdIds)
@@ -161,7 +156,7 @@ const supabaseAdmin = createClient(
 //     }
 
 //     // 5. Fetch daily stats for the selected date
-//     const { data: allData, error: statsError } = await supabaseAdmin
+//     const { data: allData, error: statsError } = await supabaseServer
 //       .from('posting_data')
 //       .select('platform, cv_received, calls_done, date')
 //       .eq('date', selectedDate);
@@ -198,7 +193,7 @@ const supabaseAdmin = createClient(
 //     const stats = Object.values(platformStats);
 
 //     // 6. Fetch lifetime totals from posting_data (all time)
-//     const { data: allPostingData, error: totalsError } = await supabaseAdmin
+//     const { data: allPostingData, error: totalsError } = await supabaseServer
 //       .from('posting_data')
 //       .select('platform, cv_received, calls_done');
 
@@ -277,7 +272,7 @@ export async function GET(request) {
     const today = new Date().toISOString().split('T')[0];
 
     // 1. Get max date from candidates_conversation (apply_date column) where date != today
-    const { data: conversationDates, error: conversationError } = await supabaseAdmin
+    const { data: conversationDates, error: conversationError } = await supabaseServer
       .from('candidates_conversation')
       .select('apply_date')
       .not('apply_date', 'is', null)
@@ -310,7 +305,7 @@ export async function GET(request) {
     }
 
     // 2. Fetch conversations for the selected date with their parsing data
-    const { data: conversations, error: conversationsError } = await supabaseAdmin
+    const { data: conversations, error: conversationsError } = await supabaseServer
       .from('candidates_conversation')
       .select(`
         conversation_id,
@@ -323,16 +318,16 @@ export async function GET(request) {
         apply_date
       `)
       .eq('apply_date', selectedDate)
-      .eq('user_id', data[0].user_id) // Filter by user_id with JOBPOST role
+      .eq('user_id', user.id) // Filter by authenticated user_id
       .not('req_id', 'is', null);
 
     if (conversationsError) {
       console.error('Error fetching conversations:', conversationsError);
     }
-     const { data: jobPostings, error: jobPostingsError } = await supabaseAdmin
+     const { data: jobPostings, error: jobPostingsError } = await supabaseServer
   .from('job_postings')
   .select('jd_id, posted_on, user_id')
-  .eq('user_id', data[0].user_id)
+  .eq('user_id', user.id)
  
   const jobPostingDateMap = new Map();
     (jobPostings || []).forEach(jp => {
@@ -353,12 +348,12 @@ export async function GET(request) {
     
     if (jobpostIds.length > 0) {
       const [domesticJobposts, corporateJobposts] = await Promise.all([
-        supabaseAdmin
+        supabaseServer
           .from('domestic_crm_jobpost')
           .select('id, req_id, client_name, profile, location, package, status, assigned_date, assigned_to')
             .in('id', jobpostIds),
         
-        supabaseAdmin
+        supabaseServer
           .from('corporate_crm_jobpost')
           .select('id, req_id, client_name, profile, location, package, status, assigned_date, assigned_to')
            .in('id', jobpostIds),
@@ -391,11 +386,11 @@ export async function GET(request) {
     
     if (reqIds.length > 0) {
       const [domesticReq, corporateReq] = await Promise.all([
-        supabaseAdmin
+        supabaseServer
           .from('domestic_crm_reqs')
           .select('*')
           .in('req_id', reqIds),
-        supabaseAdmin
+        supabaseServer
           .from('corporate_crm_reqs')
           .select('*')
           .in('req_id', reqIds)
@@ -426,7 +421,7 @@ export async function GET(request) {
       
       for (let i = 0; i < parsingIds.length; i += batchSize) {
         const batch = parsingIds.slice(i, i + batchSize);
-        const { data: cvParsingData, error: cvError } = await supabaseAdmin
+        const { data: cvParsingData, error: cvError } = await supabaseServer
           .from('cv_parsing')
           .select('id, portal')
           .in('id', batch);
@@ -554,10 +549,10 @@ export async function GET(request) {
     }));
 
     // 12. Calculate lifetime platform totals (all time, unique per job)
-    const { data: allConversations, error: allConversationsError } = await supabaseAdmin
+    const { data: allConversations, error: allConversationsError } = await supabaseServer
       .from('candidates_conversation')
       .select('conversation_id, calling_date, call_respond, parsing_id, req_id')
-      .eq('user_id', data[0].user_id)
+      .eq('user_id', user.id)
       .not('req_id', 'is', null);
 
     if (allConversationsError) {
@@ -574,11 +569,11 @@ export async function GET(request) {
     let allJobpostMap = new Map();
     if (allJobpostIds.length > 0) {
       const [allDomesticJobposts, allCorporateJobposts] = await Promise.all([
-        supabaseAdmin
+        supabaseServer
           .from('domestic_crm_jobpost')
           .select('id, req_id')
           .in('id', allJobpostIds),
-        supabaseAdmin
+        supabaseServer
           .from('corporate_crm_jobpost')
           .select('id, req_id')
           .in('id', allJobpostIds)
@@ -609,7 +604,7 @@ export async function GET(request) {
       
       for (let i = 0; i < allParsingIds.length; i += batchSize) {
         const batch = allParsingIds.slice(i, i + batchSize);
-        const { data: cvParsingData, error: cvError } = await supabaseAdmin
+        const { data: cvParsingData, error: cvError } = await supabaseServer
           .from('cv_parsing')
           .select('id, portal')
           .in('id', batch);
@@ -679,17 +674,34 @@ export async function GET(request) {
         platformTotals[portal].calls += callCount;
       }
     }
+    
+    // Handle empty jobs array
+    if (!jobs || jobs.length === 0) {
+      return NextResponse.json({
+        success: true,
+        selectedDate: selectedDate,
+        jobs: [],
+        stats: stats,
+        platformTotals: platformTotals,
+        summary: {
+          totalJobs: 0,
+          totalConversations: conversations?.length || 0,
+          totalUniqueCVs: 0,
+          totalCalls: 0
+        }
+      });
+    }
+    
     const latestDate = jobs.reduce((latest, job) =>
-  job.posted_on > latest ? job.posted_on : latest,
-  jobs[0].posted_on
-);
+      job.posted_on > latest ? job.posted_on : latest,
+      jobs[0].posted_on
+    );
 
+    console.log("Latest date found in jobs:", jobs[0].posted_on);
+    // Get all jobs with that date
+    const latestJobs = jobs.filter(job => job.posted_on === latestDate);
 
-console.log("Latest date found in jobs:",  jobs[0].posted_on);
-// Get all jobs with that date
-const latestJobs = jobs.filter(job => job.posted_on === latestDate);
-
-console.log("Jobs with latest date:", jobs.filter(job => job.posted_on ));
+    console.log("Jobs with latest date:", jobs.filter(job => job.posted_on));
     return NextResponse.json({
       success: true,
       selectedDate: selectedDate,

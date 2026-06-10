@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseServer = createClient(supabaseUrl, supabaseKey);
+import { supabaseServer } from '@/lib/supabase-server';
+import { getUser } from '@/lib/auth-helper';
 
 // Helper function to get date - returns date or created_at if date is null
 const getInteractionDate = (interaction) => {
@@ -25,17 +22,10 @@ const getInteractionDate = (interaction) => {
 
 export async function GET(request) {
   try {
-    // 🔐 Auth
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ success: false, error: 'No authorization header' }, { status: 401 });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token);
-
+    // Authentication - user injected by middleware (no auth calls needed!)
+    const { user, error: authError } = getUser(request);
     if (authError || !user) {
-      return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // 📅 Filters

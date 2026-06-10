@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { supabaseServer } from '@/lib/supabase-server';
+import { getUser } from '@/lib/auth-helper';
 
 // Helper: normalize date
 const getDate = (row) => {
@@ -15,17 +11,10 @@ const getDate = (row) => {
 
 export async function GET(request) {
   try {
-    // 🔐 Auth
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ success: false, error: 'No token' }, { status: 401 });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-
-    if (error || !user) {
-      return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
+    // Authentication - user injected by middleware (no auth calls needed!)
+    const { user, error: authError } = getUser(request);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // 📅 Filters
@@ -34,7 +23,7 @@ export async function GET(request) {
     const toDate = searchParams.get('toDate');
 
     // 📦 Query - get all data without user_id filter
-    let query = supabase
+    let query = supabaseServer
       .from('corporate_leads_interaction')
       .select('client_id, date, franchise_status')
       .not('franchise_status', 'ilike', '%no franchise discuss%');
