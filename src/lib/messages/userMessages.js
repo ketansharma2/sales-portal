@@ -31,7 +31,11 @@ export const actions = {
     },
     "manager": {
       "userCreated": {"title": "User Created", "message": "New team member added"},
-      "userUpdated": {"title": "User Updated", "message": "Team member details updated"}
+      "userUpdated": {"title": "User Updated", "message": "Team member details updated"},
+      "targetUpdated": {"title": "Target Updated", "message": "Target updated by Manager successfully"},
+      "targetCreated": {"title": "Target Created", "message": "Target created by Manager successfully"},
+      "expenseApproved": {"title": "Expense Approved", "message": "Expense approved by Manager "},
+      "expenseRejected": {"title": "Expense Rejected", "message": "Expense rejected by Manager HOD"}
     },
     "recruiter": {
       "userCreated": {"title": "User Created", "message": "Recruiter account created"},
@@ -51,6 +55,14 @@ export const actions = {
     "fse": {
       "userCreated": {"title": "User Created", "message": "Field sales executive added"},
       "userUpdated": {"title": "User Updated", "message": "FSE profile updated"}
+    },
+    "hod": {
+      "userCreated": {"title": "User Created", "message": "HOD account created"},
+      "userUpdated": {"title": "User Updated", "message": "HOD profile updated"},
+      "targetUpdated": {"title": "Target Updated", "message": "Target updated by HOD successfully"},
+      "targetCreated": {"title": "Target Created", "message": "Target created by HOD successfully"},
+      "approveExpense": {"title": "Expense Approved", "message": "Expense approved by HOD successfully"},
+      "rejectExpense": {"title": "Expense Rejected", "message": "Expense rejected by HOD"}
     }
   ,
   "validation": {
