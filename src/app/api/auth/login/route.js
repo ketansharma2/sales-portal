@@ -1,5 +1,6 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
+import { notificationService } from '@/lib/services/notificationService'
 
 export async function POST(request) {
   try {
@@ -118,6 +119,8 @@ export async function POST(request) {
         responseData.redirectUrl = '/jobpost'
       }
     }
+
+
 
     return NextResponse.json(responseData)
 

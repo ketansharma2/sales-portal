@@ -100,7 +100,7 @@ export default function JobRequirementsPage() {
     };
    }, []);
 
-   // Fetch Jobpost Users
+
    useEffect(() => {
      let isMounted = true;
 
@@ -837,8 +837,14 @@ export default function JobRequirementsPage() {
               <div className="w-full sm:w-auto md:w-[100px] shrink-0">
              <label className="text-[9px] font-bold text-gray-500 uppercase mb-1.5 block">Assign To</label>
              <select
-               value={inlineForm.assigned_to}
-               onChange={(e) => setInlineForm({...inlineForm, assigned_to: e.target.value})}
+                value={inlineForm.assigned_to || ""}
+    onChange={(e) => {
+      console.log("Selected value:", e.target.value); // Debug log
+      setInlineForm(prev => ({
+        ...prev, 
+        assigned_to: e.target.value
+      }));
+    }}
                disabled={loadingJobpostUsers}
                className="w-full h-9 border border-gray-300 rounded-lg px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-[#103c7f] bg-white cursor-pointer disabled:bg-gray-100 disabled:text-gray-400 shadow-sm transition-all"
              >
