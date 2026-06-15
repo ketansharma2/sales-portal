@@ -222,7 +222,7 @@ export async function POST(request) {
       }, { status: 500 })
     }
 
-    await notificationService.createDynamicNotification( [sent_to_revenue],actions.crm.sentRevenue,user.id );
+    await notificationService.createDynamicNotification( [sent_to_revenue],actions.crm.sentRevenue,user.id );//revernue sent to crm notification
 
     return NextResponse.json({
       success: true,
