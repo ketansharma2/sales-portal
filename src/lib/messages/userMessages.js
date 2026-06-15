@@ -11,7 +11,7 @@ export const actions = {
       "userCreated": "User created successfully",
       "userUpdated": "User updated successfully",
       "userDeleted": "User deleted successfully",
-      "userProfileUpdated": "Admin profile updated",
+      "userProfileUpdated": {"title": "User Profile Updated", "message": "User profile details updated"},
       "fetchUsersError": "Failed to fetch users",
       "createUserError": "Failed to create user account",
       "profileCreateError": "User account created but profile creation failed",
@@ -26,7 +26,8 @@ export const actions = {
       "targetUpdated": {"title": "Target Updated", "message": "Target updated successfully"},
       "targetCreated": {"title": "Target Created", "message": "Target created successfully"},
       "createdNewdomesticJobpost": {"title": "New Job Post Required", "message": "New job post required for the domestic team"},
-      "createdNewcorporateJobpost": {"title": "New Job Post Required", "message": "New job post required for the corporate team"}
+      "createdNewcorporateJobpost": {"title": "New Job Post Required", "message": "New job post required for the corporate team"},
+      "sentRevenue": {"title": "Revenue Sent", "message": "Revenue details sent to Revenue By CRM"}
     },
     "manager": {
       "userCreated": {"title": "User Created", "message": "New team member added"},

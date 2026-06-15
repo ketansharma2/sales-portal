@@ -1,6 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-
+import { notificationService } from '@/lib/services/notificationService'
+import { actions } from '@/lib/messages/userMessages';   // your notification file
 export async function GET(request) {
   try {
     // Authentication
@@ -220,6 +221,8 @@ export async function POST(request) {
         details: error.message
       }, { status: 500 })
     }
+
+    await notificationService.createDynamicNotification( [sent_to_revenue],actions.crm.sentRevenue,user.id );
 
     return NextResponse.json({
       success: true,

@@ -1,7 +1,8 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-import { notificationService } from '@/lib/services/notificationService'
 
+import { notificationService } from '@/lib/services/notificationService'
+import { actions } from '@/lib/messages/userMessages';   // your notification file
 export async function GET(request) {
   try {
     const { data: users, error } = await supabaseServer
@@ -183,14 +184,9 @@ export async function PUT(request) {
       }, { status: 500 })
     }
 
-    const successMessage = getMessage('userProfileUpdated','admin'); 
-    // Send notification to the updated user (optional)
-    notificationService.createP2PNotification(
-      authUser.id,
-      [user_id],
-      'Profile Updated',                              // better title
-    
-    ).catch(err => console.error('Failed to send profile update notification:', err));
+   
+
+    await notificationService.createDynamicNotification( [user_id],actions.admin.userProfileUpdated,authUser.id );
 
     return NextResponse.json({
       success: true,
