@@ -22,17 +22,19 @@ export function useNotifications() {
 
   // Safe API caller
   const apiCall = async (url, options = {}) => {
-    const session = await supabase.auth.getSession();
-    const token = session.data.session?.access_token;
-    if (!token) throw new Error('No access token');
+    // const session = await supabase.auth.getSession();
+    // const token = session.data.session?.access_token;
+  const session = JSON.parse(localStorage.getItem('session') || '{}');
+  
     const response = await fetch(url, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
-        Authorization: `Bearer ${token}`,
+     'Authorization': `Bearer ${session.access_token}` 
       },
     });
+    console.log('response',response);
     if (!response.ok) {
       const text = await response.text();
       throw new Error(`API error ${response.status}: ${text.substring(0, 100)}`);

@@ -2,9 +2,6 @@ import NotificationsPageSection from "@/components/notifications/NotificationsPa
 
 export default function NotificationsPage() {
   return (
-    <NotificationsPageSection
-      backHref="/corporate/fse"
-      roleLabel="Corporate FSE Inbox"
-    />
+    <NotificationsPageSection backHref="/domestic/tl" roleLabel="Domestic Team Lead Inbox" />
   );
 }
