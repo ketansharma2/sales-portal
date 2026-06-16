@@ -5,6 +5,36 @@ import { Bell, X } from 'lucide-react';
 import Link from 'next/link';
 import { useNotifications } from '@/hooks/useNotifications';
 
+export const formatNotificationTime = (dateString) => {
+  if (!dateString) return '';
+
+  try {
+    // Parse the date from Supabase (UTC)
+    const utcDate = new Date(dateString);
+    
+    // Check if date is valid
+    if (isNaN(utcDate.getTime())) {
+      return '';
+    }
+
+    // Add 5 hours and 30 minutes for IST
+    const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+
+    // Format in IST (UTC+5:30)
+    return istDate.toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Kolkata', // IST timezone
+    });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return '';
+  }
+};
 export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
@@ -47,6 +77,7 @@ export default function NotificationBell() {
 
   // Click outside to close
   useEffect(() => {
+    
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
@@ -123,7 +154,8 @@ export default function NotificationBell() {
                       )}
                     </p>
                     <p className="text-[9px] text-gray-400 mt-1 font-bold">
-                      {new Date(notif.created_at).toLocaleString()}
+                    
+                       {formatNotificationTime(notif.created_at)}
                     </p>
                   </div>
                   <button

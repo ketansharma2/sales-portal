@@ -30,6 +30,37 @@ function getInitials(name) {
     : "??";
 }
 
+export const formatNotificationTime = (dateString) => {
+  if (!dateString) return '';
+
+  try {
+    // Parse the date from Supabase (UTC)
+    const utcDate = new Date(dateString);
+    
+    // Check if date is valid
+    if (isNaN(utcDate.getTime())) {
+      return '';
+    }
+
+    // Add 5 hours and 30 minutes for IST
+    const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+
+    // Format in IST (UTC+5:30)
+    return istDate.toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Kolkata', // IST timezone
+    });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return '';
+  }
+};
+
 export default function NotificationsPageSection({ backHref = "/", roleLabel = "Inbox" }) {
   const [activeTab, setActiveTab] = useState("All");
   const [selectedId, setSelectedId] = useState(null);
@@ -303,7 +334,7 @@ export default function NotificationsPageSection({ backHref = "/", roleLabel = "
                             <div className="flex items-center gap-3 mt-2 text-[10px] font-black uppercase tracking-widest text-gray-400">
                               <span className="flex items-center gap-1">
                                 <Clock size={12} />
-                                {new Date(n.created_at).toLocaleString()}
+                                {formatNotificationTime(n.created_at)}
                               </span>
                             </div>
                           </div>
@@ -372,7 +403,8 @@ export default function NotificationsPageSection({ backHref = "/", roleLabel = "
                                         <CalendarClock size={10} /> Created At
                                       </p>
                                       <p className="text-xs font-bold text-gray-700">
-                                        {new Date(n.created_at).toLocaleString()}
+                                        
+                                        {formatNotificationTime(n.created_at)}
                                       </p>
                                     </div>
                                     {n.read_at && (
