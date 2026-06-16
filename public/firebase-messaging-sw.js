@@ -17,10 +17,25 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const notificationTitle = payload.notification?.title || 'New Notification';
-  const notificationOptions = {
-    body: payload.notification?.body || '',
-    icon: '/favicon.ico',
-  };
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  self.registration.showNotification(
+    payload.data.title,
+    {
+      body: payload.data.body,
+      icon: '/favicon.ico',
+      data: {
+        url: payload.data.url
+      }
+    }
+  );
+});
+
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const url = event.notification.data?.url || '/notifications';
+
+  event.waitUntil(
+    clients.openWindow(url)
+  );
 });

@@ -18,7 +18,12 @@ async function sendFCMToMultiple(receivers, title, message) {
       if (user?.fcm_token) {
         await fcm.send({
           token: user.fcm_token,
-          notification: { title, body: message || '' },
+          data: {
+    title,
+    body: message || '',
+    action: 'view_notifications',
+    timestamp: new Date().toISOString(),
+  },
           webpush: { headers: { Urgency: 'high' } },
         });
       }
@@ -26,6 +31,7 @@ async function sendFCMToMultiple(receivers, title, message) {
       console.error(`FCM send error for ${receiverId}:`, err);
     }
   });
+  
 
   await Promise.allSettled(fcmPromises);
 }
@@ -89,7 +95,7 @@ export const notificationService = {
     // Handle both single ID and array of IDs
     const receivers = Array.isArray(receiverIds) ? receiverIds : [receiverIds];
     if (receivers.length === 0) return [];
-
+     console.log("notificationType",notificationType);
     const { title, message } = getContent(notificationType, options.extra);
     const entityType = options.entityType ?? null;
     const entityId = options.entityId ?? null;

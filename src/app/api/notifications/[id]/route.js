@@ -82,9 +82,9 @@ export async function DELETE(request, { params }) {
       .from('notifications')
       .select('id')
       .eq('id', id)
-      .eq('receiver_id', user.id)
       .single()
 
+      console.log('receiver_id ,id',user.id,id);
     if (findError || !existing) {
       return NextResponse.json({ error: 'Notification not found or unauthorized' }, { status: 404 })
     }
@@ -94,7 +94,7 @@ export async function DELETE(request, { params }) {
       .from('notifications')
       .delete({ count: 'exact' })
       .eq('id', id)
-      .eq('receiver_id', user.id)
+    
 
     if (deleteError) {
       console.error('DELETE notification error:', deleteError.message)

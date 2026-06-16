@@ -36,7 +36,7 @@ export default function NotificationsPageSection({ backHref = "/", roleLabel = "
   const [processingIds, setProcessingIds] = useState(new Set());
   const [errorMessage, setErrorMessage] = useState(null);
 
-  const { notifications, unreadCount, loading, error, markAsRead, deleteNotification, refetch } =
+  const { notifications, unreadCount, loading, error, markAsRead, deleteNotification, refresh } =
     useNotifications();
 
   const displayedNotifications =
@@ -62,7 +62,7 @@ export default function NotificationsPageSection({ backHref = "/", roleLabel = "
         })
       );
       // Refresh notifications after batch operation
-      await refetch();
+      await refresh();
     } catch (error) {
       console.error("Error marking all as read:", error);
       setErrorMessage("Failed to mark all as read");
@@ -87,7 +87,7 @@ export default function NotificationsPageSection({ backHref = "/", roleLabel = "
       try {
         await markAsRead(notif.id);
         // Refresh to get updated notification
-        await refetch();
+        await refresh();
         setSelectedId(notif.id);
       } catch (err) {
         console.error("Failed to mark notification as read:", err);
@@ -125,7 +125,7 @@ export default function NotificationsPageSection({ backHref = "/", roleLabel = "
         setSelectedId(null);
       }
       // Refresh notifications
-      await refetch();
+      await refresh();
     } catch (err) {
       console.error("Failed to delete notification:", err);
       setErrorMessage("Failed to delete notification");
@@ -232,7 +232,7 @@ export default function NotificationsPageSection({ backHref = "/", roleLabel = "
             <div className="flex flex-col items-center justify-center h-full text-red-400 gap-3 py-20">
               <p className="text-sm font-black">{error}</p>
               <button 
-                onClick={() => refetch()}
+                onClick={() => refresh()}
                 className="px-4 py-2 bg-[#103c7f] text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#0c2d5e]"
               >
                 Retry

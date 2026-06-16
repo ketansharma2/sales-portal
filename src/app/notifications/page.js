@@ -1,5 +1,15 @@
-import NotificationsPageSection from "@/components/notifications/NotificationsPage";
+'use client';
 
-export default function NotificationsPage() {
-  return <NotificationsPageSection backHref="/notifications" roleLabel="Inbox" />;
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { getCurrentNotificationRoute } from '@/lib/notificationRoutes';
+
+export default function NotificationsRedirect() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace(getCurrentNotificationRoute());
+  }, [router]);
+
+  return <div>Redirecting...</div>;
 }

@@ -1,6 +1,5 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-import { notificationService } from '@/lib/services/notificationService'
 
 export async function POST(request) {
   try {
