@@ -15,9 +15,32 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    const currentUserId = user.user_id || user.id
+    let currentUserId = user.user_id || user.id
     const { searchParams } = new URL(request.url)
     const revenueId = searchParams.get('revenue_id')
+
+     const { data: userData } = await supabaseServer
+      .from('users')
+      .select('role')
+      .eq('user_id', currentUserId)
+      .single()
+
+      const userRoles = userData?.role || 'REVENUE'
+      console.log('userData', userData);
+      const isAdminOrDirector = userRoles.includes('ADMIN')
+
+      if(isAdminOrDirector){
+        const { data: revenueUser } = await supabaseServer
+      .from('users')
+      .select('user_id')
+      .contains('role', ['REVENUE'])
+      .eq('sector','Corporate')
+      .limit(1)
+
+        if (revenueUser) {
+    currentUserId = revenueUser[0].user_id
+  }
+      }
 
     if (revenueId) {
       // Single record fetch
@@ -153,6 +176,7 @@ export async function GET(request) {
      return NextResponse.json({ success: true, data: transformedData })
 
   } catch (error) {
+    console.log("ERROR:",error);
     return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 })
   }
 }
