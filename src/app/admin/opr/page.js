@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo,useEffect } from "react";
 import { 
   Printer, TrendingUp, AlertTriangle, Layers, Activity, 
   Building2, Users, CheckCircle, Briefcase, Clock, FileText 
@@ -8,6 +8,73 @@ import {
 export default function OperationsReport() {
   // --- SECTOR FILTER STATE ---
   const [activeTab, setActiveTab] = useState("All"); // "All" | "Corporate" | "Domestic" | "Tech"
+
+  const [apiData, setApiData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [totalUser, setTotalUser] = useState(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const flagKpi = true;
+  const flagData = false;
+
+  const [dbs, setDbs]= useState(['items','orders','users']);
+    useEffect(() => {
+      const fetchUsers = async () => {
+        try {
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const response = await fetch('/api/admin/operation-report', {
+            headers: { 'Authorization': `Bearer ${session.access_token}` }
+          });
+         
+          const data = await response.json();
+          if (data.success) {
+            setTotalUser(data?.data?.total || []);
+          }
+        } catch (error) {
+          console.error('Failed to fetch users:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchUsers();
+    }, []);
+
+
+     const fetchMavenData = async () => {
+        try {
+          const session = JSON.parse(localStorage.getItem('session') || '{}');
+          const tablesParam = dbs.join(',');
+          let url = `/api/admin/operation-report/cafe-app-api?tables=${tablesParam}&kpiFlag=${flagKpi}&dataFlag=${flagData}`;
+      
+      // Add optional filters
+         if (startDate) url += `&startDate=${startDate}`;
+         if (endDate) url += `&endDate=${endDate}`;
+          const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${session.access_token}` }
+          });
+          const data = await response.json();
+          if (data.success) {
+            setApiData(data?.data?.data);
+          }
+        } catch (error) {
+          console.error('Failed to fetch users:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+
+  // --- AUTO-FETCH ON MOUNT ---
+  useEffect(() => {
+   fetchMavenData();
+  }, [dbs]);
+
+
+
+
+
 
   // Raw static operational numbers for quick top summary processing
   const totals = useMemo(() => {
@@ -75,12 +142,14 @@ export default function OperationsReport() {
       <input 
         type="date" 
         className="text-[10px] p-1.5 border border-gray-200 rounded-lg text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#103c7f]"
+        value={startDate}
         onChange={(e) => setStartDate(e.target.value)}
       />
       <span className="text-[10px] font-bold text-gray-400">TO</span>
       <input 
         type="date" 
         className="text-[10px] p-1.5 border border-gray-200 rounded-lg text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#103c7f]"
+        value={endDate}
         onChange={(e) => setEndDate(e.target.value)}
       />
     </div>
@@ -347,31 +416,23 @@ export default function OperationsReport() {
                   <td colSpan={1} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">44</td>
-                  <td className="border border-gray-400 font-semibold p-1">44</td>
-                  <td className="border border-gray-400 font-semibold p-1">0</td>
-                  <td className="border border-gray-400 font-semibold p-1">47</td>
-                  <td className="border border-gray-400 font-semibold p-1">27</td>
+                  <td className="border border-gray-400 font-semibold p-1">{(apiData?.kpi?.orders?.completed || 0) + (apiData?.kpi?.orders?.rejected || 0)}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{apiData?.kpi?.orders?.completed}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{apiData?.kpi?.orders?.rejected}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{apiData?.kpi?.menu?.available}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{apiData?.kpi?.users?.active}</td>
                   <td colSpan={1} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
 
-                <tr>
-                  <td rowSpan={2} className="border border-gray-400 font-bold bg-white p-1 text-gray-800">Sales</td>
-                  <th className="border border-gray-400 font-bold bg-[#d5a6bd] p-1 text-[#741b47]">Total User</th>
-                  <td colSpan={5} className="border border-gray-400 bg-gray-50"></td>
-                </tr>
-                <tr>
-                  <td className="border border-gray-400 font-semibold p-1">18</td>
-                  <td colSpan={5} className="border border-gray-400 bg-gray-50"></td>
-                </tr>
+       
 
                 <tr>
-                  <td rowSpan={2} className="border border-gray-400 font-bold bg-white p-1 text-gray-800">Delivery</td>
+                  <td rowSpan={2} className="border border-gray-400 font-bold bg-white p-1 text-gray-800">Sales / Delivery</td>
                   <th className="border border-gray-400 font-bold bg-[#d5a6bd] p-1 text-[#741b47]">Total User</th>
                   <td colSpan={5} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">18</td>
+                  <td className="border border-gray-400 font-semibold p-1">{totalUser}</td>
                   <td colSpan={5} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
 
