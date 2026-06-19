@@ -5,6 +5,45 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseServer = createClient(supabaseUrl, supabaseKey);
 
+export const getTargetUserId = async (supabase, currentUserId) => {
+  // Current user data
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('role, sector')
+    .eq('user_id', currentUserId)
+    .single();
+
+  if (userError) {
+    throw userError;
+  }
+
+  const userRole = userData.role;
+  const userSector = userData.sector;
+
+  // LEADGEN + Corporate
+  if (
+    Array.isArray(userRole) &&
+    userRole.includes('LEADGEN') &&
+    userSector === 'Corporate'
+  ) {
+    return currentUserId;
+  }
+
+  // Find LEADGEN user in same sector
+  const { data, error } = await supabase
+    .from('users')
+    .select('user_id')
+    .contains('role', ['LEADGEN'])
+    .eq('sector', userSector)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data.user_id;
+}; 
+
 // Helper function to get date - returns date or created_at if date is null
 const getInteractionDate = (interaction) => {
   const date = interaction.date;
@@ -46,6 +85,10 @@ export async function GET(request) {
 
     // Franchise Accepted uses "form filled" status (lowercase for comparison)
     const franchiseStatus = 'form filled';
+      const user_id = await getTargetUserId(
+                      supabaseServer,
+                      user.id
+                    );
 
     // Fetch ALL interactions with franchise_status = "form filled" (case-insensitive)
     const { data: allFranchiseInteractions, error: allError } = await supabaseServer
@@ -72,7 +115,7 @@ export async function GET(request) {
           startup
         )
       `)
-      .eq('leadgen_id', user.id)
+      .eq('leadgen_id', user_id)
       .order('created_at', { ascending: true });
 
     if (allError) {
@@ -119,7 +162,7 @@ export async function GET(request) {
       const { data: latestData } = await supabaseServer
         .from('corporate_leads_interaction')
         .select('date, created_at')
-        .eq('leadgen_id', user.id)
+        .eq('leadgen_id', user_id)
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
