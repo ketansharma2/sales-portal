@@ -16,9 +16,35 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    const currentUserId = user.user_id || user.id
+    let  currentUserId = user.user_id || user.id
     const { searchParams } = new URL(request.url)
     const revenueId = searchParams.get('revenue_id')
+
+
+    const { data: userData } = await supabaseServer
+      .from('users')
+      .select('role')
+      .eq('user_id', currentUserId)
+      .single()
+
+
+       const userRoles = userData?.role || 'REVENUE'
+      console.log('userData', userData);
+      const isAdminOrDirector = userRoles.includes('ADMIN')
+
+      if(isAdminOrDirector){
+        const { data: revenueUser,error } = await supabaseServer
+      .from('users')
+      .select('user_id')
+      .contains('role', ['REVENUE'])
+      .eq('sector','Domestic')
+      .limit(1)
+      console.log('error:', error)
+      console.log('revenueUser',revenueUser);
+       if (revenueUser) {
+    currentUserId = revenueUser[0].user_id
+  }
+      }
 
     if (revenueId) {
       // Single record fetch (supports numeric revenue_id as per your DB)
