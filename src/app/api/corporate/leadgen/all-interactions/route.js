@@ -4,7 +4,44 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseServer = createClient(supabaseUrl, supabaseKey);
+export const getTargetUserId = async (supabase, currentUserId) => {
+  // Current user data
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('role, sector')
+    .eq('user_id', currentUserId)
+    .single();
 
+  if (userError) {
+    throw userError;
+  }
+
+  const userRole = userData.role;
+  const userSector = userData.sector;
+
+  // LEADGEN + Corporate
+  if (
+    Array.isArray(userRole) &&
+    userRole.includes('LEADGEN') &&
+    userSector === 'Corporate'
+  ) {
+    return currentUserId;
+  }
+
+  // Find LEADGEN user in same sector
+  const { data, error } = await supabase
+    .from('users')
+    .select('user_id')
+    .contains('role', ['LEADGEN'])
+    .eq('sector', userSector)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data.user_id;
+}; 
 export async function GET(request) {
   try {
     /* ---------------- AUTH ---------------- */
@@ -41,6 +78,10 @@ export async function GET(request) {
     const startupFilter = searchParams.get('startup');
     const isSubmittedFilter = searchParams.get('isSubmitted');
     const cardType = searchParams.get('cardType');
+          const user_id = await getTargetUserId(
+          supabaseServer,
+          user.id
+        );
 
     /* ---------------- FETCH DATA ---------------- */
     let query = supabaseServer
@@ -58,7 +99,7 @@ export async function GET(request) {
           sourcing_date
         )
       `)
-      .eq('leadgen_id', user.id);
+      .eq('leadgen_id', user_id);
 
     // Add date filtering based on dateRange type
     if (dateRange === 'specific' && fromDate && toDate) {
@@ -70,7 +111,7 @@ export async function GET(request) {
       const { data: latestData } = await supabaseServer
         .from('corporate_leads_interaction')
         .select('date')
-        .eq('leadgen_id', user.id)
+        .eq('leadgen_id', user_id)
         .order('date', { ascending: false })
         .limit(1)
         .single();

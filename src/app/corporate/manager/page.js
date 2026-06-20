@@ -915,6 +915,41 @@ export default function SalesManagerDashboard() {
     setLoading(false);
     setIsFetching(false);
   };
+const buildFilterUrl = (router, fromDate, toDate, isAllData, filters) => {
+  const params = new URLSearchParams();
+  
+  if (!isAllData && fromDate && toDate) {
+    params.append('fromDate', fromDate);
+    params.append('toDate', toDate);
+  }
+
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value && value !== 'All') {
+      // Existing filters
+      if (key === 'status') params.append('status', value);
+      if (key === 'subStatus') params.append('subStatus', value);
+      if (key === 'franchiseStatus') params.append('franchiseStatus', value);
+      if (key === 'startup') params.append('startup', value);
+      if (key === 'isSubmitted') params.append('isSubmitted', value);
+      if (key === 'cardType') params.append('cardType', value);
+      // 🆕 support leadgen_id
+      if (key === 'leadgen_id') params.append('leadgen_id', value);
+    }
+  });
+  
+  const queryString = params.toString();
+  router.push(`/corporate/leadgen/details${queryString ? '?' + queryString : ''}`);
+};
+
+const navigateToDetails = (filters = {}) => {
+  // Add leadgen_id if a specific agent is selected
+  if (selectedAgent && selectedAgent !== 'All') {
+    filters.leadgen_id = selectedAgent;
+  }
+  // Pass current date range and isAllData (always false for manager view)
+  buildFilterUrl(router, fromDate, toDate, false, filters);
+};
+
 
   // Fetch data with current date filter (without resetting dates)
   const fetchWithCurrentFilter = async () => {
@@ -1079,41 +1114,42 @@ export default function SalesManagerDashboard() {
                                 </h2>
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-3">
-                                <KpiCard title="Total Leads" total={stats?.kpiData?.searched?.total || 0} icon={<SearchIcon/>} color="blue" onClick={() => {}} />
-                                <KpiCard title="Total Contacts" total={stats?.kpiData?.contacts?.total || 0} icon={<UserCheck size={18}/>} color="blue" onClick={() => {}} />
-                                <KpiCard title="Total Calls" total={stats?.kpiData?.calls?.total || 0} icon={<Phone size={18}/>} color="purple" onClick={() => {}} />
-                                <KpiCard title="New Calls" total={stats?.kpiData?.calls?.new?.total || 0} icon={<PhoneOutgoing size={18}/>} color="purple" onClick={() => {}} />
-                                <KpiCard title="Followup Calls" total={stats?.kpiData?.calls?.followup?.total || 0} icon={<PhoneIncoming size={18}/>} color="purple" onClick={() => {}} />
-                                <KpiCard title="Picked" total={stats?.kpiData?.picked?.total || 0} icon={<CheckCircle size={18}/>} color="green" onClick={() => {}} />
-                                <KpiCard title="Not Picked" total={stats?.kpiData?.notPicked?.total || 0} icon={<PhoneMissed size={18}/>} color="red" onClick={() => {}} />
-                                <KpiCard title="Contract Share" total={stats?.kpiData?.contract?.total || 0} icon={<FileText size={18}/>} color="orange" onClick={() => {}} />
-                                <KpiCard title="Interested" total={stats?.kpiData?.interested?.total || 0} icon={<TrendingUp size={18}/>} color="green" onClick={() => {}} />
-                                <KpiCard title="Sent to Manager" total={stats?.kpiData?.sentToManager?.total || 0} icon={<Send size={18}/>} color="orange" onClick={() => {}} />
-                                <KpiCard title="Total Onboard" total={stats?.kpiData?.onboarded?.total || 0} icon={<Briefcase size={18}/>} color="teal" onClick={() => {}} />
-                                <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full cursor-pointer">
-                   <div className="mb-2">
-                       <p className="text-xs font-bold text-gray-500 uppercase tracking-wider leading-tight">Projection</p>
-                   </div>
-                   <div className="grid grid-cols-2">
-                        <div className="bg-[#103c7f] p-1 flex justify-between items-center">
-                            <span className="text-[11px] font-bold text-[#a1db40]">MP &lt; 50</span>
-                            <span className="text-[11px] font-bold text-[#a1db40]">{stats?.kpiData?.projections?.mpLess50 || '-'}</span>
-                        </div>
-                        <div className="bg-[#103c7f] p-1 flex justify-between items-center">
-                            <span className="text-[11px] font-bold text-[#a1db40]">MP &gt; 50</span>
-                            <span className="text-[11px] font-bold text-[#a1db40]">{stats?.kpiData?.projections?.mpGreater50 || '-'}</span>
-                        </div>
-                        <div className="bg-[#103c7f] p-1 flex justify-between items-center">
-                            <span className="text-[11px] font-bold text-[#a1db40]">WP &lt; 50</span>
-                            <span className="text-[11px] font-bold text-[#a1db40]">{stats?.kpiData?.projections?.wpLess50 || '-'}</span>
-                        </div>
-                        <div className="bg-[#103c7f] p-1 flex justify-between items-center">
-                            <span className="text-[11px] font-bold text-[#a1db40]">WP &gt; 50</span>
-                            <span className="text-[11px] font-bold text-[#a1db40]">{stats?.kpiData?.projections?.wpGreater50 || '-'}</span>
-                        </div>
-                   </div>
-               </div>
-                            </div>
+  <KpiCard title="Total Leads" total={stats?.kpiData?.searched?.total || 0} icon={<SearchIcon/>} color="blue" onClick={() => navigateToDetails({})} />
+  <KpiCard title="Total Contacts" total={stats?.kpiData?.contacts?.total || 0} icon={<UserCheck size={18}/>} color="blue" onClick={() => navigateToDetails({ cardType: 'contacts' })} />
+  <KpiCard title="Total Calls" total={stats?.kpiData?.calls?.total || 0} icon={<Phone size={18}/>} color="purple" onClick={() => navigateToDetails({ cardType: 'calls' })} />
+  <KpiCard title="New Calls" total={stats?.kpiData?.calls?.new?.total || 0} icon={<PhoneOutgoing size={18}/>} color="purple" onClick={() => navigateToDetails({ cardType: 'new_calls' })} />
+  <KpiCard title="Followup Calls" total={stats?.kpiData?.calls?.followup?.total || 0} icon={<PhoneIncoming size={18}/>} color="purple" onClick={() => navigateToDetails({ cardType: 'followup_calls' })} />
+  <KpiCard title="Picked" total={stats?.kpiData?.picked?.total || 0} icon={<CheckCircle size={18}/>} color="green" onClick={() => navigateToDetails({ cardType: 'picked' })} />
+  <KpiCard title="Not Picked" total={stats?.kpiData?.notPicked?.total || 0} icon={<PhoneMissed size={18}/>} color="red" onClick={() => navigateToDetails({ cardType: 'not_picked' })} />
+  <KpiCard title="Contract Share" total={stats?.kpiData?.contract?.total || 0} icon={<FileText size={18}/>} color="orange" onClick={() => navigateToDetails({ cardType: 'contract' })} />
+  <KpiCard title="Interested" total={stats?.kpiData?.interested?.total || 0} icon={<TrendingUp size={18}/>} color="green" onClick={() => navigateToDetails({ cardType: 'interested' })} />
+  <KpiCard title="Sent to Manager" total={stats?.kpiData?.sentToManager?.total || 0} icon={<Send size={18}/>} color="orange" onClick={() => navigateToDetails({ cardType: 'sent_to_manager' })} />
+  <KpiCard title="Total Onboard" total={stats?.kpiData?.onboarded?.total || 0} icon={<Briefcase size={18}/>} color="teal" onClick={() => navigateToDetails({ cardType: 'onboard' })} />
+  {/* Projection card – keep as is or add navigation if needed */}
+  <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full cursor-pointer">
+    <div className="mb-2">
+      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider leading-tight">Projection</p>
+    </div>
+    <div className="grid grid-cols-2">
+      <div className="bg-[#103c7f] p-1 flex justify-between items-center">
+        <span className="text-[11px] font-bold text-[#a1db40]">MP &lt; 50</span>
+        <span className="text-[11px] font-bold text-[#a1db40]">{stats?.kpiData?.projections?.mpLess50 || '-'}</span>
+      </div>
+      <div className="bg-[#103c7f] p-1 flex justify-between items-center">
+        <span className="text-[11px] font-bold text-[#a1db40]">MP &gt; 50</span>
+        <span className="text-[11px] font-bold text-[#a1db40]">{stats?.kpiData?.projections?.mpGreater50 || '-'}</span>
+      </div>
+      <div className="bg-[#103c7f] p-1 flex justify-between items-center">
+        <span className="text-[11px] font-bold text-[#a1db40]">WP &lt; 50</span>
+        <span className="text-[11px] font-bold text-[#a1db40]">{stats?.kpiData?.projections?.wpLess50 || '-'}</span>
+      </div>
+      <div className="bg-[#103c7f] p-1 flex justify-between items-center">
+        <span className="text-[11px] font-bold text-[#a1db40]">WP &gt; 50</span>
+        <span className="text-[11px] font-bold text-[#a1db40]">{stats?.kpiData?.projections?.wpGreater50 || '-'}</span>
+      </div>
+    </div>
+  </div>
+</div>
                         </div>
                       {/* ========================================================= */}
 {/* ROW 2, 3 & 4: COMBINED INTO ONE SINGLE SEAMLESS ROW       */}
@@ -1129,10 +1165,10 @@ export default function SalesManagerDashboard() {
                     2. Normal Clients
                 </h2>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-                <KpiCard title="Leads" total={stats?.kpiData.normal.leads} icon={<Search size={18} />} color="blue" onClick={() => {}} />
-                <KpiCard title="Calls" total={stats?.kpiData.normal.calls} icon={<Phone size={18} />} color="blue" onClick={() => {}} />
-            </div>
+           <div className="grid grid-cols-2 gap-3">
+  <KpiCard title="Leads" total={stats?.kpiData.normal.leads} icon={<Search size={18} />} color="blue" onClick={() => navigateToDetails({ startup: 'No' })} />
+  <KpiCard title="Calls" total={stats?.kpiData.normal.calls} icon={<Phone size={18} />} color="blue" onClick={() => navigateToDetails({ startup: 'No', cardType: 'normal_calls' })} />
+</div>
         </div>
     </div>
 
@@ -1145,10 +1181,10 @@ export default function SalesManagerDashboard() {
                     3. Startup Clients
                 </h2>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-                <KpiCard title="Leads" total={stats?.kpiData?.startup?.leads || 0} icon={<Search size={18} />} color="orange" onClick={() => {}} />
-                <KpiCard title="Calls" total={stats?.kpiData?.startup?.calls || 0} icon={<Phone size={18} />} color="orange" onClick={() => {}} />
-            </div>
+           <div className="grid grid-cols-2 gap-3">
+  <KpiCard title="Leads" total={stats?.kpiData?.startup?.leads || 0} icon={<Search size={18} />} color="orange" onClick={() => navigateToDetails({ startup: 'Yes' })} />
+  <KpiCard title="Calls" total={stats?.kpiData?.startup?.calls || 0} icon={<Phone size={18} />} color="orange" onClick={() => navigateToDetails({ startup: 'Yes' })} />
+</div>
         </div>
     </div>
 
@@ -1162,9 +1198,9 @@ export default function SalesManagerDashboard() {
                 </h2>
             </div>
             <div className="grid grid-cols-2 gap-3">
-                <KpiCard title="Leads" total={stats?.kpiData.masterUnion.company} icon={<Briefcase size={18} />} color="purple" onClick={() => {}} />
-                <KpiCard title="Calls" total={stats?.kpiData.masterUnion.calling} icon={<Phone size={18} />} color="purple" onClick={() => {}} />
-            </div>
+  <KpiCard title="Leads" total={stats?.kpiData.masterUnion.company} icon={<Briefcase size={18} />} color="purple" onClick={() => navigateToDetails({ startup: 'Master Union' })} />
+  <KpiCard title="Calls" total={stats?.kpiData.masterUnion.calling} icon={<Phone size={18} />} color="purple" onClick={() => navigateToDetails({ startup: 'Master Union', cardType: 'master_union_calls' })} />
+</div>
         </div>
     </div>
 
@@ -1180,12 +1216,12 @@ export default function SalesManagerDashboard() {
             5. Franchise Pipeline
         </h2>
     </div>
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard title="Discussed" total={stats?.kpiData.franchise.discussed.total} icon={<Phone size={18} />} color="green" onClick={() => {}} />
-        <KpiCard title="Form Ask" total={stats?.kpiData.franchise.formAsk.total} icon={<FileText size={18} />} color="green" onClick={() => {}} />
-        <KpiCard title="Shared" total={stats?.kpiData.franchise.formShared.total} icon={<Send size={18} />} color="green" onClick={() => {}} />
-        <KpiCard title="Accepted" total={stats?.kpiData.franchise.accepted.total} icon={<CheckCircle size={18} />} color="green" onClick={() => {}} />
-    </div>
+   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+  <KpiCard title="Discussed" total={stats?.kpiData.franchise.discussed.total} icon={<Phone size={18} />} color="green" onClick={() => navigateToDetails({ cardType: 'franchise_discussed' })} />
+  <KpiCard title="Form Ask" total={stats?.kpiData.franchise.formAsk.total} icon={<FileText size={18} />} color="green" onClick={() => navigateToDetails({ cardType: 'franchise_form_ask' })} />
+  <KpiCard title="Shared" total={stats?.kpiData.franchise.formShared.total} icon={<Send size={18} />} color="green" onClick={() => navigateToDetails({ cardType: 'franchise_form_shared' })} />
+  <KpiCard title="Accepted" total={stats?.kpiData.franchise.accepted.total} icon={<CheckCircle size={18} />} color="green" onClick={() => navigateToDetails({ cardType: 'franchise_accepted' })} />
+</div>
 </div>
 
                         {/* CONVERSATION LOG TABLE */}
