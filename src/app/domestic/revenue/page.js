@@ -39,7 +39,7 @@ export default function DomesticRevenueDashboard() {
         });
 
         const result = await response.json();
-
+console.log("result " ,result);
         if (result.success && result.data) {
           setData(result.data);
         } else {
