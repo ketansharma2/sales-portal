@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { 
     UploadCloud,ArrowLeft, History, User, Plus, Send, Trash2, 
     Calendar, Phone, Briefcase, MapPin, IndianRupee, Clock,
-    FileText, CheckCircle2, MessageSquareText, AlertCircle, Bookmark,X , Edit
+    CheckCircle2, MessageSquareText, AlertCircle, Bookmark,X , Edit, File
 } from "lucide-react";
 
 export default function CandidateHistoryPage() {
@@ -22,6 +22,8 @@ export default function CandidateHistoryPage() {
     const [editId, setEditId] = useState(null);
     const [isUploadingCV, setIsUploadingCV] = useState(false);
     const fileInputRef = useRef(null);
+    const [candidateData, setCandidateData] = useState(null);
+    const [isLoadingCandidateData, setIsLoadingCandidateData] = useState(false);
     const handleEditOpen = (row) => {
         const today = new Date().toISOString().split('T')[0];
         if (row.callingDate !== today) {
@@ -250,9 +252,29 @@ export default function CandidateHistoryPage() {
     }, []);
 
     // --- HANDLERS ---
-    const handleAddOpen = () => {
+    const handleAddOpen = async () => {
         setFormData(initialForm);
         setIsAddModalOpen(true);
+        
+        // Fetch candidate data
+        setIsLoadingCandidateData(true);
+        try {
+            const session = JSON.parse(localStorage.getItem('session') || '{}');
+            const token = session.access_token;
+            
+            const response = await fetch(`/api/corporate/recruiter/candidate-details?parsing_id=${candidateId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                setCandidateData(result.data);
+            }
+        } catch (error) {
+            console.error('Error fetching candidate data:', error);
+        } finally {
+            setIsLoadingCandidateData(false);
+        }
     };
 
     const [isSavingFollowup, setIsSavingFollowup] = useState(false);
@@ -716,9 +738,9 @@ export default function CandidateHistoryPage() {
             {/* ========================================================= */}
             {isAddModalOpen && (
                 <div className="fixed inset-0 z-[100] flex justify-center items-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 p-4">
-                    <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 overflow-hidden border-4 border-white">
+                    <div className="w-full max-w-[95vw] bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 overflow-hidden border-4 border-white">
                         
-                       
+                        {/* Header */}
                         <div className="bg-[#103c7f] text-white p-5 flex justify-between items-center shrink-0">
                             <div>
                                 <h2 className="text-base font-black uppercase tracking-widest flex items-center gap-2">
@@ -728,11 +750,69 @@ export default function CandidateHistoryPage() {
                             <button onClick={() => setIsAddModalOpen(false)} className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"><X size={18} /></button>
                         </div>
 
-                       
-                        <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 custom-scrollbar bg-slate-50/30">
+                        {/* Two Column Layout: Resume | Form */}
+                        <div className="flex-1 overflow-y-auto flex gap-4 p-4 bg-slate-50/30 custom-scrollbar">
                             
-                             {/* Combined Profile & Slot Dropdown (Full Width on mobile, spans 2 cols if needed, but keeping 1 col here as per design) */}
-                             <div className="md:col-span-2">
+                            {/* Column 1: Resume */}
+                            <div className="w-1/2 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                                <div className="p-4 border-b border-slate-200 bg-green-50/50">
+                                    <h3 className="text-xs font-black text-emerald-700 uppercase tracking-widest flex items-center gap-2">
+                                        <File size={14}/> Candidate Resume
+                                    </h3>
+                                </div>
+                                <div className="flex-1 overflow-hidden">
+                                    {isLoadingCandidateData ? (
+                                        <div className="flex items-center justify-center h-full">
+                                            <div className="w-6 h-6 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin"></div>
+                                        </div>
+                                    ) : candidateData?.cv_url ? (
+                                        <iframe
+                                            src={`https://docs.google.com/viewer?url=${encodeURIComponent(candidateData.cv_url)}&embedded=true`}
+                                            className="w-full h-full border-0"
+                                            title="Candidate Resume"
+                                        />
+                                    ) : (
+                                        <div className="flex items-center justify-center h-full text-slate-400 p-4">
+                                            <div className="text-center">
+                                                <File size={32} className="mx-auto mb-2 opacity-30"/>
+                                                <p className="text-xs font-bold mb-2">No resume PDF available</p>
+                                                {candidateData && (
+                                                    <div className="text-left space-y-2 mt-4 max-w-sm">
+                                                        <div>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Name</p>
+                                                            <p className="text-xs text-slate-600">{candidateData.name || '-'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Email</p>
+                                                            <p className="text-xs text-slate-600">{candidateData.email || '-'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Phone</p>
+                                                            <p className="text-xs text-slate-600">{candidateData.phone || '-'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Experience</p>
+                                                            <p className="text-xs text-slate-600">{candidateData.total_experience || '-'}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Column 2: Form */}
+                            <div className="w-1/2 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                                <div className="p-4 border-b border-slate-200 bg-purple-50/50">
+                                    <h3 className="text-xs font-black text-purple-700 uppercase tracking-widest flex items-center gap-2">
+                                        <Plus size={14}/> Follow-up Form
+                                    </h3>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                            
+                             {/* Combined Profile & Slot Dropdown */}
+                             <div>
                                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">
                                      Select Assigned Profile & Slot <span className="text-red-500">*</span>
                                  </label>
@@ -742,15 +822,10 @@ export default function CandidateHistoryPage() {
                                       onChange={(e) => {
                                           const selectedOption = workbenchOptions.find(opt => opt.value === e.target.value);
                                           if (selectedOption) {
-                                              // Split the label - format: "Profile • Slot (Company Name)" or "Profile • Slot"
                                               const label = selectedOption.label;
-                                              console.log('Selected label:', label);
                                               const slotPart = label.split(' • ')[1] || '';
-                                              console.log('Slot part before:', slotPart);
-                                              // Remove company name from slot - get text before first '('
                                               const firstParenIndex = slotPart.indexOf('(');
                                               const slot = firstParenIndex > -1 ? slotPart.substring(0, firstParenIndex).trim() : slotPart.trim();
-                                              console.log('Slot after clean:', slot);
                                               setFormData({
                                                   ...formData,
                                                   req_id: e.target.value,
@@ -846,13 +921,15 @@ export default function CandidateHistoryPage() {
                                 />
                             </div>
 
-                            <div className="md:col-span-2">
+                            <div>
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Feedback / Remarks <span className="text-red-500">*</span></label>
                                 <textarea 
                                     rows="3" placeholder="Enter detailed interaction notes..." 
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500 resize-none shadow-sm"
                                     value={formData.feedback} onChange={(e) => setFormData({...formData, feedback: e.target.value})}
                                 ></textarea>
+                            </div>
+                                </div>
                             </div>
                         </div>
 
@@ -888,7 +965,7 @@ export default function CandidateHistoryPage() {
             {/* ========================================================= */}
             {isEditModalOpen && (
                 <div className="fixed inset-0 z-[100] flex justify-center items-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 p-4">
-                    <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 overflow-hidden border-4 border-white">
+                    <div className="w-full max-w-[95vw] bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 overflow-hidden border-4 border-white">
                         
                         {/* Header */}
                         <div className="bg-[#103c7f] text-white p-5 flex justify-between items-center shrink-0">
@@ -900,49 +977,76 @@ export default function CandidateHistoryPage() {
                             <button onClick={() => setIsEditModalOpen(false)} className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"><X size={18} /></button>
                         </div>
 
-                        {/* Form Body - Grid Layout */}
-                        <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 custom-scrollbar bg-slate-50/30">
+                        {/* Two Column Layout: Resume | Form */}
+                        <div className="flex-1 overflow-y-auto flex gap-4 p-4 bg-slate-50/30 custom-scrollbar">
+                            
+                            {/* Column 1: Resume */}
+                            <div className="w-1/2 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                                <div className="p-4 border-b border-slate-200 bg-green-50/50">
+                                    <h3 className="text-xs font-black text-emerald-700 uppercase tracking-widest flex items-center gap-2">
+                                        <File size={14}/> Candidate Resume
+                                    </h3>
+                                </div>
+                                <div className="flex-1 overflow-hidden">
+                                    {isLoadingCandidateData ? (
+                                        <div className="flex items-center justify-center h-full">
+                                            <div className="w-6 h-6 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin"></div>
+                                        </div>
+                                    ) : candidateData?.cv_url ? (
+                                        <iframe
+                                            src={`https://docs.google.com/viewer?url=${encodeURIComponent(candidateData.cv_url)}&embedded=true`}
+                                            className="w-full h-full border-0"
+                                            title="Candidate Resume"
+                                        />
+                                    ) : (
+                                        <div className="flex items-center justify-center h-full text-slate-400 p-4">
+                                            <div className="text-center">
+                                                <File size={32} className="mx-auto mb-2 opacity-30"/>
+                                                <p className="text-xs font-bold mb-2">No resume PDF available</p>
+                                                {candidateData && (
+                                                    <div className="text-left space-y-2 mt-4 max-w-sm">
+                                                        <div>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Name</p>
+                                                            <p className="text-xs text-slate-600">{candidateData.name || '-'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Email</p>
+                                                            <p className="text-xs text-slate-600">{candidateData.email || '-'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Phone</p>
+                                                            <p className="text-xs text-slate-600">{candidateData.phone || '-'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Experience</p>
+                                                            <p className="text-xs text-slate-600">{candidateData.total_experience || '-'}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Column 2: Form */}
+                            <div className="w-1/2 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                                <div className="p-4 border-b border-slate-200 bg-purple-50/50">
+                                    <h3 className="text-xs font-black text-purple-700 uppercase tracking-widest flex items-center gap-2">
+                                        <Edit size={14}/> Edit Follow-up
+                                    </h3>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
                             
                             {/* Combined Profile & Slot Dropdown */}
-                            <div className="md:col-span-2">
+                            <div>
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Select Assigned Profile & Slot</label>
                                 <select 
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer"
                                     value={formData.req_id} 
-                                    onChange={(e) => {
-                                        const selectedOption = workbenchOptions.find(opt => opt.value === e.target.value);
-                                        if (selectedOption) {
-                                            const labelParts = selectedOption.label.split(' • ');
-                                            setFormData({
-                                                ...formData,
-                                                req_id: e.target.value,
-                                                profile: labelParts[0] || '',
-                                                slot: labelParts[1] || ''
-                                            });
-                                        } else {
-                                            setFormData({
-                                                ...formData,
-                                                req_id: "",
-                                                profile: "",
-                                                slot: ""
-                                            });
-                                        }
-                                    }}
+                                    disabled
                                 >
-                                    <option value="">-- Choose Profile & Slot --</option>
-                                    {isLoadingWorkbench ? (
-                                        <option value="" disabled>Loading...</option>
-                                    ) : (
-                                        workbenchOptions.length > 0 ? (
-                                            workbenchOptions.map(option => (
-                                                <option key={option.value} value={option.value}>
-                                                    {option.label}
-                                                </option>
-                                            ))
-                                        ) : (
-                                            <option value="" disabled>No profiles available for today</option>
-                                        )
-                                    )}
+                                    <option value="">{formData.profile && formData.slot ? `${formData.profile} • ${formData.slot}` : '-- Choose Profile & Slot --'}</option>
                                 </select>
                             </div>
 
@@ -1008,13 +1112,15 @@ export default function CandidateHistoryPage() {
                                 />
                             </div>
 
-                            <div className="md:col-span-2">
+                            <div>
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Feedback / Remarks <span className="text-red-500">*</span></label>
                                 <textarea 
                                     rows="3" placeholder="Enter detailed interaction notes..." 
                                     className="w-full bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500 resize-none shadow-sm"
                                     value={formData.feedback} onChange={(e) => setFormData({...formData, feedback: e.target.value})}
                                 ></textarea>
+                            </div>
+                                </div>
                             </div>
                         </div>
 
