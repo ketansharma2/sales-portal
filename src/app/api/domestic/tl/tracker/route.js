@@ -86,16 +86,17 @@ export async function GET(request) {
     if (reqIds.length > 0) {
       const { data: reqsData } = await supabaseServer
         .from('domestic_crm_reqs')
-        .select('req_id, job_title')
+        .select('req_id, job_title, location, experience, package, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers')
         .in('req_id', reqIds)
       
       if (reqsData) {
-        reqsMap = new Map(reqsData.map(r => [r.req_id, r.job_title]))
+        reqsMap = new Map(reqsData.map(r => [r.req_id, r]))
       }
     }
 
     const transformedData = conversations.map(conversation => {
       const cvData = cvParsingMap.get(conversation.parsing_id)
+      const reqData = reqsMap.get(conversation.req_id)
       return {
         conversation_id: conversation.conversation_id,
         recruiter_name: usersMap.get(conversation.user_id) || 'Unknown',
@@ -114,7 +115,19 @@ export async function GET(request) {
         cv_url: cvData?.cv_url || '',
         cv_parsing_id: cvData?.id || '',
         redacted_cv_url: cvData?.redacted_cv_url || '',
-        job_title: reqsMap.get(conversation.req_id) || '',
+        job_title: reqData?.job_title || '',
+        job_location: reqData?.location || '',
+        job_experience: reqData?.experience || '',
+        job_package: reqData?.package || '',
+        job_employment_type: reqData?.employment_type || '',
+        job_working_days: reqData?.working_days || '',
+        job_timings: reqData?.timings || '',
+        job_tool_req: reqData?.tool_req || '',
+        job_summary: reqData?.job_summary || '',
+        job_rnr: reqData?.rnr || '',
+        job_req_skills: reqData?.req_skills || '',
+        job_preferred_qual: reqData?.preferred_qual || '',
+        job_company_offers: reqData?.company_offers || '',
         cv_status: conversation.cv_status || '',
         tl_remarks: conversation.tl_remarks || '',
         call_respond: conversation.call_respond || '',

@@ -148,11 +148,13 @@ export async function PUT(request, { params }) {
       gst,
       kycStatus,
       contractLink,
+      contractExpiryDate,
       termsCondition,
       kycDocLink,
       emailScreenshot
     } = body
 
+    console.log('body',body);
     // Split hqLocation into location and state if provided
     let location = '', state = ''
     if (hqLocation) {
@@ -172,6 +174,7 @@ export async function PUT(request, { params }) {
       gst_details: gst,
       kyc_status: kycStatus,
       contract_link: contractLink,
+      expiry_date: contractExpiryDate,
       tnc: termsCondition,
       kyc_doc: kycDocLink,
       email_ss: emailScreenshot

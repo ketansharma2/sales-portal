@@ -74,6 +74,7 @@ const [pastJDs, setPastJDs] = useState([]);
     gst: '',
     kycStatus: 'Pending',
     contractLink: '',
+    contractExpiryDate: '',
     termsCondition: '',
     kycDocLink: '',
     emailScreenshot: '',
@@ -893,6 +894,7 @@ const generatePDF = () => {
 
   const handleSaveFundamentals = async () => {
     try {
+      console.log('formData',formData);
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const response = await fetch(`/api/domestic/crm/clients/${clientId}`, {
         method: 'PUT',
@@ -910,6 +912,7 @@ const generatePDF = () => {
         alert('Failed to update client: ' + (data.error || 'Unknown error'));
       }
     } catch (error) {
+       console.log('formData',formData);
       console.error('Error updating client:', error);
       alert('Error updating client profile');
     }
@@ -1287,49 +1290,49 @@ return (
               </button>
            </div>
            
-           <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-              {clientData.branches.map((branch) => (
-                <button
-                  key={branch.branch_id}
-                  onClick={() => setSelectedBranchId(branch.branch_id)}
-                  className={`w-full text-left p-3 rounded-xl border transition-all group relative ${
-                    selectedBranchId === branch.branch_id
-                    ? "bg-white border-[#103c7f] shadow-md ring-1 ring-blue-50"
-                    : "bg-white border-gray-200 hover:border-blue-300 hover:shadow-sm"
-                  }`}
-                >
-                  {selectedBranchId === branch.branch_id && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#103c7f] rounded-l-xl"></div>}
-                  <div className="flex justify-between items-center pl-1">
-                     <span className={`text-xs font-bold ${selectedBranchId === branch.branch_id ? "text-[#103c7f]" : "text-gray-700"}`}>
-                       {branch.name}
-                     </span>
-                     {selectedBranchId === branch.branch_id && (
-                       <button 
-                         onClick={(e) => {
-                           e.stopPropagation();
-                           setEditingBranch({ branch_id: branch.branch_id });
-                           setEditBranchData({
-                             name: branch.name,
-                             state: branch.state,
-                             city: branch.city || '',
-                             address: branch.full_address || branch.address || '',
-                             status: branch.status || ''
-                           });
-                           setIsEditBranchModalOpen(true);
-                         }}
-                         className="p-1 bg-yellow-50 text-yellow-600 border border-yellow-200 rounded hover:bg-yellow-100 transition"
-                         title="Edit Branch"
-                       >
-                         <Edit size={12}/>
-                       </button>
-                     )}
-                   </div>
-                   <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-1 pl-1">
-                      <MapPin size={10} /> {branch.state}
-                   </div>
-                </button>
-              ))}
-           </div>
+         <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+  {clientData.branches.map((branch) => (
+    <div
+      key={branch.branch_id}
+      onClick={() => setSelectedBranchId(branch.branch_id)}
+      className={`w-full text-left p-3 rounded-xl border transition-all group relative cursor-pointer ${
+        selectedBranchId === branch.branch_id
+        ? "bg-white border-[#103c7f] shadow-md ring-1 ring-blue-50"
+        : "bg-white border-gray-200 hover:border-blue-300 hover:shadow-sm"
+      }`}
+    >
+      {selectedBranchId === branch.branch_id && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#103c7f] rounded-l-xl"></div>}
+      <div className="flex justify-between items-center pl-1">
+        <span className={`text-xs font-bold ${selectedBranchId === branch.branch_id ? "text-[#103c7f]" : "text-gray-700"}`}>
+          {branch.name}
+        </span>
+        {selectedBranchId === branch.branch_id && (
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingBranch({ branch_id: branch.branch_id });
+              setEditBranchData({
+                name: branch.name,
+                state: branch.state,
+                city: branch.city || '',
+                address: branch.full_address || branch.address || '',
+                status: branch.status || ''
+              });
+              setIsEditBranchModalOpen(true);
+            }}
+            className="p-1 bg-yellow-50 text-yellow-600 border border-yellow-200 rounded hover:bg-yellow-100 transition"
+            title="Edit Branch"
+          >
+            <Edit size={12}/>
+          </button>
+        )}
+      </div>
+      <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-1 pl-1">
+        <MapPin size={10} /> {branch.state}
+      </div>
+    </div>
+  ))}
+</div>
         </div>
       </div>
 
@@ -1731,6 +1734,18 @@ return (
                                     />
                                 </div>
                             </div>
+                            {/* Contract Expiry Date - IMPORTANT */}
+<div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+<label className="text-[10px] font-bold text-amber-700 uppercase flex items-center gap-1">
+⚠️ Contract Expiry Date
+</label>
+<input
+type="date"
+value={formData.contractExpiryDate || ''}
+onChange={(e) => setFormData({...formData, contractExpiryDate: e.target.value})}
+className="w-full border border-amber-300 rounded p-2.5 text-sm focus:border-[#103c7f] outline-none bg-white"
+/>
+</div>
                         </div>
 
                         {/* RIGHT COLUMN: CRM FULFILLMENT (New Fields) */}
