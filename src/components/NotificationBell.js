@@ -69,6 +69,7 @@ export default function NotificationBell() {
     if (pathname.startsWith('/domestic/leadgen')) return '/domestic/leadgen/notifications';
     if (pathname.startsWith('/domestic/recruiter')) return '/domestic/recruiter/notifications';
     if (pathname.startsWith('/domestic/tl')) return '/domestic/tl/notifications';
+    if (pathname.startsWith('/jobpost')) return '/jobpost/notifications';
     if (pathname.startsWith('/manager')) return '/manager/notifications';
     if (pathname.startsWith('/fse')) return '/fse/notifications';
     if (pathname.startsWith('/operations')) return '/operations/notifications';

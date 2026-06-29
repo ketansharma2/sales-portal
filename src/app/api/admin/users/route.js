@@ -187,6 +187,7 @@ export async function PUT(request) {
    
 
     await notificationService.createDynamicNotification( [user_id],actions.admin.userProfileUpdated,authUser.id );
+   const successMessage = "User updated successfully";
 
     return NextResponse.json({
       success: true,

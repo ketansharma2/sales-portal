@@ -29,7 +29,7 @@ export async function PATCH(request, { params }) {
     if (typeof is_read !== 'boolean') {
       return NextResponse.json({ error: 'is_read must be a boolean' }, { status: 400 })
     }
-
+    console.log("is_read",is_read,id);
     // Prepare update data
     const readAt = is_read ? new Date().toISOString() : null
     

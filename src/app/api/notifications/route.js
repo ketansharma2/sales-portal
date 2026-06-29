@@ -43,12 +43,12 @@ export async function GET(request) {
       .eq('receiver_id', user.id)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
-
+   
     if (unreadOnly) query = query.eq('is_read', false)
 
     const { data, error: dbError, count } = await query
     if (dbError) throw new Error(dbError.message)
-      
+      console.log("data:", data);
      console.log(`Fetched notifications for user ${user.id}:`, { count, limit, offset, unreadOnly })
     return NextResponse.json({ notifications: data, total: count })
   } catch (err) {

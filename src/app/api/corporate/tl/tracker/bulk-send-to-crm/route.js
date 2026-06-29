@@ -43,9 +43,9 @@ export async function POST(request) {
         details: error.message
       }, { status: 500 })
     }
-
+         if (sent_to_crm) {
       await notificationService.createDynamicNotification( [sent_to_crm],actions.tl.tlsendBulkTracker,user.id );
-
+       }
 
     return NextResponse.json({
       success: true,

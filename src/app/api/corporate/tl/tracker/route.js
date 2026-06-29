@@ -204,8 +204,11 @@ export async function PUT(request) {
         details: error.message
       }, { status: 500 })
     }
-    await notificationService.createDynamicNotification( [sent_to_crm],actions.tl.tlsendTracker,user.id );
 
+    console.log("reciever id:",sent_to_crm);
+    if (sent_to_crm) {
+    await notificationService.createDynamicNotification( [sent_to_crm],actions.tl.tlsendTracker,user.id );
+     }
     return NextResponse.json({
       success: true,
       data: data[0]

@@ -560,6 +560,7 @@ export default function TLTrackerPage() {
                     conversation_id: selectedCandidate.id,
                     cv_status: tlForm.cvUpdateStatus,
                     tl_remarks: tlForm.tlReview,
+                    sent_to_crm: selectedCrmUser.user_id,
                     call_respond: tlForm.callResponding
                 })
             });

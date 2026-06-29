@@ -11,6 +11,7 @@ export const getNotificationRoute = (userData) => {
     admin: '/admin/notifications',
     hod: '/hod/notifications',
     operations: '/operations/notifications',
+    jobpost: '/jobpost/notifications',
   };
 
   if (specialRoutes[role]) {
