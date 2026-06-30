@@ -192,6 +192,46 @@ export async function DELETE(request) {
   }
 }
 
+
+
+export const getTargetUserId = async (supabase, currentUserId) => {
+  // Current user data
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('role, sector')
+    .eq('user_id', currentUserId)
+    .single();
+
+  if (userError) {
+    throw userError;
+  }
+
+  const userRole = userData.role;
+  const userSector = userData.sector;
+
+  // LEADGEN + Corporate
+  if (
+    Array.isArray(userRole) &&
+    userRole.includes('LEADGEN') &&
+    userSector === 'Corporate'
+  ) {
+    return currentUserId;
+  }
+
+  // Find LEADGEN user in same sector
+  const { data, error } = await supabase
+    .from('users')
+    .select('user_id')
+    .contains('role', ['LEADGEN'])
+    .eq('sector', userSector)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data.user_id;
+}; 
 export async function GET(request) {
   try {
     // Authentication - user injected by middleware (no auth calls needed!)
@@ -208,7 +248,10 @@ export async function GET(request) {
     const fromDate = searchParams.get('fromDate');
     const toDate = searchParams.get('toDate');
     const startupFilter = searchParams.get('startup');
-
+      const user_id = await getTargetUserId(
+                  supabaseServer,
+                  user.id
+                );
     let query = supabaseServer
       .from('corporate_leadgen_leads')
       .select(`
@@ -238,7 +281,7 @@ export async function GET(request) {
           franchise_status
         )
       `)
-      .eq('leadgen_id', user.id);
+      .eq('leadgen_id', user_id);
 
     // If startup filter is provided, filter by startup
     if (startupFilter && startupFilter !== 'All') {

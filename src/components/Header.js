@@ -6,7 +6,7 @@ import {
   Bell, UserCircle, LogOut, User, ChevronDown, 
   X, Mail, Phone, MapPin, Briefcase, Calendar, BadgeCheck 
 } from "lucide-react"; 
-import NotificationDropdown from "./NotificationDropdown";
+import NotificationBell from "./NotificationBell";
 
 export default function Header() {
   const pathname = usePathname();
@@ -157,7 +157,7 @@ export default function Header() {
 
         {/* --- ICONS & USER SECTION --- */}
         <div className="flex items-center gap-8">
-          <NotificationDropdown />
+          <NotificationBell />
 
           {mounted && (
             <div className="relative" ref={dropdownRef}>

@@ -2,6 +2,45 @@ import { NextResponse } from 'next/server';
 import { getUser } from '@/lib/auth-helper';
 import { supabaseServer } from '@/lib/supabase-server';
 
+export const getTargetUserId = async (supabase, currentUserId) => {
+  // Current user data
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('role, sector')
+    .eq('user_id', currentUserId)
+    .single();
+
+  if (userError) {
+    throw userError;
+  }
+
+  const userRole = userData.role;
+  const userSector = userData.sector;
+
+  // LEADGEN + Corporate
+  if (
+    Array.isArray(userRole) &&
+    userRole.includes('LEADGEN') &&
+    userSector === 'Corporate'
+  ) {
+    return currentUserId;
+  }
+
+  // Find LEADGEN user in same sector
+  const { data, error } = await supabase
+    .from('users')
+    .select('user_id')
+    .contains('role', ['LEADGEN'])
+    .eq('sector', userSector)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data.user_id;
+}; 
+
 export async function GET(request) {
   try {
     // Authentication - user injected by middleware (no auth calls needed!)
@@ -17,6 +56,11 @@ export async function GET(request) {
     const toDate = searchParams.get('toDate');
     const type = searchParams.get('type') || 'all'; // all, new, followup
 
+    const user_id = await getTargetUserId(
+                          supabaseServer,
+                          user.id
+                        );
+
     // Step 1: Get ALL interactions for this user (complete history for all clients)
     // This is needed to check if contact_person was talked to before (regardless of date filter)
     const { data: allInteractions, error: allError } = await supabaseServer
@@ -31,7 +75,7 @@ export async function GET(request) {
           sourcing_date
         )
       `)
-      .eq('leadgen_id', user.id)
+      .eq('leadgen_id', user_id)
       .order('created_at', { ascending: true });
 
     if (allError) {
@@ -79,7 +123,7 @@ export async function GET(request) {
           startup
         )
       `)
-      .eq('leadgen_id', user.id);
+      .eq('leadgen_id', user_id);
 
     // Apply date filtering based on dateRange type
     if (dateRange === 'specific' && fromDate && toDate) {
@@ -91,7 +135,7 @@ export async function GET(request) {
       const { data: latestData } = await supabaseServer
         .from('corporate_leads_interaction')
         .select('date')
-        .eq('leadgen_id', user.id)
+        .eq('leadgen_id', user_id)
         .order('date', { ascending: false })
         .limit(1)
         .single();

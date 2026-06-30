@@ -2,6 +2,45 @@ import { NextResponse } from 'next/server';
 import { getUser } from '@/lib/auth-helper';
 import { supabaseServer } from '@/lib/supabase-server';
 
+export const getTargetUserId = async (supabase, currentUserId) => {
+  // Current user data
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('role, sector')
+    .eq('user_id', currentUserId)
+    .single();
+
+  if (userError) {
+    throw userError;
+  }
+
+  const userRole = userData.role;
+  const userSector = userData.sector;
+
+  // LEADGEN + Corporate
+  if (
+    Array.isArray(userRole) &&
+    userRole.includes('LEADGEN') &&
+    userSector === 'Corporate'
+  ) {
+    return currentUserId;
+  }
+
+  // Find LEADGEN user in same sector
+  const { data, error } = await supabase
+    .from('users')
+    .select('user_id')
+    .contains('role', ['LEADGEN'])
+    .eq('sector', userSector)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data.user_id;
+}; 
+
 export async function GET(request) {
   try {
     // Authentication - user injected by middleware (no auth calls needed!)
@@ -15,6 +54,11 @@ export async function GET(request) {
     const dateRange = searchParams.get('dateRange') || 'default';
     const fromDate = searchParams.get('fromDate');
     const toDate = searchParams.get('toDate');
+
+     const user_id = await getTargetUserId(
+      supabaseServer,
+      user.id
+    );
 
     // Build query - fetch leads where sent_to_sm = true
     let query = supabaseServer
@@ -43,7 +87,7 @@ export async function GET(request) {
           franchise_status
         )
       `)
-      .eq('leadgen_id', user.id)
+      .eq('leadgen_id', user_id)
       .eq('sent_to_sm', true)
       .order('date', { foreignTable: 'corporate_leads_interaction', ascending: false });
 
@@ -58,7 +102,7 @@ export async function GET(request) {
       const { data: latestData } = await supabaseServer
         .from('corporate_leadgen_leads')
         .select('lock_date')
-        .eq('leadgen_id', user.id)
+        .eq('leadgen_id', user_id)
         .eq('sent_to_sm', true)
         .not('lock_date', 'is', null)
         .order('lock_date', { ascending: false })

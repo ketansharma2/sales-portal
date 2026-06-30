@@ -1,6 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-
+import { notificationService } from '@/lib/services/notificationService'
+import { actions } from '@/lib/messages/userMessages';   
 export async function GET(request) {
   try {
     const authHeader = request.headers.get('authorization')
@@ -266,6 +267,11 @@ export async function POST(request) {
       }, { status: 500 })
     }
 
+    // Send notification to the updated user (optional)
+    await notificationService.createDynamicNotification( [sent_to_tl],actions.crm.workbenchCreated,user.id );
+
+
+
     return NextResponse.json({
       success: true,
       data: newWorkbench
@@ -332,6 +338,10 @@ export async function PUT(request) {
         details: updateError.message
       }, { status: 500 })
     }
+
+
+
+        await notificationService.createDynamicNotification( [sent_to_tl],actions.crm.workbenchUpdated,user.id );
 
     return NextResponse.json({
       success: true,

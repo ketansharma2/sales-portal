@@ -4,154 +4,55 @@ import mammoth from "mammoth";
 import { supabaseServer } from '@/lib/supabase-server'
 import { getUser } from '@/lib/auth-helper'
 
-// export async function GET(request) {
-//   try {
-//     // Authentication
-//     const authHeader = request.headers.get('authorization')
-//     if (!authHeader) {
-//       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-//     }
-//     const token = authHeader.replace('Bearer ', '')
-//     const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
-//     if (authError || !user) {
-//       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
-//     }
+// Add this helper function for retry logic
+async function generateWithRetry(model, contents, apiKey) {
+  
+  
 
-//     const userId = user.user_id || user.id
-
-//     // First get user's own records
-//     const { data: myData, error: myError } = await supabaseServer
-//       .from('cv_parsing')
-//       .select('*')
-//       .eq('user_id', userId)
-//       .order('created_at', { ascending: false })
-
-//     // Then get records where other_users contains userId
-//     const { data: sharedData, error: sharedError } = await supabaseServer
-//       .from('cv_parsing')
-//       .select('*')
-//       .contains('other_users', [userId])
-//       .order('created_at', { ascending: false })
-
-//     if (myError || sharedError) {
-//       console.error('Fetch CV parsing error:', myError || sharedError)
-//       return NextResponse.json({
-//         error: 'Failed to fetch CV parsing data',
-//         details: myError?.message || sharedError?.message
-//       }, { status: 500 })
-//     }
-
-//     // Combine and mark shared records
-//     const allData = [...(myData || []), ...(sharedData || [])]
+    try {
+      
+      const result = await model.generateContent(contents);
+      
+      const responseText = result.response.text();
+      if (!responseText || responseText.trim() === '') {
+        throw new Error('Empty response from Gemini');
+      }
+      
+      return result;
+      
+    } catch (error) {
+      
+      
+      const is503Error = error.message?.includes('503') || 
+                        error.message?.includes('Service Unavailable') ||
+                        error.message?.includes('Unavailable');
+      
+      if (is503Error) {
+        console.log(`❌  Attempts with Flash Lite failed due to 503 errors`);
+       
+      } else {
+        console.log(`❌ Non-503 error on attempt`, error.message);
+        throw error;
+      }
+    }
+ 
+  
+  console.log('🔄 Switching to Fallback Model: Gemini 2.5 Flash');
+  
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const fallbackModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    console.log('⚡ Attempting with Gemini 2.5 Flash...');
     
-//     // Remove duplicates (in case user is in both)
-//     const uniqueData = allData.filter((item, index, self) => 
-//       index === self.findIndex((t) => t.id === item.id)
-//     )
-
-//     // Get all candidate IDs for fetching latest status
-//     const candidateIds = uniqueData.map(item => item.id)
-
-//     // Fetch conversations with post_id and remarks
-//     let latestStatusMap = new Map()
-//     let postIdToJobTitle = new Map()
-
-//     if (candidateIds.length > 0) {
-//       const { data: conversations, error: convError } = await supabaseServer
-//         .from('candidates_conversation')
-//         .select(`
-//           parsing_id,
-//           candidate_status,
-//           calling_date,
-//           created_at,
-//           remarks,
-//           post_id,
-//           user_id,
-//           users!inner(name)
-//         `)
-//         .in('parsing_id', candidateIds)
-//         .order('created_at', { ascending: false })
-
-//       if (convError) {
-//         console.error('[ERROR] Conversations fetch failed:', convError.message)
-//       }
-
-//       // Build post_id → job_title lookup using domestic_crm_jd and corporate_crm_jd
-//       if (conversations && conversations.length > 0) {
-//         const allPostIds = [...new Set(conversations.map(c => c.post_id).filter(id => id != null))]
-
-//         if (allPostIds.length > 0) {
-//           // First try domestic_crm_jd
-//           const { data: domesticJdData, error: domesticJdError } = await supabaseServer
-//             .from('domestic_crm_jd')
-//             .select('jd_id, job_title')
-//             .in('jd_id', allPostIds)
-
-//           if (!domesticJdError && domesticJdData) {
-//             domesticJdData.forEach(jd => postIdToJobTitle.set(jd.jd_id, jd.job_title))
-//           }
-
-//           // Then try corporate_crm_jd for any missing ones
-//           const remainingPostIds = allPostIds.filter(id => !postIdToJobTitle.has(id))
-//           if (remainingPostIds.length > 0) {
-//             const { data: corporateJdData, error: corporateJdError } = await supabaseServer
-//               .from('corporate_crm_jd')
-//               .select('jd_id, job_title')
-//               .in('jd_id', remainingPostIds)
-
-//             if (!corporateJdError && corporateJdData) {
-//               corporateJdData.forEach(jd => postIdToJobTitle.set(jd.jd_id, jd.job_title))
-//             }
-//           }
-//         }
-//       }
-
-//       // Build latest conversation data map per candidate
-//       conversations?.forEach(conv => {
-//         if (!latestStatusMap.has(conv.parsing_id)) {
-//           latestStatusMap.set(conv.parsing_id, {
-//             latest_status: conv.candidate_status || '-',
-//             latest_user: conv.users?.name || conv.user_id || '-',
-//             latest_date: conv.calling_date || '-',
-//             latest_remarks: conv.remarks || '-',
-//             latest_profile: postIdToJobTitle.get(conv.post_id) || '-'
-//           })
-//         }
-//       })
-//     }
-
-//     const processedData = uniqueData.map(item => {
-//       const statusInfo = latestStatusMap.get(item.id) || { 
-//         latest_status: '-', 
-//         latest_user: '-', 
-//         latest_date: '-',
-//         latest_remarks: '-',
-//         latest_profile: '-'
-//       }
-//       return {
-//         ...item,
-//         is_shared: item.other_users && item.other_users.includes(userId) && item.user_id !== userId,
-//         latest_status: statusInfo.latest_status,
-//         latest_user: statusInfo.latest_user,
-//         latest_date: statusInfo.latest_date,
-//         latest_remarks: statusInfo.latest_remarks,
-//         latest_profile: statusInfo.latest_profile
-//       }
-//     })
-
-//     return NextResponse.json({
-//       success: true,
-//       data: processedData
-//     })
-
-//   } catch (error) {
-//     console.error('Fetch CV parsing API error:', error)
-//     return NextResponse.json({
-//       error: 'Internal server error',
-//       details: error.message
-//     }, { status: 500 })
-//   }
-// }
+    const result = await fallbackModel.generateContent(contents);
+    console.log('✓ Fallback model succeeded');
+    return result;
+    
+  } catch (fallbackError) {
+    console.error('❌ Fallback model also failed:', fallbackError.message);
+    throw fallbackError;
+  }
+}
 
 export async function GET(request) {
   try {
@@ -547,7 +448,7 @@ export async function POST(request) {
     
     // Use Gemini 1.5 with direct PDF input
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+    const primaryModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
     // Create inline data for the file
     let inlineData;
@@ -620,10 +521,23 @@ EXAMPLE OUTPUT:
 IMPORTANT: Return ONLY the JSON object, nothing else. No markdown, no code blocks, no explanations.
 `;
 
-    const result = await model.generateContent([
-      { inlineData },
-      prompt
-    ]);
+   const contents = [
+  { inlineData },
+  prompt
+];
+
+let result;
+try {
+  console.log('🚀 Starting generation with Gemini 2.5 Flash Lite...');
+  result = await generateWithRetry(primaryModel, contents, apiKey);
+} catch (error) {
+  console.error('💥 All generation attempts failed:', error.message);
+  return NextResponse.json({ 
+    error: 'Failed to parse resume after multiple attempts', 
+    details: error.message 
+  }, { status: 500 });
+}
+
 
     const responseText = result.response.text();
     console.log("Gemini response:", responseText.substring(0, 500));

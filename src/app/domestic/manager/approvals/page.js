@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { 
   Check, X, ShieldCheck, UserCircle, Search, Download, 
-  Clock, FileText, CheckCircle, ArrowRightCircle, Building2 
+  Clock, FileText, CheckCircle, ArrowRightCircle, Building2 , Lock
 } from "lucide-react";
 
 export default function ManagerApprovals() {
@@ -230,7 +230,18 @@ export default function ManagerApprovals() {
                   
                   {/* Action Column (UPDATED LOGIC: Shows "Forwarded" status, added Approved/Rejected) */}
                   <td className="px-5 py-3 text-center">
-                    {item.status === "Sent to HR" ? (
+                    {item.status === "PAID" ? (
+    // Paid State - Locked
+  <div className="flex justify-center">
+  <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full shadow-sm">
+    <Lock size={14} className="text-green-600" />
+    <span className="text-[10px] font-bold text-green-700 uppercase tracking-wide">
+      Payment Completed
+    </span>
+  </div>
+</div>
+  ) :
+                  item.status === "Sent to HR" ? (
                       // Locked State - Shows Process Flow
                       <div className="flex justify-center items-center gap-1 opacity-60">
                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">

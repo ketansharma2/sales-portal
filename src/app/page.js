@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image"; // Logo ke liye
 import { Lock, User, ArrowRight, Loader2 } from "lucide-react";
-
+import { supabase } from '@/lib/supabase';
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -31,7 +31,26 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (data.success) {
+
+        const { error: sessionError } = await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      });
+
+
+
+    if (sessionError) {
+      console.error('Error setting session:', sessionError);
+      setError('Login succeeded but failed to set session. Please try again.');
+      setLoading(false);
+      return;
+    }
+
+
+      
         if (data.requiresSelection) {
+
+
           // Show role selector
           setAvailableRoles(data.availableRoles);
           setUserData(data.user);
@@ -79,9 +98,16 @@ export default function LoginPage() {
     }
   };
 
-  const handleRoleSelect = (selectedRole) => {
+  const handleRoleSelect = async (selectedRole) => {
     // Set current_role
     const updatedUser = { ...userData, current_role: selectedRole };
+
+     if (sessionData) {
+    await supabase.auth.setSession({
+      access_token: sessionData.access_token,
+      refresh_token: sessionData.refresh_token,
+    });
+  }
     localStorage.setItem('user', JSON.stringify(updatedUser));
 
     // Check for stored redirectUrl first (e.g., JOBPOST role)

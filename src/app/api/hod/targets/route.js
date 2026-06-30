@@ -2,6 +2,8 @@ import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/auth-helper'
 
+import { notificationService } from '@/lib/services/notificationService'
+import { actions } from '@/lib/messages/userMessages';   // your notification file
 // GET - Fetch HOD targets for domestic (manager's targets assigned by their HOD)
 export async function GET(request) {
   try {
@@ -153,6 +155,7 @@ export async function POST(request) {
         details: error.message
       }, { status: 500 })
     }
+   await notificationService.createDynamicNotification( [sm_id],actions.hod.targetCreated,user.id );
 
     return NextResponse.json({
       success: true,
@@ -274,6 +277,9 @@ export async function PUT(request) {
       .select()
       .single()
 
+  const smId = data?.sm_id
+
+
     if (error) {
       console.error('HOD target update error:', error)
       return NextResponse.json({
@@ -281,6 +287,10 @@ export async function PUT(request) {
         details: error.message
       }, { status: 500 })
     }
+
+
+    await notificationService.createDynamicNotification( [smId],actions.hod.targetUpdated,user.id );
+
 
     return NextResponse.json({
       success: true,

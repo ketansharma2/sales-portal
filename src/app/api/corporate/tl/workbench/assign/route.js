@@ -1,6 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-
+import { notificationService } from '@/lib/services/notificationService'
+import { actions } from '@/lib/messages/userMessages';   // your notification file
 export async function PUT(request) {
   try {
     // Authentication
@@ -46,6 +47,10 @@ export async function PUT(request) {
         details: updateError.message
       }, { status: 500 })
     }
+
+  
+            
+    await notificationService.createDynamicNotification( [sent_to_rc],actions.tl.tlAssignedWorkbench,user.id );
 
     return NextResponse.json({
       success: true,

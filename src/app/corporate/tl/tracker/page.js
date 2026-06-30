@@ -237,7 +237,20 @@ export default function TLTrackerPage() {
                         tlCvName: item.redacted_cv_url || '',
                         callResponding: item.call_respond || '',
                         sentToCrm: item.sent_to_crm || null,
-                        sentToCrmName: item.sent_to_crm_name || null
+                        sentToCrmName: item.sent_to_crm_name || null,
+                        // JD fields
+                        job_location: item.job_location || '',
+                        job_experience: item.job_experience || '',
+                        job_package: item.job_package || '',
+                        job_employment_type: item.job_employment_type || '',
+                        job_working_days: item.job_working_days || '',
+                        job_timings: item.job_timings || '',
+                        job_tool_req: item.job_tool_req || '',
+                        job_summary: item.job_summary || '',
+                        job_rnr: item.job_rnr || '',
+                        job_req_skills: item.job_req_skills || '',
+                        job_preferred_qual: item.job_preferred_qual || '',
+                        job_company_offers: item.job_company_offers || ''
                     }));
                     setTrackerData(transformed);
                 }
@@ -547,6 +560,7 @@ export default function TLTrackerPage() {
                     conversation_id: selectedCandidate.id,
                     cv_status: tlForm.cvUpdateStatus,
                     tl_remarks: tlForm.tlReview,
+                    sent_to_crm: selectedCrmUser.user_id,
                     call_respond: tlForm.callResponding
                 })
             });
@@ -922,11 +936,11 @@ export default function TLTrackerPage() {
 
           
            {/* ========================================================= */}
-            {/* TL EVALUATION & CV UPDATE MODAL */}
+            {/* TL EVALUATION & CV UPDATE MODAL - 3 COLUMN LAYOUT */}
             {/* ========================================================= */}
             {modalType === 'tl_update' && selectedCandidate && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border-4 border-white">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] max-h-[95vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border-4 border-white">
                         
                         {/* Header */}
                         <div className="bg-[#103c7f] text-white px-6 py-4 flex justify-between items-center shrink-0">
@@ -943,9 +957,113 @@ export default function TLTrackerPage() {
                             </button>
                         </div>
 
-                        {/* Modal Body - Single Column */}
-                        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-slate-50/50">
-                            <div className="space-y-5">
+                        {/* Modal Body - 3 Column Layout */}
+                        <div className="flex-1 overflow-hidden flex flex-col lg:flex-row gap-4 p-4 bg-slate-50">
+                            
+                            {/* Column 1: Job Description */}
+                            <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                                <div className="bg-indigo-600 text-white px-4 py-3 shrink-0">
+                                    <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                                        <FileText size={14}/> Job Description
+                                    </h3>
+                                </div>
+                                <div className="flex-1 overflow-y-auto bg-slate-50 p-4 custom-scrollbar">
+                                    <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+                                        
+                                        {/* Key Value Pairs */}
+                                        <div className="space-y-3 mb-6 text-sm">
+                                            {selectedCandidate.profile && <p><span className="font-bold text-slate-700">JOB TITLE : </span><span className="text-slate-900">{selectedCandidate.profile}</span></p>}
+                                            {selectedCandidate.job_location && <p><span className="font-bold text-slate-700">LOCATION : </span><span className="text-slate-900">{selectedCandidate.job_location}</span></p>}
+                                            {selectedCandidate.job_experience && <p><span className="font-bold text-slate-700">EXPERIENCE : </span><span className="text-slate-900">{selectedCandidate.job_experience}</span></p>}
+                                            {selectedCandidate.job_employment_type && <p><span className="font-bold text-slate-700">EMPLOYMENT TYPE : </span><span className="text-slate-900">{selectedCandidate.job_employment_type}</span></p>}
+                                            {selectedCandidate.job_working_days && <p><span className="font-bold text-slate-700">WORKING DAYS : </span><span className="text-slate-900">{selectedCandidate.job_working_days}</span></p>}
+                                            {selectedCandidate.job_timings && <p><span className="font-bold text-slate-700">TIMINGS : </span><span className="text-slate-900">{selectedCandidate.job_timings}</span></p>}
+                                            {selectedCandidate.job_package && <p><span className="font-bold text-slate-700">PACKAGE : </span><span className="text-slate-900">{selectedCandidate.job_package}</span></p>}
+                                            {selectedCandidate.job_tool_req && <p><span className="font-bold text-slate-700">TOOL REQUIREMENT : </span><span className="text-slate-900">{selectedCandidate.job_tool_req}</span></p>}
+                                        </div>
+
+                                        {/* Sections */}
+                                        <div className="space-y-6 text-sm">
+                                            {selectedCandidate.job_summary && (
+                                                <div>
+                                                    <h4 className="font-bold mb-2 uppercase text-indigo-700 text-[15px]">Job Summary :</h4>
+                                                    <p className="leading-relaxed text-slate-800">{selectedCandidate.job_summary}</p>
+                                                </div>
+                                            )}
+                                            
+                                            {selectedCandidate.job_rnr && (
+                                                <div>
+                                                    <h4 className="font-bold mb-2 uppercase text-indigo-700 text-[15px]">Role & Responsibilities :</h4>
+                                                    <ul className="list-disc pl-5 space-y-1.5 text-slate-800">
+                                                        {selectedCandidate.job_rnr.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            
+                                            {selectedCandidate.job_req_skills && (
+                                                <div>
+                                                    <h4 className="font-bold mb-2 uppercase text-indigo-700 text-[15px]">Required Skills :</h4>
+                                                    <ul className="list-disc pl-5 space-y-1.5 text-slate-800">
+                                                        {selectedCandidate.job_req_skills.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            
+                                            {selectedCandidate.job_preferred_qual && (
+                                                <div>
+                                                    <h4 className="font-bold mb-2 uppercase text-indigo-700 text-[15px]">Preferred Qualifications :</h4>
+                                                    <ul className="list-disc pl-5 space-y-1.5 text-slate-800">
+                                                        {selectedCandidate.job_preferred_qual.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            
+                                            {selectedCandidate.job_company_offers && (
+                                                <div>
+                                                    <h4 className="font-bold mb-2 uppercase text-indigo-700 text-[15px]">What Company Offers :</h4>
+                                                    <ul className="list-disc pl-5 space-y-1.5 text-slate-800">
+                                                        {selectedCandidate.job_company_offers.split('\n').map((line, i) => line.trim() && <li key={i}>{line}</li>)}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Column 2: Candidate Resume */}
+                            <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                                <div className="bg-blue-600 text-white px-4 py-3 shrink-0">
+                                    <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                                        <User size={14}/> Candidate Resume
+                                    </h3>
+                                </div>
+                                <div className="flex-1 overflow-hidden bg-slate-100 p-2">
+                                    {selectedCandidate.cv_url ? (
+                                        <CVPreview 
+                                            url={selectedCandidate.cv_url} 
+                                            name={selectedCandidate.name} 
+                                        />
+                                    ) : (
+                                        <div className="flex items-center justify-center h-full text-slate-400">
+                                            <div className="text-center">
+                                                <FileText size={48} className="mx-auto mb-2 opacity-50" />
+                                                <p className="text-sm font-bold">No CV Available</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Column 3: Evaluation Form */}
+                            <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                                <div className="bg-amber-600 text-white px-4 py-3 shrink-0">
+                                    <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                                        <Edit size={14}/> Evaluation Form
+                                    </h3>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-50/50">
+                                    <div className="space-y-5">
                                 
                                 {/* TL Status */}
                                 <div>
@@ -1102,6 +1220,8 @@ export default function TLTrackerPage() {
                                         value={tlForm.tlReview} 
                                         onChange={(e) => setTlForm({...tlForm, tlReview: e.target.value})}
                                     ></textarea>
+                                </div>
+                            </div>
                                 </div>
                             </div>
                         </div>

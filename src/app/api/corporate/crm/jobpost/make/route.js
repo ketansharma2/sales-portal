@@ -2,6 +2,8 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { getUser } from '@/lib/auth-helper';
 
+import { notificationService } from '@/lib/services/notificationService'
+import { actions } from '@/lib/messages/userMessages'; 
 export async function GET(request) {
   try {
     // Authentication - user injected by middleware (no auth calls needed!)
@@ -172,6 +174,10 @@ export async function POST(request) {
       }, { status: 500 })
     }
 
+      
+
+      await notificationService.createDynamicNotification( [assigned_to],actions.crm.createdNewcorporateJobpost,user.id );
+        
     return NextResponse.json({
       success: true,
       data: newJobpost

@@ -1,32 +1,198 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { 
-  Printer, TrendingUp, AlertTriangle, Layers, Activity, 
-  Building2, Users, CheckCircle, Briefcase, Clock, FileText 
+  Printer, AlertTriangle 
 } from "lucide-react";
 
 export default function OperationsReport() {
   // --- SECTOR FILTER STATE ---
-  const [activeTab, setActiveTab] = useState("All"); // "All" | "Corporate" | "Domestic" | "Tech"
+  const [activeTab, setActiveTab] = useState("All");
+  const [reportData, setReportData] = useState(null);
+  const [cafeData, setCafeData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
-  // Raw static operational numbers for quick top summary processing
-  const totals = useMemo(() => {
-    return {
-      totalRequirements: 189 + 52,
-      totalCtc: 685.44 + 227.42,
-      totalCvParsed: 1285 + 685,
-      totalInterviews: 5 + 3,
-      openJobPosts: 62,
-      pendingProjects: 0
-    };
+const formatIndianNumber = (num) => {
+  // Handle null, undefined, or empty
+  if (num === null || num === undefined || num === '') return '0';
+  
+  // Convert to number if it's a string
+  const number = typeof num === 'string' ? parseFloat(num) : num;
+  
+  // Check if it's a valid number
+  if (isNaN(number) || !isFinite(number)) return '0';
+  
+  // Round to nearest integer
+  const numStr = Math.round(number).toString();
+  const lastThree = numStr.slice(-3);
+  const otherNumbers = numStr.slice(0, -3);
+  
+  if (otherNumbers !== '') {
+    return otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + "," + lastThree;
+  }
+  return lastThree;
+};
+  const flagKpi = true;
+  const flagData = false;
+  const [dbs] = useState(['items', 'orders', 'users']);
+
+  // Fetch main report data
+  const fetchReportData = async (start, end) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      
+      let url = '/api/admin/operation-report';
+      const params = new URLSearchParams();
+      
+      if (start) params.append('startDate', start);
+      if (end) params.append('endDate', end);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+
+      const response = await fetch(url, {
+        headers: { 
+          'Authorization': `Bearer ${session.access_token}` 
+        }
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setReportData(data.data);
+        return data.data;
+      } else {
+        setError(data.error || 'Failed to fetch report data');
+        return null;
+      }
+    } catch (error) {
+      console.error('Failed to fetch report data:', error);
+      setError(error.message);
+      return null;
+    }
+  };
+
+  // Fetch Cafe App data
+  const fetchCafeData = async (start, end) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      const tablesParam = dbs.join(',');
+      let url = `/api/admin/operation-report/cafe-app-api?tables=${tablesParam}&kpiFlag=${flagKpi}&dataFlag=${flagData}`;
+      
+      if (start) url += `&startDate=${start}`;
+      if (end) url += `&endDate=${end}`;
+      
+      const response = await fetch(url, {
+        headers: { 
+          'Authorization': `Bearer ${session.access_token}` 
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setCafeData(data?.data?.data);
+        return data?.data?.data;
+      }
+    } catch (error) {
+      console.error('Failed to fetch cafe app data:', error);
+    }
+    return null;
+  };
+
+  // Fetch all data
+  const fetchAllData = async (start, end) => {
+    setLoading(true);
+    await fetchReportData(start, end);
+    await fetchCafeData(start, end);
+    setLoading(false);
+  };
+
+  // Initial fetch on mount with default dates
+  useEffect(() => {
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
+    const defaultStart = thirtyDaysAgo.toISOString().split('T')[0];
+    const defaultEnd = today.toISOString().split('T')[0];
+    
+    setStartDate(defaultStart);
+    setEndDate(defaultEnd);
+    fetchAllData(defaultStart, defaultEnd);
   }, []);
+
+  // Handle date filter application
+  const handleApplyFilter = () => {
+    if (startDate && endDate) {
+      fetchAllData(startDate, endDate);
+    }
+  };
+
+  // Reset date filter
+  const handleResetFilter = () => {
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
+    const defaultStart = thirtyDaysAgo.toISOString().split('T')[0];
+    const defaultEnd = today.toISOString().split('T')[0];
+    
+    setStartDate(defaultStart);
+    setEndDate(defaultEnd);
+    fetchAllData(defaultStart, defaultEnd);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#103c7f] mx-auto"></div>
+          <p className="mt-4 text-gray-600 font-semibold">Loading Operations Report...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // if (error) {
+  //   return (
+  //     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+  //       <div className="text-center bg-red-50 p-8 rounded-xl border border-red-200">
+  //         <AlertTriangle className="text-red-500 h-12 w-12 mx-auto mb-4" />
+  //         <h2 className="text-xl font-bold text-red-600 mb-2">Error Loading Data</h2>
+  //         <p className="text-gray-600">{error}</p>
+  //         <button 
+  //           onClick={() => fetchAllData(startDate, endDate)}
+  //           className="mt-4 px-4 py-2 bg-[#103c7f] text-white rounded-lg hover:bg-blue-800"
+  //         >
+  //           Retry
+  //         </button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+
+  // Destructure data with fallbacks
+  const data = reportData || {};
+  const cafe = cafeData || {};
+
+  // Get total users from report data
+  const totalUsers = data?.totalUsers || 0;
+
+  // Get corporate data
+  const corporate = data?.corporate || {};
+  const domestic = data?.domestic || {};
+  const deliveryCorporate = data?.deliveryCorporate || {};
+  const deliveryDomestic = data?.deliveryDomestic || {};
+  const tech = data?.tech || {};
+
+  // Cafe App data
+  const cafeKpi = cafe?.kpi || {};
 
   return (
     <div className="min-h-screen bg-slate-50 p-2 md:p-2 font-['Cambria',sans-serif]">
       
-      {/* ========================================================= */}
-      {/* UNIFIED HEADER (Visible on Screen AND Print)               */}
-      {/* ========================================================= */}
+      {/* UNIFIED HEADER */}
       <div className="flex justify-between items-center mb-3 max-w-7xl mx-auto border-b-2 border-[#103c7f] pb-4">
         <div className="flex items-center gap-4">
           <img src="/maven-logo.png" alt="Maven Logo" className="h-10 md:h-12 w-auto object-contain" />
@@ -44,63 +210,65 @@ export default function OperationsReport() {
         </button>
       </div>
 
-      {/* ========================================================= */}
-      {/* TIER 1: EXECUTIVE SCREEN DASHBOARD (Hidden on Print)     */}
-      {/* ========================================================= */}
+      {/* TIER 1: EXECUTIVE SCREEN DASHBOARD */}
       <div className="print:hidden max-w-7xl mx-auto space-y-3 mb-3">
         
-      {/* INTERACTIVE CONTROLS / SECTOR TOGGLES & DATE FILTER */}
-<div className="flex items-center justify-between bg-white p-2 rounded-xl border border-gray-200 shadow-sm flex-wrap gap-4">
-  
-  {/* Left Side: Category Toggles */}
-  <div className="flex gap-1.5 overflow-x-auto">
-    {["All", "Sales", "Delivery", "Tech"].map((tab) => (
-      <button
-        key={tab}
-        onClick={() => setActiveTab(tab)}
-        className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
-          activeTab === tab 
-            ? "bg-[#103c7f] text-white shadow-sm" 
-            : "text-gray-500 hover:bg-gray-100"
-        }`}
-      >
-        {tab === "All" ? "Complete View" : `${tab} Section`}
-      </button>
-    ))}
-  </div>
+        {/* INTERACTIVE CONTROLS */}
+        <div className="flex items-center justify-between bg-white p-2 rounded-xl border border-gray-200 shadow-sm flex-wrap gap-4">
+          
+          {/* Left Side: Category Toggles */}
+          <div className="flex gap-1.5 overflow-x-auto">
+            {["All", "Sales", "Delivery", "Tech"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+                  activeTab === tab 
+                    ? "bg-[#103c7f] text-white shadow-sm" 
+                    : "text-gray-500 hover:bg-gray-100"
+                }`}
+              >
+                {tab === "All" ? "Complete View" : `${tab} Section`}
+              </button>
+            ))}
+          </div>
 
-  {/* Right Side: Date Range Filter */}
-  <div className="flex items-center gap-2 border-l border-gray-200 pl-4">
-    <div className="flex items-center gap-2">
-      <input 
-        type="date" 
-        className="text-[10px] p-1.5 border border-gray-200 rounded-lg text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#103c7f]"
-        onChange={(e) => setStartDate(e.target.value)}
-      />
-      <span className="text-[10px] font-bold text-gray-400">TO</span>
-      <input 
-        type="date" 
-        className="text-[10px] p-1.5 border border-gray-200 rounded-lg text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#103c7f]"
-        onChange={(e) => setEndDate(e.target.value)}
-      />
-    </div>
-    
-    <button 
-      onClick={() => { /* reset logic */ }}
-      className="ml-2 px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-lg hover:bg-gray-900 transition-all uppercase tracking-wider"
-    >
-      All
-    </button>
-  </div>
-</div>
-
-      
-
+          {/* Right Side: Date Range Filter */}
+          <div className="flex items-center gap-2 border-l border-gray-200 pl-4">
+            <div className="flex items-center gap-2">
+              <input 
+                type="date" 
+                className="text-[10px] p-1.5 border border-gray-200 rounded-lg text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#103c7f]"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+              <span className="text-[10px] font-bold text-gray-400">TO</span>
+              <input 
+                type="date" 
+                className="text-[10px] p-1.5 border border-gray-200 rounded-lg text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#103c7f]"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+            
+            <button 
+              onClick={handleApplyFilter}
+              className="px-3 py-1.5 bg-[#103c7f] text-white text-xs font-bold rounded-lg hover:bg-blue-800 transition-all uppercase tracking-wider"
+            >
+              Apply
+            </button>
+            
+            <button 
+              onClick={handleResetFilter}
+              className="px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-lg hover:bg-gray-900 transition-all uppercase tracking-wider"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* ========================================================= */}
-      {/* TIER 2: MASTER SPREADSHEET (Responsive / Print Master)     */}
-      {/* ========================================================= */}
+      {/* TIER 2: MASTER SPREADSHEET */}
       <div className="max-w-7xl mx-auto print:max-w-full print:w-full bg-white shadow-xl print:shadow-none overflow-x-auto print:overflow-visible print:mx-0 rounded-xl border border-gray-200 print:border-none">
         
         <table className="w-full text-center border-collapse border border-gray-400 text-xs md:text-sm print:text-[10px]">
@@ -123,12 +291,12 @@ export default function OperationsReport() {
                   <th className="border border-gray-400 font-bold bg-[#e2efda] p-1 text-[#38761d]">Total CTC Generated</th>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">1347</td>
-                  <td className="border border-gray-400 font-semibold p-1">28</td>
-                  <td className="border border-gray-400 font-semibold p-1">21</td>
-                  <td className="border border-gray-400 font-semibold p-1">17</td>
-                  <td className="border border-gray-400 font-bold p-1">189</td>
-                  <td className="border border-gray-400 font-bold p-1">685.44 lakh</td>
+                  <td className="border border-gray-400 font-semibold p-1">{corporate?.leads || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{corporate?.pipelineClients || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{corporate?.onboard || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{corporate?.requirementProfiles || 0}</td>
+                  <td className="border border-gray-400 font-bold p-1">{corporate?.totalRequirements || 0}</td>
+                  <td className="border border-gray-400 font-bold p-1">{corporate?.totalCTC?.toFixed(2) || 0} lakh</td>
                 </tr>
                 
                 <tr>
@@ -140,10 +308,10 @@ export default function OperationsReport() {
                   <td colSpan={2} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">129</td>
-                  <td className="border border-gray-400 font-semibold p-1">37</td>
-                  <td className="border border-gray-400 font-semibold p-1">37</td>
-                  <td className="border border-gray-400 font-semibold p-1">2</td>
+                  <td className="border border-gray-400 font-semibold p-1">{corporate?.franchise?.discussed || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{corporate?.franchise?.formAsk || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{corporate?.franchise?.formShared || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{corporate?.franchise?.acceptance || 0}</td>
                   <td colSpan={2} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
 
@@ -160,12 +328,12 @@ export default function OperationsReport() {
                   <th className="border border-gray-400 font-bold bg-[#cfe2f3] p-1 text-[#0b5394]">Total CTC Generated</th>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">3333- having duplicates</td>
-                  <td className="border border-gray-400 font-semibold p-1">Not updated</td>
-                  <td className="border border-gray-400 font-semibold p-1">146 + missing</td>
-                  <td className="border border-gray-400 font-semibold p-1">172</td>
-                  <td className="border border-gray-400 font-semibold p-1">52 - missing data</td>
-                  <td className="border border-gray-400 font-bold p-1">227.42 lakh</td>
+                  <td className="border border-gray-400 font-semibold p-1">{domestic?.leads || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{domestic?.pipelineClients || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{domestic?.onboard || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{domestic?.requirementProfiles || 0}</td>
+                  <td className="border border-gray-400 font-bold p-1">{domestic?.totalRequirements || 0}</td>
+                  <td className="border border-gray-400 font-bold p-1">{domestic?.totalCTC?.toFixed(2) || 0} lakh</td>
                 </tr>
 
                 <tr>
@@ -178,12 +346,12 @@ export default function OperationsReport() {
                   <th className="border border-gray-400 font-bold bg-[#a2c4c9] p-1 text-gray-800">CV Calling</th>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">178</td>
-                  <td className="border border-gray-400 font-semibold p-1">62</td>
-                  <td className="border border-gray-400 font-semibold p-1">96</td>
-                  <td className="border border-gray-400 font-semibold p-1">9</td>
-                  <td className="border border-gray-400 font-semibold p-1">779</td>
-                  <td className="border border-gray-400 font-semibold p-1">734</td>
+                  <td className="border border-gray-400 font-semibold p-1">{domestic?.jobPosts?.total || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{domestic?.jobPosts?.open || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{domestic?.jobPosts?.paused || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{domestic?.jobPosts?.flagged || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{domestic?.jobPosts?.cvByJobPost || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{domestic?.jobPosts?.cvCalling || 0}</td>
                 </tr>
               </>
             )}
@@ -204,30 +372,33 @@ export default function OperationsReport() {
                   <td colSpan={2} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">1285</td>
-                  <td className="border border-gray-400 font-semibold p-1">-</td>
-                  <td className="border border-gray-400 font-semibold p-1">-</td>
-                  <td className="border border-gray-400 font-bold p-1">60</td>
+                  <td className="border border-gray-400 font-semibold p-1">{deliveryCorporate?.rc?.cvParse || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{deliveryCorporate?.rc?.trackerShareRC || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{deliveryCorporate?.rc?.trackerShareTL || 0}</td>
+                  <td className="border border-gray-400 font-bold p-1">{deliveryCorporate?.rc?.trackerShareCRM || 0}</td>
                   <td colSpan={2} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
 
-                <tr>
-                  <td rowSpan={2} className="border border-gray-400 font-bold bg-white p-1">CRM</td>
-                  <th className="border border-gray-400 font-bold bg-[#ead1dc] p-1 text-[#741b47]">Interview</th>
-                  <th className="border border-gray-400 font-bold bg-[#ead1dc] p-1 text-[#741b47]">Joining</th>
-                  <th className="border border-gray-400 font-bold bg-[#ead1dc] p-1 text-[#741b47]">Recovery by</th>
-                  <th className="border border-gray-400 font-bold bg-[#ead1dc] p-1 text-[#741b47]">Total Amt</th>
-                  <th className="border border-gray-400 font-bold bg-[#ead1dc] p-1 text-[#741b47]">Received</th>
-                  <th className="border border-gray-400 font-bold bg-[#ead1dc] p-1 text-[#741b47]">Pending</th>
-                </tr>
-                <tr>
-                  <td className="border border-gray-400 font-semibold p-1">5</td>
-                  <td className="border border-gray-400 font-semibold p-1">0</td>
-                  <td className="border border-gray-400 font-semibold p-1">In Progress</td>
-                  <td className="border border-gray-400 font-semibold p-1">In Progress</td>
-                  <td className="border border-gray-400 font-semibold p-1">In Progress</td>
-                  <td className="border border-gray-400 font-semibold p-1">In Progress</td>
-                </tr>
+{/* --- Corporate Delivery --- */}
+<tr>
+  <td rowSpan={2} className="border border-gray-400 font-bold bg-white p-1">CRM</td>
+  <th className="border border-gray-400 font-bold bg-[#ead1dc] p-1 text-[#741b47]">Interview</th>
+  <th className="border border-gray-400 font-bold bg-[#ead1dc] p-1 text-[#741b47]">Joining</th>
+  <th className="border border-gray-400 font-bold bg-[#ead1dc] p-1 text-[#741b47]">Recovery by</th>
+  <th className="border border-gray-400 font-bold bg-[#ead1dc] p-1 text-[#741b47]">Total Amt</th>
+  <th className="border border-gray-400 font-bold bg-[#ead1dc] p-1 text-[#741b47]">Received</th>
+  <th className="border border-gray-400 font-bold bg-[#ead1dc] p-1 text-[#741b47]">Pending</th>
+  <th className="border border-gray-400 font-bold bg-[#ead1dc] p-1 text-[#741b47]">Partial</th>
+</tr>
+<tr>
+  <td className="border border-gray-400 font-semibold p-1">{deliveryCorporate?.crm?.interview || 0}</td>
+  <td className="border border-gray-400 font-semibold p-1">{deliveryCorporate?.crm?.joining || 0}</td>
+  <td className="border border-gray-400 font-semibold p-1">{deliveryCorporate?.crm?.recoveryBy || 0}</td>
+  <td className="border border-gray-400 font-semibold p-1">₹{formatIndianNumber(deliveryCorporate?.crm?.totalAmt ?? 0) }</td>
+  <td className="border border-gray-400 font-semibold p-1">₹{formatIndianNumber(deliveryCorporate?.crm?.received ?? 0) }</td>
+  <td className="border border-gray-400 font-semibold p-1">₹{formatIndianNumber(deliveryCorporate?.crm?.pending ?? 0) }</td>
+  <td className="border border-gray-400 font-semibold p-1">₹{formatIndianNumber(deliveryCorporate?.crm?.partial ?? 0) }</td>
+</tr>
 
                 {/* --- Domestic --- */}
                 <tr>
@@ -241,30 +412,33 @@ export default function OperationsReport() {
                   <td colSpan={2} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">685</td>
-                  <td className="border border-gray-400 font-semibold p-1">4</td>
-                  <td className="border border-gray-400 font-semibold p-1">1</td>
-                  <td className="border border-gray-400 font-bold p-1">14</td>
+                  <td className="border border-gray-400 font-semibold p-1">{deliveryDomestic?.rc?.cvParse || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{deliveryDomestic?.rc?.trackerShareRC || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{deliveryDomestic?.rc?.trackerShareTL || 0}</td>
+                  <td className="border border-gray-400 font-bold p-1">{deliveryDomestic?.rc?.trackerShareCRM || 0}</td>
                   <td colSpan={2} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
 
-                <tr>
-                  <td rowSpan={2} className="border border-gray-400 font-bold bg-white p-1">CRM</td>
-                  <th className="border border-gray-400 font-bold bg-[#fce5cd] p-1 text-[#b45f06]">Interview</th>
-                  <th className="border border-gray-400 font-bold bg-[#fce5cd] p-1 text-[#b45f06]">Joining</th>
-                  <th className="border border-gray-400 font-bold bg-[#fce5cd] p-1 text-[#b45f06]">Recovery by</th>
-                  <th className="border border-gray-400 font-bold bg-[#fce5cd] p-1 text-[#b45f06]">Total Amt</th>
-                  <th className="border border-gray-400 font-bold bg-[#fce5cd] p-1 text-[#b45f06]">Received</th>
-                  <th className="border border-gray-400 font-bold bg-[#fce5cd] p-1 text-[#b45f06]">Pending</th>
-                </tr>
-                <tr>
-                  <td className="border border-gray-400 font-semibold p-1">3</td>
-                  <td className="border border-gray-400 font-semibold p-1">0</td>
-                  <td className="border border-gray-400 font-semibold p-1">In Progress</td>
-                  <td className="border border-gray-400 font-semibold p-1">In Progress</td>
-                  <td className="border border-gray-400 font-semibold p-1">In Progress</td>
-                  <td className="border border-gray-400 font-semibold p-1">In Progress</td>
-                </tr>
+{/* --- Domestic Delivery --- */}
+<tr>
+  <td rowSpan={2} className="border border-gray-400 font-bold bg-white p-1">CRM</td>
+  <th className="border border-gray-400 font-bold bg-[#fce5cd] p-1 text-[#b45f06]">Interview</th>
+  <th className="border border-gray-400 font-bold bg-[#fce5cd] p-1 text-[#b45f06]">Joining</th>
+  <th className="border border-gray-400 font-bold bg-[#fce5cd] p-1 text-[#b45f06]">Recovery by</th>
+  <th className="border border-gray-400 font-bold bg-[#fce5cd] p-1 text-[#b45f06]">Total Amt</th>
+  <th className="border border-gray-400 font-bold bg-[#fce5cd] p-1 text-[#b45f06]">Received</th>
+  <th className="border border-gray-400 font-bold bg-[#fce5cd] p-1 text-[#b45f06]">Pending</th>
+  <th className="border border-gray-400 font-bold bg-[#fce5cd] p-1 text-[#b45f06]">Partial</th>
+</tr>
+<tr>
+  <td className="border border-gray-400 font-semibold p-1">{deliveryDomestic?.crm?.interview || 0}</td>
+  <td className="border border-gray-400 font-semibold p-1">{deliveryDomestic?.crm?.joining || 0}</td>
+  <td className="border border-gray-400 font-semibold p-1">{deliveryDomestic?.crm?.recoveryBy || 0}</td>
+  <td className="border border-gray-400 font-semibold p-1">₹{formatIndianNumber(deliveryDomestic?.crm?.totalAmt ?? 0) }</td>
+  <td className="border border-gray-400 font-semibold p-1">₹{formatIndianNumber(deliveryDomestic?.crm?.received ?? 0) }</td>
+  <td className="border border-gray-400 font-semibold p-1">₹{formatIndianNumber(deliveryDomestic?.crm?.pending ?? 0)}</td>
+  <td className="border border-gray-400 font-semibold p-1">₹{formatIndianNumber(deliveryDomestic?.crm?.partial ?? 0)}</td>
+</tr>
               </>
             )}
 
@@ -285,16 +459,16 @@ export default function OperationsReport() {
                   <td colSpan={2} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">Not able to count -</td>
-                  <td className="border border-gray-400 font-semibold p-1">65</td>
-                  <td className="border border-gray-400 font-semibold p-1">Need to sort</td>
-                  <td className="border border-gray-400 font-semibold p-1">100+ Sheets , files</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.dataMgmt?.sheets || 'Not able to count -'}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.dataMgmt?.mailId || 65}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.dataMgmt?.tools || 'Need to sort'}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.dataMgmt?.dataCleanup || '100+ Sheets , files'}</td>
                   <td colSpan={2} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
 
                 {/* --- Monitor --- */}
                 <tr>
-                  <td rowSpan={12} className="border border-gray-400 font-bold bg-[#a64d79] text-white p-1">Monitor</td>
+                  <td rowSpan={10} className="border border-gray-400 font-bold bg-[#a64d79] text-white p-1">Monitor</td>
                   
                   <td rowSpan={2} className="border border-gray-400 font-bold bg-white p-1 text-gray-800">Scanner</td>
                   <th className="border border-gray-400 font-bold bg-[#d5a6bd] p-1 text-[#741b47]">Application</th>
@@ -303,9 +477,9 @@ export default function OperationsReport() {
                   <td colSpan={3} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">Not able to count due to dummy data</td>
-                  <td className="border border-gray-400 font-semibold p-1">Not able to count due to dummy data</td>
-                  <td className="border border-gray-400 font-semibold p-1">1</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.monitor?.scanner?.application || 'Not able to count due to dummy data'}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.monitor?.scanner?.company || 'Not able to count due to dummy data'}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.monitor?.scanner?.user || 1}</td>
                   <td colSpan={3} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
 
@@ -318,10 +492,10 @@ export default function OperationsReport() {
                   <td colSpan={2} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">48667</td>
-                  <td className="border border-gray-400 font-semibold p-1">Saloni , Nikita</td>
-                  <td className="border border-gray-400 font-semibold p-1">49 (only saloni)</td>
-                  <td className="border border-gray-400 font-semibold p-1">10 RC , 1 Admin</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.monitor?.searchbar?.cvUploaded || 48667}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.monitor?.searchbar?.view || 'Saloni , Nikita'}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.monitor?.searchbar?.cvDownload || '49 (only saloni)'}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.monitor?.searchbar?.user || '10 RC , 1 Admin'}</td>
                   <td colSpan={2} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
 
@@ -332,8 +506,8 @@ export default function OperationsReport() {
                   <td colSpan={4} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">29 ID</td>
-                  <td className="border border-gray-400 font-semibold p-1">Most - 13</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.monitor?.wpr?.totalUser || 29}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.monitor?.wpr?.fill || 'Most - 13'}</td>
                   <td colSpan={4} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
 
@@ -347,31 +521,21 @@ export default function OperationsReport() {
                   <td colSpan={1} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">44</td>
-                  <td className="border border-gray-400 font-semibold p-1">44</td>
-                  <td className="border border-gray-400 font-semibold p-1">0</td>
-                  <td className="border border-gray-400 font-semibold p-1">47</td>
-                  <td className="border border-gray-400 font-semibold p-1">27</td>
+                  <td className="border border-gray-400 font-semibold p-1">{(cafeData?.orders?.completed || 0) + (cafeData?.orders?.rejected || 0)}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{cafeData?.orders?.completed || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{cafeData?.orders?.rejected || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{cafeData?.menu?.available || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{cafeData?.users?.active || 0}</td>
                   <td colSpan={1} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
 
                 <tr>
-                  <td rowSpan={2} className="border border-gray-400 font-bold bg-white p-1 text-gray-800">Sales</td>
+                  <td rowSpan={2} className="border border-gray-400 font-bold bg-white p-1 text-gray-800">Sales / Delivery</td>
                   <th className="border border-gray-400 font-bold bg-[#d5a6bd] p-1 text-[#741b47]">Total User</th>
                   <td colSpan={5} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">18</td>
-                  <td colSpan={5} className="border border-gray-400 bg-gray-50"></td>
-                </tr>
-
-                <tr>
-                  <td rowSpan={2} className="border border-gray-400 font-bold bg-white p-1 text-gray-800">Delivery</td>
-                  <th className="border border-gray-400 font-bold bg-[#d5a6bd] p-1 text-[#741b47]">Total User</th>
-                  <td colSpan={5} className="border border-gray-400 bg-gray-50"></td>
-                </tr>
-                <tr>
-                  <td className="border border-gray-400 font-semibold p-1">18</td>
+                  <td className="border border-gray-400 font-semibold p-1">{totalUsers}</td>
                   <td colSpan={5} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
 
@@ -387,10 +551,10 @@ export default function OperationsReport() {
                   <td colSpan={2} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">2</td>
-                  <td className="border border-gray-400 font-semibold p-1">0</td>
-                  <td className="border border-gray-400 font-semibold p-1">2</td>
-                  <td className="border border-gray-400 font-semibold p-1">0</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.development?.inHouse?.total || 2}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.development?.inHouse?.done || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.development?.inHouse?.inProgress || 2}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.development?.inHouse?.pending || 0}</td>
                   <td colSpan={2} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
 
@@ -403,10 +567,10 @@ export default function OperationsReport() {
                   <td colSpan={2} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">2</td>
-                  <td className="border border-gray-400 font-semibold p-1">0</td>
-                  <td className="border border-gray-400 font-semibold p-1">2</td>
-                  <td className="border border-gray-400 font-semibold p-1">0</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.development?.outSource?.total || 2}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.development?.outSource?.done || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.development?.outSource?.inProgress || 2}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.development?.outSource?.pending || 0}</td>
                   <td colSpan={2} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
 
@@ -423,14 +587,14 @@ export default function OperationsReport() {
                   <th className="border border-gray-400 font-bold bg-[#fce5cd] p-1 text-[#b45f06]">Linkedin Connection</th>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">3</td>
-                  <td className="border border-gray-400 font-semibold p-1">6</td>
-                  <td className="border border-gray-400 font-semibold p-1">22</td>
-                  <td className="border border-gray-400 font-semibold p-1">197 + 16</td>
-                  <td className="border border-gray-400 font-semibold p-1">191 + 5</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.digitalMarketing?.inHouse?.company || 3}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.digitalMarketing?.inHouse?.platforms || 6}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.digitalMarketing?.inHouse?.pages || 22}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.digitalMarketing?.inHouse?.postDesign || '197 + 16'}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.digitalMarketing?.inHouse?.postPublish || '191 + 5'}</td>
                   <td className="border border-gray-400 font-semibold p-1 leading-tight">
-                    Bhavishya - 1121<br/>
-                    Ketan - 3559
+                    Bhavishya - {tech?.digitalMarketing?.inHouse?.linkedinConnections?.bhavishya || 1121}<br/>
+                    Ketan - {tech?.digitalMarketing?.inHouse?.linkedinConnections?.ketan || 3559}
                   </td>
                 </tr>
 
@@ -441,8 +605,8 @@ export default function OperationsReport() {
                   <td colSpan={4} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-400 font-semibold p-1">0</td>
-                  <td className="border border-gray-400 font-semibold p-1">0</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.digitalMarketing?.outSource?.postPublish || 0}</td>
+                  <td className="border border-gray-400 font-semibold p-1">{tech?.digitalMarketing?.outSource?.leadsGen || 0}</td>
                   <td colSpan={4} className="border border-gray-400 bg-gray-50"></td>
                 </tr>
               </>
@@ -452,24 +616,20 @@ export default function OperationsReport() {
         </table>
       </div>
 
-      {/* ========================================================= */}
-      {/* NUCLEAR PRINT CSS - STRETCHES TO FILL A4 PORTRAIT SHEET    */}
-      {/* ========================================================= */}
+      {/* PRINT CSS */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           @page {
             size: A4 portrait;
-            margin: 2mm 2mm 2mm 1mm; /* Top, Right, Bottom, LEFT (Extra room left) */
+            margin: 2mm 2mm 2mm 1mm;
           }
           
-          /* FORCE BACKGROUND COLORS */
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color-adjust: exact !important;
           }
           
-          /* RESET WRAPPERS TO AVOID OVERFLOW/SCROLL CUT-OFFS */
           html, body, #__next, main, .min-h-screen {
             background-color: white !important;
             height: auto !important;
@@ -490,10 +650,8 @@ export default function OperationsReport() {
             display: block !important;
           }
 
-          /* CRITICAL: HIDES SCREEN TABS AND KPIS TO PROTECT ONE PAGE SPACE */
           .print\\:hidden { display: none !important; }
 
-          /* VERTICAL EXTENSION MASTER MATH: Fits both Table + Header on one page */
           table {
             width: 100% !important;
             max-width: 100% !important;

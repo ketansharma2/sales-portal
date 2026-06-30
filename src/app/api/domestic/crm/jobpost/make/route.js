@@ -1,6 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
-
+import { notificationService } from '@/lib/services/notificationService'
+import { actions } from '@/lib/messages/userMessages';   // your notification file
 export async function GET(request) {
   try {
     const authHeader = request.headers.get('authorization')
@@ -178,6 +179,10 @@ export async function POST(request) {
         details: insertError.message
       }, { status: 500 })
     }
+
+       
+        await notificationService.createDynamicNotification( [assigned_to],actions.crm.createdNewdomesticJobpost,user.id );
+        
 
     return NextResponse.json({
       success: true,

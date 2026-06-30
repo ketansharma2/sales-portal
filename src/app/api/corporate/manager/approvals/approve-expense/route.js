@@ -1,6 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-
+import { notificationService } from '@/lib/services/notificationService'
+import { actions } from '@/lib/messages/userMessages';  
 export async function POST(request) {
   try {
     // Authentication
@@ -43,7 +44,7 @@ export async function POST(request) {
         approved_at: new Date().toISOString()
       })
       .eq('exp_id', exp_id)
-      .select()
+      .select('user_id')
       .single()
 
     if (updateError) {
@@ -53,6 +54,8 @@ export async function POST(request) {
         details: updateError.message
       }, { status: 500 })
     }
+    const user_id = updatedExpense.user_id;
+   await notificationService.createDynamicNotification( [user_id],actions.manager.expenseApproved,user.id );
 
     return NextResponse.json({
       success: true,
