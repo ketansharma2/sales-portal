@@ -20,11 +20,12 @@ export async function GET(request) {
     const [domesticRes, corporateRes] = await Promise.all([
       supabaseServer
         .from('domestic_crm_jobpost')
-        .select('*'),
+        .select('*')
+        .eq('assigned_to', user.user_id || user.id), // Fetch only assigned jobposts for the authenticated user
 
       supabaseServer
         .from('corporate_crm_jobpost')
-        .select('*')
+        .select('*').eq('assigned_to', user.user_id || user.id) // Fetch only assigned jobposts for the authenticated user
     ])
 
     if (domesticRes.error || corporateRes.error) {

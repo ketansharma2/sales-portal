@@ -1,5 +1,8 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
+import { notificationService } from '@/lib/services/notificationService'
+
+import { actions } from '@/lib/messages/userMessages';   // your notification file
 
 export async function GET(request) {
   try {
@@ -266,6 +269,10 @@ export async function POST(request) {
       }, { status: 500 })
     }
 
+
+   
+  await notificationService.createDynamicNotification( [sent_to_tl],actions.crm.workbenchCreated,user.id );
+
     return NextResponse.json({
       success: true,
       data: newWorkbench
@@ -333,6 +340,9 @@ export async function PUT(request) {
       }, { status: 500 })
     }
 
+   
+     await notificationService.createDynamicNotification( [sent_to_tl],actions.crm.workbenchUpdated,user.id );
+    
     return NextResponse.json({
       success: true,
       data: updatedWorkbench
@@ -380,6 +390,7 @@ export async function DELETE(request) {
         details: deleteError.message
       }, { status: 500 })
     }
+
 
     return NextResponse.json({
       success: true,

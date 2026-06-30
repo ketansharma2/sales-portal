@@ -1,6 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-
+import { notificationService } from '@/lib/services/notificationService'
+import { actions } from '@/lib/messages/userMessages';   // your notification file
 // ✅ CREATE TARGET
 export async function POST(request) {
   try {
@@ -69,6 +70,7 @@ export async function POST(request) {
         { status: 500 }
       )
     }
+     await notificationService.createDynamicNotification( [user_id],actions.hod.targetCreated,user.id );
 
     return NextResponse.json({
       success: true,
@@ -144,10 +146,11 @@ export async function PUT(request) {
       targetData.guideline = targets[0].guideline
     }
 
-    const { error } = await supabaseServer
+    const { error , data } = await supabaseServer
       .from('hod_targets')
       .update(targetData)
       .eq('target_id', id)
+      .select('assigned_to')
 
     if (error) {
       console.error('Update error:', error)
@@ -156,6 +159,8 @@ export async function PUT(request) {
         { status: 500 }
       )
     }
+    const assignedTo = data?.[0]?.assigned_to;
+    await notificationService.createDynamicNotification( [assignedTo],actions.hod.targetUpdated,user.id );
 
     return NextResponse.json({
       success: true,
@@ -164,7 +169,7 @@ export async function PUT(request) {
 
   } catch (err) {
     console.error('PUT API error:', err)
-
+   
     return NextResponse.json(
       { error: 'Internal server error', details: err.message },
       { status: 500 }

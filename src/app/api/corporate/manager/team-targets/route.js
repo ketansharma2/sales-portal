@@ -1,6 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-
+import { notificationService } from '@/lib/services/notificationService'
+import { actions } from '@/lib/messages/userMessages';  
 export async function GET(request) {
   try {
     const authHeader = request.headers.get('authorization')
@@ -131,6 +132,9 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Failed to save targets', details: error.message }, { status: 500 })
     }
 
+
+    await notificationService.createDynamicNotification( [assigned_to],actions.manager.targetCreated,user.id );
+
     return NextResponse.json({ success: true, data })
 
   } catch (error) {
@@ -174,12 +178,14 @@ export async function PUT(request) {
       })
       .eq('target_id', target_id)
       .eq('user_id', currentUserId)
-      .select()
+      .select('assigned_to')
 
     if (error) {
       console.error('Update targets error:', error)
       return NextResponse.json({ error: 'Failed to update target', details: error.message }, { status: 500 })
     }
+    const assigned_to = data?.[0]?.assigned_to;
+    await notificationService.createDynamicNotification( [assigned_to],actions.manager.targetUpdated,user.id );
 
     return NextResponse.json({ success: true, data })
 

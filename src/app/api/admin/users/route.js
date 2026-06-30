@@ -1,6 +1,8 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
+import { notificationService } from '@/lib/services/notificationService'
+import { actions } from '@/lib/messages/userMessages';   // your notification file
 export async function GET(request) {
   try {
     const { data: users, error } = await supabaseServer
@@ -182,9 +184,14 @@ export async function PUT(request) {
       }, { status: 500 })
     }
 
+   
+
+    await notificationService.createDynamicNotification( [user_id],actions.admin.userProfileUpdated,authUser.id );
+   const successMessage = "User updated successfully";
+
     return NextResponse.json({
       success: true,
-      message: 'User updated successfully'
+      message: successMessage
     })
 
   } catch (error) {

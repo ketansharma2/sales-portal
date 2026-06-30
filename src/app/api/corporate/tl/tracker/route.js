@@ -1,6 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-
+import { notificationService } from '@/lib/services/notificationService'
+import { actions } from '@/lib/messages/userMessages'; 
 export async function GET(request) {
   try {
     // Authentication
@@ -204,6 +205,10 @@ export async function PUT(request) {
       }, { status: 500 })
     }
 
+    console.log("reciever id:",sent_to_crm);
+    if (sent_to_crm) {
+    await notificationService.createDynamicNotification( [sent_to_crm],actions.tl.tlsendTracker,user.id );
+     }
     return NextResponse.json({
       success: true,
       data: data[0]
