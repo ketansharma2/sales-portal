@@ -1,7 +1,7 @@
 // src/lib/notificationRoutes.js
 
 export const getNotificationRoute = (userData) => {
-  console.log("userData:",userData);
+
   if (!userData) return '/notifications';
 
   let role = userData.current_role?.toLowerCase();
@@ -31,7 +31,7 @@ export const getNotificationRoute = (userData) => {
     'crm',
     'revenue',
   ];
-  console.log("sector,role", sector,role);
+ 
   if (sector && sectorRoles.includes(role)) {
     return `/${sector}/${role}/notifications`;
   }
