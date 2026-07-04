@@ -6,7 +6,7 @@ import {
     Calendar, Phone, Briefcase, MapPin, IndianRupee, Clock,
     CheckCircle2, MessageSquareText, AlertCircle, Bookmark,X , Edit, File
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function CandidateHistoryPage() {
     const params = useParams();
     const router = useRouter();
@@ -62,20 +62,13 @@ const handleCvUpload = async (candidateId, file) => {
     setIsUploadingCV(true);
     
     try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
+
         
         const formData = new FormData();
         formData.append('file', file);
         formData.append('cv_parsing_id', candidateId);
         
-        const response = await fetch('/api/domestic/recruiter/upload-cv', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
-        });
+       const response = await API.apiUpload('/api/domestic/recruiter/upload-cv', formData);
         
         const result = await response.json();
         
@@ -108,13 +101,7 @@ const handleCvUpload = async (candidateId, file) => {
             const session = JSON.parse(localStorage.getItem('session') || '{}');
             const token = session.access_token;
             
-            const response = await fetch('/api/domestic/recruiter/candidate-history', {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
+            const response = await API.apiPut('/api/domestic/recruiter/candidate-history', {
                     conversation_id: editId,
                     candidate_status: formData.status,
                     remarks: formData.feedback,
@@ -124,7 +111,6 @@ const handleCvUpload = async (candidateId, file) => {
                     apply_date: formData.applyDate,
                     calling_date: formData.callingDate,
                     slot: formData.slot || null
-                })
             });
             
             const result = await response.json();
@@ -190,13 +176,7 @@ const handleCvUpload = async (candidateId, file) => {
         const fetchWorkbenchData = async () => {
             setIsLoadingWorkbench(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                const response = await fetch('/api/domestic/recruiter/workbench-dropdown', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const response = await API.apiGet('/api/domestic/recruiter/workbench-dropdown');
                 const result = await response.json();
                 if (result.success) {
                     // Transform data for dropdown options - show job_title, slot and company_name
@@ -226,13 +206,7 @@ const handleCvUpload = async (candidateId, file) => {
         const fetchFollowups = async () => {
             setIsLoadingFollowups(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                const response = await fetch(`/api/domestic/recruiter/candidate-history?parsing_id=${candidateId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const response = await API.apiGet(`/api/domestic/recruiter/candidate-history?parsing_id=${candidateId}`);
                 const result = await response.json();
                 if (result.success && result.data) {
                     // Transform database records to UI format
@@ -269,21 +243,16 @@ const handleCvUpload = async (candidateId, file) => {
     useEffect(() => {
         const fetchTLDetails = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
+
                 
                 // Get current user details first
-                const userResponse = await fetch('/api/auth/get-current-user', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const userResponse = await API.apiGet('/api/auth/get-current-user');
                 const userData = await userResponse.json();
                 
                 if (userData.user_id) {
                     setCurrentUserId(userData.user_id);
                     // Get TL details
-                    const tlResponse = await fetch(`/api/domestic/recruiter/get-tl-details?user_id=${userData.user_id}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const tlResponse = await API.apiGet(`/api/domestic/recruiter/get-tl-details?user_id=${userData.user_id}`);
                     const tlResult = await tlResponse.json();
                     
                     if (tlResult.success && tlResult.data) {
@@ -305,12 +274,7 @@ const handleCvUpload = async (candidateId, file) => {
         // Fetch candidate data
         setIsLoadingCandidateData(true);
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            
-            const response = await fetch(`/api/domestic/recruiter/candidate-details?parsing_id=${candidateId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/domestic/recruiter/candidate-details?parsing_id=${candidateId}`);
             const result = await response.json();
             
             if (result.success && result.data) {
@@ -341,13 +305,7 @@ const handleCvUpload = async (candidateId, file) => {
             const session = JSON.parse(localStorage.getItem('session') || '{}');
             const token = session.access_token;
             
-            const response = await fetch('/api/domestic/recruiter/candidate-history', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
+            const response = await API.apiPost('/api/domestic/recruiter/candidate-history', {
                     parsing_id: candidateId,
                     req_id: formData.req_id || null,
                     candidate_status: formData.status,
@@ -358,7 +316,6 @@ const handleCvUpload = async (candidateId, file) => {
                     apply_date: formData.applyDate,
                     calling_date: formData.callingDate,
                     slot: formData.slot || null
-                })
             });
             
             const result = await response.json();
@@ -389,15 +346,7 @@ const handleCvUpload = async (candidateId, file) => {
         if(window.confirm("Are you sure you want to delete this followup?")) {
             setIsDeleting(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                const response = await fetch(`/api/domestic/recruiter/candidate-history?conversation_id=${id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const response = await API.apiDelete(`/api/domestic/recruiter/candidate-history?conversation_id=${id}`);
                 
                 const result = await response.json();
                 
@@ -431,22 +380,13 @@ const handleCvUpload = async (candidateId, file) => {
         
         setIsSendingToTL(true);
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
             
             const today = new Date().toISOString().split('T')[0];
             
-            const response = await fetch('/api/domestic/recruiter/candidate-history', {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
+            const response = await API.apiPut('/api/domestic/recruiter/candidate-history', {
                     conversation_id: selectedFollowupId,
                     sent_to_tl: tlDetails.user_id,
                     sent_date: today
-                })
             });
             
             const result = await response.json();
@@ -455,11 +395,7 @@ const handleCvUpload = async (candidateId, file) => {
                 // Refetch the data to get updated tl_name
                 setIsLoadingFollowups(true);
                 try {
-                    const session = JSON.parse(localStorage.getItem('session') || '{}');
-                    const token = session.access_token;
-                    const response = await fetch(`/api/domestic/recruiter/candidate-history?parsing_id=${candidateId}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const response = await API.apiGet(`/api/domestic/recruiter/candidate-history?parsing_id=${candidateId}`);
                     const resultData = await response.json();
                     if (resultData.success && resultData.data) {
                         const transformed = resultData.data.map((item, idx) => ({
@@ -635,7 +571,7 @@ const handleCvUpload = async (candidateId, file) => {
                                     </td>
 
                                     <td className="py-3 px-4 max-w-[200px] whitespace-normal">
-                                        <p className="text-[11px] font-medium text-slate-600 italic leading-relaxed">"{row.feedback}"</p>
+                                        <p className="text-[11px] font-medium text-slate-600 italic leading-relaxed">{row.feedback}</p>
                                     </td>
                                     
 

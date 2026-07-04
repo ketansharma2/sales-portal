@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Printer, ArrowLeft, Download } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 
 export default function JDPreviewPage() {
     const [viewJdData, setViewJdData] = useState(null);

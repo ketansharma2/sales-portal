@@ -1,18 +1,14 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
+import { getUser } from '@/lib/auth-helper';
 
 // POST - Create new target for team member
 export async function POST(request) {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+      const { user, error: authError } = getUser(request);
     if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Parse request body
@@ -89,14 +85,9 @@ export async function POST(request) {
 export async function GET(request) {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+      const { user, error: authError } = getUser(request);
     if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get query parameters
@@ -188,14 +179,9 @@ export async function GET(request) {
 export async function PUT(request) {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+      const { user, error: authError } = getUser(request);
     if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Parse request body

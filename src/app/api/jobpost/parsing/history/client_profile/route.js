@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { getUser } from "@/lib/auth-helper"; // <-- Add this import// 🔐 Auth using auth-helper (middleware headers)
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -9,18 +10,12 @@ const supabaseAdmin = createClient(
 export async function GET(request) {
   try {
     // 🔐 Auth
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+// 🔐 Auth using auth-helper (middleware headers)
+const { user, error: authError } = getUser(request);
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } =
-      await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
+if (authError || !user) {
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+}
 
     const userId = user.id;
  

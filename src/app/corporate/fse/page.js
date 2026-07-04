@@ -5,7 +5,7 @@ import {
   TrendingUp, Calendar, Filter,
   ArrowRight, Search, Activity
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function FSEDashboard() {
   const [mounted, setMounted] = useState(false);
   const [fromDate, setFromDate] = useState("");
@@ -38,14 +38,9 @@ export default function FSEDashboard() {
   const fetchVisitTarget = async () => {
     console.log('fetchVisitTarget called - API call initiated');
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const currentMonth = new Date().toISOString().split('T')[0].substring(0, 7) + '-01';
       console.log('Calling targets API with month:', currentMonth);
-      const response = await fetch(`/api/corporate/fse/targets?month=${currentMonth}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/fse/targets?month=${currentMonth}`);
       console.log('Targets API response status:', response.status);
       const data = await response.json();
       console.log('Targets API response:', data);
@@ -69,16 +64,9 @@ export default function FSEDashboard() {
   const fetchDashboard = async (from = '', to = '') => {
     console.log('fetchDashboard called with from:', from, 'to:', to);
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       console.log('Calling dashboard API with body:', { from, to });
-      const response = await fetch('/api/corporate/fse/dashboard', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ from, to })
-      });
+      const response = await API.apiPost("/api/corporate/fse/dashboard", { from, to });
+
       console.log('Dashboard API response status:', response.status);
       console.log('Response status:', response.status);
       const data = await response.json();

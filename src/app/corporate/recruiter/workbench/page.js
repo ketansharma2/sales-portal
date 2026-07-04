@@ -5,7 +5,7 @@ import {
     Target, Search, Activity, X, BarChart2, FileText, Send,
     UserCheck, TrendingUp, Database, MessageSquarePlus, Clock, Eye, Download, Edit
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function RecruiterWorkbenchPage() {
     
     // --- STATE ---
@@ -53,12 +53,7 @@ export default function RecruiterWorkbenchPage() {
     useEffect(() => {
         const fetchWorkbenchAssignments = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/corporate/recruiter/workbench', {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
+                const response = await API.apiGet('/api/corporate/recruiter/workbench');
                 const data = await response.json();
                 if (data.success) {
                     // Transform workbench data to match assignments format
@@ -178,11 +173,7 @@ export default function RecruiterWorkbenchPage() {
         
         // Fetch STI history
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            const response = await fetch(`/api/corporate/recruiter/advance-sti?workbench_id=${item.id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/corporate/recruiter/advance-sti?workbench_id=${item.id}`);
             const result = await response.json();
             if (result.success) {
                 setStiHistory(result.data || []);
@@ -209,21 +200,11 @@ export default function RecruiterWorkbenchPage() {
         setIsStiSaving(true);
         
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            
-            const response = await fetch('/api/corporate/recruiter/advance-sti', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    id: selectedStiTask.id,
-                    advance_sti: stiForm.advanceSti,
-                    date: stiForm.date
-                })
-            });
+            const response = await API.apiPut('/api/corporate/recruiter/advance-sti', {
+    id: selectedStiTask.id,
+    advance_sti: stiForm.advanceSti,
+    date: stiForm.date
+});
             
             const result = await response.json();
             
@@ -263,20 +244,10 @@ export default function RecruiterWorkbenchPage() {
         
         // Call API to update rc_remarks
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            
-            const response = await fetch('/api/corporate/recruiter/remarks', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    id: selectedRemarkTask.id,
-                    rc_remarks: remarkForm.remark
-                })
-            });
+            const response = await API.apiPut('/api/corporate/recruiter/remarks', {
+    id: selectedRemarkTask.id,
+    rc_remarks: remarkForm.remark
+});
             
             const result = await response.json();
             

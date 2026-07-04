@@ -5,7 +5,7 @@ import {
   Target, BarChart2, Percent, Trash2,
   Edit, Eye, User, CheckCircle
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function TLDomesticTargetPage() {
   
    // --- STATES ---
@@ -47,13 +47,7 @@ export default function TLDomesticTargetPage() {
 
   const fetchTeamUsers = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
-      if (!token) return;
-      
-      const response = await fetch('/api/domestic/tl/team-users', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await API.apiGet('/api/domestic/tl/team-users');
       
       const result = await response.json();
       
@@ -83,14 +77,7 @@ export default function TLDomesticTargetPage() {
   // Fetch my targets from API
   const fetchMyTargets = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
-      
-      if (!token) return;
-      
-      const response = await fetch('/api/domestic/tl/my-targets', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+const response = await API.apiGet('/api/domestic/tl/my-targets');
       
       const result = await response.json();
       
@@ -129,10 +116,7 @@ export default function TLDomesticTargetPage() {
         );
         if (trackerSentTargets.length > 0) {
           try {
-            const response = await fetch(`/api/domestic/tl/my-tracker-sent-achievement?month=${combo.month}&year=${combo.year}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-
+const response = await API.apiGet(`/api/domestic/tl/my-tracker-sent-achievement?month=${combo.month}&year=${combo.year}`);
             const result = await response.json();
 
             if (result.success && result.data) {
@@ -158,9 +142,7 @@ export default function TLDomesticTargetPage() {
         );
         if (accuracyTargets.length > 0) {
           try {
-            const response = await fetch(`/api/domestic/tl/my-accuracy-achievement?month=${combo.month}&year=${combo.year}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/domestic/tl/my-accuracy-achievement?month=${combo.month}&year=${combo.year}`);
 
             const result = await response.json();
 
@@ -187,9 +169,7 @@ export default function TLDomesticTargetPage() {
         );
         if (joiningTargets.length > 0) {
           try {
-            const response = await fetch(`/api/domestic/tl/my-joining-achievement?month=${combo.month}&year=${combo.year}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
+           const response = await API.apiGet(`/api/domestic/tl/my-joining-achievement?month=${combo.month}&year=${combo.year}`);
 
             const result = await response.json();
 
@@ -216,9 +196,7 @@ export default function TLDomesticTargetPage() {
         );
         if (cvParseTargets.length > 0) {
           try {
-            const response = await fetch(`/api/domestic/tl/my-cv-parse-achievement?month=${combo.month}&year=${combo.year}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
+          const response = await API.apiGet(`/api/domestic/tl/my-cv-parse-achievement?month=${combo.month}&year=${combo.year}`);
 
             const result = await response.json();
 
@@ -245,9 +223,7 @@ export default function TLDomesticTargetPage() {
         );
         if (conversionTargets.length > 0) {
           try {
-            const response = await fetch(`/api/domestic/tl/my-conversion-achievement?month=${combo.month}&year=${combo.year}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
+           const response = await API.apiGet(`/api/domestic/tl/my-conversion-achievement?month=${combo.month}&year=${combo.year}`);
 
             const result = await response.json();
 
@@ -286,9 +262,7 @@ export default function TLDomesticTargetPage() {
       if (filterMonth !== 'All') params.set('month', filterMonth);
       if (filterName !== 'All') params.set('name', filterName);
 
-      const response = await fetch(`/api/domestic/tl/team-targets?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+const response = await API.apiGet(`/api/domestic/tl/team-targets?${params.toString()}`);
 
       const result = await response.json();
 
@@ -328,9 +302,7 @@ export default function TLDomesticTargetPage() {
         );
         if (cvParseTargets.length > 0) {
           try {
-            const response = await fetch(`/api/domestic/tl/cv-parse-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/domestic/tl/cv-parse-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`);
 
             const result = await response.json();
 
@@ -358,9 +330,7 @@ export default function TLDomesticTargetPage() {
         );
         if (trackerSentTargets.length > 0) {
           try {
-            const response = await fetch(`/api/domestic/tl/tracker-sent-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/domestic/tl/tracker-sent-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`);
 
             const result = await response.json();
 
@@ -388,9 +358,7 @@ export default function TLDomesticTargetPage() {
         );
         if (accuracyTargets.length > 0) {
           try {
-            const response = await fetch(`/api/domestic/tl/accuracy-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
+           const response = await API.apiGet(`/api/domestic/tl/accuracy-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`);
 
             const result = await response.json();
 
@@ -418,9 +386,7 @@ export default function TLDomesticTargetPage() {
         );
         if (conversionTargets.length > 0) {
           try {
-            const response = await fetch(`/api/domestic/tl/conversion-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
+const response = await API.apiGet(`/api/domestic/tl/conversion-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`);
 
             const result = await response.json();
 
@@ -448,9 +414,7 @@ export default function TLDomesticTargetPage() {
         );
         if (joiningTargets.length > 0) {
           try {
-            const response = await fetch(`/api/domestic/tl/joining-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
+const response = await API.apiGet(`/api/domestic/tl/joining-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`);
 
             const result = await response.json();
 
@@ -555,24 +519,17 @@ export default function TLDomesticTargetPage() {
 
                 setSavingTarget(true);
 
-                const response = await fetch('/api/domestic/tl/team-targets', {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        target_id: editId,
-                        year: form.year,
-                        month: form.month,
-                        working_days: form.workingDays,
-                        role: form.role,
-                        guideline: t.guideline,
-                        kpi: t.kpi_metric,
-                        frequency: t.frequency,
-                        total_target: t.target
-                    })
-                });
+const response = await API.apiPut('/api/domestic/tl/team-targets', {
+    target_id: editId,
+    year: form.year,
+    month: form.month,
+    working_days: form.workingDays,
+    role: form.role,
+    guideline: t.guideline,
+    kpi: t.kpi_metric,
+    frequency: t.frequency,
+    total_target: t.target
+});
 
                 const result = await response.json();
 
@@ -594,17 +551,9 @@ export default function TLDomesticTargetPage() {
     } else {
         const saveToAPI = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                if (!token) {
-                    alert('Session expired. Please login again.');
-                    return;
-                }
+               
 
-                const userResponse = await fetch('/api/domestic/tl/team-users', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+const userResponse = await API.apiGet('/api/domestic/tl/team-users');  
                 const userResult = await userResponse.json();
                 const selectedUser = userResult.data?.find(u => u.name === form.assignedTo);
                 
@@ -622,21 +571,14 @@ export default function TLDomesticTargetPage() {
 
                 setSavingTarget(true);
 
-                const response = await fetch('/api/domestic/tl/team-targets', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        year: form.year,
-                        month: form.month,
-                        working_days: form.workingDays,
-                        role: form.role,
-                        assigned_to: selectedUser.user_id,
-                        targets: targets
-                    })
-                });
+const response = await API.apiPost('/api/domestic/tl/team-targets', {
+    year: form.year,
+    month: form.month,
+    working_days: form.workingDays,
+    role: form.role,
+    assigned_to: selectedUser.user_id,
+    targets: targets
+});
 
                 const result = await response.json();
 

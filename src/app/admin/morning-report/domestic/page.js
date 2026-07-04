@@ -6,7 +6,7 @@ import {
     Eye, Calendar, MapPin, Users, Briefcase, Edit, X, 
     Home, Star, Zap, Phone, CheckCircle, MessageSquarePlus, HistoryIcon, Loader2, Pencil, Mail, User , ChevronDown
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 // ============================================================================
 // --- COMPONENT: CLIENT FULL VIEW MODAL (DOMESTIC) ---
 // ============================================================================
@@ -23,12 +23,7 @@ function ClientFullViewModal({ lead, onClose, onEditInteraction }) {
             }
             try {
                 setLoading(true);
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                
-                // Fetch full client details and interactions from new API
-                const response = await fetch(`/api/admin/morning-report/domestic/client?client_id=${lead.client_id}`, {
-                    headers: { 'Authorization': `Bearer ${session.access_token}` }
-                });
+                const response = await API.apiGet(`/api/admin/morning-report/domestic/client?client_id=${lead.client_id}`);
                 const data = await response.json();
                 if (data.success) {
                     // Merge client data with current status from most recent interaction
@@ -233,7 +228,6 @@ function DomesticDetailsContent() {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
                 
                 // Determine which API to call based on filter
                 let filterParam = '';
@@ -276,9 +270,7 @@ function DomesticDetailsContent() {
                         setFilterTitle('All Records');
                 }
                 
-                const response = await fetch(`/api/admin/morning-report/domestic?filter=${filterParam}`, {
-                    headers: { 'Authorization': `Bearer ${session.access_token}` }
-                });
+                const response = await API.apiGet(`/api/admin/morning-report/domestic?filter=${filterParam}`);
                 const data = await response.json();
                 
                 if (data.success && data.data.details) {
@@ -303,10 +295,7 @@ function DomesticDetailsContent() {
     useEffect(() => {
         const fetchFseUsers = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/admin/morning-report/domestic/fse-users?sector=Domestic', {
-                    headers: { 'Authorization': `Bearer ${session.access_token}` }
-                });
+                const response = await API.apiGet("/api/admin/morning-report/domestic/fse-users?sector=Domestic");
                 const data = await response.json();
                 
                 if (data.success && data.data) {

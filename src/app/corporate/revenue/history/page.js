@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect , useRef, useMemo } from "react";
 import dynamic from 'next/dynamic';
-
+import * as API from '@/lib/api-client';
 import { useRouter, useSearchParams } from "next/navigation";
 import { 
   Search, Filter, Calendar, User, Briefcase, 
@@ -91,12 +91,7 @@ useEffect(() => {
    const fetchRevenueHistory = async () => {
      setLoading(true);
      try {
-       const session = JSON.parse(localStorage.getItem('session') || '{}');
-       const token = session.access_token;
-       
-       const response = await fetch('/api/corporate/revenue/history', {
-         headers: { 'Authorization': `Bearer ${token}` }
-       });
+       const response = await API.apiGet("/api/corporate/revenue/history");
        
        const result = await response.json();
        
@@ -220,13 +215,7 @@ return matchesSearch && matchesDateRange && matchesMonth && matchesCandidateStat
      useEffect(() => {
       const fetchClients = async () => {
         try {
-          const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const token = session.access_token;
-          if (!token) return;
-
-          const response = await fetch('/api/corporate/fse/clients', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const response = await API.apiGet("/api/corporate/fse/clients");
           const result = await response.json();
           if (result.success && result.data) {
             setAllClients(result.data);
@@ -242,13 +231,7 @@ return matchesSearch && matchesDateRange && matchesMonth && matchesCandidateStat
      useEffect(() => {
        const fetchNextSno = async () => {
          try {
-           const session = JSON.parse(localStorage.getItem('session') || '{}');
-           const token = session.access_token;
-           if (!token) return;
-
-           const response = await fetch('/api/corporate/revenue/invoice/next-sno', {
-             headers: { 'Authorization': `Bearer ${token}` }
-           });
+           const response = await API.apiGet("/api/corporate/revenue/invoice/next-sno");
            const result = await response.json();
            if (result.success) {
              setNextSno(result.data.next_sno);
@@ -290,11 +273,7 @@ return matchesSearch && matchesDateRange && matchesMonth && matchesCandidateStat
        setEditMode(true);
        setEditingInvoiceId(invoiceId);
        try {
-         const session = JSON.parse(localStorage.getItem('session') || '{}');
-         const token = session.access_token;
-         const response = await fetch(`/api/corporate/revenue/invoice/${invoiceId}`, {
-           headers: { 'Authorization': `Bearer ${token}` }
-         });
+         const response = await API.apiGet(`/api/corporate/revenue/invoice/${invoiceId}`);
          const result = await response.json();
          if (response.ok && result.success) {
            const inv = result.data;
@@ -367,9 +346,7 @@ return matchesSearch && matchesDateRange && matchesMonth && matchesCandidateStat
        const session = JSON.parse(localStorage.getItem('session') || '{}');
        const token = session.access_token;
 
-       const response = await fetch(`/api/corporate/revenue/invoice/${invoiceId}`, {
-         headers: { 'Authorization': `Bearer ${token}` }
-       });
+       const response = await API.apiGet(`/api/corporate/revenue/invoice/${invoiceId}`);
 
        const result = await response.json();
 
@@ -454,47 +431,39 @@ return matchesSearch && matchesDateRange && matchesMonth && matchesCandidateStat
     }));
 
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
+      
 
       // Decide URL and method based on edit mode
       const isEdit = editMode && editingInvoiceId;
-      const url = isEdit 
-        ? `/api/corporate/revenue/invoice/${editingInvoiceId}`
-        : '/api/corporate/revenue/invoice';
-      const method = isEdit ? 'PUT' : 'POST';
-
-       const body = isEdit ? {
-         client_id: piForm.clientId,
-         client_name: piForm.clientName,
-         gstin: piForm.gstin || null,
-         state: piForm.state || null,
-         address: piForm.address || null,
-         pincode: piForm.pincode || null,
-         from_date: piForm.fromDate || null,
-         to_date: piForm.toDate || null,
-         candidate_details
-       } : {
-         revenue_ids: piForm.candidates.map(c => c.id),
-         client_id: piForm.clientId,
-         client_name: piForm.clientName,
-         gstin: piForm.gstin || null,
-         state: piForm.state || null,
-         address: piForm.address || null,
-         pincode: piForm.pincode || null,
-         from_date: piForm.fromDate || null,
-         to_date: piForm.toDate || null,
-         candidate_details
-       };
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(body)
+       let response;
+    if (isEdit) {
+      // UPDATED: Use API.apiPut for edit
+      response = await API.apiPut(`/api/corporate/revenue/invoice/${editingInvoiceId}`, {
+        client_id: piForm.clientId,
+        client_name: piForm.clientName,
+        gstin: piForm.gstin || null,
+        state: piForm.state || null,
+        address: piForm.address || null,
+        pincode: piForm.pincode || null,
+        from_date: piForm.fromDate || null,
+        to_date: piForm.toDate || null,
+        candidate_details
       });
+    } else {
+      // UPDATED: Use API.apiPost for new
+      response = await API.apiPost("/api/corporate/revenue/invoice", {
+        revenue_ids: piForm.candidates.map(c => c.id),
+        client_id: piForm.clientId,
+        client_name: piForm.clientName,
+        gstin: piForm.gstin || null,
+        state: piForm.state || null,
+        address: piForm.address || null,
+        pincode: piForm.pincode || null,
+        from_date: piForm.fromDate || null,
+        to_date: piForm.toDate || null,
+        candidate_details
+      });
+    }
 
       const result = await response.json();
 

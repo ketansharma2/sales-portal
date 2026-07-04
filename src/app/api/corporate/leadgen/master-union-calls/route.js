@@ -3,9 +3,6 @@ import { getUser } from '@/lib/auth-helper';
 import { supabaseServer } from '@/lib/supabase-server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseServer = createClient(supabaseUrl, supabaseKey);
 export const getTargetUserId = async (supabase, currentUserId) => {
   // Current user data
   const { data: userData, error: userError } = await supabase

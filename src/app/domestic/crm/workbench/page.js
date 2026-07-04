@@ -5,6 +5,7 @@ import {
     FileText, Send, TrendingUp, Database, UserCheck, MessageSquare, 
     Search, Eye, X, Users, LayoutDashboard, Settings, UserCog, Download
 } from "lucide-react";
+import * as API from '@/lib/api-client';
 
 export default function CRMWorkbenchReport() {
     
@@ -25,12 +26,7 @@ export default function CRMWorkbenchReport() {
     useEffect(() => {
         async function fetchUsers() {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                const res = await fetch('/api/admin/users', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+               const res = await API.apiGet('/api/admin/users');
                 const data = await res.json();
                 if (data.success && data.data) {
                     setAllUsers(data.data);
@@ -105,9 +101,7 @@ export default function CRMWorkbenchReport() {
                 const userIds = allRecruiters.map(r => r.user_id).join(',');
                 if (!userIds) return;
                 
-                const res = await fetch(`/api/domestic/crm/workbench/latest-date?userIds=${userIds}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await API.apiGet(`/api/domestic/crm/workbench/latest-date?userIds=${userIds}`);
                 const result = await res.json();
                 
                 if (result.success && result.maxDate) {
@@ -151,25 +145,19 @@ export default function CRMWorkbenchReport() {
 
         const fetchCardsData = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
+            let url = `/api/domestic/crm/workbench/cards`;
+if (!showAll) {
+    url += `?fromDate=${fromDate}&toDate=${toDate}`;
+}
 
-                if (!token) return;
+if (selectedRecruiter !== "All" && selectedRcUser) {
+    url += `${url.includes('?') ? '&' : '?'}recruiter_id=${selectedRcUser.user_id}`;
+} else if (selectedTL !== "All" && selectedTlUser) {
+    url += `${url.includes('?') ? '&' : '?'}tl_id=${selectedTlUser.user_id}`;
+}
 
-                let url = `/api/domestic/crm/workbench/cards`;
-                if (!showAll) {
-                    url += `?fromDate=${fromDate}&toDate=${toDate}`;
-                }
+const res = await API.apiGet(url);
 
-                if (selectedRecruiter !== "All" && selectedRcUser) {
-                    url += `${url.includes('?') ? '&' : '?'}recruiter_id=${selectedRcUser.user_id}`;
-                } else if (selectedTL !== "All" && selectedTlUser) {
-                    url += `${url.includes('?') ? '&' : '?'}tl_id=${selectedTlUser.user_id}`;
-                }
-
-                const res = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
                 const result = await res.json();
 
                 if (result.success && result.data) {
@@ -189,19 +177,12 @@ export default function CRMWorkbenchReport() {
 
         const fetchTrackerShared = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
+let url = `/api/domestic/crm/workbench/tracker-shared`;
+if (!showAll) {
+    url += `?fromDate=${fromDate}&toDate=${toDate}`;
+}
 
-                if (!token) return;
-
-                let url = `/api/domestic/crm/workbench/tracker-shared`;
-                if (!showAll) {
-                    url += `?fromDate=${fromDate}&toDate=${toDate}`;
-                }
-
-                const res = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+const res = await API.apiGet(url);
                 const result = await res.json();
 
                 if (result.success) {
@@ -236,26 +217,18 @@ export default function CRMWorkbenchReport() {
 
         const fetchWorkbenchData = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
+              let url = `/api/domestic/crm/workbench/data`;
+if (!showAll) {
+    url += `?fromDate=${fromDate}&toDate=${toDate}`;
+}
 
-                if (!token) return;
+if (selectedRecruiter !== "All" && selectedRcUser) {
+    url += `${url.includes('?') ? '&' : '?'}rc_id=${selectedRcUser.user_id}`;
+} else if (selectedTL !== "All" && selectedTlUser) {
+    url += `${url.includes('?') ? '&' : '?'}tl_id=${selectedTlUser.user_id}`;
+}
 
-                let url = `/api/domestic/crm/workbench/data`;
-                if (!showAll) {
-                    url += `?fromDate=${fromDate}&toDate=${toDate}`;
-                }
-
-                if (selectedRecruiter !== "All" && selectedRcUser) {
-                    url += `${url.includes('?') ? '&' : '?'}rc_id=${selectedRcUser.user_id}`;
-                } else if (selectedTL !== "All" && selectedTlUser) {
-                    url += `${url.includes('?') ? '&' : '?'}tl_id=${selectedTlUser.user_id}`;
-                }
-
-                const res = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const result = await res.json();
+const res = await API.apiGet(url);                const result = await res.json();
 
                 if (result.success && result.data) {
                     setWorkbenchData(result.data);

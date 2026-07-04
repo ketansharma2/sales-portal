@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getUser } from "@/lib/auth-helper";
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -15,25 +16,12 @@ export async function GET(request) {
     const conversation_id = searchParams.get('conversation_id');
     
     // Get authorization token
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.split(' ')[1];
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Unauthorized - No token provided' },
-        { status: 401 }
-      );
-    }
-    
-    // Verify user session
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    
-    if (userError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Invalid token' },
-        { status: 401 }
-      );
-    }
+    const { user, error: authError } = getUser(request)
+
+if (authError || !user) {
+  console.log('[API] Auth error:', authError)
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+}
     
     console.log("Fetching history for:", { conversation_id, user_id: user.id });
     

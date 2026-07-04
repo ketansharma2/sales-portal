@@ -4,7 +4,7 @@ import {
   Calendar, Briefcase, X, Target, 
   BarChart2, Percent, Eye, User, CheckCircle
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function LeadgenCorporateTargetPage() {
   
    // --- STATES ---
@@ -25,14 +25,7 @@ export default function LeadgenCorporateTargetPage() {
   // Fetch my targets from API
   const fetchMyTargets = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
-
-      if (!token) return;
-
-      const response = await fetch('/api/corporate/leadgen/my-targets', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await API.apiGet("/api/corporate/leadgen/my-targets");
 
       const result = await response.json();
 
@@ -50,10 +43,7 @@ export default function LeadgenCorporateTargetPage() {
   // Fetch dynamic achievements for Calls and Leads KPIs
   const fetchDynamicAchievements = async (targets) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
-
-      if (!token) return;
+      
 
       const achievements = {};
 
@@ -69,9 +59,7 @@ export default function LeadgenCorporateTargetPage() {
       // Fetch Calls achievements
       for (const target of callsTargets) {
         try {
-          const response = await fetch(`/api/corporate/leadgen/calls-achievement?month=${target.month}&year=${target.year}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const response = await API.apiGet(`/api/corporate/leadgen/calls-achievement?month=${target.month}&year=${target.year}`);
 
           const result = await response.json();
 
@@ -91,9 +79,7 @@ export default function LeadgenCorporateTargetPage() {
       // Fetch Leads achievements
       for (const target of leadsTargets) {
         try {
-          const response = await fetch(`/api/corporate/leadgen/leads-achievement?month=${target.month}&year=${target.year}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const response = await API.apiGet(`/api/corporate/leadgen/leads-achievement?month=${target.month}&year=${target.year}`);
 
           const result = await response.json();
 
@@ -113,9 +99,7 @@ export default function LeadgenCorporateTargetPage() {
       // Fetch Franchise Accept achievements
       for (const target of franchiseAcceptTargets) {
         try {
-          const response = await fetch(`/api/corporate/leadgen/franchise-accept-achievement?month=${target.month}&year=${target.year}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+         const response = await API.apiGet(`/api/corporate/leadgen/franchise-accept-achievement?month=${target.month}&year=${target.year}`);
 
           const result = await response.json();
 
@@ -135,9 +119,7 @@ export default function LeadgenCorporateTargetPage() {
       // Fetch Sent to Manager achievements
       for (const target of sentToManagerTargets) {
         try {
-          const response = await fetch(`/api/corporate/leadgen/sent-to-manager-achievement?month=${target.month}&year=${target.year}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const response = await API.apiGet(`/api/corporate/leadgen/sent-to-manager-achievement?month=${target.month}&year=${target.year}`);
 
           const result = await response.json();
 
@@ -157,9 +139,7 @@ export default function LeadgenCorporateTargetPage() {
       // Fetch Onboard achievements
       for (const target of onboardTargets) {
         try {
-          const response = await fetch(`/api/corporate/leadgen/onboard-achievement?month=${target.month}&year=${target.year}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const response = await API.apiGet(`/api/corporate/leadgen/onboard-achievement?month=${target.month}&year=${target.year}`);
 
           const result = await response.json();
 
@@ -179,9 +159,7 @@ export default function LeadgenCorporateTargetPage() {
       // Fetch Interested achievements
       for (const target of interestedTargets) {
         try {
-          const response = await fetch(`/api/corporate/leadgen/interested-achievement?month=${target.month}&year=${target.year}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const response = await API.apiGet(`/api/corporate/leadgen/interested-achievement?month=${target.month}&year=${target.year}`);
 
           const result = await response.json();
 
@@ -201,9 +179,7 @@ export default function LeadgenCorporateTargetPage() {
       // Fetch Contacts achievements
       for (const target of contactsTargets) {
         try {
-          const response = await fetch(`/api/corporate/leadgen/contacts-achievement?month=${target.month}&year=${target.year}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const response = await API.apiGet(`/api/corporate/leadgen/contacts-achievement?month=${target.month}&year=${target.year}`);
 
           const result = await response.json();
 

@@ -19,6 +19,7 @@ import {
 import dynamic from 'next/dynamic'; 
 import jsPDF from "jspdf";
 import { useRouter, useSearchParams } from "next/navigation";
+import * as API from '@/lib/api-client';
 function CVPreview({ url, name }) {
     const [blobUrl, setBlobUrl] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -215,13 +216,7 @@ function CVByJobPostPage() {
 
       try {
 
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-
-        const response = await fetch(`/api/domestic/crm/conversations/by-req?req_id=${req_id}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/domestic/crm/conversations/by-req?req_id=${req_id}`);
         if (!response.ok) {
           throw new Error('Failed to fetch candidates');
         }
@@ -368,13 +363,7 @@ const filteredData = useMemo(() => {
     setLoadingHistory(true);
     
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      // Fetch history for this specific candidate
-      const response = await fetch(`/api/domestic/crm/conversations/history?conversation_id=${candidate.parsing_id}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/domestic/crm/conversations/history?conversation_id=${candidate.parsing_id}`);
       
       if (response.ok) {
         const result = await response.json();

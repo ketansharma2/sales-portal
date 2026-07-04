@@ -6,6 +6,7 @@ import {
     LayoutDashboard, Search, Eye, X , User, File, Download, FileText as FileTextIcon, Loader2, CheckCircle2, RotateCw, Phone
 } from "lucide-react";
 import { jsPDF } from "jspdf";
+import * as API from '@/lib/api-client';
 import Image from 'next/image';
 
 export default function RecruiterWorkbenchReport() {
@@ -37,14 +38,7 @@ export default function RecruiterWorkbenchReport() {
     useEffect(() => {
         const fetchLatestDate = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                if (!token) return;
-                
-                const response = await fetch('/api/corporate/recruiter/latest-cv-date', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+               const response = await API.apiGet('/api/corporate/recruiter/latest-cv-date');
                 
                 const result = await response.json();
                 
@@ -73,14 +67,7 @@ export default function RecruiterWorkbenchReport() {
             if (!fromDate || !toDate) return;
             
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                if (!token) return;
-                
-                const response = await fetch(`/api/corporate/recruiter/total-cvs?fromDate=${fromDate}&toDate=${toDate}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet(`/api/corporate/recruiter/total-cvs?fromDate=${fromDate}&toDate=${toDate}`);
                 
                 const result = await response.json();
                 
@@ -101,14 +88,7 @@ export default function RecruiterWorkbenchReport() {
             if (!fromDate || !toDate) return;
             
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                if (!token) return;
-                
-                const response = await fetch(`/api/corporate/recruiter/total-sti?fromDate=${fromDate}&toDate=${toDate}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet(`/api/corporate/recruiter/total-sti?fromDate=${fromDate}&toDate=${toDate}`);
                 
                 const result = await response.json();
                 
@@ -129,14 +109,7 @@ export default function RecruiterWorkbenchReport() {
             if (!fromDate || !toDate) return;
             
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                if (!token) return;
-                
-                const response = await fetch(`/api/corporate/recruiter/candidate-stats?fromDate=${fromDate}&toDate=${toDate}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet(`/api/corporate/recruiter/candidate-stats?fromDate=${fromDate}&toDate=${toDate}`);
                 
                 const result = await response.json();
                 
@@ -180,14 +153,7 @@ export default function RecruiterWorkbenchReport() {
             if (!fromDate || !toDate) return;
             
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                if (!token) return;
-                
-                const response = await fetch(`/api/corporate/recruiter/workbench-data?fromDate=${fromDate}&toDate=${toDate}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet(`/api/corporate/recruiter/workbench-data?fromDate=${fromDate}&toDate=${toDate}`);
                 
                 const result = await response.json();
                 

@@ -5,7 +5,7 @@ import {
     ArrowLeft, Search, Filter, Download, FileText, 
     Eye, Calendar, MapPin, Users, Briefcase, Edit, X , User, ChevronDown, Loader2
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 function CorporateDetailsContent() {
     const searchParams = useSearchParams();
     const filter = searchParams.get('filter');
@@ -27,7 +27,6 @@ function CorporateDetailsContent() {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
                 
                 // Determine which filter to use
                 let filterParam = 'all';
@@ -114,9 +113,7 @@ function CorporateDetailsContent() {
                         setFilterTitle('All Records');
                 }
                 
-                const response = await fetch(`/api/admin/morning-report/corporate?filter=${filterParam}`, {
-                    headers: { 'Authorization': `Bearer ${session.access_token}` }
-                });
+                const response = await API.apiGet(`/api/admin/morning-report/corporate?filter=${filterParam}`);
                 const data = await response.json();
                 
                 if (data.success && data.data.details) {
@@ -141,10 +138,7 @@ function CorporateDetailsContent() {
     useEffect(() => {
         const fetchLeadgenUsers = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/admin/morning-report/corporate/leadgen-users', {
-                    headers: { 'Authorization': `Bearer ${session.access_token}` }
-                });
+                const response = await API.apiGet("/api/admin/morning-report/corporate/leadgen-users");
                 const data = await response.json();
                 
                 if (data.success && data.data) {
@@ -193,10 +187,7 @@ function CorporateDetailsContent() {
     const fetchInteractions = async (clientId) => {
         if (!clientId) return;
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const response = await fetch(`/api/admin/morning-report/corporate/client?client_id=${clientId}`, {
-                headers: { 'Authorization': `Bearer ${session.access_token}` }
-            });
+            const response = await API.apiGet(`/api/admin/morning-report/corporate/client?client_id=${clientId}`);
             const data = await response.json();
             if (data.success && data.data) {
                 // Map API response fields to frontend expected fields

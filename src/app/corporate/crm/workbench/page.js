@@ -5,7 +5,7 @@ import {
     FileText, Send, TrendingUp, Database, UserCheck, MessageSquare, 
     Search, Eye, X, Users, LayoutDashboard, Settings, UserCog, Download
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function CRMWorkbenchReport() {
     
     // --- STATE ---
@@ -25,12 +25,7 @@ export default function CRMWorkbenchReport() {
     useEffect(() => {
         async function fetchUsers() {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                const res = await fetch('/api/admin/users', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await API.apiGet("/api/admin/users");
                 const data = await res.json();
                 if (data.success && data.data) {
                     setAllUsers(data.data);
@@ -99,17 +94,12 @@ export default function CRMWorkbenchReport() {
         
         const fetchLatestDate = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
                 
-                if (!token) return;
                 
                 const userIds = allRecruiters.map(r => r.user_id).join(',');
                 if (!userIds) return;
                 
-                const res = await fetch(`/api/corporate/crm/workbench/latest-date?userIds=${userIds}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await API.apiGet(`/api/corporate/crm/workbench/latest-date?userIds=${userIds}`);
                 const result = await res.json();
                 
                 if (result.success && result.maxDate) {
@@ -169,9 +159,7 @@ export default function CRMWorkbenchReport() {
                     url += `${url.includes('?') ? '&' : '?'}tl_id=${selectedTlUser.user_id}`;
                 }
 
-                const res = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await API.apiGet(url);
                 const result = await res.json();
 
                 if (result.success && result.data) {
@@ -201,9 +189,7 @@ export default function CRMWorkbenchReport() {
                     url += `?fromDate=${fromDate}&toDate=${toDate}`;
                 }
 
-                const res = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await API.apiGet(url);
                 const result = await res.json();
 
                 if (result.success) {
@@ -254,9 +240,7 @@ export default function CRMWorkbenchReport() {
                     url += `${url.includes('?') ? '&' : '?'}tl_id=${selectedTlUser.user_id}`;
                 }
 
-                const res = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await API.apiGet(url);
                 const result = await res.json();
 
                 if (result.success && result.data) {

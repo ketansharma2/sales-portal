@@ -19,7 +19,7 @@ import {
   User,
   ArrowRightCircle as ArrowRightCircleIcon,
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function FseOnboardPage() {
   // --- STATE ---
   const [activeTab, setActiveTab] = useState("onboard"); // 'onboard' or 'database'
@@ -74,9 +74,7 @@ export default function FseOnboardPage() {
         // Fetch all or limited to 100
         queryParams.append("limit", showAll ? "all" : "100");
 
-        const response = await fetch(
-          `/api/corporate/manager/all-clients-database?${queryParams.toString()}`
-        );
+        const response = await API.apiGet(`/api/corporate/manager/all-clients-database?${queryParams.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -97,9 +95,7 @@ export default function FseOnboardPage() {
         if (filters.status && filters.status !== "All")
           queryParams.append("status", filters.status);
 
-        const response = await fetch(
-          `/api/corporate/manager/fse-onboard?${queryParams.toString()}`
-        );
+        const response = await API.apiGet(`/api/corporate/manager/fse-onboard?${queryParams.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -140,25 +136,12 @@ export default function FseOnboardPage() {
     }
 
     try {
-      const session = JSON.parse(localStorage.getItem("session") || "{}");
-      const token = session?.access_token;
+      
 
-      if (!token) {
-        alert("Authentication required");
-        return;
-      }
-
-      const response = await fetch("/api/corporate/manager/pass-to-crm", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          client_id: selectedLead.client_id,
-          crm_user_id: deliveryUser,
-        }),
-      });
+      const response = await API.apiPost("/api/corporate/manager/pass-to-crm", {
+    client_id: selectedLead.client_id,
+    crm_user_id: deliveryUser,
+});
 
       const data = await response.json();
 

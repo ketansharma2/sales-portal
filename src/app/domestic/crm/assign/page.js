@@ -8,7 +8,7 @@ import {
     BarChart2, FileText, Send, UserCheck, TrendingUp, Database,
     MessageSquarePlus, Building2, Clock, Eye , Download, AlertTriangle
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function AssignWorkPage() {
     
     // --- STATE ---
@@ -286,12 +286,7 @@ export default function AssignWorkPage() {
     useEffect(() => {
         const fetchClients = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/domestic/crm/clients', {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
+                const response = await API.apiGet('/api/domestic/crm/clients');
                 const data = await response.json();
                 if (data.success) {
                     setClientsList(data.data);
@@ -309,12 +304,7 @@ export default function AssignWorkPage() {
     useEffect(() => {
         const fetchTlUsers = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/domestic/crm/tl-users', {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
+                const response = await API.apiGet('/api/domestic/crm/tl-users');
                 const data = await response.json();
                 if (data.success) {
                     setTlUsersList(data.data);
@@ -332,12 +322,7 @@ export default function AssignWorkPage() {
     useEffect(() => {
         const fetchWorkbenchAssignments = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/domestic/crm/workbench', {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
+                const response = await API.apiGet('/api/domestic/crm/workbench');
                 const data = await response.json();
                 if (data.success) {
                     // Transform workbench data to match assignments format
@@ -389,12 +374,7 @@ export default function AssignWorkPage() {
         const fetchBranches = async () => {
             setLoadingBranches(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch(`/api/domestic/crm/branches?client_id=${formData.client}`, {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
+                const response = await API.apiGet(`/api/domestic/crm/branches?client_id=${formData.client}`);
                 const data = await response.json();
                 if (data.success) {
                     setBranchesList(data.data);
@@ -418,13 +398,8 @@ export default function AssignWorkPage() {
         const fetchRequirements = async () => {
             setLoadingRequirements(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
                 const branchIds = branchesList.map(b => b.branch_id).join(',');
-                const response = await fetch(`/api/domestic/crm/requirements?branch_ids=${branchIds}`, {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
+                const response = await API.apiGet(`/api/domestic/crm/requirements?branch_ids=${branchIds}`);
                 const data = await response.json();
                 if (data.success) {
                     setRequirementsList(data.data);
@@ -497,34 +472,22 @@ export default function AssignWorkPage() {
                 }
 
                 try {
-                    const session = JSON.parse(localStorage.getItem('session') || '{}');
-                    const response = await fetch('/api/domestic/crm/workbench', {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${session.access_token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            workbench_id: editId,
-                            date: formData.date,
-                            client_id: formData.client,
-                            req_id: selectedRequirement.req_id,
-                            package_salary: formData.package_salary,
-                            req: formData.requirement,
-                            sent_to_tl: formData.tl_assigned,
-                            sent_to_rc: null
-                        })
-                    });
+                    const response = await API.apiPut('/api/domestic/crm/workbench', {
+    workbench_id: editId,
+    date: formData.date,
+    client_id: formData.client,
+    req_id: selectedRequirement.req_id,
+    package_salary: formData.package_salary,
+    req: formData.requirement,
+    sent_to_tl: formData.tl_assigned,
+    sent_to_rc: null
+});
 
                     const data = await response.json();
 
                     if (data.success) {
                         // Refresh assignments from API to get complete data with joins
-                        const refreshResponse = await fetch('/api/domestic/crm/workbench', {
-                            headers: {
-                                'Authorization': `Bearer ${session.access_token}`
-                            }
-                        });
+                        const refreshResponse = await API.apiGet('/api/domestic/crm/workbench');
                         const refreshData = await refreshResponse.json();
                         if (refreshData.success) {
                             const transformedAssignments = refreshData.data.map(item => ({
@@ -575,33 +538,21 @@ export default function AssignWorkPage() {
                     }
 
                     try {
-                    const session = JSON.parse(localStorage.getItem('session') || '{}');
-                    const response = await fetch('/api/domestic/crm/workbench', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${session.access_token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            date: formData.date,
-                            client_id: formData.client,
-                            req_id: selectedRequirement.req_id,
-                            package_salary: formData.package_salary,
-                            req: formData.requirement,
-                            sent_to_tl: formData.tl_assigned,
-                            sent_to_rc: null
-                        })
-                    });
+                    const response = await API.apiPost('/api/domestic/crm/workbench', {
+    date: formData.date,
+    client_id: formData.client,
+    req_id: selectedRequirement.req_id,
+    package_salary: formData.package_salary,
+    req: formData.requirement,
+    sent_to_tl: formData.tl_assigned,
+    sent_to_rc: null
+});
 
                     const data = await response.json();
 
                     if (data.success) {
                         // Refresh assignments from API to get complete data with joins
-                        const refreshResponse = await fetch('/api/domestic/crm/workbench', {
-                            headers: {
-                                'Authorization': `Bearer ${session.access_token}`
-                            }
-                        });
+                        const refreshResponse = await API.apiGet('/api/domestic/crm/workbench');
                         const refreshData = await refreshResponse.json();
                         if (refreshData.success) {
                             const transformedAssignments = refreshData.data.map(item => ({
@@ -670,23 +621,13 @@ export default function AssignWorkPage() {
     const handleDelete = async (id) => {
         if(window.confirm("Are you sure you want to delete this assignment?")) {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch(`/api/domestic/crm/workbench?workbench_id=${id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
+                const response = await API.apiDelete(`/api/domestic/crm/workbench?workbench_id=${id}`);
 
                 const data = await response.json();
 
                 if (data.success) {
                     // Refresh assignments from API
-                    const refreshResponse = await fetch('/api/domestic/crm/workbench', {
-                        headers: {
-                            'Authorization': `Bearer ${session.access_token}`
-                        }
-                    });
+                    const refreshResponse = await API.apiGet('/api/domestic/crm/workbench');
                     const refreshData = await refreshResponse.json();
                     if (refreshData.success) {
                         const transformedAssignments = refreshData.data.map(item => ({

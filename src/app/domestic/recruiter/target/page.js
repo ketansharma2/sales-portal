@@ -4,7 +4,7 @@ import {
   Calendar, Briefcase, X, Target, 
   BarChart2, Percent, Eye, User, CheckCircle
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function RCDomesticTargetPage() {
   
    // --- STATES ---
@@ -25,14 +25,7 @@ export default function RCDomesticTargetPage() {
   // Fetch my targets from API
   const fetchMyTargets = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
-
-      if (!token) return;
-
-      const response = await fetch('/api/domestic/recruiter/my-targets', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await API.apiGet('/api/domestic/recruiter/my-targets');
 
       const result = await response.json();
 
@@ -67,9 +60,7 @@ export default function RCDomesticTargetPage() {
       // Fetch CV Parse achievements
       for (const target of cvParseTargets) {
         try {
-          const response = await fetch(`/api/domestic/recruiter/cv-parse-achievement?month=${target.month}&year=${target.year}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+const response = await API.apiGet(`/api/domestic/recruiter/cv-parse-achievement?month=${target.month}&year=${target.year}`);
 
           const result = await response.json();
 
@@ -89,9 +80,7 @@ export default function RCDomesticTargetPage() {
       // Fetch Tracker Sent achievements
       for (const target of trackerSentTargets) {
         try {
-          const response = await fetch(`/api/domestic/recruiter/tracker-sent-achievement?month=${target.month}&year=${target.year}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+const response = await API.apiGet(`/api/domestic/recruiter/tracker-sent-achievement?month=${target.month}&year=${target.year}`);
 
           const result = await response.json();
 
@@ -111,10 +100,7 @@ export default function RCDomesticTargetPage() {
       // Fetch Accuracy achievements
       for (const target of accuracyTargets) {
         try {
-          const response = await fetch(`/api/domestic/recruiter/accuracy-achievement?month=${target.month}&year=${target.year}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-
+          const response = await API.apiGet(`/api/domestic/recruiter/accuracy-achievement?month=${target.month}&year=${target.year}`);
           const result = await response.json();
 
           if (result.success && result.data) {
@@ -133,9 +119,7 @@ export default function RCDomesticTargetPage() {
       // Fetch Conversion achievements
       for (const target of conversionTargets) {
         try {
-          const response = await fetch(`/api/domestic/recruiter/conversion-achievement?month=${target.month}&year=${target.year}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+       const response = await API.apiGet(`/api/domestic/recruiter/conversion-achievement?month=${target.month}&year=${target.year}`);
 
           const result = await response.json();
 
@@ -155,9 +139,7 @@ export default function RCDomesticTargetPage() {
       // Fetch Joining achievements
       for (const target of joiningTargets) {
         try {
-          const response = await fetch(`/api/domestic/recruiter/joining-achievement?month=${target.month}&year=${target.year}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const response = await API.apiGet(`/api/domestic/recruiter/joining-achievement?month=${target.month}&year=${target.year}`);
 
           const result = await response.json();
 

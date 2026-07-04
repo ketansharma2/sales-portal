@@ -6,7 +6,7 @@ import {
     Clock, Users, UserCheck, AlertCircle, Briefcase, XCircle, Loader2, File, Send, User, Phone, IndianRupee, FileText as FileTextIcon, Search
 } from "lucide-react";
 import jsPDF from "jspdf";
-
+import * as API from '@/lib/api-client';
 // CV Preview Component - Handles PDF, Images, and Word documents
 function CVPreview({ url, name }) {
     const [blobUrl, setBlobUrl] = useState(null);
@@ -20,7 +20,7 @@ function CVPreview({ url, name }) {
                 setLoading(true);
                 setError(null);
                 
-                const response = await fetch(url);
+                const response = await API.apiGet(url);
                 
                 if (!response.ok) {
                     throw new Error(`Failed to fetch file: ${response.status}`);
@@ -195,12 +195,7 @@ export default function EmailHistoryPage() {
      useEffect(() => {
          const fetchClients = async () => {
              try {
-                 const session = JSON.parse(localStorage.getItem('session') || '{}');
-                 const token = session.access_token;
-                 
-                 const response = await fetch('/api/corporate/crm/clients', {
-                     headers: { 'Authorization': `Bearer ${token}` }
-                 });
+                 const response = await API.apiGet("/api/corporate/crm/clients");
                  
                  const result = await response.json();
                  
@@ -219,12 +214,7 @@ export default function EmailHistoryPage() {
      useEffect(() => {
          const fetchRevenueTeamUsers = async () => {
              try {
-                 const session = JSON.parse(localStorage.getItem('session') || '{}');
-                 const token = session.access_token;
-                 
-                 const response = await fetch('/api/corporate/crm/revenue-team', {
-                     headers: { 'Authorization': `Bearer ${token}` }
-                 });
+                 const response = await API.apiGet("/api/corporate/crm/revenue-team");
                  
                  const result = await response.json();
                  
@@ -244,12 +234,7 @@ export default function EmailHistoryPage() {
         const fetchEmailHistory = async () => {
             setLoading(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                const response = await fetch('/api/corporate/crm/email-history', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet("/api/corporate/crm/email-history");
                 
                 const result = await response.json();
                 
@@ -300,12 +285,7 @@ export default function EmailHistoryPage() {
     // --- FETCH JOURNEY FOR VIEW MODAL ---
     const openViewJourneyModal = async (candidateRow) => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            
-            const response = await fetch(`/api/corporate/crm/interview-journey?email_draft_id=${candidateRow.email_draft_id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/corporate/crm/interview-journey?email_draft_id=${candidateRow.email_draft_id}`);
             
             const result = await response.json();
             
@@ -426,17 +406,7 @@ export default function EmailHistoryPage() {
 
     const handleDelete = async (id) => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-
-            const response = await fetch('/api/corporate/crm/email-history/delete', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ id })
-            });
+            const response = await API.apiPost("/api/corporate/crm/email-history/delete", { id });
 
             const result = await response.json();
 
@@ -1155,16 +1125,9 @@ export default function EmailHistoryPage() {
 
                                           setIsSubmittingRevenue(true);
                                           try {
-                                              const session = JSON.parse(localStorage.getItem('session') || '{}');
-                                              const token = session.access_token;
 
-                                              const response = await fetch('/api/corporate/crm/revenue', {
-                                                  method: 'POST',
-                                                  headers: {
-                                                      'Authorization': `Bearer ${token}`,
-                                                      'Content-Type': 'application/json'
-                                                  },
-                                                  body: JSON.stringify({
+
+                                              const response = await API.apiPost('/api/corporate/crm/revenue', {
                                                       // User who sent to revenue
                                                       user_id: session.user_id || session.id,
                                                       // Team leads
@@ -1195,7 +1158,6 @@ export default function EmailHistoryPage() {
                                                       sent_to_revenue: revenueForm.revenueTeamId,
                                                       // Sent date (today)
                                                       sent_date: new Date().toISOString().split('T')[0]
-                                                  })
                                               });
 
                                               const result = await response.json();
@@ -1203,17 +1165,10 @@ export default function EmailHistoryPage() {
                                               if (response.ok && result.success) {
                                                   // Also update the email record with sent_to_revenue
                                                   try {
-                                                      await fetch('/api/corporate/crm/emails', {
-                                                          method: 'PUT',
-                                                          headers: {
-                                                              'Authorization': `Bearer ${token}`,
-                                                              'Content-Type': 'application/json'
-                                                          },
-                                                          body: JSON.stringify({
-                                                              id: selectedCandidate.id,
-                                                              sent_to_revenue: revenueForm.revenueTeamId
-                                                          })
-                                                      });
+                                                      await API.apiPut("/api/corporate/crm/emails", {
+    id: selectedCandidate.id,
+    sent_to_revenue: revenueForm.revenueTeamId
+});
                                                   } catch (updateError) {
                                                       console.error('Failed to update email sent_to_revenue:', updateError);
                                                   }

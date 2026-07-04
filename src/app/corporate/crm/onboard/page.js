@@ -7,6 +7,7 @@ import {
   MapPin, Phone, Mail, FileText,
   MessageSquare, User, Filter
 } from "lucide-react";
+import * as API from '@/lib/api-client'; // <-- ADD THIS LINE
 
 export default function OnboardPage() {
   const router = useRouter();
@@ -19,12 +20,7 @@ export default function OnboardPage() {
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/corporate/crm/onboard', {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet("/api/corporate/crm/onboard");
         const data = await response.json();
         if (data.success) {
           // Format API data to match UI structure
@@ -71,15 +67,10 @@ export default function OnboardPage() {
     }
     
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/corporate/crm/client-status', {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ client_id: id, client_status: newStatus })
-      });
+      const response = await API.apiPut("/api/corporate/crm/client-status", {
+    client_id: id,
+    client_status: newStatus
+});
 
       if (response.ok) {
         const updatedList = onboardingList.map((item) =>
@@ -93,18 +84,9 @@ export default function OnboardPage() {
   };
   const handleAcknowledge = async (id) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
-      if (!token) return;
-
-      const response = await fetch('/api/corporate/crm/acknowledge', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ client_id: id })
-      });
+      const response = await API.apiPost("/api/corporate/crm/acknowledge", {
+    client_id: id
+});
 
       if (response.ok) {
         const updatedList = onboardingList.map((item) =>

@@ -6,6 +6,7 @@ import {
   ArrowRight, MessageSquarePlus, Mail, Zap,CalendarOff,
   HistoryIcon, Send, Lock, AlertCircle, FileText, Trash2,Briefcase
 } from "lucide-react";
+import * as API from '@/lib/api-client';
 
 export default function LeadsMasterPage() {
   const [mounted, setMounted] = useState(false);
@@ -101,12 +102,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
    useEffect(() => {
      const fetchManagerData = async () => {
        try {
-         const session = JSON.parse(localStorage.getItem('session') || '{}');
-         if (!session.access_token) return;
-         
-         const response = await fetch('/api/domestic/fse/manager', {
-           headers: { 'Authorization': `Bearer ${session.access_token}` }
-         });
+         const response = await API.apiGet('/api/domestic/fse/manager');
          const data = await response.json();
          if (data.success && data.data) {
            setManagerData(data.data);
@@ -150,9 +146,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
       queryParams.append('limit', limit);
 
       // REAL API CALL
-      const response = await fetch(`/api/domestic/fse/lead?${queryParams.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet(`/api/domestic/fse/lead?${queryParams.toString()}`);
       const data = await response.json();
       if (data.success) {
         setLeads(data.data);
@@ -192,20 +186,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
   };
   const fetchCrmDetails = async (clientId) => {
   try {
-    const session = JSON.parse(localStorage.getItem("session") || "{}");
-    const token = session?.access_token;
-
-    if (!token) {
-      console.error("No auth token found");
-      return null;
-    }
-
-    const response = await fetch(
-      `/api/domestic/manager/client-crm-details?client_id=${clientId}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+    const response = await API.apiGet(`/api/domestic/manager/client-crm-details?client_id=${clientId}`);
     const data = await response.json();
 
     if (data.success) {
@@ -251,15 +232,12 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
   const saveLead = async (formData, openFollowup = false) => {
     try {
       setSaving(true);
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const isEdit = !!formData.client_id;
 
       // Check for duplicate company name (case-insensitive) when creating new client
       if (!isEdit && formData.company) {
         try {
-          const checkResponse = await fetch(`/api/domestic/fse/lead?company=${encodeURIComponent(formData.company)}&limit=100`, {
-            headers: { 'Authorization': `Bearer ${session.access_token}` }
-          });
+          const checkResponse = await API.apiGet(`/api/domestic/fse/lead?company=${encodeURIComponent(formData.company)}&limit=100`);
           const checkData = await checkResponse.json();
           if (checkData.success && checkData.data.length > 0) {
             // Check if any existing company name matches (case-insensitive)
@@ -285,14 +263,10 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
         }
       }
 
-      const response = await fetch('/api/domestic/fse/lead', {
-        method: isEdit ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify(formData)
-      });
+      const response = await (isEdit 
+    ? API.apiPut('/api/domestic/fse/lead', formData)
+    : API.apiPost('/api/domestic/fse/lead', formData)
+);
 
       const data = await response.json();
       if (data.success) {
@@ -318,16 +292,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
   const saveInteraction = async (formData) => {
     try {
       setSaving(true);
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-
-      const response = await fetch('/api/domestic/fse/lead/interaction', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify(formData)
-      });
+      const response = await API.apiPost('/api/domestic/fse/lead/interaction', formData);
 
       const data = await response.json();
       if (data.success) {
@@ -345,16 +310,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
   const updateInteraction = async (formData) => {
     try {
       setSaving(true);
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-
-      const response = await fetch('/api/domestic/fse/lead/interaction', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify(formData)
-      });
+      const response = await API.apiPut('/api/domestic/fse/lead/interaction', formData);
 
       const data = await response.json();
       if (data.success) {
@@ -378,12 +334,8 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
 
     try {
       setSaving(true);
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
 
-      const response = await fetch(`/api/domestic/fse/lead?client_id=${lead.client_id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiDelete(`/api/domestic/fse/lead?client_id=${lead.client_id}`);
 
       const data = await response.json();
       if (data.success) {
@@ -405,12 +357,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
 
     try {
       setSaving(true);
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-
-      const response = await fetch(`/api/domestic/fse/lead/interaction?interaction_id=${interaction.interaction_id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiDelete(`/api/domestic/fse/lead/interaction?interaction_id=${interaction.interaction_id}`);
 
       const data = await response.json();
       if (data.success) {
@@ -473,15 +420,12 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
   const handleSaveLeave = async (date, reason, remarks, leaveType) => {
     try {
       setSaving(true);
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/fse/non-working', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ date, reason, leave_type: leaveType, remarks })
-      });
+      const response = await API.apiPost('/api/domestic/fse/non-working', {
+    date,
+    reason,
+    leave_type: leaveType,
+    remarks
+});
 
       const data = await response.json();
       if (data.success) {
@@ -1431,10 +1375,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
        }
 
        try {
-         const session = JSON.parse(localStorage.getItem('session') || '{}');
-         const response = await fetch(`/api/domestic/fse/lead?company=${encodeURIComponent(formData.company)}&limit=10`, {
-           headers: { 'Authorization': `Bearer ${session.access_token}` }
-         });
+         const response = await API.apiGet(`/api/domestic/fse/lead?company=${encodeURIComponent(formData.company)}&limit=10`);
          const data = await response.json();
          if (data.success && data.data.length > 0) {
            // Filter out the current lead if editing
@@ -1692,10 +1633,8 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
      const fetchSuggestions = async () => {
        if (!lead?.client_id) return;
        try {
-         const session = JSON.parse(localStorage.getItem('session') || '{}');
-         const response = await fetch(`/api/domestic/fse/lead/interaction?client_id=${lead.client_id}`, {
-           headers: { 'Authorization': `Bearer ${session.access_token}` }
-         });
+         const response = await API.apiGet(`/api/domestic/fse/lead/interaction?client_id=${lead.client_id}`);
+
          const data = await response.json();
          if (data.success) {
            const persons = [...new Set(data.data.map(i => i.contact_person).filter(Boolean))];
@@ -2024,10 +1963,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
        }
        try {
          setLoading(true);
-         const session = JSON.parse(localStorage.getItem('session') || '{}');
-         const response = await fetch(`/api/domestic/fse/lead/interaction?client_id=${lead.client_id}`, {
-           headers: { 'Authorization': `Bearer ${session.access_token}` }
-         });
+         const response = await API.apiGet(`/api/domestic/fse/lead/interaction?client_id=${lead.client_id}`);
          const data = await response.json();
          if (data.success) {
            setHistory(data.data);

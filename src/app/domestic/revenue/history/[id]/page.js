@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 import { useParams, useRouter } from 'next/navigation';
-
+import * as API from '@/lib/api-client';
 export default function DomesticCandidateHistoryPage() {
   const params = useParams();
   const router = useRouter();
@@ -80,9 +80,8 @@ export default function DomesticCandidateHistoryPage() {
          const token = session.access_token;
 
          // Fetch revenue record by ID (using history route with query param, same as corporate)
-         const response = await fetch(`/api/domestic/revenue/history?revenue_id=${params.id}`, {
-           headers: { 'Authorization': `Bearer ${token}` }
-         });
+         const response = await API.apiGet(`/api/domestic/revenue/history?revenue_id=${params.id}`);
+
 
          const result = await response.json();
 
@@ -147,11 +146,11 @@ export default function DomesticCandidateHistoryPage() {
              const token2 = session2.access_token;
 
              const [candidateRes, clientRes, paymentRes, retentionRes] = await Promise.all([
-               fetch(`/api/domestic/revenue/candidate-track?revenue_id=${params.id}`, { headers: { 'Authorization': `Bearer ${token2}` } }),
-               fetch(`/api/domestic/revenue/client-track?revenue_id=${params.id}`, { headers: { 'Authorization': `Bearer ${token2}` } }),
-               fetch(`/api/domestic/revenue/payment-track?revenue_id=${params.id}`, { headers: { 'Authorization': `Bearer ${token2}` } }),
-               fetch(`/api/domestic/revenue/retention-track?revenue_id=${params.id}`, { headers: { 'Authorization': `Bearer ${token2}` } })
-             ]);
+    API.apiGet(`/api/domestic/revenue/candidate-track?revenue_id=${params.id}`),
+    API.apiGet(`/api/domestic/revenue/client-track?revenue_id=${params.id}`),
+    API.apiGet(`/api/domestic/revenue/payment-track?revenue_id=${params.id}`),
+    API.apiGet(`/api/domestic/revenue/retention-track?revenue_id=${params.id}`)
+]);
 
              const [candidateResult, clientResult, paymentResult, retentionResult] = await Promise.all([
                candidateRes.ok ? candidateRes.json() : Promise.resolve({ success: false, data: [] }),
@@ -256,17 +255,10 @@ export default function DomesticCandidateHistoryPage() {
         const token = session.access_token;
 
         try {
-            const res = await fetch(`/api/domestic/revenue/history`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    revenue_id: params.id,
-                    ...mainForm
-                })
-            });
+            const res = await API.apiPut(`/api/domestic/revenue/history`, {
+    revenue_id: params.id,
+    ...mainForm
+});
 
             const result = await res.json();
 
@@ -283,21 +275,13 @@ export default function DomesticCandidateHistoryPage() {
     };
 
     const handleSaveRevenueDetails = async () => {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
+        
 
         try {
-            const res = await fetch(`/api/domestic/revenue/history`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    revenue_id: params.id,
-                    ...revenueForm
-                })
-            });
+            const res = await API.apiPut(`/api/domestic/revenue/history`, {
+    revenue_id: params.id,
+    ...revenueForm
+});
 
             const result = await res.json();
 
@@ -364,14 +348,16 @@ export default function DomesticCandidateHistoryPage() {
         }
 
         try {
-            const res = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(body)
-            });
+           let res;
+if (modalType === 'candidate') {
+    res = await API.apiPost(endpoint, body);
+} else if (modalType === 'client') {
+    res = await API.apiPost(endpoint, body);
+} else if (modalType === 'payment') {
+    res = await API.apiPost(endpoint, body);
+} else if (modalType === 'retention') {
+    res = await API.apiPost(endpoint, body);
+}
 
             const result = await res.json();
 

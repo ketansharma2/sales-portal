@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Target, Calendar, MapPin, Briefcase, Award, TrendingUp } from "lucide-react";
+import * as API from '@/lib/api-client';
 
 export default function FSETargetPage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
@@ -12,13 +13,7 @@ export default function FSETargetPage() {
   const fetchFseTargets = async () => {
     try {
       setLoading(true);
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      
-      // Fetch all targets without month parameter - API returns all rows
-      const response = await fetch('/api/domestic/fse/targets', {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
-      
+      const response = await API.apiGet('/api/domestic/fse/targets');
       const result = await response.json();
       
       if (result.success && result.data && result.data.targets) {

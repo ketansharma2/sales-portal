@@ -4,7 +4,7 @@ import {
   Check, X, ShieldCheck, UserCircle, Search, Download, 
   Clock, FileText, CheckCircle, ArrowRightCircle, Building2 , Lock
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function ManagerApprovals() {
   const [approvals, setApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,12 +14,7 @@ export default function ManagerApprovals() {
 
   const fetchPendingExpenses = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/manager/approvals/pending-expenses', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet('/api/domestic/manager/approvals/pending-expenses');
       const data = await response.json();
       if (data.success) {
         setApprovals(data.data);
@@ -33,12 +28,7 @@ export default function ManagerApprovals() {
 
   const fetchTeamCount = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/manager/fse-team', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet('/api/manager/fse-team');
       const data = await response.json();
       if (data.success) {
         setTeamCount(data.count);
@@ -56,16 +46,7 @@ export default function ManagerApprovals() {
   const handleApprove = async (exp_id) => {
     console.log('Approving expense:', exp_id);
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      console.log('Session:', session);
-      const response = await fetch('/api/domestic/manager/approvals/approve-expense', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ exp_id })
-      });
+      const response = await API.apiPost('/api/domestic/manager/approvals/approve-expense', { exp_id });
       console.log('Response status:', response.status);
       const data = await response.json();
       console.log('Response data:', data);
@@ -80,16 +61,7 @@ export default function ManagerApprovals() {
   const handleReject = async (exp_id) => {
     console.log('Rejecting expense:', exp_id);
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      console.log('Session:', session);
-      const response = await fetch('/api/domestic/manager/approvals/reject-expense', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ exp_id })
-      });
+      const response = await API.apiPost('/api/domestic/manager/approvals/reject-expense', { exp_id });
       console.log('Response status:', response.status);
       const data = await response.json();
       console.log('Response data:', data);
@@ -104,15 +76,7 @@ export default function ManagerApprovals() {
   const handleSendToHR = async (exp_id) => {
     console.log('Sending expense to HR:', exp_id);
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/manager/approvals/send-to-hr', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ exp_id })
-      });
+      const response = await API.apiPost('/api/domestic/manager/approvals/send-to-hr', { exp_id });
       const data = await response.json();
       if (data.success) {
         fetchPendingExpenses(); // Refresh the list

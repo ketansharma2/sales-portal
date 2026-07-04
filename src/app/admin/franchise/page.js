@@ -5,7 +5,7 @@ import {
   MapPin, Calendar, Clock, Filter, Award, Search, Eye,
   Mail, Users, TrendingUp, AlertCircle, RefreshCw, Briefcase, Edit, Trash2, X
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function AdminFranchiseDashboard() {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -84,20 +84,12 @@ export default function AdminFranchiseDashboard() {
         params.append('dateRange', 'all');
       }
 
-      const [discussedRes, formAskRes, formSharedRes, acceptedRes] = await Promise.all([
-        fetch(`/api/admin/franchise/franchise-discussed?${params.toString()}`, {
-          headers: getAuthHeaders()
-        }),
-        fetch(`/api/admin/franchise/franchise-count?${params.toString()}&status=application form share`, {
-          headers: getAuthHeaders()
-        }),
-        fetch(`/api/admin/franchise/franchise-count?${params.toString()}&status=application form share`, {
-          headers: getAuthHeaders()
-        }),
-        fetch(`/api/admin/franchise/franchise-accepted?${params.toString()}`, {
-          headers: getAuthHeaders()
-        }),
-      ]);
+    const [discussedRes, formAskRes, formSharedRes, acceptedRes] = await Promise.all([
+    API.apiGet(`/api/admin/franchise/franchise-discussed?${params.toString()}`),
+    API.apiGet(`/api/admin/franchise/franchise-count?${params.toString()}&status=application form share`),
+    API.apiGet(`/api/admin/franchise/franchise-count?${params.toString()}&status=application form share`),
+    API.apiGet(`/api/admin/franchise/franchise-accepted?${params.toString()}`),
+]);
 
       const discussedData = await discussedRes.json();
       const formAskData = await formAskRes.json();
@@ -117,13 +109,7 @@ export default function AdminFranchiseDashboard() {
 
   const fetchInteractions = async (clientId) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch(`/api/admin/franchise/interaction?client_id=${clientId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await API.apiGet(`/api/admin/franchise/interaction?client_id=${clientId}`);
       const data = await response.json();
       if (data.success) {
         setInteractions(data.data || []);
@@ -158,11 +144,7 @@ export default function AdminFranchiseDashboard() {
       if (statusFilter && statusFilter !== 'All') params.append('status', statusFilter);
       if (franchiseStatusFilter && franchiseStatusFilter !== 'All') params.append('franchise_status', franchiseStatusFilter);
 
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch(`${url}${params.toString() ? '&' + params.toString() : ''}`, {
-        headers: getAuthHeaders()
-      });
-
+      const response = await API.apiGet(`${url}${params.toString() ? '&' + params.toString() : ''}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

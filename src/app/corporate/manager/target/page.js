@@ -5,7 +5,7 @@ import {
   Target, BarChart2, Percent, Trash2,
   Edit, Eye, User, CheckCircle
 } from "lucide-react";
-
+import * as API from '@/lib/api-client'; 
 export default function SMCorporateTargetPage() {
   
   // --- STATES ---
@@ -46,13 +46,7 @@ export default function SMCorporateTargetPage() {
 
   const fetchTeamUsers = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
-      if (!token) return;
-      
-      const response = await fetch('/api/corporate/manager/team-users', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await API.apiGet("/api/corporate/manager/team-users");
       
       const result = await response.json();
       console.log('Corporate team users response:', result);
@@ -90,14 +84,7 @@ export default function SMCorporateTargetPage() {
   // Fetch my targets from API
   const fetchMyTargets = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
-      
-      if (!token) return;
-      
-      const response = await fetch('/api/corporate/manager/my-targets', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await API.apiGet("/api/corporate/manager/my-targets");
       
       const result = await response.json();
       
@@ -125,19 +112,14 @@ export default function SMCorporateTargetPage() {
   // Fetch team targets from API
   const fetchTeamTargets = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
       
-      if (!token) return;
       
       const params = new URLSearchParams();
       if (filterMonth !== 'All') params.set('month', filterMonth);
       if (filterRole !== 'All') params.set('role', filterRole);
       if (filterName !== 'All') params.set('name', filterName);
       
-      const response = await fetch(`/api/corporate/manager/team-targets?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await API.apiGet(`/api/corporate/manager/team-targets?${params.toString()}`);
       
       const result = await response.json();
       
@@ -238,24 +220,17 @@ export default function SMCorporateTargetPage() {
 
                 setSavingTarget(true);
 
-                const response = await fetch('/api/corporate/manager/team-targets', {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        target_id: editId,
-                        year: form.year,
-                        month: form.month,
-                        working_days: form.workingDays,
-                        role: form.role,
-                        guideline: t.guideline,
-                        kpi: t.kpi_metric,
-                        frequency: t.frequency,
-                        total_target: t.target
-                    })
-                });
+                const response = await API.apiPut("/api/corporate/manager/team-targets", {
+    target_id: editId,
+    year: form.year,
+    month: form.month,
+    working_days: form.workingDays,
+    role: form.role,
+    guideline: t.guideline,
+    kpi: t.kpi_metric,
+    frequency: t.frequency,
+    total_target: t.target
+});
 
                 const result = await response.json();
 
@@ -277,17 +252,9 @@ export default function SMCorporateTargetPage() {
     } else {
         const saveToAPI = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                if (!token) {
-                    alert('Session expired. Please login again.');
-                    return;
-                }
+               
 
-                const userResponse = await fetch('/api/corporate/manager/team-users', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const userResponse = await API.apiGet("/api/corporate/manager/team-users");
                 const userResult = await userResponse.json();
                 const selectedUser = userResult.data?.find(u => u.name === form.assignedTo);
                 
@@ -305,21 +272,14 @@ export default function SMCorporateTargetPage() {
 
                 setSavingTarget(true);
 
-                const response = await fetch('/api/corporate/manager/team-targets', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        year: form.year,
-                        month: form.month,
-                        working_days: form.workingDays,
-                        role: form.role,
-                        assigned_to: selectedUser.user_id,
-                        targets: targets
-                    })
-                });
+                const response = await API.apiPost("/api/corporate/manager/team-targets", {
+    year: form.year,
+    month: form.month,
+    working_days: form.workingDays,
+    role: form.role,
+    assigned_to: selectedUser.user_id,
+    targets: targets
+});
 
                 const result = await response.json();
 

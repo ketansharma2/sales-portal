@@ -6,7 +6,7 @@ import {
     Calendar, Phone, Briefcase, MapPin, IndianRupee, Clock,
     CheckCircle2, MessageSquareText, AlertCircle, Bookmark,X , Edit, File
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 // --- MOCK DATA ---
 
 
@@ -30,13 +30,7 @@ export default function CandidateHistoryPage() {
    useEffect(() => {
      const fetchCurrentUser = async () => {
        try {
-         const session = JSON.parse(localStorage.getItem('session') || '{}');
-         const token = session.access_token;
-         if (!token) return;
-
-         const res = await fetch('/api/auth/get-current-user', {
-           headers: { 'Authorization': `Bearer ${token}` }
-         });
+        const res = await API.apiGet('/api/auth/get-current-user');
          const data = await res.json();
          if (data.user_id) {
            setCurrentUserId(data.user_id);
@@ -60,15 +54,7 @@ export default function CandidateHistoryPage() {
         return;
       }
 
-      const res = await fetch(
-        `/api/jobpost/parsing/history?parsing_id=${candidateId}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await API.apiGet(`/api/jobpost/parsing/history?parsing_id=${candidateId}`);
 
       const result = await res.json();
       console.log('result',result);
@@ -106,20 +92,8 @@ useEffect(() => {
     try {
       setIsLoadingFollowups(true);
 
-        const session = JSON.parse(localStorage.getItem('session') || '{}')
-            const token = session.access_token
 
-            if (!token) {
-                alert("Please login first")
-                return
-            }
-
-      const res = await fetch("/api/jobpost/parsing/history/client_profile", {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      });
+   const res = await API.apiGet("/api/jobpost/parsing/history/client_profile");
 
       const result = await res.json();
     
@@ -188,16 +162,10 @@ useEffect(() => {
            const session = JSON.parse(localStorage.getItem("session") || "{}");
            const token = session.access_token;
 
-           const res = await fetch("/api/jobpost/parsing/history/followup", {
-             method: "PUT",
-             headers: {
-               "Content-Type": "application/json",
-               "Authorization": `Bearer ${token}`
-             },
-             body: JSON.stringify({
+           const res = await API.apiPut("/api/jobpost/parsing/history/followup", {
                conversation_id: editId,
                ...formData
-             })
+
            });
 
            const result = await res.json();
@@ -276,12 +244,7 @@ useEffect(() => {
         // Fetch candidate data
         setIsLoadingCandidateData(true);
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            
-            const response = await fetch(`/api/jobpost/parsing/candidate-details?parsing_id=${candidateId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+           const response = await API.apiGet(`/api/jobpost/parsing/candidate-details?parsing_id=${candidateId}`);
             const result = await response.json();
             
             if (result.success && result.data) {
@@ -306,19 +269,10 @@ useEffect(() => {
   try {
     setIsSavingFollowup(true);
 
-    const session = JSON.parse(localStorage.getItem("session") || "{}");
-    const token = session.access_token;
 
-    const res = await fetch("/api/jobpost/parsing/history/followup", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify({
+    const res = await API.apiPost("/api/jobpost/parsing/history/followup", {
         candidate_id: candidateId,
-        ...formData
-      })
+        ...formData   
     });
 
      const result = await res.json();
@@ -367,15 +321,8 @@ useEffect(() => {
          if (!window.confirm("Are you sure you want to delete this followup?")) return;
          setIsDeleting(true);
          try {
-           const session = JSON.parse(localStorage.getItem("session") || "{}");
-           const token = session.access_token;
+          const res = await API.apiDelete(`/api/jobpost/parsing/history/followup?conversation_id=${id}`);
 
-           const res = await fetch(`/api/jobpost/parsing/history/followup?conversation_id=${id}`, {
-             method: "DELETE",
-             headers: {
-               "Authorization": `Bearer ${token}`
-             }
-           });
 
            const result = await res.json();
 
@@ -532,7 +479,7 @@ useEffect(() => {
                                     </td>
 
                                     <td className="py-3 px-4 max-w-[200px] whitespace-normal">
-                                        <p className="text-[11px] font-medium text-slate-600 italic leading-relaxed">"{row.feedback}"</p>
+                                        <p className="text-[11px] font-medium text-slate-600 italic leading-relaxed">{row.feedback}</p>
                                     </td>
 
                                     <td className="py-3 px-4 text-center">
@@ -590,7 +537,7 @@ useEffect(() => {
                                                 </button>
                                             </div>
                                         ) : (
-                                            <span className="text-[9px] font-bold text-slate-400 italic">Other's</span>
+                                            <span className="text-[9px] font-bold text-slate-400 italic">{"Other's"}</span>
                                         )}
                                     </td>
                                 </tr>

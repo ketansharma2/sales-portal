@@ -5,7 +5,7 @@ import {
     MessageSquarePlus, History, CheckCircle, X, AlertCircle, 
     UserCheck, UserMinus, PhoneCall
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function CandidateFollowupPanel() {
     
     // --- STATE ---
@@ -24,15 +24,7 @@ export default function CandidateFollowupPanel() {
     const fetchCandidates = async () => {
         try {
             setLoading(true);
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            
-            const response = await fetch('/api/domestic/recruiter/followup', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
+           const response = await API.apiGet('/api/domestic/recruiter/followup');
             
             const result = await response.json();
             
@@ -95,19 +87,12 @@ export default function CandidateFollowupPanel() {
             const session = JSON.parse(localStorage.getItem('session') || '{}');
             const token = session.access_token;
 
-            const response = await fetch('/api/domestic/recruiter/followup', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
+            const response = await API.apiPost('/api/domestic/recruiter/followup', {
                     revenue_id: selectedCandidate.id,
                     contact_date: formData.date,
                     remarks: formData.remarks,
                     next_follow_up: formData.nextDate,
                     current_status: formData.status
-                })
             });
 
             const result = await response.json();

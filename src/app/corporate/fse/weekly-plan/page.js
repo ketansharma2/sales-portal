@@ -5,7 +5,7 @@ import {
   ChevronRight, CheckSquare, Info, X, User, Clock
 } from "lucide-react";
 import { supabase } from '@/lib/supabase';
-
+import * as API from '@/lib/api-client';
 export default function FseDashboard() {
   
   // --- DYNAMIC DATES SETUP ---
@@ -56,12 +56,7 @@ export default function FseDashboard() {
   useEffect(() => {
     const fetchAssignments = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/corporate/fse/weekly-plan', {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet("/api/corporate/fse/weekly-plan");
         const data = await response.json();
         if (data.success) {
           const formattedTasks = data.data.map(assignment => ({
@@ -127,18 +122,10 @@ export default function FseDashboard() {
 
       // Send update to server
       try {
-          const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const response = await fetch('/api/corporate/fse/update-visit-status', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${session.access_token}`
-              },
-              body: JSON.stringify({
-                  id: selectedTask.id,
-                  status: outcome
-              })
-          });
+          const response = await API.apiPost("/api/corporate/fse/update-visit-status", {
+    id: selectedTask.id,
+    status: outcome
+});
           const data = await response.json();
           if (!data.success) {
               console.error('Failed to update status:', data.error);

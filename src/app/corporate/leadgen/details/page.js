@@ -6,7 +6,7 @@ import {
   Calendar, MapPin, ListFilter, ArrowRight, Send, Lock, Edit, Award, Users, Briefcase, ArrowLeft
  
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 function DetailsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -235,11 +235,7 @@ useEffect(() => {
          
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/calls-type-count?${queryString}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/not-picked-count?${queryString}`);
         const data = await response.json();
         if (data.success || data.records) {
           const calls = data.records || [];
@@ -287,11 +283,7 @@ useEffect(() => {
         }
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/not-picked-count?${queryString}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/not-picked-count?${queryString}`);
         const data = await response.json();
         if (data.success || data.records) {
           const calls = data.records || [];
@@ -342,11 +334,7 @@ useEffect(() => {
          }
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/picked-count?${queryString}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/picked-count?${queryString}`);
         const data = await response.json();
         if (data.success || data.records) {
           const calls = data.records || [];
@@ -394,11 +382,7 @@ useEffect(() => {
         }
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/sent-to-manager-count?${queryString}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/sent-to-manager-count?${queryString}`);
         const data = await response.json();
         if (data.success || data.records) {
           const leads = data.records || [];
@@ -446,11 +430,7 @@ useEffect(() => {
         }
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/interested-count?${queryString}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/interested-count?${queryString}`);
         const data = await response.json();
         if (data.success || data.records) {
           const calls = data.records || [];
@@ -498,11 +478,7 @@ useEffect(() => {
         }
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/contract-count?${queryString}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/contract-count?${queryString}`);
         const data = await response.json();
         if (data.success || data.records) {
           const calls = data.records || [];
@@ -550,11 +526,7 @@ useEffect(() => {
         }
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/franchise-discussed?${queryString}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/franchise-discussed?${queryString}`);
         const data = await response.json();
         if (data.success || data.records) {
           const calls = data.records || [];
@@ -603,11 +575,7 @@ useEffect(() => {
         }
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/franchise-count?${queryString}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/franchise-count?${queryString}`);
         const data = await response.json();
         if (data.success || data.records) {
           const calls = data.records || [];
@@ -655,11 +623,7 @@ useEffect(() => {
         }
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/franchise-count?${queryString}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/franchise-count?${queryString}`);
         const data = await response.json();
         if (data.success || data.records) {
           const calls = data.records || [];
@@ -705,11 +669,7 @@ useEffect(() => {
         }
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/franchise-accepted?${queryString}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/franchise-accepted?${queryString}`);
         const data = await response.json();
         if (data.success || data.records) {
           const calls = data.records || [];
@@ -759,11 +719,7 @@ useEffect(() => {
          }
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/onboard-count?${queryString}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/onboard-count?${queryString}`);
         const data = await response.json();
         if (data.success || data.records) {
           const calls = data.records || [];
@@ -831,11 +787,7 @@ useEffect(() => {
         }
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/contacts-count?${queryString}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/contacts-count?${queryString}`);
         const data = await response.json();
         if (data.success || data.records) {
           const interactions = data.records || [];
@@ -886,11 +838,7 @@ useEffect(() => {
         }
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/startup-calls?${queryString}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/startup-calls?${queryString}`);
         const data = await response.json();
         if (data.success || data.records) {
           const calls = data.records || [];
@@ -948,11 +896,7 @@ useEffect(() => {
         }
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/master-union-calls?${queryString}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/master-union-calls?${queryString}`);
         const data = await response.json();
         if (data.success || data.records) {
           const calls = data.records || [];
@@ -1001,11 +945,7 @@ useEffect(() => {
         }
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/master-union-leads?${queryString}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/master-union-leads?${queryString}`);
         const data = await response.json();
         if (data.success || data.data) {
           const leads = data.data || [];
@@ -1056,11 +996,7 @@ useEffect(() => {
         params.append('cardType', 'normal_calls');
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/all-interactions${queryString ? '?' + queryString : ''}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/all-interactions${queryString ? '?' + queryString : ''}`);
         const data = await response.json();
         if (data.success) {
           const sortedData = [...data.data].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1084,11 +1020,7 @@ useEffect(() => {
         }
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/leads${queryString ? '?' + queryString : ''}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+       const response = await API.apiGet(`/api/corporate/leadgen/leads${queryString ? '?' + queryString : ''}`);
         const data = await response.json();
         if (data.success || data.data) {
           // Format leads data to match interactions format for display
@@ -1137,11 +1069,7 @@ useEffect(() => {
         }
         
         const queryString = params.toString();
-        const response = await fetch(`/api/corporate/leadgen/sent-to-manager-count?${queryString}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/sent-to-manager-count?${queryString}`);
         const data = await response.json();
         if (data.success || data.records) {
           const leads = data.records || [];
@@ -1200,11 +1128,7 @@ useEffect(() => {
       }
       
       const queryString = params.toString();
-      const response = await fetch(`/api/corporate/leadgen/all-interactions${queryString ? '?' + queryString : ''}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/leadgen/all-interactions${queryString ? '?' + queryString : ''}`);
       const data = await response.json();
       if (data.success) {
         // Sort by date descending (newest first)
@@ -1225,11 +1149,7 @@ useEffect(() => {
   const fetchLeadInteractions = async (clientId) => {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch(`/api/corporate/leadgen/interaction?client_id=${clientId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/leadgen/interaction?client_id=${clientId}`);
       const data = await response.json();
       if (data.success) {
         setViewModalInteractions(data.data || []); // Store in separate state, not main interactions
@@ -1242,15 +1162,7 @@ useEffect(() => {
   // Fetch manager name
   const fetchManagerName = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/corporate/leadgen/send-to-manager', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ client_id: 0 })
-      });
+      const response = await API.apiPost("/api/corporate/leadgen/send-to-manager", { client_id: 0 });
       const data = await response.json();
       if (data.success && data.data?.managerName) {
         setManagerName(data.data.managerName);
@@ -1265,12 +1177,7 @@ useEffect(() => {
     const fetchSuggestions = async () => {
       if (!selectedLead?.client_id || modalType !== 'add') return;
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch(`/api/corporate/leadgen/interaction?client_id=${selectedLead.client_id}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/interaction?client_id=${selectedLead.client_id}`);
         const data = await response.json();
         if (data.success) {
           const persons = [...new Set(data.data.map(i => i.contact_person).filter(Boolean))];
@@ -1337,14 +1244,12 @@ useEffect(() => {
         ? { interaction_id: editingInteractionId, client_id: selectedLead.client_id, ...interactionData }
         : { client_id: selectedLead.client_id, ...interactionData };
       
-      const response = await fetch('/api/corporate/leadgen/interaction', {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify(bodyData)
-      });
+      let response;
+if (method === 'PUT') {
+    response = await API.apiPut("/api/corporate/leadgen/interaction", bodyData);
+} else {
+    response = await API.apiPost("/api/corporate/leadgen/interaction", bodyData);
+}
       const data = await response.json();
       if (data.success) {
         setIsFormOpen(false);
@@ -1375,15 +1280,7 @@ useEffect(() => {
   // Send to manager
   const handleSendToManager = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/corporate/leadgen/send-to-manager', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ client_id: selectedLead.client_id })
-      });
+      const response = await API.apiPost("/api/corporate/leadgen/send-to-manager", { client_id: selectedLead.client_id });
       const data = await response.json();
       if (data.success) {
         const updatedInteractions = interactions.map(i =>

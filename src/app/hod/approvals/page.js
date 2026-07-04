@@ -4,7 +4,7 @@ import {
   Check, X, ShieldCheck, UserCircle, Search, Download, 
   Clock, FileText, CheckCircle, ArrowRightCircle, Building2, Send
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function HODApprovals() {
   const [approvals, setApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,12 +13,7 @@ export default function HODApprovals() {
 
   const fetchPendingExpenses = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/hod/pending-expenses', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet("/api/hod/pending-expenses");
       const data = await response.json();
       if (data.success) {
         setApprovals(data.data);
@@ -36,15 +31,7 @@ export default function HODApprovals() {
 
   const handleApprove = async (exp_id) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/hod/approve-expense', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ exp_id })
-      });
+      const response = await API.apiPost("/api/hod/approve-expense", { exp_id });
       const data = await response.json();
       if (data.success) {
         fetchPendingExpenses(); // Refresh the list
@@ -56,15 +43,7 @@ export default function HODApprovals() {
 
   const handleReject = async (exp_id) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/hod/reject-expense', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ exp_id })
-      });
+      const response = await API.apiPost("/api/hod/reject-expense", { exp_id });
       const data = await response.json();
       if (data.success) {
         fetchPendingExpenses(); // Refresh the list
@@ -76,15 +55,7 @@ export default function HODApprovals() {
 
   const handleSendToHR = async (exp_id) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/hod/send-to-hr', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ exp_id })
-      });
+      const response = await API.apiPost("/api/hod/send-to-hr", { exp_id });
       const data = await response.json();
       if (data.success) {
         fetchPendingExpenses(); // Refresh the list

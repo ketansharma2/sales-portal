@@ -5,7 +5,7 @@ import {
     Target, Search, Activity, X, BarChart2, FileText, Send,
     UserCheck, TrendingUp, Database, MessageSquarePlus, Clock, Eye, Download, Edit
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function TLWorkbenchPage() {
     
     // --- STATE ---
@@ -45,12 +45,7 @@ export default function TLWorkbenchPage() {
     useEffect(() => {
         const fetchRcUsers = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/corporate/tl/rc-users', {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
+                const response = await API.apiGet('/api/corporate/tl/rc-users');
                 const data = await response.json();
                 if (data.success) {
                     setRcUsersList(data.data);
@@ -68,12 +63,7 @@ export default function TLWorkbenchPage() {
     useEffect(() => {
         const fetchWorkbenchAssignments = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/corporate/tl/workbench', {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
+                const response = await API.apiGet('/api/corporate/tl/workbench');
                 const data = await response.json();
                 if (data.success) {
                     // Transform workbench data to match assignments format
@@ -144,7 +134,6 @@ export default function TLWorkbenchPage() {
         }
 
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
             
             // Find the selected RC user to get their user_id
             const selectedRc = rcUsersList.find(rc => rc.name === item.recruiter);
@@ -154,18 +143,11 @@ export default function TLWorkbenchPage() {
                 return;
             }
 
-            const response = await fetch('/api/corporate/tl/workbench/assign', {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${session.access_token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    workbench_id: item.id,
-                    sent_to_rc: selectedRc.user_id,
-                    slot: item.slot
-                })
-            });
+           const response = await API.apiPut('/api/corporate/tl/workbench/assign', {
+    workbench_id: item.id,
+    sent_to_rc: selectedRc.user_id,
+    slot: item.slot
+});
 
             const data = await response.json();
 
@@ -200,11 +182,7 @@ export default function TLWorkbenchPage() {
 
     const handleViewStiHistory = async (workbenchId) => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            const response = await fetch(`/api/corporate/recruiter/advance-sti?workbench_id=${workbenchId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/corporate/recruiter/advance-sti?workbench_id=${workbenchId}`);
             const result = await response.json();
             if (result.success) {
                 setStiHistoryData(result.data || []);
@@ -229,19 +207,10 @@ export default function TLWorkbenchPage() {
         setSavingRemark(true);
 
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            
-            const response = await fetch('/api/corporate/tl/workbench/remark', {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${session.access_token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    workbench_id: selectedRemarkTask.id,
-                    tl_remark: remarkForm.remark
-                })
-            });
+            const response = await API.apiPut('/api/corporate/tl/workbench/remark', {
+    workbench_id: selectedRemarkTask.id,
+    tl_remark: remarkForm.remark
+});
 
             const data = await response.json();
 

@@ -6,7 +6,7 @@ import {
   Briefcase, MessageSquare, UserCheck, Share2, CheckSquare , X,ExternalLink,Download , Clock ,
 } from "lucide-react";
 import { createClient } from '@supabase/supabase-js'
-
+import * as API from '@/lib/api-client';
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
 export default function AdminCRMDashboard() {
@@ -47,9 +47,7 @@ export default function AdminCRMDashboard() {
 
   const fetchClients = async () => {
     try {
-     const session = JSON.parse(localStorage.getItem('session') || '{}');
-       
-      if (!session) return
+    
       console.log('Fetching clients with filters:', { sectorFilter, crmFilter, searchQuery, fromDate, toDate });
       const params = new URLSearchParams()
       if (sectorFilter !== 'All') params.append('sector', sectorFilter)
@@ -58,11 +56,7 @@ export default function AdminCRMDashboard() {
       if (fromDate) params.append('fromDate', fromDate)
       if (toDate) params.append('toDate', toDate)
 
-      const response = await fetch(`/api/admin/crm/clients?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      })
+      const response = await API.apiGet(`/api/admin/crm/clients?${params}`);
       const result = await response.json()
       if (result.success) {
         setClients(result.data)
@@ -96,17 +90,9 @@ export default function AdminCRMDashboard() {
     setClientDetails(null); // Reset while loading
     // Fetch client details
     try {
-     const session = JSON.parse(localStorage.getItem('session') || '{}');
-        if (!session) {
-        console.error('No session found')
-        return
-      }
+     
         console.log('Fetching details for client:', client);
-      const response = await fetch(`/api/admin/crm/client/${client.id}?sector=${client.sector}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      })
+     const response = await API.apiGet(`/api/admin/crm/client/${client.id}?sector=${client.sector}`);
       const result = await response.json()
       if (result.success) {
         setClientDetails(result.data)
@@ -136,19 +122,13 @@ export default function AdminCRMDashboard() {
 
   const fetchStats = async (sector) => {
     try {
-     const session = JSON.parse(localStorage.getItem('session') || '{}');
-      if (!session) return
-
+     
       const params = new URLSearchParams()
       params.append('sector', sector)
       if (fromDate) params.append('fromDate', fromDate)
       if (toDate) params.append('toDate', toDate)
 
-      const response = await fetch(`/api/admin/crm/stats?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      })
+      const response = await API.apiGet(`/api/admin/crm/stats?${params}`);
       const result = await response.json()
       if (result.success) {
         setStats(result.data)

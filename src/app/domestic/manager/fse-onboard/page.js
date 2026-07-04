@@ -24,7 +24,7 @@ import {
   FileText,
   ArrowRightCircle as ArrowRightCircleIcon,
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 function FseOnboardContent() {
   const searchParams = useSearchParams();
   
@@ -89,20 +89,10 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
 
   const fetchCrmDetails = async (clientId) => {
   try {
-    const session = JSON.parse(localStorage.getItem("session") || "{}");
-    const token = session?.access_token;
+    
 
-    if (!token) {
-      console.error("No auth token found");
-      return null;
-    }
+    const response = await API.apiGet(`/api/domestic/manager/client-crm-details?client_id=${clientId}`);
 
-    const response = await fetch(
-      `/api/domestic/manager/client-crm-details?client_id=${clientId}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
     const data = await response.json();
 
     if (data.success) {
@@ -167,12 +157,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
         // Fetch all if any filter is active or showAll is true, otherwise limit to 100
         queryParams.append("limit", (hasActiveFilter || showAll) ? "all" : "100");
 
-        const response = await fetch(
-          `/api/domestic/manager/all-clients-database?${queryParams.toString()}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        const response = await API.apiGet(`/api/domestic/manager/all-clients-database?${queryParams.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -193,12 +178,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
         if (filters.status && filters.status !== "All")
           queryParams.append("status", filters.status);
 
-        const response = await fetch(
-          `/api/domestic/manager/fse-onboard?${queryParams.toString()}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        const response = await API.apiGet(`/api/domestic/manager/fse-onboard?${queryParams.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -285,26 +265,12 @@ const handleAction = async (id, action) => {
     setIsSubmitting(true);
 
     try {
-      const session = JSON.parse(localStorage.getItem("session") || "{}");
-      const token = session?.access_token;
+     
 
-      if (!token) {
-        alert("Authentication required");
-        setIsSubmitting(false);
-        return;
-      }
-
-      const response = await fetch("/api/domestic/manager/pass-to-crm", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          client_id: selectedLead.client_id,
-          crm_user_id: deliveryUser,
-        }),
-      });
+const response = await API.apiPost("/api/domestic/manager/pass-to-crm", {
+    client_id: selectedLead.client_id,
+    crm_user_id: deliveryUser,
+});
 
       const data = await response.json();
 

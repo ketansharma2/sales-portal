@@ -1,24 +1,14 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-
-// Helper function to get user from token
-async function getUserFromToken(request) {
-  const authHeader = request.headers.get('authorization')
-  if (!authHeader) return null
-  
-  const token = authHeader.replace('Bearer ', '')
-  const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
-  
-  if (authError || !user) return null
-  return user
-}
+import { requireAuth } from '@/lib/auth-helper' // Import auth helper
 
 export async function PATCH(request, { params }) {
   try {
     // Get authenticated user
-    const user = await getUserFromToken(request)
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+       const { user, response } = requireAuth(request)
+    
+    if (response) {
+      return response // Returns 401 if not authenticated
     }
 
     // Get notification ID and request body
@@ -64,9 +54,10 @@ export async function PATCH(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     // Get authenticated user
-    const user = await getUserFromToken(request)
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+   const { user, response } = requireAuth(request)
+    
+    if (response) {
+      return response // Returns 401 if not authenticated
     }
 
     // Get notification ID

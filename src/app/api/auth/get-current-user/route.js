@@ -4,7 +4,7 @@ import { getUserWithProfile } from "@/lib/auth-helper";
 export async function GET(request) {
   try {
     const { user, profile, error } = await getUserWithProfile(request);
-    
+    console.log("GET /api/auth/get-current-user called. User:", user, "Profile:", profile, "Error:", error);
     if (error || !user) {
       return NextResponse.json({ error: error || 'Unauthorized' }, { status: 401 });
     }

@@ -6,7 +6,7 @@ import {
     ArrowLeft, Clock, Plus, Eye, AlignLeft,Edit2,Trash2
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-
+import * as API from '@/lib/api-client';
 export default function TrackerHistoryPage() {
     const params = useParams();
     const router = useRouter();
@@ -34,12 +34,7 @@ const [updatingJourney, setUpdatingJourney] = useState(false);
         const fetchEmailHistory = async () => {
             setLoading(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                const response = await fetch(`/api/corporate/crm/emails/history/${params.id}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet(`/api/corporate/crm/emails/history/${params.id}`);
                 
                 const result = await response.json();
                 
@@ -97,24 +92,16 @@ const handleUpdateJourney = async () => {
     setUpdatingJourney(true);
     
     try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
+        
         
         const url = `/api/corporate/crm/interview-journey/${selectedJourneyItem.id}`;
         console.log("Calling API:", url);
         
-        const response = await fetch(url, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                interview_status: journeyForm.status,
-                client_remark: journeyForm.remark || "Status updated.",
-                date: journeyForm.actionDate
-            })
-        });
+        const response = await API.apiPut(url, {
+    interview_status: journeyForm.status,
+    client_remark: journeyForm.remark || "Status updated.",
+    date: journeyForm.actionDate
+});
         
         const result = await response.json();
         console.log("API Result:", result);
@@ -173,15 +160,12 @@ const handleUpdateJourney = async () => {
     // --- FETCH INTERVIEW JOURNEYS ---
     const fetchInterviewJourneys = async (emailHistoryData) => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
+            
             
             // Update each row with its journey data from the API
             const updatedHistory = await Promise.all(
                 emailHistoryData.map(async (row) => {
-                    const response = await fetch(`/api/corporate/crm/interview-journey?email_draft_id=${row.id}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const response = await API.apiGet(`/api/corporate/crm/interview-journey?email_draft_id=${row.id}`);
                     const result = await response.json();
                     
                     // Map API field names to UI expected field names
@@ -230,30 +214,20 @@ const handleUpdateJourney = async () => {
         setSavingJourney(true);
         
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
+           
             
-            const response = await fetch('/api/corporate/crm/interview-journey', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    email_draft_id: selectedHistoryRow.id,
-                    interview_status: journeyForm.status,
-                    client_remark: journeyForm.remark || "Status updated.",
-                    date: journeyForm.actionDate
-                })
-            });
+            const response = await API.apiPost("/api/corporate/crm/interview-journey", {
+    email_draft_id: selectedHistoryRow.id,
+    interview_status: journeyForm.status,
+    client_remark: journeyForm.remark || "Status updated.",
+    date: journeyForm.actionDate
+});
             
             const result = await response.json();
             
             if (result.success) {
                 // Fetch latest journey data from API after save
-                const fetchResponse = await fetch(`/api/corporate/crm/interview-journey?email_draft_id=${selectedHistoryRow.id}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const fetchResponse = await API.apiGet(`/api/corporate/crm/interview-journey?email_draft_id=${selectedHistoryRow.id}`);
                 const fetchResult = await fetchResponse.json();
                 
                 // Map API field names to UI expected field names
@@ -290,17 +264,7 @@ const handleUpdateJourney = async () => {
 
     const handleDelete = async (id) => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-
-            const response = await fetch('/api/corporate/crm/email-history/delete', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ id })
-            });
+            const response = await API.apiPost("/api/corporate/crm/email-history/delete", { id });
 
             const result = await response.json();
 

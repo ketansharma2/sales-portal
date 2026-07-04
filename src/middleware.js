@@ -82,7 +82,11 @@ export async function middleware(request) {
     '/api/tl',
     '/api/revenue',
     '/api/jobpost',
-    '/api/operations'
+    '/api/operations',
+    '/api/notifications',        // <-- Add this
+    '/api/user/fcm-token',       // <-- Add this
+    '/api/user',
+    '/api/auth',
   ]
   
   // Check if current path is protected
@@ -161,17 +165,20 @@ export async function middleware(request) {
   }
 }
 
+// middleware.js - Update the config
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api/auth (authentication endpoints)
+     * - api/auth/login (login endpoint - public)
+     * - api/auth/register (register endpoint - public)
+     * - api/auth/refresh (refresh token - public)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
      */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api/auth/login|api/auth/register|api/auth/refresh|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     '/admin/:path*',
     '/hod/:path*',
     '/manager/:path*',

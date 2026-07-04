@@ -8,6 +8,7 @@ import {
     UploadCloud, FileText, Search, Calendar, MapPin,
     Loader2, History, File, CheckCircle2, X, AlertCircle, User, MessageSquare
 } from "lucide-react";
+import * as API from '@/lib/api-client';
 
 // CV Preview Component - Handles PDF, Images, and Word documents
 function CVPreview({ url, name }) {
@@ -302,20 +303,7 @@ useEffect(() => {
 
     const fetchCVParsingData = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-
-            if (!token) {
-                setIsLoading(false);
-                return;
-            }
-
-            const response = await fetch("/api/domestic/recruiter/parsing", {
-                method: "GET",
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                }
-            });
+           const response = await API.apiGet("/api/domestic/recruiter/parsing");
 
             const result = await response.json();
 
@@ -415,10 +403,8 @@ useEffect(() => {
             const formData = new FormData();
             formData.append("file", selectedFile);
 
-            const response = await fetch("/api/domestic/recruiter/parsing", {
-                method: "POST",
-                body: formData,
-            });
+           const response = await API.apiUpload("/api/domestic/recruiter/parsing", formData);
+
 
             console.log('Parse response status:', response.status);
             console.log('Parse response ok:', response.ok);
@@ -495,17 +481,10 @@ useEffect(() => {
             const sector = userObj?.sector || "domestic"
 
             // First, save the data to database (without CV URL)
-            const response = await fetch("/api/domestic/recruiter/save-parsed-data", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    ...editableData,
-                    sector: sector,
-                    cv_url: null
-                }),
+            const response = await API.apiPost("/api/domestic/recruiter/save-parsed-data", {
+                ...editableData,
+                sector: sector,
+                cv_url: null
             });
 
             console.log('Save response status:', response.status);
@@ -528,13 +507,8 @@ useEffect(() => {
                     uploadFormData.append('file', selectedFile);
                     uploadFormData.append('cv_parsing_id', result.insertedId);
 
-                    const uploadResponse = await fetch("/api/domestic/recruiter/upload-cv", {
-                        method: "POST",
-                        headers: {
-                            "Authorization": `Bearer ${token}`
-                        },
-                        body: uploadFormData,
-                    });
+                    const uploadResponse = await API.apiUpload("/api/domestic/recruiter/upload-cv", uploadFormData);
+
 
                     console.log('Upload response status:', uploadResponse.status);
                     console.log('Upload response ok:', uploadResponse.ok);
@@ -1321,15 +1295,8 @@ useEffect(() => {
                                         const session = JSON.parse(localStorage.getItem('session') || '{}');
                                         const token = session.access_token;
                                         
-                                        const response = await fetch('/api/corporate/recruiter/add-to-parsing', {
-                                            method: 'PUT',
-                                            headers: {
-                                                'Authorization': `Bearer ${token}`,
-                                                'Content-Type': 'application/json'
-                                            },
-                                            body: JSON.stringify({
+                                        const response = await API.apiPut('/api/corporate/recruiter/add-to-parsing', {              
                                                 candidate_id: duplicateData.existing_candidate.id
-                                            })
                                         });
                                         
                                         const result = await response.json();

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image"; // Logo ke liye
 import { Lock, User, ArrowRight, Loader2 } from "lucide-react";
+import { apiPost } from '@/lib/api-client'; // Add this import
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -19,15 +20,8 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await response.json();
+     const response = await apiPost('/api/auth/login', { email, password });
+     const data = await response.json();
 
       if (data.success) {
 

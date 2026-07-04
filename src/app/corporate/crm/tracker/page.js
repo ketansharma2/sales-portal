@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect ,useMemo } from "react";
 import dynamic from 'next/dynamic';
+import * as API from '@/lib/api-client'; 
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { 
@@ -201,12 +202,7 @@ useEffect(() => {
     useEffect(() => {
         const fetchTlUsers = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                const response = await fetch('/api/corporate/crm/tl-users', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet("/api/corporate/crm/tl-users");
                 
                 const result = await response.json();
                 if (result.success && result.data) {
@@ -278,12 +274,7 @@ useEffect(() => {
         const fetchCrmTrackerData = async () => {
             setIsLoading(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                const response = await fetch('/api/corporate/crm/tracker', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet("/api/corporate/crm/tracker");
                 
                 const result = await response.json();
                 
@@ -323,12 +314,7 @@ useEffect(() => {
     useEffect(() => {
         const fetchClients = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                const response = await fetch('/api/corporate/crm/clients', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet("/api/corporate/crm/clients");
                 
                 const result = await response.json();
                 if (result.success && result.data) {
@@ -427,13 +413,7 @@ useEffect(() => {
             for (const row of editableDraftData) {
                 console.log('Saving candidate:', row.name, 'id:', row.id);
                 
-                const saveResponse = await fetch('/api/corporate/crm/emails', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
+                const saveResponse = await API.apiPost('/api/corporate/crm/emails', {
                         conversation_id: row.id,
                         company_name: shareForm.company,
                         client_id: clientId,
@@ -445,7 +425,6 @@ useEffect(() => {
                         feedback: row.crmFeedback,
                         cv_url: row.tlCvName || '',
                         sent_via: 'Email'
-                    })
                 });
                 
                 console.log('Save response status:', saveResponse.status);
@@ -703,13 +682,7 @@ useEffect(() => {
         try {
             // 1. Save each candidate to database (corporate_crm_emails)
             for (const row of editableDraftData) {
-                await fetch('/api/corporate/crm/emails', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
+                await API.apiPost('/api/corporate/crm/emails', {
                         conversation_id: row.id,
                         company_name: shareForm.company,
                         client_id: shareForm.clientId,
@@ -721,7 +694,6 @@ useEffect(() => {
                         feedback: row.crmFeedback,
                         cv_url: row.tlCvName || '',
                         sent_via: 'Email'
-                    })
                 });
             }
             
@@ -1521,13 +1493,7 @@ useEffect(() => {
                                     
                                     if (clientId) {
                                         for (const row of selectedRows) {
-                                            await fetch('/api/corporate/crm/emails', {
-                                                method: 'POST',
-                                                headers: {
-                                                    'Authorization': `Bearer ${token}`,
-                                                    'Content-Type': 'application/json'
-                                                },
-                                                body: JSON.stringify({
+                                            await API.apiPost('/api/corporate/crm/emails', {
                                                     conversation_id: row.id,
                                                     company_name: shareForm.company,
                                                     client_id: clientId,
@@ -1539,7 +1505,6 @@ useEffect(() => {
                                                     feedback: row.crmFeedback,
                                                     cv_url: row.tlCvName || '',
                                                     sent_via: 'WhatsApp'
-                                                })
                                             });
                                         }
                                     }

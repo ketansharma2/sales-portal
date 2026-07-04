@@ -5,7 +5,7 @@ import {
   Target, Layers, BarChart2, Calculator, Percent, Trash2,
   Edit, Eye, Building, TrendingUp, Headset, User
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 
 export default function HodTargetPage() {
   
@@ -36,12 +36,7 @@ const fetchTargets = async () => {
         ? "/api/hod/targets/list/salelist"
         : "/api/hod/targets/list/deliverylist";
 
-    const res = await fetch(apiUrl, {
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-      },
-    });
-
+    const res = await API.apiGet(apiUrl);
     const data = await res.json();
     console.log('data:',data);
     if (data.success) {
@@ -91,11 +86,7 @@ const fetchUsers = async () => {
         ? "/api/hod/targets/get-sales-users"
         : "/api/hod/targets/get-delivery-users";
 
-    const res = await fetch(apiUrl, {
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-      },
-    });
+    const res = await API.apiGet(apiUrl);
 
     if (!res.ok) throw new Error("Failed to fetch users");
 
@@ -442,16 +433,13 @@ const handleSaveTarget = async () => {
 //   console.log("FINAL PAYLOAD 👉", payload);
 
   try {
-    const session = JSON.parse(localStorage.getItem("session") || "{}");
 
-    const res = await fetch("/api/hod/targets/create", {
-      method: editId ? "PUT" : "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify(payload)
-    });
+    let res;
+if (editId) {
+    res = await API.apiPut("/api/hod/targets/create", payload);
+} else {
+    res = await API.apiPost("/api/hod/targets/create", payload);
+}
 
     const data = await res.json();
 

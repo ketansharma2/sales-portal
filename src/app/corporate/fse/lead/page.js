@@ -6,7 +6,7 @@ import {
   ArrowRight, MessageSquarePlus, Mail, Zap,CalendarOff,
   HistoryIcon, Send, Lock
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function LeadsMasterPage() {
   const [mounted, setMounted] = useState(false);
   const [leads, setLeads] = useState([]);
@@ -70,9 +70,8 @@ export default function LeadsMasterPage() {
       queryParams.append('limit', limit);
 
       // REAL API CALL
-      const response = await fetch(`/api/corporate/fse/lead?${queryParams.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet(`/api/corporate/fse/lead?${queryParams.toString()}`);
+
       const data = await response.json();
       if (data.success) {
         setLeads(data.data);
@@ -117,14 +116,12 @@ export default function LeadsMasterPage() {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const isEdit = !!formData.client_id;
 
-      const response = await fetch('/api/corporate/fse/lead', {
-        method: isEdit ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify(formData)
-      });
+      let response;
+if (isEdit) {
+    response = await API.apiPut("/api/corporate/fse/lead", formData);
+} else {
+    response = await API.apiPost("/api/corporate/fse/lead", formData);
+}
 
       const data = await response.json();
       if (data.success) {
@@ -150,16 +147,7 @@ export default function LeadsMasterPage() {
   const saveInteraction = async (formData) => {
     try {
       setSaving(true);
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-
-      const response = await fetch('/api/corporate/fse/lead/interaction', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify(formData)
-      });
+      const response = await API.apiPost("/api/corporate/fse/lead/interaction", formData);
 
       const data = await response.json();
       if (data.success) {
@@ -186,14 +174,7 @@ export default function LeadsMasterPage() {
     };
 
     try {
-      const response = await fetch('/api/corporate/fse/lead/send-to-manager', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify(updateData)
-      });
+      const response = await API.apiPost("/api/corporate/fse/lead/send-to-manager", updateData);
 
       const data = await response.json();
       if (data.success) {
@@ -876,10 +857,7 @@ function FollowUpModal({ lead, onClose, onSave, saving, statusList }) {
     const fetchSuggestions = async () => {
       if (!lead?.client_id) return;
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch(`/api/corporate/fse/lead/interaction?client_id=${lead.client_id}`, {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        });
+        const response = await API.apiGet(`/api/corporate/fse/lead/interaction?client_id=${lead.client_id}`);
         const data = await response.json();
         if (data.success) {
           const persons = [...new Set(data.data.map(i => i.contact_person).filter(Boolean))];
@@ -1194,10 +1172,7 @@ function ClientFullViewModal({ lead, onClose }) {
       }
       try {
         setLoading(true);
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch(`/api/corporate/fse/lead/interaction?client_id=${lead.client_id}`, {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        });
+       const response = await API.apiGet(`/api/corporate/fse/lead/interaction?client_id=${lead.client_id}`);
         const data = await response.json();
         if (data.success) {
           setHistory(data.data);

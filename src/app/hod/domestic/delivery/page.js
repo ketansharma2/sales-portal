@@ -5,6 +5,7 @@ import {
   CheckCircle2, XCircle, AlertCircle, PhoneCall, FileText, 
   TrendingUp, Award, Zap, Briefcase, SlidersHorizontal, ChevronDown,Target, X
 } from "lucide-react";
+import * as API from '@/lib/api-client';
 
 export default function DomesticDeliveryPage() {
   const [crmOptions, setCrmOptions] = useState([]);
@@ -35,10 +36,7 @@ export default function DomesticDeliveryPage() {
   useEffect(() => {
     const fetchCrms = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/hod/domestic/delivery/filters?type=crms', {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        });
+        const response = await API.apiGet("/api/hod/domestic/delivery/filters?type=crms");
         const data = await response.json();
         if (data.success) {
           setCrmOptions(data.data || []);
@@ -64,10 +62,7 @@ export default function DomesticDeliveryPage() {
       if (crm) {
         setSelectedCrm(crm);
         try {
-          const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const res = await fetch(`/api/hod/domestic/delivery/filters?type=tls&sector=${crm.sector || 'Domestic'}`, {
-            headers: { 'Authorization': `Bearer ${session.access_token}` }
-          });
+          const res = await API.apiGet(`/api/hod/domestic/delivery/filters?type=tls&sector=${crm.sector || 'Domestic'}`);
           const data = await res.json();
           if (data.success) setTlOptions(data.data || []);
         } catch (error) {
@@ -87,10 +82,7 @@ export default function DomesticDeliveryPage() {
     if (tl) {
       setSelectedTl(tl);
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const res = await fetch(`/api/hod/domestic/delivery/filters?type=rcs&tlId=${tl.user_id}`, {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        });
+        const res = await API.apiGet(`/api/hod/domestic/delivery/filters?type=rcs&tlId=${tl.user_id}`);
         const data = await res.json();
         if (data.success) setRcOptions(data.data || []);
       } catch (error) {
@@ -102,7 +94,6 @@ export default function DomesticDeliveryPage() {
 const fetchMetrics = async () => {
   try {
     setMetricsLoading(true);
-    const session = JSON.parse(localStorage.getItem('session') || '{}');
     const params = new URLSearchParams();
     if (crmFilter !== 'All') {
       params.append('user_id', crmFilter);  // ✅ Pass the selected CRM's user_id
@@ -131,22 +122,12 @@ const fetchMetrics = async () => {
     if (dateTo) params.append('to', dateTo);
 
     const [crmRes, tlRes, rcRes, cvRes, stiRes] = await Promise.all([
-      fetch(`/api/hod/domestic/delivery/crm-metrics?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      }),
-      fetch(`/api/hod/domestic/delivery/tl-metrics?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      }),
-      fetch(`/api/hod/domestic/delivery/rc-metrics?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      }),
-       fetch(`/api/hod/domestic/delivery/rc-metrics/total-cvs?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      }),
-      fetch(`/api/hod/domestic/delivery/rc-metrics/total-sti?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      })
-    ]);
+    API.apiGet(`/api/hod/domestic/delivery/crm-metrics?${params.toString()}`),
+    API.apiGet(`/api/hod/domestic/delivery/tl-metrics?${params.toString()}`),
+    API.apiGet(`/api/hod/domestic/delivery/rc-metrics?${params.toString()}`),
+    API.apiGet(`/api/hod/domestic/delivery/rc-metrics/total-cvs?${params.toString()}`),
+    API.apiGet(`/api/hod/domestic/delivery/rc-metrics/total-sti?${params.toString()}`)
+]);
 
     const [crmData, tlData, rcData, cvData, stiData] = await Promise.all([
       crmRes.json(),

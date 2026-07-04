@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Download, RefreshCw, CheckCircle, XCircle, Loader2 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function CVUrlFixer() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
@@ -13,10 +13,7 @@ export default function CVUrlFixer() {
     setLoading(true);
     setStep(1);
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch("/api/corporate/recruiter/check-cv-urls", {
-        headers: { "Authorization": `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet("/api/corporate/recruiter/check-cv-urls");
       const result = await response.json();
       if (result.success) {
         setBrokenUrls(result.broken_urls || []);
@@ -33,15 +30,9 @@ export default function CVUrlFixer() {
     setLoading(true);
     setStep(2);
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch("/api/corporate/recruiter/test-double-encoded-urls", {
-        method: "POST",
-        headers: { 
-          "Authorization": `Bearer ${session.access_token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ urls: brokenUrls })
-      });
+      const response = await API.apiPost("/api/corporate/recruiter/test-double-encoded-urls", {
+    urls: brokenUrls
+});
       const result = await response.json();
       if (result.success) {
         setTestResults(result.results || []);
@@ -59,15 +50,9 @@ export default function CVUrlFixer() {
     setLoading(true);
     setStep(3);
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch("/api/corporate/recruiter/update-fixed-urls", {
-        method: "POST",
-        headers: { 
-          "Authorization": `Bearer ${session.access_token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ urls: workingUrls })
-      });
+      const response = await API.apiPost("/api/corporate/recruiter/update-fixed-urls", {
+    urls: workingUrls
+});
       const result = await response.json();
       if (result.success) {
         setUpdateResults(result);

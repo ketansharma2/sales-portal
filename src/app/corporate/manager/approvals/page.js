@@ -4,7 +4,7 @@ import {
   Check, X, ShieldCheck, UserCircle, Search, Download, 
   Clock, FileText, CheckCircle, ArrowRightCircle, Building2 
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function ManagerApprovals() {
   const [approvals, setApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,12 +14,7 @@ export default function ManagerApprovals() {
 
   const fetchPendingExpenses = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/corporate/manager/approvals/pending-expenses', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet("/api/corporate/manager/approvals/pending-expenses");
       const data = await response.json();
       if (data.success) {
         setApprovals(data.data);
@@ -33,12 +28,7 @@ export default function ManagerApprovals() {
 
   const fetchTeamCount = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/manager/fse-team', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet("/api/manager/fse-team");
       const data = await response.json();
       if (data.success) {
         setTeamCount(data.count);
@@ -55,15 +45,7 @@ export default function ManagerApprovals() {
 
   const handleApprove = async (exp_id) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/corporate/manager/approvals/approve-expense', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ exp_id })
-      });
+      const response = await API.apiPost("/api/corporate/manager/approvals/approve-expense", { exp_id });
       const data = await response.json();
       if (data.success) {
         fetchPendingExpenses(); // Refresh the list
@@ -75,15 +57,7 @@ export default function ManagerApprovals() {
 
   const handleReject = async (exp_id) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/corporate/manager/approvals/reject-expense', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ exp_id })
-      });
+      const response = await API.apiPost("/api/corporate/manager/approvals/reject-expense", { exp_id });
       const data = await response.json();
       if (data.success) {
         fetchPendingExpenses(); // Refresh the list
@@ -95,15 +69,7 @@ export default function ManagerApprovals() {
 
   const handleSendToHR = async (exp_id) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/corporate/manager/approvals/send-to-hr', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ exp_id })
-      });
+      const response = await API.apiPost("/api/corporate/manager/approvals/send-to-hr", { exp_id });
       const data = await response.json();
       if (data.success) {
         fetchPendingExpenses(); // Refresh the list

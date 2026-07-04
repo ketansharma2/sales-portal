@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { 
   Calendar, Printer, FileSpreadsheet, Database, Briefcase, PhoneCall,FileText
 } from "lucide-react";
-
+import * as API from '@/lib/api-client'
 export default function JobPosterReportDetailed() {
   
   const getTodayDate = () => new Date().toISOString().split('T')[0];
@@ -39,8 +39,8 @@ const [jobsPosted, setJobsPosted] = useState({
     const fetchJobsPosted = async () => {
       setLoadingJobs(true);
       try {
-        const res = await fetch(`/api/jobpost/report-date/jobs`);
-        const data = await res.json();
+const response = await API.apiGet(`/api/jobpost/report-date/jobs`);
+const data = await response.json();
         if (data.success) {
           setJobsPosted(data);
         }
@@ -61,12 +61,10 @@ const [jobsPosted, setJobsPosted] = useState({
   useEffect(() => {
     const fetchDailyStats = async () => {
       setLoadingDaily(true);
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
+       
       try {
-        const res = await fetch(`/api/jobpost/daily-stats?date=${selectedDate}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
-        const data = await res.json();
+      const response = await API.apiGet(`/api/jobpost/daily-stats?date=${selectedDate}`);
+        const data = await response.json();
         if (data.success) {
           setDailyPlatformStats(data.stats);
         }
@@ -89,11 +87,8 @@ const [jobsPosted, setJobsPosted] = useState({
   useEffect(() => {
     const fetchPlatformTotals = async () => {
       try {
-           const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const res = await fetch('/api/jobpost/platform-totals', {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
-        const data = await res.json();
+           const response = await API.apiGet('/api/jobpost/platform-totals');
+        const data = await response.json();
         if (data.success) {
           setLifetimeTotals({
             indeedCvs: data.platformTotals.indeed?.cvs || 0,
@@ -236,7 +231,7 @@ const [jobsPosted, setJobsPosted] = useState({
               <div className="w-full lg:w-[35%] print:w-[35%] flex flex-col">
                   <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center gap-2">
                       <Database size={16} className="text-green-700"/>
-                      <h3 className="font-black text-green-700 uppercase text-sm tracking-widest">Today's Sourcing</h3>
+                      <h3 className="font-black text-green-700 uppercase text-sm tracking-widest">{"Today's Sourcing"}</h3>
                   </div>
                   
                   <div className="p-4 flex-1 bg-white flex items-start justify-start">

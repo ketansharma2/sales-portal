@@ -17,6 +17,7 @@ import {
   Loader2 
 } from "lucide-react";
 import dynamic from 'next/dynamic';
+import * as API from '@/lib/api-client';
 import jsPDF from "jspdf";
 import { useRouter, useSearchParams } from "next/navigation";
 function CVPreview({ url, name }) {
@@ -31,7 +32,7 @@ function CVPreview({ url, name }) {
                 setLoading(true);
                 setError(null);
                 
-                const response = await fetch(url);
+                const response = await API.apiGet(url);
                 
                 if (!response.ok) {
                     throw new Error(`Failed to fetch file: ${response.status}`);
@@ -215,13 +216,7 @@ function CVByJobPostPage() {
 
       try {
 
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-
-        const response = await fetch(`/api/corporate/crm/conversations/by-req?req_id=${req_id}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+const response = await API.apiGet(`/api/corporate/crm/conversations/by-req?req_id=${req_id}`);
         if (!response.ok) {
           throw new Error('Failed to fetch candidates');
         }
@@ -368,13 +363,7 @@ const filteredData = useMemo(() => {
     setLoadingHistory(true);
     
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      // Fetch history for this specific candidate
-      const response = await fetch(`/api/corporate/crm/conversations/history?conversation_id=${candidate.parsing_id}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+const response = await API.apiGet(`/api/corporate/crm/conversations/history?conversation_id=${candidate.parsing_id}`);
       
       if (response.ok) {
         const result = await response.json();

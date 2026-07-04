@@ -23,7 +23,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-
+import * as API from '@/lib/api-client';
 export default function ManagerLeadsPage() {
   const getWeekNumber = (dateString) => {
     if (!dateString) return null;
@@ -141,11 +141,8 @@ export default function ManagerLeadsPage() {
             ? `/api/domestic/manager/leads?tab=${activeTab}`
             : `/api/domestic/manager/leads-database`;
 
-        const response = await fetch(apiUrl, {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        });
+       const response = await API.apiGet(apiUrl);
+
         const data = await response.json();
 
         if (data.error) {
@@ -181,10 +178,7 @@ export default function ManagerLeadsPage() {
 
     const fetchCrmUsers = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem("session") || "{}");
-        const response = await fetch("/api/domestic/manager/crm-users", {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
+        const response = await API.apiGet("/api/domestic/manager/crm-users");
         const data = await response.json();
         if (data.success) setCrmUsers(data.data);
       } catch (error) {
@@ -194,10 +188,7 @@ export default function ManagerLeadsPage() {
 
     const fetchLeadgenUsers = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem("session") || "{}");
-        const response = await fetch("/api/domestic/manager/leadgen-users", {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
+        const response = await API.apiGet("/api/domestic/manager/leadgen-users");
         const data = await response.json();
         if (data.success) {
           setLeadgenUsers(data.data);
@@ -312,24 +303,14 @@ export default function ManagerLeadsPage() {
     if (type === "view" || type === "pass_delivery") {
       const fetchInteractions = async () => {
         try {
-          const session = JSON.parse(localStorage.getItem("session") || "{}");
 
           // Fetch from domestic_manager_interaction
-          const managerResponse = await fetch(
-            `/api/domestic/manager/interaction?client_id=${lead.id}`,
-            {
-              headers: { Authorization: `Bearer ${session.access_token}` },
-            },
-          );
+          const managerResponse = await API.apiGet(`/api/domestic/manager/interaction?client_id=${lead.id}`);
+
           const managerData = await managerResponse.json();
 
           // Fetch from domestic_leads_interaction
-          const leadsResponse = await fetch(
-            `/api/domestic/leadgen/interaction?client_id=${lead.id}`,
-            {
-              headers: { Authorization: `Bearer ${session.access_token}` },
-            },
-          );
+          const leadsResponse = await API.apiGet(`/api/domestic/leadgen/interaction?client_id=${lead.id}`);
           const leadsData = await leadsResponse.json();
 
           // Combine both interaction lists
@@ -385,13 +366,7 @@ export default function ManagerLeadsPage() {
 
   const fetchContactSuggestions = async (clientId) => {
     try {
-      const session = JSON.parse(localStorage.getItem("session") || "{}");
-      const response = await fetch(
-        `/api/domestic/manager/contact-suggestions?client_id=${clientId}`,
-        {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        }
-      );
+      const response = await API.apiGet(`/api/domestic/manager/contact-suggestions?client_id=${clientId}`);
       const data = await response.json();
       if (data.success) {
         setContactSuggestions(data.data);
@@ -409,18 +384,11 @@ export default function ManagerLeadsPage() {
         return;
       }
       try {
-        const response = await fetch(
-          "/api/domestic/manager/leads/assign-fse",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              client_id: selectedLead.id,
-              fse_id: fse.id,
-              date: visitDate,
-            }),
-          },
-        );
+        const response = await API.apiPost("/api/domestic/manager/leads/assign-fse", {
+    client_id: selectedLead.id,
+    fse_id: fse.id,
+    date: visitDate,
+});
         if (!response.ok) throw new Error("Failed");
         const updatedLeads = leads.map((l) =>
           l.id === selectedLead.id
@@ -448,15 +416,9 @@ export default function ManagerLeadsPage() {
       // Use latest interaction from domestic_manager_interaction table
       const latestInteraction = latestInteractionForDelivery;
       try {
-        const response = await fetch(
+        const response = await API.apiPost(
           "/api/domestic/manager/leads/pass-to-delivery",
           {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${JSON.parse(localStorage.getItem("session") || "{}").access_token}`,
-            },
-            body: JSON.stringify({
               client_id: selectedLead.id,
               company_name: selectedLead.company,
               category: selectedLead.category,
@@ -473,7 +435,6 @@ export default function ManagerLeadsPage() {
                 latestInteraction.remarks || latestInteraction.sub_status || "",
               status: latestInteraction.status || "Handover",
               user_id: selectedCrmUser,
-            }),
           },
         );
         if (!response.ok) throw new Error("Failed");
@@ -504,14 +465,9 @@ export default function ManagerLeadsPage() {
       }
     } else if (modalType === "add_conversation") {
       try {
-        const session = JSON.parse(localStorage.getItem("session") || "{}");
-        const response = await fetch("/api/domestic/manager/interaction", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
+      
+        const response = await API.apiPost("/api/domestic/manager/interaction", {
+
             client_id: selectedLead.id,
             date:
               conversationData.interactionDate ||
@@ -523,7 +479,7 @@ export default function ManagerLeadsPage() {
             contact_person: conversationData.contactPerson,
             contact_no: conversationData.phone,
             email: conversationData.email,
-          }),
+
         });
         if (!response.ok) throw new Error("Failed");
         const updatedLeads = leads.map((l) => {
@@ -580,14 +536,7 @@ export default function ManagerLeadsPage() {
         };
         console.log('Sending update data:', updateData);
         
-        const response = await fetch("/api/domestic/manager/leads/update", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${JSON.parse(localStorage.getItem("session") || "{}").access_token}`,
-          },
-          body: JSON.stringify(updateData),
-        });
+        const response = await API.apiPut("/api/domestic/manager/leads/update", updateData);
         const data = await response.json();
         if (data.success) {
           setLeads((prev) =>

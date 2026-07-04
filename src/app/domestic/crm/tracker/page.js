@@ -6,6 +6,7 @@ import {
     X, Send, FileText, Briefcase, MapPin, GraduationCap, Edit3, Loader2, File, MessageCircle, Search
 } from "lucide-react";
 import jsPDF from "jspdf";
+import * as API from '@/lib/api-client';
 
 // CV Preview Component - Handles PDF, Images, and Word documents
 function CVPreview({ url, name }) {
@@ -179,12 +180,7 @@ export default function CRMClientTrackerPage() {
     useEffect(() => {
         const fetchTlUsers = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                const response = await fetch('/api/domestic/crm/tl-users', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+        const response = await API.apiGet('/api/domestic/crm/tl-users');
                 
                 const result = await response.json();
                 if (result.success && result.data) {
@@ -1138,7 +1134,7 @@ setShareForm({ company: "", clientId: "", toEmail: "", mobileNumber: "", manualP
                                         {/* TL Evaluation */}
                                         <td className="py-2 px-3 overflow-hidden">
                                             <p className="text-[9px] font-medium text-slate-600 italic leading-snug border-l-2 border-amber-400 pl-2 truncate w-full block" title={row.tlEvaluation}>
-                                                "{row.tlEvaluation}"
+                                                {row.tlEvaluation}
                                             </p>
                                         </td>
 

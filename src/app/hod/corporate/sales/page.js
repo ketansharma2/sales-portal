@@ -8,7 +8,7 @@ import {
   UserCheck, Headset, PhoneCall, CalendarDays, Database, Clock,
   PhoneOutgoing, PhoneIncoming, PhoneMissed, Send, FileText, Briefcase, Award, Rocket
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 // --- Helper function to build filter URL ---
 const buildFilterUrl = (router, fromDate, toDate, isAllData, filters) => {
   const params = new URLSearchParams();
@@ -97,10 +97,7 @@ export default function SalesManagerDashboard() {
   useEffect(() => {
     const fetchLeadGenTeam = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/hod/corporate/leadgen-users', {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        });
+        const response = await API.apiGet("/api/hod/corporate/leadgen-users");
         const data = await response.json();
         if (data.success) {
           setLeadGenTeam(data.data || []);
@@ -144,10 +141,7 @@ export default function SalesManagerDashboard() {
   // Fetch latest date and return it
   const fetchLatestDate = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/hod/corporate/latest-interaction-date', {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet("/api/hod/corporate/latest-interaction-date");
       const data = await response.json();
       if (data.success && data.latestDate) {
         const latestDate = data.latestDate;
@@ -166,7 +160,6 @@ export default function SalesManagerDashboard() {
   // Fetch conversation log
   const fetchConversationLog = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -182,9 +175,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/conversation-log?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet(`/api/hod/corporate/conversation-log?${params.toString()}`);
       const data = await response.json();
       console.log('Manager conversation log API response:', data);
       if (data.success && data.data) {
@@ -198,7 +189,6 @@ export default function SalesManagerDashboard() {
   // Fetch normal leads count
   const fetchNormalLeadsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -214,9 +204,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/normal-leads-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet(`/api/hod/corporate/normal-leads-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, normal: { ...prev.kpiData.normal, leads: data.data.leads?.total || 0 } } }));
@@ -229,7 +217,6 @@ export default function SalesManagerDashboard() {
   // Fetch normal calls count
   const fetchNormalCallsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -245,9 +232,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/normal-calls-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet(`/api/hod/corporate/normal-calls-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, normal: { ...prev.kpiData.normal, calls: data.data.calls?.total || 0 } } }));
@@ -260,7 +245,6 @@ export default function SalesManagerDashboard() {
   // Fetch startup leads count
   const fetchStartupLeadsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -276,9 +260,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/startup-leads-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet(`/api/hod/corporate/startup-leads-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, startup: { ...prev.kpiData.startup, leads: data.data.leads?.total || 0 } } }));
@@ -291,7 +273,6 @@ export default function SalesManagerDashboard() {
   // Fetch startup calls count
   const fetchStartupCallsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -307,9 +288,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/startup-calls-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet(`/api/hod/corporate/startup-calls-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, startup: { ...prev.kpiData.startup, calls: data.data.calls?.total || 0 } } }));
@@ -322,7 +301,6 @@ export default function SalesManagerDashboard() {
   // Fetch Master Union leads count
   const fetchMasterUnionLeadsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -338,9 +316,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/master-union-leads-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet(`/api/hod/corporate/master-union-leads-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, masterUnion: { ...prev.kpiData.masterUnion, company: data.data.leads?.total || 0 } } }));
@@ -353,7 +329,6 @@ export default function SalesManagerDashboard() {
   // Fetch Master Union calls count
   const fetchMasterUnionCallsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -369,9 +344,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/master-union-calls-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet(`/api/hod/corporate/master-union-calls-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, masterUnion: { ...prev.kpiData.masterUnion, calling: data.data.calls?.total || 0 } } }));
@@ -384,7 +357,6 @@ export default function SalesManagerDashboard() {
   // Fetch total leads count
   const fetchTotalLeadsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -400,9 +372,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/total-leads-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet(`/api/hod/corporate/total-leads-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, searched: { ...prev.kpiData.searched, total: data.data.leads?.total || 0 } } }));
@@ -415,7 +385,6 @@ export default function SalesManagerDashboard() {
   // Fetch total calls count
   const fetchTotalCallsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -431,9 +400,9 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/total-calls-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+    const response = await API.apiGet(`/api/hod/corporate/total-calls-count?${params.toString()}`);
+
+
       const data = await response.json();
       if (data.success && data.data) {
         setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, calls: { ...prev.kpiData.calls, total: data.data.calls?.total || 0 } } }));
@@ -446,7 +415,6 @@ export default function SalesManagerDashboard() {
   // Fetch total contacts count
   const fetchTotalContactsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -462,9 +430,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/total-contacts-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+    const response = await API.apiGet(`/api/hod/corporate/total-contacts-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setStats(prev => ({ ...prev, kpiData: { ...prev.kpiData, contacts: { ...prev.kpiData.contacts, total: data.data.contacts?.total || 0 } } }));
@@ -477,7 +443,6 @@ export default function SalesManagerDashboard() {
   // Fetch new calls and followup calls count
   const fetchNewFollowupCallsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -493,9 +458,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/new-followup-calls-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+    const response = await API.apiGet(`/api/hod/corporate/new-followup-calls-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setStats(prev => ({ 
@@ -518,7 +481,6 @@ export default function SalesManagerDashboard() {
   // Fetch picked and not picked count
   const fetchPickedNotPickedCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -534,9 +496,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/picked-not-picked-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+    const response = await API.apiGet(`/api/hod/corporate/picked-not-picked-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setStats(prev => ({ 
@@ -556,7 +516,6 @@ export default function SalesManagerDashboard() {
   // Fetch contract share count
   const fetchContractShareCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -572,9 +531,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/contract-share-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+    const response = await API.apiGet(`/api/hod/corporate/contract-share-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setStats(prev => ({ 
@@ -593,7 +550,6 @@ export default function SalesManagerDashboard() {
   // Fetch interested count
   const fetchInterestedCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -609,9 +565,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/interested-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+    const response = await API.apiGet(`/api/hod/corporate/interested-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setStats(prev => ({ 
@@ -630,7 +584,6 @@ export default function SalesManagerDashboard() {
   // Fetch sent to manager count
   const fetchSentToManagerCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -646,9 +599,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/sent-to-manager-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet(`/api/hod/corporate/sent-to-manager-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setStats(prev => ({ 
@@ -667,7 +618,6 @@ export default function SalesManagerDashboard() {
   // Fetch total onboard count
   const fetchTotalOnboardCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -683,9 +633,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/total-onboard-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet(`/api/hod/corporate/total-onboard-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setStats(prev => ({ 
@@ -704,7 +652,6 @@ export default function SalesManagerDashboard() {
   // Fetch franchise form ask and form shared count
   const fetchFranchiseFormCount = async (useLatestFromApi = false, latestDateFromApi = null, formType = 'formAsk') => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       params.append('status', 'application form share');
@@ -721,9 +668,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/franchise-form-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet(`/api/hod/corporate/franchise-form-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         if (formType === 'formAsk') {
@@ -758,7 +703,6 @@ export default function SalesManagerDashboard() {
   // Fetch franchise discussed count
   const fetchFranchiseDiscussedCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -774,9 +718,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/franchise-discussed-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet(`/api/hod/corporate/franchise-discussed-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setStats(prev => ({ 
@@ -798,7 +740,6 @@ export default function SalesManagerDashboard() {
   // Fetch franchise accepted count
   const fetchFranchiseAcceptedCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('leadgen_id', selectedAgent || 'All');
       
@@ -814,9 +755,7 @@ export default function SalesManagerDashboard() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/hod/corporate/franchise-accepted-count?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet(`/api/hod/corporate/franchise-accepted-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setStats(prev => ({ 

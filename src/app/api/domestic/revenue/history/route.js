@@ -1,3 +1,4 @@
+import { getUser } from '@/lib/auth-helper'
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
@@ -5,16 +6,11 @@ import { NextResponse } from 'next/server'
 export async function GET(request) {
   try {
     // Authentication
-    console.log('dhdhsdhdfhfdh2');
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
-    }
+    // Authentication - user injected by middleware (no auth calls needed!)
+        const { user, error } = getUser(request)
+        if (error || !user) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
 
     let  currentUserId = user.user_id || user.id
     const { searchParams } = new URL(request.url)
@@ -227,16 +223,12 @@ if (latestRetention) {
 // PUT: Update revenue record (exact same structure as corporate)
 export async function PUT(request) {
   try {
-    // Authentication
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
-    }
+   
+   // Authentication - user injected by middleware (no auth calls needed!)
+       const { user, error } = getUser(request)
+       if (error || !user) {
+         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+       }
 
     
 

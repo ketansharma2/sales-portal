@@ -4,7 +4,7 @@ import {
   Calendar, X, Search, Loader2, CalendarOff, Trash2, 
   ChevronLeft, ChevronRight
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function NonVisitDaysPage() {
   const [mounted, setMounted] = useState(false);
   const [leaves, setLeaves] = useState([]);
@@ -44,9 +44,7 @@ export default function NonVisitDaysPage() {
         url += `?fromDate=${fromDate}&toDate=${toDate}`;
       }
 
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+     const response = await API.apiGet(url);
       const data = await response.json();
       
       if (data.success) {
@@ -65,12 +63,7 @@ export default function NonVisitDaysPage() {
 
     try {
       setSaving(true);
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-
-      const response = await fetch(`/api/domestic/fse/non-working?id=${leave.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiDelete(`/api/domestic/fse/non-working?id=${leave.id}`);
 
       const data = await response.json();
       if (data.success) {

@@ -1,6 +1,6 @@
-// lib/firebase-client.js
 import { initializeApp, getApps, getApp } from 'firebase/app'
 import { getMessaging, getToken, onMessage } from 'firebase/messaging'
+import { apiPost } from '@/lib/api-client'
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -15,18 +15,30 @@ export const messaging = typeof window !== 'undefined' ? getMessaging(app) : nul
 
 export async function requestFCMToken(userId, accessToken) {
   if (!messaging) return null
+  
   try {
     const token = await getToken(messaging, {
       vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
     })
 
-    const session = JSON.parse(localStorage.getItem('session') || '{}');
-    // Save token to Supabase
-    await fetch('/api/user/fcm-token', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${session.access_token}` },
-      body: JSON.stringify({ fcm_token: token }),
+    console.log('FCM token obtained:', token ? 'Yes' : 'No')
+    
+    // Use apiPost with cookies - accessToken is no longer needed
+    // The api-client automatically includes cookies via credentials: 'include'
+    const response = await apiPost('/api/user/fcm-token', { 
+      fcm_token: token,
+      user_id: userId // Include userId for additional verification
     })
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Server response:', errorText)
+      throw new Error(`Failed to save FCM token: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    console.log('FCM token saved successfully:', data)
+    
     return token
   } catch (err) {
     console.error('FCM token error:', err)
@@ -35,8 +47,17 @@ export async function requestFCMToken(userId, accessToken) {
 }
 
 export function onForegroundMessage(callback) {
-  if (!messaging) return
-  onMessage(messaging, (payload) => {
-    callback(payload)
-  })
+  if (!messaging) {
+    console.warn('Messaging not available (server-side)')
+    return
+  }
+  
+  try {
+    onMessage(messaging, (payload) => {
+      console.log('Foreground message received:', payload)
+      callback(payload)
+    })
+  } catch (error) {
+    console.error('Error setting up foreground message listener:', error)
+  }
 }

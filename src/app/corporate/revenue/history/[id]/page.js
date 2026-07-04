@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 import { useParams, useRouter } from 'next/navigation';
-
+import * as API from '@/lib/api-client';
 export default function CandidateHistoryPage() {
   const params = useParams();
   const router = useRouter();
@@ -68,13 +68,7 @@ export default function CandidateHistoryPage() {
       setLoading(true);
 
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-
-        // Fetch revenue record by ID
-        const response = await fetch(`/api/corporate/revenue/history?revenue_id=${params.id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await API.apiGet(`/api/corporate/revenue/history?revenue_id=${params.id}`);
 
         const result = await response.json();
 
@@ -130,16 +124,10 @@ export default function CandidateHistoryPage() {
              const token = session.access_token;
 
              const [candidateRes, clientRes, paymentRes] = await Promise.all([
-               fetch(`/api/corporate/revenue/candidate-track?revenue_id=${params.id}`, {
-                 headers: { 'Authorization': `Bearer ${token}` }
-               }),
-               fetch(`/api/corporate/revenue/client-track?revenue_id=${params.id}`, {
-                 headers: { 'Authorization': `Bearer ${token}` }
-               }),
-               fetch(`/api/corporate/revenue/payment-track?revenue_id=${params.id}`, {
-                 headers: { 'Authorization': `Bearer ${token}` }
-               })
-             ]);
+    API.apiGet(`/api/corporate/revenue/candidate-track?revenue_id=${params.id}`),
+    API.apiGet(`/api/corporate/revenue/client-track?revenue_id=${params.id}`),
+    API.apiGet(`/api/corporate/revenue/payment-track?revenue_id=${params.id}`)
+]);
 
              // Safely parse responses with error handling
              const [candidateResult, clientResult, paymentResult] = await Promise.all([
@@ -254,14 +242,7 @@ export default function CandidateHistoryPage() {
          payment_from: mainForm.payment_from || null
        };
 
-       const response = await fetch('/api/corporate/revenue/history', {
-         method: 'PUT',
-         headers: {
-           'Authorization': `Bearer ${token}`,
-           'Content-Type': 'application/json'
-         },
-         body: JSON.stringify(updatePayload)
-       });
+       const response = await API.apiPut("/api/corporate/revenue/history", updatePayload);
 
        const result = await response.json();
 
@@ -285,24 +266,14 @@ export default function CandidateHistoryPage() {
         }
 
         try {
-          const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const token = session.access_token;
-
-          const response = await fetch(`/api/corporate/revenue/${revenueId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              revenue_id: revenueId,
-              base_invoice: revenueForm.base_invoice,
-              total_with_gst: revenueForm.total_with_gst,
-              payment_due_date: revenueForm.payment_due_date,
-              payment_follow_up: revenueForm.payment_follow_up,
-              pi_date: revenueForm.pi_date,
-            })
-          });
+          const response = await API.apiPut(`/api/corporate/revenue/${revenueId}`, {
+    revenue_id: revenueId,
+    base_invoice: revenueForm.base_invoice,
+    total_with_gst: revenueForm.total_with_gst,
+    payment_due_date: revenueForm.payment_due_date,
+    payment_follow_up: revenueForm.payment_follow_up,
+    pi_date: revenueForm.pi_date,
+});
 
           const result = await response.json();
 
@@ -327,20 +298,13 @@ export default function CandidateHistoryPage() {
 
        if (modalType === 'candidate') {
          setIsSavingCandidate(true);
-         const response = await fetch('/api/corporate/revenue/candidate-track', {
-           method: 'POST',
-           headers: {
-             'Authorization': `Bearer ${token}`,
-             'Content-Type': 'application/json'
-           },
-           body: JSON.stringify({
-             revenue_id: params.id,
-             date: candForm.followup_date,
-             next_follow_up: candForm.next_followup_date || null,
-             candidate_status: candForm.candidate_status,
-             remarks: candForm.conversation
-           })
-         });
+         const response = await API.apiPost("/api/corporate/revenue/candidate-track", {
+    revenue_id: params.id,
+    date: candForm.followup_date,
+    next_follow_up: candForm.next_followup_date || null,
+    candidate_status: candForm.candidate_status,
+    remarks: candForm.conversation
+});
 
          const result = await response.json();
 
@@ -365,16 +329,12 @@ export default function CandidateHistoryPage() {
        }
        else if (modalType === 'client') {
          setIsSavingClient(true);
-         const response = await fetch('/api/corporate/revenue/client-track', {
-           method: 'POST',
-           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-           body: JSON.stringify({
-             revenue_id: params.id,
-             date: clientForm.followup_date,
-             next_follow_up: clientForm.next_followup_date || null,
-             remarks: clientForm.conversation
-           })
-         });
+         const response = await API.apiPost("/api/corporate/revenue/client-track", {
+    revenue_id: params.id,
+    date: clientForm.followup_date,
+    next_follow_up: clientForm.next_followup_date || null,
+    remarks: clientForm.conversation
+});
          const result = await response.json();
          if (response.ok && result.success) {
            const updatedData = { ...data };
@@ -395,17 +355,13 @@ export default function CandidateHistoryPage() {
        }
        else if (modalType === 'payment') {
          setIsSavingPayment(true);
-         const response = await fetch('/api/corporate/revenue/payment-track', {
-           method: 'POST',
-           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-           body: JSON.stringify({
-             revenue_id: params.id,
-             date: payForm.date,
-             amount_received: payForm.amount_received || null,
-             payment_status: payForm.payment_status,
-             remarks: payForm.remark
-           })
-         });
+         const response = await API.apiPost("/api/corporate/revenue/payment-track", {
+    revenue_id: params.id,
+    date: payForm.date,
+    amount_received: payForm.amount_received || null,
+    payment_status: payForm.payment_status,
+    remarks: payForm.remark
+});
          const result = await response.json();
          if (response.ok && result.success) {
            const updatedData = { ...data };

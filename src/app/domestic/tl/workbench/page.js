@@ -5,7 +5,7 @@ import {
     Target, Search, Activity, X, BarChart2, FileText, Send,
     UserCheck, TrendingUp, Database, MessageSquarePlus, Clock, Eye, Download, Edit
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function TLWorkbenchPage() {
     
     // --- STATE ---
@@ -45,12 +45,7 @@ export default function TLWorkbenchPage() {
     useEffect(() => {
         const fetchRcUsers = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/domestic/tl/rc-users', {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
+                const response = await API.apiGet('/api/domestic/tl/rc-users');
                 const data = await response.json();
                 if (data.success) {
                     setRcUsersList(data.data);
@@ -68,12 +63,7 @@ export default function TLWorkbenchPage() {
     useEffect(() => {
         const fetchWorkbenchAssignments = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/domestic/tl/workbench', {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
+                const response = await API.apiGet('/api/domestic/tl/workbench');
                 const data = await response.json();
                 if (data.success) {
                     // Transform workbench data to match assignments format
@@ -154,17 +144,10 @@ export default function TLWorkbenchPage() {
                 return;
             }
 
-            const response = await fetch('/api/domestic/tl/workbench/assign', {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${session.access_token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
+            const response = await API.apiPut('/api/domestic/tl/workbench/assign', {               
                     workbench_id: item.id,
                     sent_to_rc: selectedRc.user_id,
                     slot: item.slot
-                })
             });
 
             const data = await response.json();
@@ -200,11 +183,7 @@ export default function TLWorkbenchPage() {
 
     const handleViewStiHistory = async (workbenchId) => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            const response = await fetch(`/api/corporate/recruiter/advance-sti?workbench_id=${workbenchId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/corporate/recruiter/advance-sti?workbench_id=${workbenchId}`);
             const result = await response.json();
             if (result.success) {
                 setStiHistoryData(result.data || []);
@@ -229,18 +208,11 @@ export default function TLWorkbenchPage() {
         setSavingRemark(true);
 
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
             
-            const response = await fetch('/api/domestic/tl/workbench/remark', {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${session.access_token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
+            
+            const response = await API.apiPut('/api/domestic/tl/workbench/remark', {
                     workbench_id: selectedRemarkTask.id,
                     tl_remark: remarkForm.remark
-                })
             });
 
             const data = await response.json();
@@ -577,8 +549,8 @@ export default function TLWorkbenchPage() {
                                     <div className="space-y-4">
                                         {selectedWork.progress.notes && (
                                             <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                                                <h5 className="text-[10px] font-black text-gray-500 uppercase mb-2 flex items-center gap-1.5"><FileText size={12}/> Recruiter's Daily Note</h5>
-                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-yellow-400 pl-3 py-1 bg-yellow-50/30">"{selectedWork.progress.notes}"</p>
+                                                <h5 className="text-[10px] font-black text-gray-500 uppercase mb-2 flex items-center gap-1.5"><FileText size={12}/> {"Recruiter's Daily Note"}</h5>
+                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-yellow-400 pl-3 py-1 bg-yellow-50/30">{selectedWork.progress.notes}</p>
                                             </div>
                                         )}
                                         {selectedWork.tlRemarks && selectedWork.tlRemarks.length > 0 && (

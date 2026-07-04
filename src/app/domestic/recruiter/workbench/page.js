@@ -5,7 +5,7 @@ import {
     Target, Search, Activity, X, BarChart2, FileText, Send,
     UserCheck, TrendingUp, Database, MessageSquarePlus, Clock, Eye, Download, Edit
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function RecruiterWorkbenchPage() {
     
     // --- STATE ---
@@ -53,12 +53,7 @@ export default function RecruiterWorkbenchPage() {
     useEffect(() => {
         const fetchWorkbenchAssignments = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/domestic/recruiter/workbench', {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
+                const response = await API.apiGet('/api/domestic/recruiter/workbench');
                 const data = await response.json();
                 if (data.success) {
                     // Transform workbench data to match assignments format
@@ -169,11 +164,7 @@ export default function RecruiterWorkbenchPage() {
         
         // Fetch STI history
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            const response = await fetch(`/api/domestic/recruiter/advance-sti?workbench_id=${item.id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+const response = await API.apiGet(`/api/domestic/recruiter/advance-sti?workbench_id=${item.id}`);
             const result = await response.json();
             if (result.success) {
                 setStiHistory(result.data || []);
@@ -200,20 +191,11 @@ export default function RecruiterWorkbenchPage() {
         setIsStiSaving(true);
         
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
             
-            const response = await fetch('/api/domestic/recruiter/advance-sti', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
+            const response = await API.apiPut('/api/domestic/recruiter/advance-sti', {
                     id: selectedStiTask.id,
                     advance_sti: stiForm.advanceSti,
                     date: stiForm.date
-                })
             });
             
             const result = await response.json();
@@ -254,19 +236,10 @@ export default function RecruiterWorkbenchPage() {
         
         // Call API to update rc_remarks
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            
-            const response = await fetch('/api/domestic/recruiter/remarks', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
+        
+            const response = await API.apiPut('/api/domestic/recruiter/remarks', {
                     id: selectedRemarkTask.id,
                     rc_remarks: remarkForm.remark
-                })
             });
             
             const result = await response.json();
@@ -590,7 +563,7 @@ export default function RecruiterWorkbenchPage() {
                                         {selectedWork.progress.notes && (
                                             <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
                                                 <h5 className="text-[10px] font-black text-gray-500 uppercase mb-2 flex items-center gap-1.5"><FileText size={12}/> Your Daily Note</h5>
-                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-yellow-400 pl-3 py-1 bg-yellow-50/30">"{selectedWork.progress.notes}"</p>
+                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-yellow-400 pl-3 py-1 bg-yellow-50/30">{selectedWork.progress.notes}</p>
                                             </div>
                                         )}
                                         {selectedWork.recruiterRemarks && selectedWork.recruiterRemarks.length > 0 && (
