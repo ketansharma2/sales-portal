@@ -45,7 +45,6 @@ const STATUS_MAP = {
   pending: 'Pending (Manager)',
   approved: 'Approved',
   rejected: 'Rejected',
-  sent_to_hr: 'Sent to HR',
   paid: 'PAID',
 }
 
@@ -67,7 +66,7 @@ export async function GET(request) {
     const dateRangeKey = searchParams.get('date_range') // today | this_week | this_month | last_month | custom
     let fromDate = searchParams.get('from_date')
     let toDate = searchParams.get('to_date')
-    const statusFilter = searchParams.get('status') // pending | approved | rejected | sent_to_hr | paid | all
+    const statusFilter = searchParams.get('status') // pending | approved (includes Sent to HR) | rejected | paid | all
     const employeeId = searchParams.get('employee_id')
     const category = searchParams.get('category')
     const search = (searchParams.get('search') || '').trim()
@@ -140,7 +139,10 @@ export async function GET(request) {
         .eq('submitted', true)
         .in('user_id', userIds)
 
-      if (statusFilter && statusFilter !== 'all' && STATUS_MAP[statusFilter]) {
+      if (statusFilter === 'approved') {
+        // "Sent to HR" is a downstream sub-state of Approved, so it's grouped under Approved
+        q = q.in('status', ['Approved', 'Sent to HR'])
+      } else if (statusFilter && statusFilter !== 'all' && STATUS_MAP[statusFilter]) {
         q = q.eq('status', STATUS_MAP[statusFilter])
       }
       if (fromDate && toDate) {

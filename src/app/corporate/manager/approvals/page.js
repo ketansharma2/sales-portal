@@ -19,7 +19,6 @@ const STATUS_OPTIONS = [
   { value: "", label: "All Status" },
   { value: "pending", label: "Pending" },
   { value: "approved", label: "Approved" },
-  { value: "sent_to_hr", label: "Sent to HR" },
   { value: "rejected", label: "Rejected" },
   { value: "paid", label: "Paid" },
 ];
