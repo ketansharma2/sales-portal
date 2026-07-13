@@ -6,6 +6,8 @@ import {
     Search, Eye, X, Users, LayoutDashboard, Settings, UserCog, Download
 } from "lucide-react";
 import * as API from '@/lib/api-client';
+import JdDocumentModal from "@/components/JdDocumentModal";
+import Image from "next/image";
 export default function CRMWorkbenchReport() {
     
     // --- STATE ---
@@ -68,7 +70,7 @@ export default function CRMWorkbenchReport() {
         if (selectedTL !== "All") {
             const selectedTlUser = tlList.find(t => t.name === selectedTL);
             const hasRcForThisTl = allRecruiters.some(r => r.tl_id === selectedTlUser?.user_id);
-            if (!hasRcForThisTl) {
+            if (!hasRcForThisTl && selectedRecruiter !== "All") {
                 setSelectedRecruiter("All");
             }
         }
@@ -668,7 +670,19 @@ export default function CRMWorkbenchReport() {
                 </div>
             )}
 
-            {jdModalData && isJdViewModalOpen && (
+            {/* --- VIEW JD DETAILS MODAL (DOCUMENT PREVIEW) --- */}
+            <JdDocumentModal
+                isOpen={isJdViewModalOpen}
+                jd={currentJdView}
+                onClose={() => {
+                    setIsJdViewModalOpen(false);
+                    setCurrentJdView(null);
+                    setJdModalData(null);
+                }}
+            />
+
+            {/* OLD MODAL - KEEPING FOR REFERENCE BUT NOT RENDERED */}
+            {false && jdModalData && isJdViewModalOpen && (
                 <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-xl flex justify-center items-center z-[10000] p-0 md:p-4 print:static print:block print:bg-white print:p-0 print:z-auto" onClick={() => { setIsJdViewModalOpen(false); setJdModalData(null); }}>
                     
                     <div className="bg-transparent w-full max-w-[800px] h-full md:h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 relative shadow-2xl rounded-2xl print:block print:h-auto print:max-w-full print:shadow-none print:rounded-none print:overflow-visible" onClick={(e) => e.stopPropagation()}>
@@ -910,10 +924,10 @@ export default function CRMWorkbenchReport() {
                         {/* --- PDF CONTENT --- */}
                         <div className="flex-1 min-h-0 overflow-y-auto bg-gray-200 p-4 md:p-8 block print:block print:overflow-visible print:bg-white print:p-0 custom-scrollbar">
                             <div className="bg-white w-full max-w-[210mm] min-h-[297mm] h-max mx-auto p-[10mm] md:p-[15mm] shadow-xl text-black font-['Calibri'] relative print:w-full print:max-w-none print:shadow-none print:m-0 print:border-none" id="pdf-content">
-                                
+                               
                                 {/* 1. Header Logo */}
                                 <div className="mb-10">
-                                    <img src="/maven-logo.png" alt="Maven Jobs" style={{ width: '220px', height: '70px', objectFit: 'contain' }} />
+                                    <Image src="/maven-logo.png" alt="Maven Jobs" style={{ width: '220px', height: '70px', objectFit: 'contain' }} />
                                 </div>
 
                                 {/* 2. Bordered Container */}

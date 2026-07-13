@@ -6,6 +6,8 @@ import {
     UserCheck, TrendingUp, Database, MessageSquarePlus, Clock, Eye, Download, Edit
 } from "lucide-react";
 import * as API from '@/lib/api-client';
+import JdDocumentModal from "@/components/JdDocumentModal";
+import Image from "next/image";
 export default function TLWorkbenchPage() {
     
     // --- STATE ---
@@ -546,13 +548,13 @@ export default function TLWorkbenchPage() {
                                     <div className="space-y-4">
                                         {selectedWork.progress.notes && (
                                             <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                                                <h5 className="text-[10px] font-black text-gray-500 uppercase mb-2 flex items-center gap-1.5"><FileText size={12}/> Recruiter's Daily Note</h5>
-                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-yellow-400 pl-3 py-1 bg-yellow-50/30">"{selectedWork.progress.notes}"</p>
+                                                <h5 className="text-[10px] font-black text-gray-500 uppercase mb-2 flex items-center gap-1.5"><FileText size={12}/>{ "Recruiter's Daily Note" }</h5>
+                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-yellow-400 pl-3 py-1 bg-yellow-50/30">{selectedWork.progress.notes}</p>
                                             </div>
                                         )}
                                         {selectedWork.tlRemarks && selectedWork.tlRemarks.length > 0 && (
                                             <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 shadow-sm">
-                                                <h5 className="text-[10px] font-black text-[#103c7f] uppercase mb-3 flex items-center gap-1.5 border-b border-blue-100 pb-2"><MessageSquarePlus size={12}/> TL Remarks History</h5>
+                                                <h5 className="text-[10px] font-black text-[#103c7f] uppercase mb-3 flex items-center gap-1.5 border-b border-blue-100 pb-2"><MessageSquarePlus size={12}/>{ "TL Remarks History" }</h5>
                                                 <div className="space-y-3 pl-1">
                                                     {selectedWork.tlRemarks.map((rem, i) => (
                                                         <div key={i} className="relative pl-4 border-l-2 border-blue-400">
@@ -587,7 +589,17 @@ export default function TLWorkbenchPage() {
             )}
 
             {/* --- VIEW JD DETAILS MODAL (DOCUMENT PREVIEW) --- */}
-            {isJdViewModalOpen && currentJdView && (
+            <JdDocumentModal
+                isOpen={isJdViewModalOpen}
+                jd={currentJdView}
+                onClose={() => {
+                    setIsJdViewModalOpen(false);
+                    setCurrentJdView(null);
+                }}
+            />
+
+            {/* OLD MODAL - KEEPING FOR REFERENCE BUT NOT RENDERED */}
+            {false && isJdViewModalOpen && currentJdView && (
                 <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-xl flex justify-center items-center z-[10000] p-0 md:p-4 print:static print:block print:bg-white print:p-0 print:z-auto">
                     
                     <div className="bg-transparent w-full max-w-[800px] h-full md:h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 relative shadow-2xl rounded-2xl print:block print:h-auto print:max-w-full print:shadow-none print:rounded-none print:overflow-visible">
@@ -832,7 +844,7 @@ export default function TLWorkbenchPage() {
                                 
                                 {/* 1. Header Logo */}
                                 <div className="mb-10">
-                                    <img src="/maven-logo.png" alt="Maven Jobs" style={{ width: '220px', height: '70px', objectFit: 'contain' }} />
+                                    <Image src="/maven-logo.png" alt="Maven Jobs" style={{ width: '220px', height: '70px', objectFit: 'contain' }} />
                                 </div>
 
                                 {/* 2. Bordered Container */}

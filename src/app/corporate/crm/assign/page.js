@@ -9,6 +9,8 @@ import {
     MessageSquarePlus, Building2, Clock, Eye , Download, AlertTriangle
 } from "lucide-react";
 import * as API from '@/lib/api-client';
+import JdDocumentModal from "@/components/JdDocumentModal";
+
 export default function AssignWorkPage() {
     
     // --- STATE ---
@@ -972,7 +974,17 @@ export default function AssignWorkPage() {
             </div>
 
            {/* --- VIEW JD DETAILS MODAL (DOCUMENT PREVIEW) --- */}
-            {isJdViewModalOpen && currentJdView && (
+            <JdDocumentModal
+                isOpen={isJdViewModalOpen}
+                jd={currentJdView}
+                onClose={() => {
+                    setIsJdViewModalOpen(false);
+                    setCurrentJdView(null);
+                }}
+            />
+
+            {/* OLD MODAL - KEEPING FOR REFERENCE BUT NOT RENDERED */}
+            {false && isJdViewModalOpen && currentJdView && (
                 <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-xl flex justify-center items-center z-[10000] p-0 md:p-4 print:static print:block print:bg-white print:p-0 print:z-auto">
                     
                     <div className="bg-transparent w-full max-w-[800px] h-full md:h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 relative shadow-2xl rounded-2xl print:block print:h-auto print:max-w-full print:shadow-none print:rounded-none print:overflow-visible">
@@ -1000,7 +1012,7 @@ export default function AssignWorkPage() {
                                 {/* 1. Header Logo */}
                                 <div className="mb-10">
                                     {/* Agar logo display na ho, toh next.js Image ki jagah standard <img/> use kar sakte hain */}
-                                    <img src="/maven-logo.png" alt="Maven Jobs" style={{ width: '220px', height: '70px', objectFit: 'contain' }} />
+                                    <Image src="/maven-logo.png" alt="Maven Jobs" style={{ width: '220px', height: '70px', objectFit: 'contain' }} />
                                 </div>
 
                                 {/* 2. Bordered Container */}
@@ -1134,25 +1146,25 @@ export default function AssignWorkPage() {
                                         {selectedWork?.progress?.notes && (
                                             <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
                                                 <h5 className="text-[10px] font-black text-gray-500 uppercase mb-2 flex items-center gap-1.5"><FileText size={12}/> Your Daily Note</h5>
-                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-yellow-400 pl-3 py-1 bg-yellow-50/30">"{selectedWork?.progress?.notes}"</p>
+                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-yellow-400 pl-3 py-1 bg-yellow-50/30">{selectedWork?.progress?.notes}</p>
                                             </div>
                                         )}
                                         {selectedWork?.tl_remarks && selectedWork.tl_remarks.trim() && (
                                             <div className="bg-purple-50/50 border border-purple-100 rounded-xl p-4 shadow-sm">
                                                 <h5 className="text-[10px] font-black text-purple-700 uppercase mb-3 flex items-center gap-1.5 border-b border-purple-100 pb-2"><MessageSquarePlus size={12}/> TL Remarks</h5>
-                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-purple-400 pl-3 py-1 bg-purple-50/30">"{selectedWork?.tl_remarks?.trim() || ''}"</p>
+                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-purple-400 pl-3 py-1 bg-purple-50/30">{selectedWork?.tl_remarks?.trim() || ''}</p>
                                             </div>
                                         )}
                                         {selectedWork?.rc_remarks && selectedWork.rc_remarks.trim() && (
                                             <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 shadow-sm">
                                                 <h5 className="text-[10px] font-black text-blue-700 uppercase mb-3 flex items-center gap-1.5 border-b border-blue-100 pb-2"><UserCheck size={12}/> RC Remarks</h5>
-                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-blue-400 pl-3 py-1 bg-blue-50/30">"{selectedWork?.rc_remarks?.trim() || ''}"</p>
+                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-blue-400 pl-3 py-1 bg-blue-50/30">{selectedWork?.rc_remarks?.trim() || ''}</p>
                                             </div>
                                         )}
                                         {selectedWork?.cv_remarks && selectedWork.cv_remarks.trim() && (
                                             <div className="bg-orange-50/50 border border-orange-100 rounded-xl p-4 shadow-sm">
                                                 <h5 className="text-[10px] font-black text-orange-700 uppercase mb-3 flex items-center gap-1.5 border-b border-orange-100 pb-2"><FileText size={12}/> CV Remarks</h5>
-                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-orange-400 pl-3 py-1 bg-orange-50/30">"{selectedWork?.cv_remarks?.trim() || ''}"</p>
+                                                <p className="text-sm font-medium text-gray-700 italic border-l-2 border-orange-400 pl-3 py-1 bg-orange-50/30">{selectedWork?.cv_remarks?.trim() || ''}</p>
                                             </div>
                                         )}
                                     </div>

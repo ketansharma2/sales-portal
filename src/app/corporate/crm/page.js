@@ -851,7 +851,7 @@ export default function CRMDashboard() {
                       <MessageSquare size={10} className="text-gray-300"/> Last Discussion
                     </p>
                     <p className="text-[10px] text-gray-600 font-medium italic line-clamp-2 leading-relaxed">
-                      "{item.lastConvo}"
+                      {item.lastConvo}
                     </p>
                   </div>
                 </div>
