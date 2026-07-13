@@ -184,8 +184,15 @@ export default function ManagerApprovals() {
       console.log('Response status:', response.status);
       const data = await response.json();
       if (data.success) {
-        fetchPendingExpenses();
-      }
+  setApprovals(prev =>
+    prev.map(item =>
+      item.id === exp_id
+        ? { ...item, status: "Approved" }
+        : item
+    )
+  );
+}
+    
     } catch (error) {
       console.error('Failed to approve expense:', error);
     }
@@ -197,8 +204,14 @@ export default function ManagerApprovals() {
       console.log('Response status:', response.status);
       const data = await response.json();
       if (data.success) {
-        fetchPendingExpenses();
-      }
+  setApprovals(prev =>
+    prev.map(item =>
+      item.id === exp_id
+        ? { ...item, status: "Rejected" }
+        : item
+    )
+  );
+}
     } catch (error) {
       console.error('Failed to reject expense:', error);
     }
@@ -208,11 +221,15 @@ export default function ManagerApprovals() {
     try {
       const response = await API.apiPost('/api/domestic/manager/approvals/send-to-hr', { exp_id });
       const data = await response.json();
-      if (data.success) {
-        fetchPendingExpenses();
-      } else {
-        alert(data.error || 'Failed to send to HR');
-      }
+        if (data.success) {
+      setApprovals(prev =>
+        prev.map(item =>
+          item.id === exp_id
+            ? { ...item, status: "Sent to HR" }
+            : item
+        )
+      );
+    }
     } catch (error) {
       console.error('Failed to send to HR:', error);
       alert('Failed to send to HR');
@@ -521,11 +538,11 @@ export default function ManagerApprovals() {
                   {/* Status Column */}
                   <td className="px-5 py-3 text-center">
                     <span className={`px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border italic flex items-center justify-center gap-1.5 w-fit mx-auto
-                      ${item.status === 'Sent to HR'
+                      ${item.status === 'Approved'
                         ? 'bg-indigo-50 text-indigo-600 border-indigo-100'
                         : item.status === 'Clarification Req'
                           ? 'bg-yellow-50 text-yellow-600 border-yellow-100'
-                          : item.status === 'Approved'
+                          : item.status === 'Sent to HR'
                             ? 'bg-green-50 text-green-600 border-green-100'
                             : item.status === 'Rejected'
                               ? 'bg-red-50 text-red-600 border-red-100'
@@ -538,7 +555,7 @@ export default function ManagerApprovals() {
                       {item.status === 'Approved' && <CheckCircle size={10} />}
                       {item.status === 'Rejected' && <X size={10} />}
                       {item.status === 'PAID' && <Lock size={10} />}
-                      {item.status}
+                      {item.status === 'Sent to HR' ? 'Approved' : item.status}
                     </span>
                   </td>
 
@@ -553,18 +570,7 @@ export default function ManagerApprovals() {
                     </span>
                   </div>
                   </div>
-                  ) :
-                    item.status === "Sent to HR1" ? (
-                      <div className="flex justify-center items-center gap-1 opacity-60">
-                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                           Manager
-                         </span>
-                         <ArrowRightCircle size={10} className="text-indigo-600" />
-                         <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">
-                           HR Dept
-                         </span>
-                      </div>
-                    ) : item.status === "Sent to HR" ? (
+                  ): item.status === "Sent to HR" ? (
                       <div className="flex justify-center items-center gap-2 opacity-80">
                          <span className="px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border bg-indigo-50 text-indigo-600 border-indigo-100 flex items-center gap-1">
     <Building2 size={10} />
