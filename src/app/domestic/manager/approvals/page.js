@@ -76,7 +76,7 @@ export default function ManagerApprovals() {
   const [refreshing, setRefreshing] = useState(false);
   const [teamCount, setTeamCount] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [exporting, setExporting] = useState(false);
 
   const [employees, setEmployees] = useState([]);
@@ -554,7 +554,7 @@ export default function ManagerApprovals() {
                   </div>
                   </div>
                   ) :
-                    item.status === "Sent to HR" ? (
+                    item.status === "Sent to HR1" ? (
                       <div className="flex justify-center items-center gap-1 opacity-60">
                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
                            Manager
@@ -564,11 +564,13 @@ export default function ManagerApprovals() {
                            HR Dept
                          </span>
                       </div>
-                    ) : item.status === "Approved" ? (
+                    ) : item.status === "Sent to HR" ? (
                       <div className="flex justify-center items-center gap-2 opacity-80">
-                        <button onClick={() => handleSendToHR(item.id)} className="bg-indigo-50 text-indigo-600 p-2 rounded-lg hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Send to HR">
-                          <Building2 size={16} strokeWidth={2}/>
-                        </button>
+                         <span className="px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border bg-indigo-50 text-indigo-600 border-indigo-100 flex items-center gap-1">
+    <Building2 size={10} />
+    Sent to HR
+  </span>
+
                         <button onClick={() => { setPreviewUrl(item.file_link); setIsPreviewOpen(true); }} className="text-[#103c7f] hover:text-[#a1db40] transition-colors" title="View Bill Proof">
                           <FileText size={16} strokeWidth={2}/>
                         </button>
@@ -582,7 +584,7 @@ export default function ManagerApprovals() {
                       </div>
                     ) : (
                       <div className="flex justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => handleApprove(item.id)} className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Approve">
+                        <button onClick={() => handleSendToHR(item.id)} className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Approve">
                           <Check size={16} strokeWidth={3}/>
                         </button>
                         <button onClick={() => handleReject(item.id)} className="bg-red-50 text-red-600 p-2 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Reject">
@@ -654,8 +656,20 @@ export default function ManagerApprovals() {
               </div>
             </div>
             <div className="flex justify-center">
-              <Image src={previewUrl} alt="Bill Preview" className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg" />
-            </div>
+  {previewUrl ? (
+    <Image
+      src={previewUrl}
+      alt="Bill Preview"
+      width={800}
+      height={1000}
+      className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+    />
+  ) : (
+    <div className="text-center text-gray-500 py-10">
+      No bill available
+    </div>
+  )}
+</div>
           </div>
         </div>
       )}
