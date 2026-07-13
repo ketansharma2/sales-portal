@@ -76,7 +76,7 @@ export default function ManagerApprovals() {
   const [refreshing, setRefreshing] = useState(false);
   const [teamCount, setTeamCount] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [exporting, setExporting] = useState(false);
 
   const [employees, setEmployees] = useState([]);
@@ -140,7 +140,8 @@ export default function ManagerApprovals() {
   const fetchPendingExpenses = useCallback(async ({ isRefresh = false } = {}) => {
     isRefresh ? setRefreshing(true) : setLoading(true);
     try {
-      const response = await API.apiGet('/api/domestic/manager/approvals/pending-expenses');
+      const params = buildParams();
+      const response = await API.apiGet(`/api/domestic/manager/approvals/pending-expenses?${params.toString()}`);
       const data = await response.json();
       if (data.success) {
         setApprovals(data.data);
@@ -170,9 +171,21 @@ export default function ManagerApprovals() {
     }
   };
 
-  useEffect(() => {
-    fetchPendingExpenses();
-  }, [fetchPendingExpenses]);
+useEffect(() => {
+  fetchPendingExpenses();
+}, [
+  page,
+  pageSize,
+  search,
+  status,
+  category,
+  employeeId,
+  dateRange,
+  customFrom,
+  customTo,
+  sortBy,
+  sortDir,
+]);
 
   useEffect(() => {
     fetchTeamCount();
@@ -184,8 +197,15 @@ export default function ManagerApprovals() {
       console.log('Response status:', response.status);
       const data = await response.json();
       if (data.success) {
-        fetchPendingExpenses();
-      }
+  setApprovals(prev =>
+    prev.map(item =>
+      item.id === exp_id
+        ? { ...item, status: "Approved" }
+        : item
+    )
+  );
+}
+    
     } catch (error) {
       console.error('Failed to approve expense:', error);
     }
@@ -197,8 +217,14 @@ export default function ManagerApprovals() {
       console.log('Response status:', response.status);
       const data = await response.json();
       if (data.success) {
-        fetchPendingExpenses();
-      }
+  setApprovals(prev =>
+    prev.map(item =>
+      item.id === exp_id
+        ? { ...item, status: "Rejected" }
+        : item
+    )
+  );
+}
     } catch (error) {
       console.error('Failed to reject expense:', error);
     }
@@ -208,11 +234,15 @@ export default function ManagerApprovals() {
     try {
       const response = await API.apiPost('/api/domestic/manager/approvals/send-to-hr', { exp_id });
       const data = await response.json();
-      if (data.success) {
-        fetchPendingExpenses();
-      } else {
-        alert(data.error || 'Failed to send to HR');
-      }
+        if (data.success) {
+      setApprovals(prev =>
+        prev.map(item =>
+          item.id === exp_id
+            ? { ...item, status: "Sent to HR" }
+            : item
+        )
+      );
+    }
     } catch (error) {
       console.error('Failed to send to HR:', error);
       alert('Failed to send to HR');
@@ -534,8 +564,8 @@ export default function ManagerApprovals() {
                                 : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
 
                       {item.status === 'Pending Review' && <Clock size={10} />}
-                      {item.status === 'Sent to HR' && <Building2 size={10} />}
-                      {item.status === 'Approved' && <CheckCircle size={10} />}
+                      {item.status === 'Approved' && <Building2 size={10} />}
+                      {item.status === 'Sent to HR' && <CheckCircle size={10} />}
                       {item.status === 'Rejected' && <X size={10} />}
                       {item.status === 'PAID' && <Lock size={10} />}
                       {item.status}
@@ -553,22 +583,13 @@ export default function ManagerApprovals() {
                     </span>
                   </div>
                   </div>
-                  ) :
-                    item.status === "Sent to HR" ? (
-                      <div className="flex justify-center items-center gap-1 opacity-60">
-                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                           Manager
-                         </span>
-                         <ArrowRightCircle size={10} className="text-indigo-600" />
-                         <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">
-                           HR Dept
-                         </span>
-                      </div>
-                    ) : item.status === "Approved" ? (
+                  ): item.status === "Approved" ? (
                       <div className="flex justify-center items-center gap-2 opacity-80">
-                        <button onClick={() => handleSendToHR(item.id)} className="bg-indigo-50 text-indigo-600 p-2 rounded-lg hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Send to HR">
-                          <Building2 size={16} strokeWidth={2}/>
-                        </button>
+                         <span className="px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border bg-indigo-50 text-indigo-600 border-indigo-100 flex items-center gap-1">
+    <Building2 size={10} />
+    Sent to HR
+  </span>
+
                         <button onClick={() => { setPreviewUrl(item.file_link); setIsPreviewOpen(true); }} className="text-[#103c7f] hover:text-[#a1db40] transition-colors" title="View Bill Proof">
                           <FileText size={16} strokeWidth={2}/>
                         </button>
@@ -654,8 +675,20 @@ export default function ManagerApprovals() {
               </div>
             </div>
             <div className="flex justify-center">
-              <Image src={previewUrl} alt="Bill Preview" className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg" />
-            </div>
+  {previewUrl ? (
+    <Image
+      src={previewUrl}
+      alt="Bill Preview"
+      width={800}
+      height={1000}
+      className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+    />
+  ) : (
+    <div className="text-center text-gray-500 py-10">
+      No bill available
+    </div>
+  )}
+</div>
           </div>
         </div>
       )}
