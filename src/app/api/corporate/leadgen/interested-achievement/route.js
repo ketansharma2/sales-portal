@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-const { user, error: authError } = getUser(request);
+import { getUser } from '@/lib/auth-helper';
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseServer = createClient(supabaseUrl, supabaseKey);
