@@ -140,7 +140,8 @@ export default function ManagerApprovals() {
   const fetchPendingExpenses = useCallback(async ({ isRefresh = false } = {}) => {
     isRefresh ? setRefreshing(true) : setLoading(true);
     try {
-      const response = await API.apiGet('/api/domestic/manager/approvals/pending-expenses');
+      const params = buildParams();
+      const response = await API.apiGet(`/api/domestic/manager/approvals/pending-expenses?${params.toString()}`);
       const data = await response.json();
       if (data.success) {
         setApprovals(data.data);
@@ -170,9 +171,21 @@ export default function ManagerApprovals() {
     }
   };
 
-  useEffect(() => {
-    fetchPendingExpenses();
-  }, [fetchPendingExpenses]);
+useEffect(() => {
+  fetchPendingExpenses();
+}, [
+  page,
+  pageSize,
+  search,
+  status,
+  category,
+  employeeId,
+  dateRange,
+  customFrom,
+  customTo,
+  sortBy,
+  sortDir,
+]);
 
   useEffect(() => {
     fetchTeamCount();
