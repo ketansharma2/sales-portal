@@ -4,6 +4,32 @@ import mammoth from "mammoth";
 import { supabaseServer } from '@/lib/supabase-server'
 import docstream from '@jose.espana/docstream';
 
+// Some portals (e.g. Naukri.com) export resumes as ".doc" files that are actually
+// HTML content Word can render, not real OLE2/CFB binaries. Detect and convert those.
+function looksLikeHtml(buffer) {
+  const sample = buffer.slice(0, 4096).toString("utf8");
+  return /<html[\s>]|<!doctype html|<body[\s>]/i.test(sample);
+}
+
+function htmlToText(html) {
+  return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|tr|li|h[1-6])>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n\s*\n+/g, "\n")
+    .trim();
+}
+
 // Add this helper function for retry logic
 async function generateWithRetry(model, contents, apiKey) {
     try {
@@ -302,9 +328,21 @@ export async function POST(request) {
       if (isOldDoc) {
       // Use docstream for legacy .doc files
       console.log("Parsing legacy .doc file with docstream...");
-      const ast = await docstream.parseOffice(buffer);
-      textContent = ast.toText();
-      console.log("Extracted text length from .doc:", textContent.length);
+      try {
+        const ast = await docstream.parseOffice(buffer);
+        textContent = ast.toText();
+        console.log("Extracted text length from .doc:", textContent.length);
+      } catch (docstreamError) {
+        // Some portals (e.g. Naukri) export ".doc" resumes that are actually HTML,
+        // which docstream can't parse as an OLE2 binary. Fall back to HTML text extraction.
+        if (looksLikeHtml(buffer)) {
+          console.log("'.doc' file is HTML-based, extracting text from HTML instead...");
+          textContent = htmlToText(buffer.toString("utf8"));
+          console.log("Extracted text length from HTML .doc:", textContent.length);
+        } else {
+          throw docstreamError;
+        }
+      }
     } else if (isDocx) {
         const result = await mammoth.extractRawText({ buffer: buffer });
         textContent = result.value;

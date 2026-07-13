@@ -5,6 +5,7 @@ import {
     Target, Search, Activity, X, BarChart2, FileText, Send,
     UserCheck, TrendingUp, Database, MessageSquarePlus, Clock, Eye, Download, Edit
 } from "lucide-react";
+import JdDocumentModal from "@/components/JdDocumentModal";
 
 export default function RecruiterWorkbenchPage() {
     
@@ -632,7 +633,17 @@ export default function RecruiterWorkbenchPage() {
             )}
 
             {/* --- VIEW JD DETAILS MODAL (DOCUMENT PREVIEW) --- */}
-            {isJdViewModalOpen && currentJdView && (
+            <JdDocumentModal
+                isOpen={isJdViewModalOpen}
+                jd={currentJdView}
+                onClose={() => {
+                    setIsJdViewModalOpen(false);
+                    setCurrentJdView(null);
+                }}
+            />
+
+            {/* OLD MODAL - KEEPING FOR REFERENCE BUT NOT RENDERED */}
+            {false && isJdViewModalOpen && currentJdView && (
                 <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-xl flex justify-center items-center z-[10000] p-0 md:p-4 print:static print:block print:bg-white print:p-0 print:z-auto">
                     
                     <div className="bg-transparent w-full max-w-[800px] h-full md:h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 relative shadow-2xl rounded-2xl print:block print:h-auto print:max-w-full print:shadow-none print:rounded-none print:overflow-visible">
