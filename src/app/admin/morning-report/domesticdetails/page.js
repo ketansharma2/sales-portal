@@ -5,7 +5,7 @@ import {
     Eye, Calendar, MapPin, Users, Briefcase, Edit, X, 
     Home, Star, Zap, Phone, CheckCircle, MessageSquarePlus, HistoryIcon, Loader2, Pencil, Mail, User , ChevronDown
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 // ============================================================================
 // --- COMPONENT: CLIENT FULL VIEW MODAL (DOMESTIC) ---
 // ============================================================================
@@ -29,10 +29,7 @@ function ClientFullViewModal({ lead, onClose, onEditInteraction }) {
             }
             try {
                 setLoading(true);
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch(`/api/domestic/fse/lead/interaction?client_id=${lead.client_id}`, {
-                    headers: { 'Authorization': `Bearer ${session.access_token}` }
-                });
+                const response = await API.apiGet(`/api/domestic/fse/lead/interaction?client_id=${lead.client_id}`);
                 const data = await response.json();
                 if (data.success) {
                     setHistory(data.data);

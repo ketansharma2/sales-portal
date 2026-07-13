@@ -1,5 +1,6 @@
   import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
+import { getUser } from '@/lib/auth-helper'
 
 export async function GET(request) {
   try {
@@ -9,16 +10,11 @@ export async function GET(request) {
     console.log('=== DOMESTIC FSE TARGETS API DEBUG ===');
     console.log('Requested month param:', requestedMonth);
     
-    // Authentication
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+    // Authentication - user injected by middleware (no auth calls needed!)
+    const { user, error: authError } = getUser(request);
     if (authError || !user) {
       console.log('Auth error:', authError);
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     console.log('Authenticated user ID:', user.id);
 

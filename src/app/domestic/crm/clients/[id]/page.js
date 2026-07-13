@@ -14,6 +14,7 @@ import {
   PlusCircle, Download
 } from "lucide-react";
 import Image from "next/image";
+import * as API from '@/lib/api-client';
 
 export default function ClientMasterProfile() {
   const params = useParams();
@@ -48,10 +49,7 @@ const [pastJDs, setPastJDs] = useState([]);
   const fetchPastJDs = async () => {
     setLoadingPastJDs(true);
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/crm/jd/past-jds', {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet('/api/domestic/crm/jd/past-jds');
       const result = await response.json();
       if (result.success && result.data) {
         setPastJDs(result.data);
@@ -85,12 +83,7 @@ const [pastJDs, setPastJDs] = useState([]);
   useEffect(() => {
     const fetchClient = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch(`/api/domestic/crm/clients/${clientId}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/domestic/crm/clients/${clientId}`);
         const data = await response.json();
         if (data.success) {
           setClientData(data.data);
@@ -126,12 +119,7 @@ const [pastJDs, setPastJDs] = useState([]);
   const fetchConversations = async () => {
     if (!selectedBranchId) return;
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch(`/api/domestic/crm/conversation?branch_id=${selectedBranchId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/domestic/crm/conversation?branch_id=${selectedBranchId}`);
       const data = await response.json();
       if (data.success) {
         // Format conversations to match logs structure
@@ -164,12 +152,7 @@ const [pastJDs, setPastJDs] = useState([]);
   const fetchRequirements = async () => {
     if (!selectedBranchId) return;
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch(`/api/domestic/crm/requirements?branch_id=${selectedBranchId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/domestic/crm/requirements?branch_id=${selectedBranchId}`);
       const data = await response.json();
       if (data.success) {
         // Update branchDetails with fetched requirements
@@ -235,12 +218,7 @@ const fetchTrackers = async () => {
     return;
   }
   try {
-    const session = JSON.parse(localStorage.getItem('session') || '{}');
-    const response = await fetch(`/api/domestic/crm/tracker-count?branch_id=${clientId}`, {
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`
-      }
-    });
+    const response = await API.apiGet(`/api/domestic/crm/tracker-count?branch_id=${clientId}`);
     const data = await response.json();
 
     if (data.success && data.data && data.data.length > 0) {
@@ -641,22 +619,15 @@ const generatePDF = () => {
   // --- HANDLER TO SAVE BRANCH ---
   const handleSaveBranch = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/crm/branches', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          client_id: clientId,
-          branch_name: newBranchData.name,
-          state: newBranchData.state,
-          city: newBranchData.city,
-          initial_status: newBranchData.status,
-          full_address: newBranchData.address
-        })
-      });
+      
+      const response = await API.apiPost('/api/domestic/crm/branches', {
+    client_id: clientId,
+    branch_name: newBranchData.name,
+    state: newBranchData.state,
+    city: newBranchData.city,
+    initial_status: newBranchData.status,
+    full_address: newBranchData.address
+});
 
       const data = await response.json();
       if (data.success) {
@@ -701,22 +672,14 @@ const generatePDF = () => {
     if (!editingBranch) return;
     setIsUpdatingBranch(true);
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/crm/branches', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          branchId: editingBranch.branch_id,
-          branch_name: editBranchData.name,
-          state: editBranchData.state,
-          city: editBranchData.city,
-          full_address: editBranchData.address,
-          initial_status: editBranchData.status
-        })
-      });
+      const response = await API.apiPut('/api/domestic/crm/branches', {
+    branchId: editingBranch.branch_id,
+    branch_name: editBranchData.name,
+    state: editBranchData.state,
+    city: editBranchData.city,
+    full_address: editBranchData.address,
+    initial_status: editBranchData.status
+});
 
       const data = await response.json();
       if (data.success) {
@@ -751,27 +714,19 @@ const generatePDF = () => {
   const handleSaveConversation = async () => {
     setIsSavingConversation(true);
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
 
       // Get contact name from selected contact
       const selectedContact = currentBranchData.contacts.find(c => c.id === newConversationData.contactId);
       const contactName = selectedContact ? selectedContact.name : '';
 
-      const response = await fetch('/api/domestic/crm/conversation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          contactId: selectedBranchId, // branch_id
-          contact_name: contactName,
-          date: newConversationData.date,
-          mode: newConversationData.mode,
-          discussion: newConversationData.discussion,
-          nextFollowUp: newConversationData.nextFollowUp
-        })
-      });
+      const response = await API.apiPost('/api/domestic/crm/conversation', {
+    contactId: selectedBranchId,
+    contact_name: contactName,
+    date: newConversationData.date,
+    mode: newConversationData.mode,
+    discussion: newConversationData.discussion,
+    nextFollowUp: newConversationData.nextFollowUp
+});
 
       const data = await response.json();
       if (data.success) {
@@ -800,21 +755,13 @@ const generatePDF = () => {
     if (!editingConversation) return;
     setIsUpdatingConversation(true);
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/crm/conversation', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          conversationId: editingConversation.id,
-          date: editConversationData.date,
-          mode: editConversationData.mode,
-          discussion: editConversationData.discussion,
-          nextFollowUp: editConversationData.nextFollowUp
-        })
-      });
+      const response = await API.apiPut('/api/domestic/crm/conversation', {
+    conversationId: editingConversation.id,
+    date: editConversationData.date,
+    mode: editConversationData.mode,
+    discussion: editConversationData.discussion,
+    nextFollowUp: editConversationData.nextFollowUp
+});
 
       const data = await response.json();
       if (data.success) {
@@ -867,13 +814,7 @@ const generatePDF = () => {
       formDataUpload.append('file', file);
       formDataUpload.append('fileType', fileType);
 
-      const response = await fetch('/api/domestic/crm/upload-file', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: formDataUpload
-      });
+        const response = await API.apiUpload('/api/domestic/crm/upload-file', formDataUpload);
 
       const data = await response.json();
       if (data.success) {
@@ -894,16 +835,7 @@ const generatePDF = () => {
 
   const handleSaveFundamentals = async () => {
     try {
-      console.log('formData',formData);
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch(`/api/domestic/crm/clients/${clientId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify(formData)
-      });
+      const response = await API.apiPut(`/api/domestic/crm/clients/${clientId}`, formData);
       const data = await response.json();
       if (data.success) {
         setClientData(formData); // Update local state
@@ -919,24 +851,16 @@ const generatePDF = () => {
   };
   const handleSaveContact = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/crm/contacts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          branch_id: selectedBranchId,
-          name: newContactData.name,
-          email: newContactData.email,
-          phone: newContactData.phone,
-          designation: newContactData.designation,
-          department: newContactData.department,
-          roleDescription: newContactData.roleDescription,
-          isPrimary: newContactData.isPrimary === 'true'
-        })
-      });
+      const response = await API.apiPost('/api/domestic/crm/contacts', {
+    branch_id: selectedBranchId,
+    name: newContactData.name,
+    email: newContactData.email,
+    phone: newContactData.phone,
+    designation: newContactData.designation,
+    department: newContactData.department,
+    roleDescription: newContactData.roleDescription,
+    isPrimary: newContactData.isPrimary === 'true'
+});
 
       const data = await response.json();
       if (data.success) {
@@ -974,25 +898,17 @@ const generatePDF = () => {
     if (!editingContact) return;
     setIsUpdatingContact(true);
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/crm/contacts', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          contactId: editingContact.contact_id,
-          branch_id: editingContact.branch_id,
-          name: editContactData.name,
-          email: editContactData.email,
-          phone: editContactData.phone,
-          designation: editContactData.designation,
-          department: editContactData.department,
-          roleDescription: editContactData.roleDescription,
-          isPrimary: editContactData.isPrimary === 'true'
-        })
-      });
+const response = await API.apiPut('/api/domestic/crm/contacts', {
+    contactId: editingContact.contact_id,
+    branch_id: editingContact.branch_id,
+    name: editContactData.name,
+    email: editContactData.email,
+    phone: editContactData.phone,
+    designation: editContactData.designation,
+    department: editContactData.department,
+    roleDescription: editContactData.roleDescription,
+    isPrimary: editContactData.isPrimary === 'true'
+});
 
       const data = await response.json();
       if (data.success) {
@@ -1020,14 +936,7 @@ const generatePDF = () => {
   };
   const handleSaveTracker = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/crm/tracker', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
+      const response = await API.apiPost('/api/domestic/crm/tracker', {
           req_id: newTrackerData.reqId,
           tracker_date: newTrackerData.shareDate,
           shared: newTrackerData.sharedCount,
@@ -1036,7 +945,6 @@ const generatePDF = () => {
           joining: newTrackerData.joining,
           not_selected: newTrackerData.rejected,
           feedback: newTrackerData.feedback
-        })
       });
 
       const data = await response.json();
@@ -1059,14 +967,8 @@ const generatePDF = () => {
 const handleSaveRequirement = async () => {
     setSavingRequirement(true);
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/crm/requirements', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
+
+      const response = await API.apiPost('/api/domestic/crm/requirements', {
           branch_id: selectedBranchId,
           job_title: newReqData.jobTitle,
           jd_link: newReqData.jdLink,
@@ -1089,7 +991,6 @@ const handleSaveRequirement = async () => {
           preferred_qual: jdFormData.preferred_qual,
           company_offers: jdFormData.company_offers,
           contact_details: jdFormData.contact_details
-        })
       });
 
       const data = await response.json();
@@ -1155,14 +1056,8 @@ const handleSaveRequirement = async () => {
   const handleUpdateRequirement = async () => {
     if (!editingReqId) return;
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/crm/requirements', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
+      
+      const response = await API.apiPut('/api/domestic/crm/requirements', {
           req_id: editingReqId,
           branch_id: selectedBranchId,
           job_title: newReqData.jobTitle,
@@ -1185,7 +1080,6 @@ const handleSaveRequirement = async () => {
           preferred_qual: jdFormData.preferred_qual,
           company_offers: jdFormData.company_offers,
           contact_details: jdFormData.contact_details
-        })
       });
 
       const data = await response.json();

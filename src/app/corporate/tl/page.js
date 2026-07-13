@@ -6,7 +6,7 @@ import {
     FileText, Send, TrendingUp, Database, UserCheck, MessageSquare, 
     Search, Eye, X, Users, LayoutDashboard, Settings , Award,CheckCircle,Target,
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function TLWorkbenchReport() {
     
     // --- STATE ---
@@ -78,14 +78,7 @@ export default function TLWorkbenchReport() {
     useEffect(() => {
         const fetchRcUsers = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                if (!token) return;
-                
-                const response = await fetch('/api/corporate/tl/rc-users', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet('/api/corporate/tl/rc-users');
                 
                 const result = await response.json();
                 
@@ -95,9 +88,8 @@ export default function TLWorkbenchReport() {
                     // After getting recruiters, fetch latest CV date
                     const userIds = result.data.map(r => r.user_id).join(',');
                     if (userIds) {
-                        const dateResponse = await fetch(`/api/corporate/tl/latest-cv-date?userIds=${userIds}`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
+                        const dateResponse = await API.apiGet(`/api/corporate/tl/latest-cv-date?userIds=${userIds}`);
+
                         const dateResult = await dateResponse.json();
                         if (dateResult.success && dateResult.maxDate) {
                             setLatestCvDate(dateResult.maxDate);
@@ -134,14 +126,7 @@ export default function TLWorkbenchReport() {
             if (!fromDate || !toDate) return;
             
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                if (!token) return;
-                
-                const response = await fetch(`/api/corporate/tl/metrics?fromDate=${fromDate}&toDate=${toDate}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet(`/api/corporate/tl/metrics?fromDate=${fromDate}&toDate=${toDate}`);
                 
                 const result = await response.json();
                 
@@ -172,9 +157,7 @@ export default function TLWorkbenchReport() {
                     url += `&recruiter_id=${selectedRecruiter}`;
                 }
                 
-                const response = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet(url);
                 
                 const result = await response.json();
                 
@@ -207,9 +190,7 @@ export default function TLWorkbenchReport() {
                     url += `&recruiter_id=${selectedRecruiter}`;
                 }
                 
-                const response = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet(url);
                 
                 const result = await response.json();
                 
@@ -233,19 +214,13 @@ export default function TLWorkbenchReport() {
         
         const fetchAssignmentData = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                if (!token) return;
                 
                 let url = `/api/corporate/tl/workbench-data?fromDate=${fromDate}&toDate=${toDate}`;
                 if (selectedRecruiter && selectedRecruiter !== "All") {
                     url += `&recruiter_id=${selectedRecruiter}`;
                 }
                 
-                const response = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+               const response = await API.apiGet(url);
                 
                 const result = await response.json();
                 
@@ -266,14 +241,7 @@ export default function TLWorkbenchReport() {
             setIsLoadingRejectedCv(true);
             const fetchRejectedCv = async () => {
                 try {
-                    const session = JSON.parse(localStorage.getItem('session') || '{}');
-                    const token = session.access_token;
-                    
-                    if (!token) return;
-                    
-                    const response = await fetch(`/api/corporate/tl/rejected-cv?fromDate=${fromDate}&toDate=${toDate}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const response = await API.apiGet(`/api/corporate/tl/rejected-cv?fromDate=${fromDate}&toDate=${toDate}`);
                     
                     const result = await response.json();
                     
@@ -297,14 +265,8 @@ export default function TLWorkbenchReport() {
             setIsLoadingJoining(true);
             const fetchJoining = async () => {
                 try {
-                    const session = JSON.parse(localStorage.getItem('session') || '{}');
-                    const token = session.access_token;
                     
-                    if (!token) return;
-                    
-                    const response = await fetch(`/api/corporate/tl/joining?fromDate=${fromDate}&toDate=${toDate}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const response = await API.apiGet(`/api/corporate/tl/joining?fromDate=${fromDate}&toDate=${toDate}`);
                     
                     const result = await response.json();
                     

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Users, UserPlus, X, Trash2, Edit, Eye, EyeOff } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 const ROLE_ABBREVIATIONS = {
   TL: "TL",
   RC: "RC",
@@ -27,10 +27,7 @@ export default function UserManagementDemo() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/admin/users', {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        });
+        const response = await API.apiGet("/api/admin/users");
         const data = await response.json();
         if (data.success) {
           setUsers(data.data || []);
@@ -50,10 +47,7 @@ export default function UserManagementDemo() {
   useEffect(() => {
     const fetchManagersTLs = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/admin/users', {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        });
+        const response = await API.apiGet("/api/admin/users");
         const data = await response.json();
         if (data.success) {
           const mgrs = (data.data || []).filter(u => (u.role || []).includes('MANAGER'));
@@ -184,11 +178,7 @@ export default function UserManagementDemo() {
     if (mode === "create") {
       // POST for create
       try {
-        const response = await fetch('/api/admin/users', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(form)
-        });
+       const response = await API.apiPost("/api/admin/users", form);
         const data = await response.json();
         if (data.success) {
           setUsers(prev => [{ ...form, role: form.roles, user_id: data.data?.user_id }, ...prev]);
@@ -213,11 +203,7 @@ export default function UserManagementDemo() {
         tl_id: form.tl || null
       }
       try {
-        const response = await fetch('/api/admin/users', {
-          method: 'PUT',
-          headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(putData)
-        });
+        const response = await API.apiPut("/api/admin/users", putData);
         const data = await response.json();
         if (data.success) {
           setUsers(prev => prev.map(u => u.user_id === editingId ? { ...u, ...form } : u));

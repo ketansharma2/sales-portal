@@ -6,7 +6,7 @@ import {
   Target, BellRing, ArrowRight, PhoneCall, ShieldCheck,
   MessageSquare, IndianRupee, AlertTriangle, FileText, Award
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function DomesticRevenueDashboard() {
   // --- 1. STATE INITIALIZATION ---
   const [loading, setLoading] = useState(true);
@@ -31,12 +31,7 @@ export default function DomesticRevenueDashboard() {
   useEffect(() => {
     const fetchRevenueData = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-
-        const response = await fetch('/api/domestic/revenue/history', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await API.apiGet('/api/domestic/revenue/history');
 
         const result = await response.json();
 console.log("result " ,result);

@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { getUser } from "@/lib/auth-helper";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -9,6 +10,12 @@ const supabaseAdmin = createClient(
 // GET - Fetch daily platform stats from posting_data for a specific date
 export async function GET(request) {
   try {
+    // Authentication - user injected by middleware (no auth calls needed!)
+    const { user, error: authError } = getUser(request);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const date = searchParams.get("date");
 
@@ -17,19 +24,6 @@ export async function GET(request) {
         { error: "Missing required parameter: date" },
         { status: 400 }
       );
-    }
-
-    // ✅ Auth check
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
     // ✅ Step 1: Fetch conversations for specific date

@@ -6,7 +6,7 @@ import {
     Laptop, SunMedium, TrendingUp, Building2, Home, Rocket, IndianRupee, CheckCircle2, Globe2, Store, FileSpreadsheet, Database, PhoneCall, File, X
 } from "lucide-react";
 import Image from "next/image";
-
+import * as API from '@/lib/api-client';
 // Helper to get yesterday's date (if yesterday was Sunday, return Saturday)
 const getYesterdayDate = () => {
     const today = new Date();
@@ -106,9 +106,7 @@ useEffect(() => {
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/domestic/clientHandle/onboarded?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet("/api/admin/morning-report/domestic");
 
             if (response.ok) {
                 const data = await response.json();
@@ -126,17 +124,13 @@ useEffect(() => {
 useEffect(() => {
     const fetchDomesticCurrentClient = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
+            
 
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/domestic/clientHandle/client-counts?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+           const response = await API.apiGet(`/api/admin/morning-report/domestic/clientHandle/client-counts?${params.toString()}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -153,17 +147,12 @@ useEffect(() => {
 useEffect(() => {
     const fetchDomesticTotalReq = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
-
+            
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/domestic/clientHandle/total-requirements?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+           const response = await API.apiGet(`/api/admin/morning-report/domestic/clientHandle/total-requirements?${params.toString()}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -180,17 +169,13 @@ useEffect(() => {
 useEffect(() => {
     const fetchDomesticTotalCTC = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
+            
 
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/domestic/clientHandle/total-package?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/admin/morning-report/domestic/clientHandle/total-package?${params.toString()}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -207,17 +192,13 @@ useEffect(() => {
 useEffect(() => {
     const fetchDomesticTrackerShared = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
+           
 
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/domestic/clientHandle/tracker-shared?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+              const response = await API.apiGet(`/api/admin/morning-report/domestic/clientHandle/tracker-shared?${params.toString()}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -234,17 +215,13 @@ useEffect(() => {
 useEffect(() => {
     const fetchDomesticShortlisted = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
+           
 
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/domestic/clientHandle/shortlisted?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+              const response = await API.apiGet(`/api/admin/morning-report/domestic/clientHandle/shortlisted?${params.toString()}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -261,17 +238,12 @@ useEffect(() => {
 useEffect(() => {
     const fetchDomesticInterview = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
-
+           
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/domestic/clientHandle/total-interviews?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+              const response = await API.apiGet(`/api/admin/morning-report/domestic/clientHandle/total-interviews?${params.toString()}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -288,17 +260,13 @@ useEffect(() => {
 useEffect(() => {
     const fetchDomesticSelected = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
+           
 
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/domestic/clientHandle/total-selected?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/admin/morning-report/domestic/clientHandle/total-selected?${params.toString()}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -315,17 +283,13 @@ useEffect(() => {
 useEffect(() => {
     const fetchDomesticJoining = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
+           
 
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/domestic/clientHandle/total-joined?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/admin/morning-report/domestic/clientHandle/total-joined?${params.toString()}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -342,17 +306,12 @@ useEffect(() => {
 useEffect(() => {
     const fetchDomesticCrmClientCalling = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
-
+            
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/domestic/clientHandle/calls-made?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/admin/morning-report/domestic/clientHandle/calls-made?${params.toString()}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -369,13 +328,8 @@ useEffect(() => {
 useEffect(() => {
     const fetchDomesticConversations = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
-
-            const response = await fetch(`/api/admin/morning-report/domestic/clientHandle/conversations?fromDate=${crmFromDate}&toDate=${crmToDate}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+        
+                const response = await API.apiGet(`/api/admin/morning-report/domestic/clientHandle/conversations?fromDate=${crmFromDate}&toDate=${crmToDate}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -391,17 +345,13 @@ useEffect(() => {
 useEffect(() => {
     const fetchClientOnboard = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
+         
             console.log('fromDate', crmFromDate);
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/corporate/clientHandle/onboarded?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/admin/morning-report/corporate/clientHandle/onboarded?${params.toString()}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -419,17 +369,13 @@ useEffect(() => {
 useEffect(() => {
     const fetchCurrentClient = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
+           
 
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/corporate/clientHandle/client-counts?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/admin/morning-report/corporate/clientHandle/client-counts?${params.toString()}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -473,17 +419,13 @@ useEffect(() => {
 useEffect(() => {
     const fetchTotalCTC = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
+           
 
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/corporate/clientHandle/total-package?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/admin/morning-report/corporate/clientHandle/total-package?${params.toString()}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -500,17 +442,12 @@ useEffect(() => {
 useEffect(() => {
     const fetchTrackerShared = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
-
+           
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/corporate/clientHandle/tracker-shared?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/admin/morning-report/corporate/clientHandle/tracker-shared?${params.toString()}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -527,17 +464,13 @@ useEffect(() => {
 useEffect(() => {
     const fetchShortlisted = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
+         
 
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/corporate/clientHandle/shortlisted?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/admin/morning-report/corporate/clientHandle/shortlisted?${params.toString()}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -554,17 +487,13 @@ useEffect(() => {
 useEffect(() => {
     const fetchInterview = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
+            
 
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/corporate/clientHandle/total-interviews?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/admin/morning-report/corporate/clientHandle/total-interviews?${params.toString()}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -581,17 +510,14 @@ useEffect(() => {
 useEffect(() => {
     const fetchSelected = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
+           
 
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/corporate/clientHandle/total-selected?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/admin/morning-report/corporate/clientHandle/total-selected?${params.toString()}`);
+           
 
             if (response.ok) {
                 const data = await response.json();
@@ -608,17 +534,13 @@ useEffect(() => {
 useEffect(() => {
     const fetchJoining = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
+          
 
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/corporate/clientHandle/total-joined?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/admin/morning-report/corporate/clientHandle/total-joined?${params.toString()}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -635,17 +557,13 @@ useEffect(() => {
 useEffect(() => {
     const fetchCrmClientCalling = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
+            
 
             const params = new URLSearchParams();
             params.set('fromDate', crmFromDate);
             params.set('toDate', crmToDate);
 
-            const response = await fetch(`/api/admin/morning-report/corporate/clientHandle/calls-made?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/admin/morning-report/corporate/clientHandle/calls-made?${params.toString()}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -662,14 +580,9 @@ useEffect(() => {
 useEffect(() => {
     const fetchConversations = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            if (!token) return;
+            
 
-            const response = await fetch(`/api/admin/morning-report/corporate/clientHandle/conversations?fromDate=${crmFromDate}&toDate=${crmToDate}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
+            const response = await API.apiGet(`/api/admin/morning-report/corporate/clientHandle/conversations?fromDate=${crmFromDate}&toDate=${crmToDate}`);
             if (response.ok) {
                 const data = await response.json();
                 setConversationLogCorporate(data.data || []);
@@ -808,12 +721,7 @@ useEffect(() => {
     useEffect(() => {
         const fetchDomesticStats = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/admin/morning-report/domestic', {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
+                const response = await API.apiGet('/api/admin/morning-report/domestic');
                 const data = await response.json();
 
                 if (data.success) {
@@ -848,12 +756,7 @@ useEffect(() => {
     useEffect(() => {
         const fetchCrmCallingData = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/admin/morning-report/domestic/crm-calling', {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
+                const response = await API.apiGet("/api/admin/morning-report/domestic/crm-calling");
                 const data = await response.json();
 
                 console.log('CRM Calling API Response:', data);
@@ -879,12 +782,7 @@ useEffect(() => {
     useEffect(() => {
         const fetchCrmConversationLog = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/admin/morning-report/domestic/crm-conversation-log', {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
+                const response = await API.apiGet("/api/admin/morning-report/domestic/crm-conversation-log");
                 const data = await response.json();
 
                 console.log('CRM Conversation Log API Response:', data);
@@ -907,12 +805,7 @@ useEffect(() => {
     useEffect(() => {
         const fetchCorporateStats = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const response = await fetch('/api/admin/morning-report/corporate', {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
+                const response = await API.apiGet("/api/admin/morning-report/corporate");
                 const data = await response.json();
 
                 if (data.success) {
@@ -968,13 +861,7 @@ useEffect(() => {
         const fetchWorkbenchData = async () => {
             setWbLoading(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                if (!token) return;
-
-                const response = await fetch(`/api/admin/morning-report/corporate/workbench?from_date=${wbFromDate}&to_date=${wbToDate}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet(`/api/admin/morning-report/corporate/workbench?from_date=${wbFromDate}&to_date=${wbToDate}`);
                 const data = await response.json();
                 if (data.success) {
                     setReportData(data.data || []);
@@ -994,13 +881,7 @@ useEffect(() => {
         const fetchDomesticWorkbenchData = async () => {
             setDomesticWbLoading(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                if (!token) return;
-
-                const response = await fetch(`/api/admin/morning-report/domestic/workbench?from_date=${wbFromDate}&to_date=${wbToDate}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet(`/api/admin/morning-report/domestic/workbench?from_date=${wbFromDate}&to_date=${wbToDate}`);
                 const data = await response.json();
                 if (data.success) {
                     setDomesticReportData(data.data || []);
@@ -1023,12 +904,7 @@ useEffect(() => {
     useEffect(() => {
         const fetchJobPostData = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-
-                // Fetch report date and all data from new unified API
-                const res = await fetch('/api/jobpost/report-date', {
-                    headers: { 'Authorization': `Bearer ${session.access_token}` }
-                });
+               const res = await API.apiGet("/api/jobpost/report-date");
                 const data = await res.json();
                 if (data.success) {
                     setJobPostData({
@@ -1048,12 +924,7 @@ useEffect(() => {
 
          const fetchJobs = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-
-                // Fetch report date and all data from new unified API
-                const res = await fetch('/api/jobpost/report-date/jobs', {
-                    headers: { 'Authorization': `Bearer ${session.access_token}` }
-                });
+                const res = await API.apiGet("/api/jobpost/report-date/jobs");
                 const data = await res.json();
                 if (data.success) {
                     setJobs({                        

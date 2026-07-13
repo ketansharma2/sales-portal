@@ -4,7 +4,7 @@ import {
   Wallet, Plus, X, FileText, Send, CheckCircle, 
   Clock, Paperclip, AlertCircle, ChevronDown, Trash2 
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function ManagerPersonalClaims() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterDate, setFilterDate] = useState("");
@@ -21,11 +21,7 @@ export default function ManagerPersonalClaims() {
     try {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       const url = dateFilter ? `/api/domestic/manager/expenses?date=${dateFilter}` : '/api/domestic/manager/expenses';
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(url);
       const data = await response.json();
       if (data.success) {
         setExpenses(data.data);
@@ -55,13 +51,8 @@ export default function ManagerPersonalClaims() {
         formDataToSend.append('file', selectedFile);
       }
 
-      const response = await fetch('/api/domestic/manager/expenses', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: formDataToSend
-      });
+      const response = await API.apiUpload('/api/domestic/manager/expenses', formDataToSend);
+
       const data = await response.json();
       if (data.success) {
         fetchExpenses(filterDate);
@@ -76,15 +67,7 @@ export default function ManagerPersonalClaims() {
 
   const handleSubmitToHOD = async (exp_id) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/manager/expenses/submit-expense', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ exp_id })
-      });
+      const response = await API.apiPost('/api/domestic/manager/expenses/submit-expense', { exp_id });
       const data = await response.json();
       if (data.success) {
         fetchExpenses(filterDate); // Refresh the list
@@ -97,15 +80,7 @@ export default function ManagerPersonalClaims() {
   const handleDeleteExpense = async (exp_id) => {
     if (!confirm('Are you sure you want to delete this expense?')) return;
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/manager/expenses', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ exp_id })
-      });
+      const response = await API.apiDelete('/api/domestic/manager/expenses', { exp_id });
       const data = await response.json();
       if (data.success) {
         fetchExpenses(filterDate); // Refresh the list

@@ -7,7 +7,7 @@ import {
   Search, Activity, Phone, Ghost, AlertCircle, Copy,
   UserCheck, Headset, PhoneCall, CalendarDays, Database, Clock
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function SalesManagerDashboard() {
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
@@ -36,10 +36,7 @@ export default function SalesManagerDashboard() {
   useEffect(() => {
     const fetchFseTeam = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/domestic/manager/fse-team', {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        });
+        const response = await API.apiGet('/api/domestic/manager/fse-team');
         const data = await response.json();
         if (data.success) {
           setFseTeam(data.data || []);
@@ -54,10 +51,7 @@ export default function SalesManagerDashboard() {
     // Fetch LeadGen users from API
     const fetchLeadGenTeam = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/domestic/manager/leadgen-users', {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        });
+        const response = await API.apiGet('/api/domestic/manager/leadgen-users');
         const data = await response.json();
         if (data.success) {
           setLeadGenTeam(data.data || []);
@@ -93,15 +87,11 @@ const [stats, setStats] = useState({
   const fetchDashboard = async () => {
     if (!mounted || fseTeam.length === 0) return;
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/manager/dashboard', {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ from: fromDate, to: toDate, fse_id: selectedAgent === "All" ? null : selectedAgent })
-      });
+      const response = await API.apiPost('/api/domestic/manager/dashboard', {
+    from: fromDate,
+    to: toDate,
+    fse_id: selectedAgent === "All" ? null : selectedAgent
+});
       const data = await response.json();
       if (data.success && data.data) {
         const d = data.data;

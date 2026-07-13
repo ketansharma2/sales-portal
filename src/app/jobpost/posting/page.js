@@ -7,7 +7,7 @@ import {
   Globe, Link as LinkIcon, PlusCircle, Trash2, PlayCircle, PauseCircle,Phone,
   Database, BarChart2, Edit2, Loader2 // Naye icons CV tracking ke liye + Loader2
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function JobPosterPanel() {
   
   // --- STATE ---
@@ -38,10 +38,7 @@ export default function JobPosterPanel() {
   const fetchJDs = async () => {
     try {
       setError(null);
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/jobpost/posting', {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet('/api/jobpost/posting');
       const data = await response.json();
       console.log('API Response:', data); // Debug logging
 
@@ -117,10 +114,8 @@ export default function JobPosterPanel() {
       // If not in session, try to get from API
       if (!userId && session.access_token) {
           try {
-              const userRes = await fetch('/api/auth/get-current-user', {
-                  headers: { 'Authorization': `Bearer ${session.access_token}` }
-              });
-              const userData = await userRes.json();
+          const userResponse = await API.apiGet('/api/auth/get-current-user');
+              const userData = await userResponse.json();
               userId = userData.user_id || userData.id;
           } catch (e) {
               console.error('Error getting user:', e);
@@ -137,20 +132,13 @@ export default function JobPosterPanel() {
       const apiBase = selectedJD.job_type === 'corporate' ? '/api/corporate/crm/jd' : '/api/domestic/crm/jd';
       console.log("Adding link with data:", selectedJD);
       try {
-          const response = await fetch(`${apiBase}/job-postings`, {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${session.access_token}`
-              },
-               body: JSON.stringify({
+          const response = await API.apiPost(`${apiBase}/job-postings`, {         
                    jd_id: selectedJD.id,
                    user_id: userId,
                    platform: newLink.platform,
                    live_url: newLink.live_url,
                    current_stage: "Open",
-                   posted_on: newLink.postedOn
-               })
+                   posted_on: newLink.postedOn      
           });
 
           const result = await response.json();
@@ -171,11 +159,9 @@ export default function JobPosterPanel() {
           // Close the modal and reopen to refresh
           setIsManageModalOpen(false);
           setTimeout(async () => {
-              const session = JSON.parse(localStorage.getItem('session') || '{}');
-              const response = await fetch('/api/jobpost/posting', {
-                  headers: { 'Authorization': `Bearer ${session.access_token}` }
-              });
-              const freshData = await response.json();
+              const response = await API.apiGet('/api/jobpost/posting');
+      const freshData = await response.json();
+        
               console.log("Fresh data after adding link:", freshData);
             const updatedPost = freshData.data.find(
   p => p.id === selectedJD.id
@@ -204,16 +190,9 @@ export default function JobPosterPanel() {
       // Update in database
       try {
           const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const response = await fetch(`${apiBase}/job-postings`, {
-              method: 'PUT',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${session.access_token}`
-              },
-              body: JSON.stringify({
+          const response = await API.apiPut(`${apiBase}/job-postings`, {
                   id: linkId,
-                  current_stage: newStage
-              })
+                  current_stage: newStage            
           });
           
           const result = await response.json();
@@ -249,13 +228,7 @@ export default function JobPosterPanel() {
       
       // Delete from database
       try {
-          const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const response = await fetch(`${apiBase}/job-postings?id=${linkId}`, {
-              method: 'DELETE',
-              headers: {
-                  'Authorization': `Bearer ${session.access_token}`
-              }
-          });
+         const response = await API.apiDelete(`${apiBase}/job-postings?id=${linkId}`);
           
           const result = await response.json();
           
@@ -287,20 +260,12 @@ export default function JobPosterPanel() {
       
       // Save to database
       try {
-          const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const response = await fetch(`${apiBase}/posting-data`, {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${session.access_token}`
-              },
-              body: JSON.stringify({
+          const response = await API.apiPost(`${apiBase}/posting-data`, {
                   jd_id: selectedJD.id,
                   date: newLog.date,
                   platform: newLog.platform,
                   cv_received: parseInt(newLog.count),
-                  calls_done: parseInt(newLog.callingCount) || 0
-              })
+                  calls_done: parseInt(newLog.callingCount) || 0             
           });
           
           const result = await response.json();
@@ -319,11 +284,9 @@ export default function JobPosterPanel() {
           // Close and reopen modal to refresh
           setIsDataModalOpen(false);
           setTimeout(async () => {
-              const session = JSON.parse(localStorage.getItem('session') || '{}');
-              const response = await fetch('/api/jobpost/posting', {
-                  headers: { 'Authorization': `Bearer ${session.access_token}` }
-              });
-              const freshData = await response.json();
+              const response = await API.apiGet('/api/jobpost/posting');
+      const freshData = await response.json();
+             
                             console.log("Fresh data after adding link:", freshData);
 
             const updatedPost = freshData.data.find(
@@ -360,20 +323,14 @@ export default function JobPosterPanel() {
       const apiBase = selectedJD.job_type === 'corporate' ? '/api/corporate/crm/jd' : '/api/domestic/crm/jd';
       
       try {
-          const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const response = await fetch(`${apiBase}/posting-data`, {
-              method: 'PUT',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${session.access_token}`
-              },
-              body: JSON.stringify({
-                  id: editingLog.id,
-                  date: newLog.date,
-                  platform: newLog.platform,
-                  cv_received: parseInt(newLog.count),
+        
+          const response = await API.apiPut(`${apiBase}/posting-data`, {
+              id: editingLog.id,
+              date: newLog.date,
+              platform: newLog.platform,
+              cv_received: parseInt(newLog.count),
                   calls_done: parseInt(newLog.callingCount) || 0
-              })
+            
           });
           
           const result = await response.json();
@@ -429,13 +386,7 @@ export default function JobPosterPanel() {
       
       // Delete from database
       try {
-          const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const response = await fetch(`${apiBase}/posting-data?id=${logId}`, {
-              method: 'DELETE',
-              headers: {
-                  'Authorization': `Bearer ${session.access_token}`
-              }
-          });
+         const response = await API.apiDelete(`${apiBase}/posting-data?id=${logId}`);
           
           const result = await response.json();
           
@@ -507,17 +458,11 @@ const handleStatusChange = async (jdId, newStatus, jobType) => {
     const session = JSON.parse(localStorage.getItem('session') || '{}');
     
     // ✅ Call the new unified status API
-    const response = await fetch('/api/jobpost/posting', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({ 
+    const response = await  API.apiPut('/api/jobpost/posting', {
         jd_id: jdId, 
         status: newStatus,
         job_type: jobType || post.job_type // Pass job_type from the post
-      })
+    
     });
     
     const result = await response.json();

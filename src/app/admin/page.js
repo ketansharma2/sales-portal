@@ -8,7 +8,7 @@ import {
     IndianRupee, Building2, Briefcase, MapPin, Sparkles, Handshake, Filter, Award,
     ChevronDown, ChevronUp
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function DirectorDashboardPage() {
     // --- STATE VARIABLES ---
     const [loading, setLoading] = useState(true);
@@ -53,12 +53,9 @@ export default function DirectorDashboardPage() {
                 const token = session.access_token;
 
                 const [domesticRes, corporateRes] = await Promise.all([
-                    fetch('/api/domestic/revenue/history', {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    }),
-                    fetch('/api/corporate/revenue/history', {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    })
+                    API.apiGet("/api/domestic/revenue/history"),
+
+                    API.apiGet("/api/corporate/revenue/history")
                 ]);
 
                 const domesticData = await domesticRes.json();

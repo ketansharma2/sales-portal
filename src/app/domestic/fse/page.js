@@ -7,7 +7,7 @@ import {
   TrendingUp, Calendar, Filter,
   ArrowRight, Search, Activity,Phone, Ghost, AlertCircle,Copy, X, Calculator
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function FSEDashboard() {
   const [mounted, setMounted] = useState(false);
   const [fromDate, setFromDate] = useState("");
@@ -46,11 +46,7 @@ export default function FSEDashboard() {
       console.log('=== FETCH VISIT TARGET DEBUG ===');
       console.log('Current month param:', currentMonth);
       console.log('User ID from session:', session.user?.id);
-      const response = await fetch(`/api/domestic/fse/targets?month=${currentMonth}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/domestic/fse/targets?month=${currentMonth}`);
       const data = await response.json();
       console.log('Targets API response:', data);
       console.log('API success:', data.success);
@@ -95,15 +91,7 @@ export default function FSEDashboard() {
 
   const fetchDashboard = async (from = '', to = '') => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/fse/dashboard', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ from, to })
-      });
+      const response = await API.apiPost('/api/domestic/fse/dashboard', { from, to });
       console.log('Response status:', response.status);
       const data = await response.json();
       console.log('Dashboard API response:', data);

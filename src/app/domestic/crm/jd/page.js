@@ -7,7 +7,7 @@ import {
   X, CheckCircle, Briefcase, Users, Phone, Mail,
   MapPin, IndianRupee, Calendar , Clock, Globe
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function JobRequirementsPage() {
   
   // --- STATE ---
@@ -26,10 +26,7 @@ export default function JobRequirementsPage() {
 
   const fetchJDs = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/crm/jd', {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const response = await API.apiGet('/api/domestic/crm/jd');
       const data = await response.json();
       if (data.error) throw new Error(data.error);
       setJds(data || []);
@@ -89,10 +86,7 @@ export default function JobRequirementsPage() {
 
   const handleSendToPoster = async (jd_id) => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/domestic/crm/jd/jobpost-users', {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        });
+        const response = await API.apiGet('/api/domestic/crm/jd/jobpost-users');
         const data = await response.json();
         if (data.error) throw new Error(data.error);
         
@@ -121,19 +115,12 @@ export default function JobRequirementsPage() {
     }
     
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch(`/api/domestic/crm/jd?jd_id=${jdId}`, {
-        method: 'PUT',
-        headers: { 
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({ 
-          status: 'Pending',
-          sent_to: selectedPosterUser || null,
-          sent_date: new Date().toISOString().split('T')[0]
-        })
-      });
+      
+      const response = await API.apiPut(`/api/domestic/crm/jd?jd_id=${jdId}`, {
+    status: 'Pending',
+    sent_to: selectedPosterUser || null,
+    sent_date: new Date().toISOString().split('T')[0]
+});
       const data = await response.json();
       
       // Even if there's an error, refresh the list to see actual state
@@ -160,15 +147,11 @@ export default function JobRequirementsPage() {
       const session = JSON.parse(localStorage.getItem('session') || '{}');
       
       // Fetch job_postings for this JD
-      const postingsRes = await fetch(`/api/domestic/crm/jd/job-postings?jd_id=${jdId}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const postingsRes = await API.apiGet(`/api/domestic/crm/jd/job-postings?jd_id=${jdId}`);
       const postingsData = await postingsRes.json();
       
       // Fetch posting_data for this JD
-      const cvRes = await fetch(`/api/domestic/crm/jd/posting-data?jd_id=${jdId}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const cvRes = await API.apiGet(`/api/domestic/crm/jd/posting-data?jd_id=${jdId}`);
       const cvData = await cvRes.json();
       
       setCvModalData({
@@ -185,9 +168,7 @@ export default function JobRequirementsPage() {
 
   const handleSave = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        
-        // Remove computed fields that shouldn't be saved to database
+            // Remove computed fields that shouldn't be saved to database
         const { totalCVs, sent_to_name, created_date, ...cleanFormData } = formData;
         
         const method = formData.jd_id ? 'PUT' : 'POST';
@@ -195,14 +176,12 @@ export default function JobRequirementsPage() {
           ? `/api/domestic/crm/jd?jd_id=${formData.jd_id}`
           : '/api/domestic/crm/jd';
         
-        const response = await fetch(url, {
-          method,
-          headers: { 
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json' 
-          },
-          body: JSON.stringify({ ...cleanFormData, status: 'Draft' })
-        });
+        let response;
+if (formData.jd_id) {
+    response = await API.apiPut(url, { ...cleanFormData, status: 'Draft' });
+} else {
+    response = await API.apiPost(url, { ...cleanFormData, status: 'Draft' });
+}
         const data = await response.json();
         
         if (data.error) throw new Error(data.error);

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image"; // Logo ke liye
 import { Lock, User, ArrowRight, Loader2 } from "lucide-react";
-import { supabase } from '@/lib/supabase';
+import { apiPost } from '@/lib/api-client'; // Add this import
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -13,7 +13,6 @@ export default function LoginPage() {
   const [showRoleSelector, setShowRoleSelector] = useState(false);
   const [availableRoles, setAvailableRoles] = useState([]);
   const [userData, setUserData] = useState(null);
-  const [sessionData, setSessionData] = useState(null);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -21,43 +20,21 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await response.json();
+     const response = await apiPost('/api/auth/login', { email, password });
+     const data = await response.json();
 
       if (data.success) {
 
-        const { error: sessionError } = await supabase.auth.setSession({
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
-      });
 
 
-
-    if (sessionError) {
-      console.error('Error setting session:', sessionError);
-      setError('Login succeeded but failed to set session. Please try again.');
-      setLoading(false);
-      return;
-    }
-
-
-      
         if (data.requiresSelection) {
 
 
           // Show role selector
           setAvailableRoles(data.availableRoles);
           setUserData(data.user);
-          setSessionData(data.session);
           setShowRoleSelector(true);
-          
+
           // Check if JOBPOST is in available roles - only store redirectUrl for that case
           // For other multi-role cases (RC, TL, etc.), let user select the role
           const hasJobpost = data.availableRoles.some(r => r.toUpperCase().includes('JOBPOST'));
@@ -69,10 +46,6 @@ export default function LoginPage() {
         } else {
           // Single role: proceed
           localStorage.setItem('user', JSON.stringify(data.user));
-          localStorage.setItem('session', JSON.stringify(data.session));
-const session = JSON.parse(localStorage.getItem('session') || '{}');
-    // Save token to Supabase
-          
 
           // Check for redirectUrl first (e.g., JOBPOST role)
           if (data.redirectUrl) {
@@ -108,14 +81,7 @@ const session = JSON.parse(localStorage.getItem('session') || '{}');
     // Set current_role
     const updatedUser = { ...userData, current_role: selectedRole };
 
-     if (sessionData) {
-    await supabase.auth.setSession({
-      access_token: sessionData.access_token,
-      refresh_token: sessionData.refresh_token,
-    });
-  }
     localStorage.setItem('user', JSON.stringify(updatedUser));
-    localStorage.setItem('session', JSON.stringify(sessionData));
 
     // Check for stored redirectUrl first (e.g., JOBPOST role)
     const redirectUrl = localStorage.getItem('redirectUrl');
@@ -128,33 +94,33 @@ const session = JSON.parse(localStorage.getItem('session') || '{}');
     // Redirect based on sector and selectedRole
     let redirectPath;
     const role = selectedRole.toLowerCase();
-    
+
     if (role === 'hod') {
       redirectPath = '/hod';
     } else if (role === 'operation_head' || role === 'operations') {
       redirectPath = '/operations/reimbursement';
     } else if (role === 'rc') {
       // RC role redirects to recruiter page
-      redirectPath = userData.sector 
+      redirectPath = userData.sector
         ? `/${userData.sector.toLowerCase()}/recruiter`
         : '/recruiter';
     } else if (role === 'tl') {
       // TL role redirects to tl page
-      redirectPath = userData.sector 
+      redirectPath = userData.sector
         ? `/${userData.sector.toLowerCase()}/tl`
         : '/tl';
     } else if (role === 'manager' || role === 'fse' || role === 'leadgen' || role === 'crm') {
       // Map generic roles to their dashboard pages
-      redirectPath = userData.sector 
+      redirectPath = userData.sector
         ? `/${userData.sector.toLowerCase()}/${role}`
         : `/${role}`;
     } else {
       // For other roles, use the role name in the path
-      redirectPath = userData.sector 
+      redirectPath = userData.sector
         ? `/${userData.sector.toLowerCase()}/${role}`
         : `/${role}`;
     }
-    
+
     router.push(redirectPath);
   };
 
@@ -203,14 +169,14 @@ const session = JSON.parse(localStorage.getItem('session') || '{}');
         {/* --- BRANDING SECTION: Logo replace kiya gaya --- */}
         <div className="text-center mb-10">
           <div className="flex items-center justify-center mb-4">
-             <Image
-                src="/maven-logo.png"
-                alt="Maven Jobs"
-                width={180}
-                height={60}
-                priority
-                className="object-contain"
-              />
+            <Image
+              src="/maven-logo.png"
+              alt="Maven Jobs"
+              width={180}
+              height={60}
+              priority
+              className="object-contain"
+            />
           </div>
           <p className="text-gray-400 font-bold text-[10px] tracking-[0.3em] uppercase mt-2 italic">
             Enterprise Sales Portal

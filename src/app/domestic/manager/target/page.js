@@ -5,7 +5,7 @@ import {
   Target, BarChart2, Calculator, Percent, Trash2,
   Edit, Eye, User, ChevronDown, CheckCircle
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function SMDomesticTargetPage() {
   
   // --- STATES ---
@@ -47,13 +47,7 @@ export default function SMDomesticTargetPage() {
 
   const fetchTeamUsers = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
-      if (!token) return;
-      
-      const response = await fetch('/api/domestic/manager/team-users', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await API.apiGet('/api/domestic/manager/team-users');
       
       const result = await response.json();
       
@@ -106,14 +100,7 @@ export default function SMDomesticTargetPage() {
   // Fetch my targets from API
   const fetchMyTargets = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
-      
-      if (!token) return;
-      
-      const response = await fetch('/api/domestic/manager/my-targets', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await API.apiGet('/api/domestic/manager/my-targets');
       
       const result = await response.json();
       
@@ -151,9 +138,7 @@ export default function SMDomesticTargetPage() {
       if (filterRole !== 'All') params.set('role', filterRole);
       if (filterName !== 'All') params.set('name', filterName);
       
-      const response = await fetch(`/api/domestic/manager/team-targets?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await API.apiGet(`/api/domestic/manager/team-targets?${params.toString()}`);
       
       const result = await response.json();
       
@@ -242,34 +227,21 @@ export default function SMDomesticTargetPage() {
         
         const updateInAPI = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
                 
-                if (!token) {
-                    alert('Session expired. Please login again.');
-                    return;
-                }
 
                 setSavingTarget(true);
 
-                const response = await fetch('/api/domestic/manager/team-targets', {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        target_id: editId,
-                        year: form.year,
-                        month: form.month,
-                        working_days: form.workingDays,
-                        role: form.role,
-                        guideline: t.guideline,
-                        kpi: t.kpi_metric,
-                        frequency: t.frequency,
-                        total_target: t.target
-                    })
-                });
+                const response = await API.apiPut('/api/domestic/manager/team-targets', {
+    target_id: editId,
+    year: form.year,
+    month: form.month,
+    working_days: form.workingDays,
+    role: form.role,
+    guideline: t.guideline,
+    kpi: t.kpi_metric,
+    frequency: t.frequency,
+    total_target: t.target
+});
 
                 const result = await response.json();
 
@@ -292,17 +264,11 @@ export default function SMDomesticTargetPage() {
         // Save to API
         const saveToAPI = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
                 
-                if (!token) {
-                    alert('Session expired. Please login again.');
-                    return;
-                }
 
                 // Get user's user_id from teamEmployees by name
                 const allUsers = Object.values(teamEmployees).flat();
-                const userResponse = await fetch('/api/domestic/manager/team-users', {
+                const userResponse = await API.apiGet('/api/domestic/manager/team-users', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const userResult = await userResponse.json();
@@ -322,21 +288,14 @@ export default function SMDomesticTargetPage() {
 
                 setSavingTarget(true);
 
-                const response = await fetch('/api/domestic/manager/team-targets', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        year: form.year,
-                        month: form.month,
-                        working_days: form.workingDays,
-                        role: form.role,
-                        assigned_to: selectedUser.user_id,
-                        targets: targets
-                    })
-                });
+               const response = await API.apiPost('/api/domestic/manager/team-targets', {
+    year: form.year,
+    month: form.month,
+    working_days: form.workingDays,
+    role: form.role,
+    assigned_to: selectedUser.user_id,
+    targets: targets
+});
 
                 const result = await response.json();
 

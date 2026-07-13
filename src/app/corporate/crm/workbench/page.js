@@ -5,8 +5,9 @@ import {
     FileText, Send, TrendingUp, Database, UserCheck, MessageSquare, 
     Search, Eye, X, Users, LayoutDashboard, Settings, UserCog, Download
 } from "lucide-react";
+import * as API from '@/lib/api-client';
 import JdDocumentModal from "@/components/JdDocumentModal";
-
+import Image from "next/image";
 export default function CRMWorkbenchReport() {
     
     // --- STATE ---
@@ -26,12 +27,7 @@ export default function CRMWorkbenchReport() {
     useEffect(() => {
         async function fetchUsers() {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                const res = await fetch('/api/admin/users', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await API.apiGet("/api/admin/users");
                 const data = await res.json();
                 if (data.success && data.data) {
                     setAllUsers(data.data);
@@ -74,7 +70,7 @@ export default function CRMWorkbenchReport() {
         if (selectedTL !== "All") {
             const selectedTlUser = tlList.find(t => t.name === selectedTL);
             const hasRcForThisTl = allRecruiters.some(r => r.tl_id === selectedTlUser?.user_id);
-            if (!hasRcForThisTl) {
+            if (!hasRcForThisTl && selectedRecruiter !== "All") {
                 setSelectedRecruiter("All");
             }
         }
@@ -100,17 +96,12 @@ export default function CRMWorkbenchReport() {
         
         const fetchLatestDate = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
                 
-                if (!token) return;
                 
                 const userIds = allRecruiters.map(r => r.user_id).join(',');
                 if (!userIds) return;
                 
-                const res = await fetch(`/api/corporate/crm/workbench/latest-date?userIds=${userIds}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await API.apiGet(`/api/corporate/crm/workbench/latest-date?userIds=${userIds}`);
                 const result = await res.json();
                 
                 if (result.success && result.maxDate) {
@@ -170,9 +161,7 @@ export default function CRMWorkbenchReport() {
                     url += `${url.includes('?') ? '&' : '?'}tl_id=${selectedTlUser.user_id}`;
                 }
 
-                const res = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await API.apiGet(url);
                 const result = await res.json();
 
                 if (result.success && result.data) {
@@ -202,9 +191,7 @@ export default function CRMWorkbenchReport() {
                     url += `?fromDate=${fromDate}&toDate=${toDate}`;
                 }
 
-                const res = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await API.apiGet(url);
                 const result = await res.json();
 
                 if (result.success) {
@@ -255,9 +242,7 @@ export default function CRMWorkbenchReport() {
                     url += `${url.includes('?') ? '&' : '?'}tl_id=${selectedTlUser.user_id}`;
                 }
 
-                const res = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await API.apiGet(url);
                 const result = await res.json();
 
                 if (result.success && result.data) {
@@ -939,10 +924,10 @@ export default function CRMWorkbenchReport() {
                         {/* --- PDF CONTENT --- */}
                         <div className="flex-1 min-h-0 overflow-y-auto bg-gray-200 p-4 md:p-8 block print:block print:overflow-visible print:bg-white print:p-0 custom-scrollbar">
                             <div className="bg-white w-full max-w-[210mm] min-h-[297mm] h-max mx-auto p-[10mm] md:p-[15mm] shadow-xl text-black font-['Calibri'] relative print:w-full print:max-w-none print:shadow-none print:m-0 print:border-none" id="pdf-content">
-                                
+                               
                                 {/* 1. Header Logo */}
                                 <div className="mb-10">
-                                    <img src="/maven-logo.png" alt="Maven Jobs" style={{ width: '220px', height: '70px', objectFit: 'contain' }} />
+                                    <Image src="/maven-logo.png" alt="Maven Jobs" style={{ width: '220px', height: '70px', objectFit: 'contain' }} />
                                 </div>
 
                                 {/* 2. Bordered Container */}

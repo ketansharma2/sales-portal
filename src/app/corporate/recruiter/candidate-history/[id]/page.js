@@ -6,6 +6,7 @@ import {
     Calendar, Phone, Briefcase, MapPin, IndianRupee, Clock,
     CheckCircle2, MessageSquareText, AlertCircle, Bookmark,X , Edit, File
 } from "lucide-react";
+import * as API from '@/lib/api-client';
 
 export default function CandidateHistoryPage() {
     const params = useParams();
@@ -59,27 +60,17 @@ export default function CandidateHistoryPage() {
 
         setIsUpdatingFollowup(true);
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            
-            const response = await fetch('/api/corporate/recruiter/candidate-history', {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    conversation_id: editId,
-                    candidate_status: formData.status,
-                    remarks: formData.feedback,
-                    relevant_exp: formData.relExp || null,
-                    curr_ctc: formData.currCtc || null,
-                    exp_ctc: formData.expCtc || null,
-                    apply_date: formData.applyDate,
-                    calling_date: formData.callingDate,
-                    slot: formData.slot || null
-                })
-            });
+            const response = await API.apiPut('/api/corporate/recruiter/candidate-history', {
+    conversation_id: editId,
+    candidate_status: formData.status,
+    remarks: formData.feedback,
+    relevant_exp: formData.relExp || null,
+    curr_ctc: formData.currCtc || null,
+    exp_ctc: formData.expCtc || null,
+    apply_date: formData.applyDate,
+    calling_date: formData.callingDate,
+    slot: formData.slot || null
+});
             
             const result = await response.json();
             
@@ -144,13 +135,7 @@ export default function CandidateHistoryPage() {
         const fetchWorkbenchData = async () => {
             setIsLoadingWorkbench(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                const response = await fetch('/api/corporate/recruiter/workbench-dropdown', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const response = await API.apiGet('/api/corporate/recruiter/workbench-dropdown');
                 const result = await response.json();
                 if (result.success) {
                     // Transform data for dropdown options - show job_title, slot and company_name
@@ -180,13 +165,7 @@ export default function CandidateHistoryPage() {
         const fetchFollowups = async () => {
             setIsLoadingFollowups(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                const response = await fetch(`/api/corporate/recruiter/candidate-history?parsing_id=${candidateId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const response = await API.apiGet(`/api/corporate/recruiter/candidate-history?parsing_id=${candidateId}`);
                 const result = await response.json();
                 if (result.success && result.data) {
                     // Transform database records to UI format
@@ -227,17 +206,14 @@ export default function CandidateHistoryPage() {
                 const token = session.access_token;
                 
                 // Get current user details first
-                const userResponse = await fetch('/api/auth/get-current-user', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const userResponse = await API.apiGet('/api/auth/get-current-user');
+
                 const userData = await userResponse.json();
                 
                 if (userData.user_id) {
                     setCurrentUserId(userData.user_id);
                     // Get TL details
-                    const tlResponse = await fetch(`/api/corporate/recruiter/get-tl-details?user_id=${userData.user_id}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const tlResponse = await API.apiGet(`/api/corporate/recruiter/get-tl-details?user_id=${userData.user_id}`);
                     const tlResult = await tlResponse.json();
                     
                     if (tlResult.success && tlResult.data) {
@@ -259,12 +235,9 @@ export default function CandidateHistoryPage() {
         // Fetch candidate data
         setIsLoadingCandidateData(true);
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
             
-            const response = await fetch(`/api/corporate/recruiter/candidate-details?parsing_id=${candidateId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            
+            const response = await API.apiGet(`/api/corporate/recruiter/candidate-details?parsing_id=${candidateId}`);
             const result = await response.json();
             
             if (result.success && result.data) {
@@ -298,21 +271,14 @@ export default function CandidateHistoryPage() {
     setIsUploadingCV(true);
     
     try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
+       
         
         const formData = new FormData();
         formData.append('file', file);
         formData.append('cv_parsing_id', candidateId);
         
-        const response = await fetch('/api/domestic/recruiter/upload-cv', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
-        });
-        
+        const response = await API.apiUpload('/api/domestic/recruiter/upload-cv', formData);
+
         const result = await response.json();
         
         if (result.success) {
@@ -345,28 +311,18 @@ export default function CandidateHistoryPage() {
 
         setIsSavingFollowup(true);
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            
-            const response = await fetch('/api/corporate/recruiter/candidate-history', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    parsing_id: candidateId,
-                    req_id: formData.req_id || null,
-                    candidate_status: formData.status,
-                    remarks: formData.feedback,
-                    relevant_exp: formData.relExp || null,
-                    curr_ctc: formData.currCtc || null,
-                    exp_ctc: formData.expCtc || null,
-                    apply_date: formData.applyDate,
-                    calling_date: formData.callingDate,
-                    slot: formData.slot || null
-                })
-            });
+            const response = await API.apiPost('/api/corporate/recruiter/candidate-history', {
+    parsing_id: candidateId,
+    req_id: formData.req_id || null,
+    candidate_status: formData.status,
+    remarks: formData.feedback,
+    relevant_exp: formData.relExp || null,
+    curr_ctc: formData.currCtc || null,
+    exp_ctc: formData.expCtc || null,
+    apply_date: formData.applyDate,
+    calling_date: formData.callingDate,
+    slot: formData.slot || null
+});
             
             const result = await response.json();
             
@@ -396,15 +352,7 @@ export default function CandidateHistoryPage() {
         if(window.confirm("Are you sure you want to delete this followup?")) {
             setIsDeleting(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                const response = await fetch(`/api/corporate/recruiter/candidate-history?conversation_id=${id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const response = await API.apiDelete(`/api/corporate/recruiter/candidate-history?conversation_id=${id}`);
                 
                 const result = await response.json();
                 
@@ -438,23 +386,14 @@ export default function CandidateHistoryPage() {
         
         setIsSendingToTL(true);
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
             
             const today = new Date().toISOString().split('T')[0];
             
-            const response = await fetch('/api/corporate/recruiter/candidate-history', {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    conversation_id: selectedFollowupId,
-                    sent_to_tl: tlDetails.user_id,
-                    sent_date: today
-                })
-            });
+            const response = await API.apiPut('/api/corporate/recruiter/candidate-history', {
+    conversation_id: selectedFollowupId,
+    sent_to_tl: tlDetails.user_id,
+    sent_date: today
+});
             
             const result = await response.json();
             
@@ -462,11 +401,7 @@ export default function CandidateHistoryPage() {
                 // Refetch the data to get updated tl_name
                 setIsLoadingFollowups(true);
                 try {
-                    const session = JSON.parse(localStorage.getItem('session') || '{}');
-                    const token = session.access_token;
-                    const response = await fetch(`/api/corporate/recruiter/candidate-history?parsing_id=${candidateId}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const response = await API.apiGet(`/api/corporate/recruiter/candidate-history?parsing_id=${candidateId}`);
                     const resultData = await response.json();
                     if (resultData.success && resultData.data) {
                         const transformed = resultData.data.map((item, idx) => ({

@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-
+import { getUser } from "@/lib/auth-helper";
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -9,19 +9,12 @@ const supabaseAdmin = createClient(
 export async function GET(request) {
   try {
     // 🔐 Auth
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
+    const { user, error: authError } = getUser(request);
+    
+    if (authError || !user) {
+      console.log('[API] Auth error:', authError);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } =
-      await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
    
      // 🟢 Step 2: Fetch followups (optionally filter by parsing_id)
     const { searchParams } = new URL(request.url);

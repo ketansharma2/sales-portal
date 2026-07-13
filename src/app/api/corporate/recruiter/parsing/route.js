@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import mammoth from "mammoth";
 import { supabaseServer } from '@/lib/supabase-server'
 import docstream from '@jose.espana/docstream';
+import { getUser } from '@/lib/auth-helper';
 
 // Some portals (e.g. Naukri.com) export resumes as ".doc" files that are actually
 // HTML content Word can render, not real OLE2/CFB binaries. Detect and convert those.
@@ -79,14 +80,9 @@ async function generateWithRetry(model, contents, apiKey) {
 export async function GET(request) {
   try {
     // Authentication
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+      const { user, error: authError } = getUser(request);
     if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const userId = user.user_id || user.id

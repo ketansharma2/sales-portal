@@ -4,7 +4,7 @@ import {
   Calendar, Briefcase, X, Target, 
   BarChart2, Percent, Eye, User, CheckCircle
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function FSEDomesticTargetPage() {
   
   // --- STATES ---
@@ -25,14 +25,7 @@ export default function FSEDomesticTargetPage() {
   // Fetch my targets from API
   const fetchMyTargets = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
-
-      if (!token) return;
-
-      const response = await fetch('/api/domestic/fse/my-targets', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await API.apiGet('/api/domestic/fse/my-targets');
 
       const result = await response.json();
 
@@ -50,10 +43,7 @@ export default function FSEDomesticTargetPage() {
   // Fetch dynamic achievements for Onboard and Visit KPIs
   const fetchDynamicAchievements = async (targets) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
-
-      if (!token) return;
+      
 
       const achievements = {};
 
@@ -64,9 +54,7 @@ export default function FSEDomesticTargetPage() {
       // Fetch Onboard achievements
       for (const target of onboardTargets) {
         try {
-          const response = await fetch(`/api/domestic/fse/onboard-achievement?month=${target.month}&year=${target.year}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const response = await API.apiGet(`/api/domestic/fse/onboard-achievement?month=${target.month}&year=${target.year}`);
 
           const result = await response.json();
 
@@ -86,9 +74,7 @@ export default function FSEDomesticTargetPage() {
       // Fetch Visit achievements
       for (const target of visitTargets) {
         try {
-          const response = await fetch(`/api/domestic/fse/visit-achievement?month=${target.month}&year=${target.year}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const response = await API.apiGet(`/api/domestic/fse/visit-achievement?month=${target.month}&year=${target.year}`);
 
           const result = await response.json();
 

@@ -4,7 +4,7 @@ import {
   Search, Phone, Filter, X, Save, Plus, Eye, Briefcase,
   Calendar, MapPin, ListFilter,ArrowRight,Send,Lock,Edit,Users,LinkIcon
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function LeadsTablePage() {
   
   // --- MOCK DATA --- (will be replaced by API data)
@@ -71,12 +71,7 @@ export default function LeadsTablePage() {
 
   const fetchLeads = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/leadgen/leads', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet('/api/domestic/leadgen/leads');
       const data = await response.json();
       if (data.success) {
         setAllLeads(data.data);
@@ -91,12 +86,7 @@ export default function LeadsTablePage() {
 
   const fetchInteractions = async (clientId) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch(`/api/domestic/leadgen/interaction?client_id=${clientId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/domestic/leadgen/interaction?client_id=${clientId}`);
       const data = await response.json();
       if (data.success) {
         setInteractions(data.data);
@@ -108,15 +98,7 @@ export default function LeadsTablePage() {
 
   const fetchManagerName = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/leadgen/send-to-manager', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ client_id: 0 }) // Just to get manager info
-      });
+      const response = await API.apiPost('/api/domestic/leadgen/send-to-manager', { client_id: 0 });
       const data = await response.json();
       if (data.success && data.data?.managerName) {
         setManagerName(data.data.managerName);
@@ -142,12 +124,7 @@ export default function LeadsTablePage() {
     const fetchSuggestions = async () => {
       if (!selectedLead?.id || modalType !== 'add') return;
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch(`/api/domestic/leadgen/interaction?client_id=${selectedLead.id}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/domestic/leadgen/interaction?client_id=${selectedLead.id}`);
         const data = await response.json();
         if (data.success) {
           const persons = [...new Set(data.data.map(i => i.contact_person).filter(Boolean))];
@@ -258,15 +235,7 @@ export default function LeadsTablePage() {
   const handleSaveOnly = async () => {
     try {
       console.log('Posting new lead data (save only):', newLeadData);
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/leadgen/leadscreation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify(newLeadData)
-      });
+      const response = await API.apiPost('/api/domestic/leadgen/leadscreation', newLeadData);
       const data = await response.json();
       if (data.success) {
         setIsFormOpen(false);
@@ -283,15 +252,7 @@ export default function LeadsTablePage() {
   const handleSaveAndFollowup = async () => {
     try {
       console.log('Posting new lead data:', newLeadData);
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/leadgen/leads', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify(newLeadData)
-      });
+      const response = await API.apiPost('/api/domestic/leadgen/leads', newLeadData);
       const data = await response.json();
       if (data.success) {
         setSelectedLead({
@@ -320,18 +281,10 @@ export default function LeadsTablePage() {
   const handleSaveInteraction = async () => {
     try {
       console.log('Posting interaction data:', { client_id: selectedLead.id, ...interactionData });
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/leadgen/interaction', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          client_id: selectedLead.id,
-          ...interactionData
-        })
-      });
+      const response = await API.apiPost('/api/domestic/leadgen/interaction', {
+    client_id: selectedLead.id,
+    ...interactionData
+});
       const data = await response.json();
       if (data.success) {
         setIsFormOpen(false);
@@ -347,19 +300,10 @@ export default function LeadsTablePage() {
   const handleUpdateLead = async () => {
     try {
       console.log('Updating lead data:', { client_id: selectedLead.id, ...newLeadData });
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      // Assuming you use PUT or PATCH for updates. Adjust the method/URL if your API is different.
-      const response = await fetch('/api/domestic/leadgen/leads', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          client_id: selectedLead.id, // We need the ID to know which lead to update
-          ...newLeadData
-        })
-      });
+      const response = await API.apiPut('/api/domestic/leadgen/leads', {
+    client_id: selectedLead.id,
+    ...newLeadData
+});
       const data = await response.json();
       if (data.success) {
         setIsFormOpen(false);
@@ -1086,15 +1030,7 @@ export default function LeadsTablePage() {
       onClick={async () => {
         try {
           console.log('Sending lead to manager:', { client_id: selectedLead.id });
-          const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const response = await fetch('/api/domestic/leadgen/send-to-manager', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`
-            },
-            body: JSON.stringify({ client_id: selectedLead.id })
-          });
+          const response = await API.apiPost('/api/domestic/leadgen/send-to-manager', { client_id: selectedLead.id });
            const data = await response.json();
            if (data.success) {
              // 1. Update State: Set 'isSubmitted' to true

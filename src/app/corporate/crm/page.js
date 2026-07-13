@@ -7,7 +7,7 @@ import {
   Share2, UserCheck, Award, MessageSquare, XCircle, X,
   Clock, ArrowUpRight, Filter, Search, AlertTriangle
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function CRMDashboard() {
 
   // --- STATE FOR DATE FILTER ---
@@ -50,15 +50,7 @@ export default function CRMDashboard() {
   useEffect(() => {
     const fetchClientCounts = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
-
-        const response = await fetch('/api/corporate/crm/client-counts', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const response = await API.apiGet("/api/corporate/crm/client-counts");
 
         if (response.ok) {
           const data = await response.json();
@@ -77,13 +69,8 @@ export default function CRMDashboard() {
   useEffect(() => {
     const fetchExpiringClients = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
+        const response = await API.apiGet("/api/corporate/crm/expiring-clients");
 
-        const response = await fetch('/api/corporate/crm/expiring-clients', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
 
         if (response.ok) {
           const data = await response.json();
@@ -105,9 +92,7 @@ export default function CRMDashboard() {
   useEffect(() => {
     const fetchTotalOnboarded = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
+       
 
         const params = new URLSearchParams();
         if (allDatabaseActive) {
@@ -117,11 +102,8 @@ export default function CRMDashboard() {
           params.set('toDate', dateRange.to);
         }
 
-        const response = await fetch(`/api/corporate/crm/onboarded?${params.toString()}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/crm/onboarded?${params.toString()}`);
+
 
         if (response.ok) {
           const data = await response.json();
@@ -139,9 +121,7 @@ export default function CRMDashboard() {
   useEffect(() => {
     const fetchAcknowledged = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
+       
 
         const params = new URLSearchParams();
         if (allDatabaseActive) {
@@ -151,11 +131,8 @@ export default function CRMDashboard() {
           params.set('toDate', dateRange.to);
         }
 
-        const response = await fetch(`/api/corporate/crm/acknowledged?${params.toString()}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/crm/acknowledged?${params.toString()}`);
+
 
         if (response.ok) {
           const data = await response.json();
@@ -185,11 +162,8 @@ export default function CRMDashboard() {
           params.set('toDate', dateRange.to);
         }
 
-        const response = await fetch(`/api/corporate/crm/pipeline?${params.toString()}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/crm/pipeline?${params.toString()}`);
+
 
         if (response.ok) {
           const data = await response.json();
@@ -207,9 +181,7 @@ export default function CRMDashboard() {
   useEffect(() => {
     const fetchRejectedByClient = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
+       
 
         const params = new URLSearchParams();
         if (allDatabaseActive) {
@@ -219,11 +191,7 @@ export default function CRMDashboard() {
           params.set('toDate', dateRange.to);
         }
 
-        const response = await fetch(`/api/corporate/crm/rejected-by-client?${params.toString()}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+          const response = await API.apiGet(`/api/corporate/crm/rejected-by-client?${params.toString()}`);
 
         if (response.ok) {
           const data = await response.json();
@@ -241,9 +209,7 @@ export default function CRMDashboard() {
   useEffect(() => {
     const fetchShortlisted = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
+      
 
         const params = new URLSearchParams();
         if (allDatabaseActive) {
@@ -253,11 +219,7 @@ export default function CRMDashboard() {
           params.set('toDate', dateRange.to);
         }
 
-        const response = await fetch(`/api/corporate/crm/shortlisted?${params.toString()}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+         const response = await API.apiGet(`/api/corporate/crm/shortlisted?${params.toString()}`);
 
         if (response.ok) {
           const data = await response.json();
@@ -275,9 +237,7 @@ export default function CRMDashboard() {
   useEffect(() => {
     const fetchGhosted = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
+        
 
         const params = new URLSearchParams();
         if (allDatabaseActive) {
@@ -287,11 +247,8 @@ export default function CRMDashboard() {
           params.set('toDate', dateRange.to);
         }
 
-        const response = await fetch(`/api/corporate/crm/ghosted?${params.toString()}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/crm/ghosted?${params.toString()}`);
+
 
         if (response.ok) {
           const data = await response.json();
@@ -309,10 +266,7 @@ export default function CRMDashboard() {
   useEffect(() => {
     const fetchTotalInterviews = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
-
+        
         const params = new URLSearchParams();
         if (allDatabaseActive) {
           params.set('allDatabase', 'true');
@@ -321,9 +275,8 @@ export default function CRMDashboard() {
           params.set('toDate', dateRange.to);
         }
 
-        const response = await fetch(`/api/corporate/crm/total-interviews?${params.toString()}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await API.apiGet(`/api/corporate/crm/total-interviews?${params.toString()}`);
+
 
         if (response.ok) {
           const data = await response.json();
@@ -353,9 +306,8 @@ export default function CRMDashboard() {
           params.set('toDate', dateRange.to);
         }
 
-        const response = await fetch(`/api/corporate/crm/total-selected?${params.toString()}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+    const response = await API.apiGet(`/api/corporate/crm/total-selected?${params.toString()}`);
+
 
         if (response.ok) {
           const data = await response.json();
@@ -385,9 +337,7 @@ export default function CRMDashboard() {
           params.set('toDate', dateRange.to);
         }
 
-        const response = await fetch(`/api/corporate/crm/total-joined?${params.toString()}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await API.apiGet(`/api/corporate/crm/total-joined?${params.toString()}`);
 
         if (response.ok) {
           const data = await response.json();
@@ -405,9 +355,7 @@ export default function CRMDashboard() {
   useEffect(() => {
     const fetchCallsMade = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
+
 
         const params = new URLSearchParams();
         if (allDatabaseActive) {
@@ -417,11 +365,7 @@ export default function CRMDashboard() {
           params.set('toDate', dateRange.to);
         }
 
-        const response = await fetch(`/api/corporate/crm/calls-made?${params.toString()}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/crm/calls-made?${params.toString()}`);
 
         if (response.ok) {
           const data = await response.json();
@@ -450,11 +394,8 @@ export default function CRMDashboard() {
            params.set('toDate', dateRange.to);
          }
 
-         const response = await fetch(`/api/corporate/crm/total-reqs?${params.toString()}`, {
-           headers: {
-             'Authorization': `Bearer ${token}`
-           }
-         });
+          const response = await API.apiGet(`/api/corporate/crm/total-reqs?${params.toString()}`);
+
 
          if (response.ok) {
            const data = await response.json();
@@ -472,10 +413,7 @@ export default function CRMDashboard() {
    useEffect(() => {
      const fetchTotalRequirements = async () => {
        try {
-         const session = JSON.parse(localStorage.getItem('session') || '{}');
-         const token = session.access_token;
-         if (!token) return;
-
+         
          const params = new URLSearchParams();
          if (allDatabaseActive) {
            params.set('allDatabase', 'true');
@@ -484,11 +422,7 @@ export default function CRMDashboard() {
            params.set('toDate', dateRange.to);
          }
 
-         const response = await fetch(`/api/corporate/crm/total-requirements?${params.toString()}`, {
-           headers: {
-             'Authorization': `Bearer ${token}`
-           }
-         });
+         const response = await API.apiGet(`/api/corporate/crm/total-requirements?${params.toString()}`);
 
          if (response.ok) {
            const data = await response.json();
@@ -518,11 +452,8 @@ export default function CRMDashboard() {
             params.set('toDate', dateRange.to);
           }
 
-          const response = await fetch(`/api/corporate/crm/total-package?${params.toString()}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
+        const response = await API.apiGet(`/api/corporate/crm/total-package?${params.toString()}`);
+
 
           if (response.ok) {
             const data = await response.json();
@@ -540,9 +471,7 @@ export default function CRMDashboard() {
   useEffect(() => {
     const fetchTrackerShared = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
+       
 
         const params = new URLSearchParams();
         if (allDatabaseActive) {
@@ -552,11 +481,8 @@ export default function CRMDashboard() {
           params.set('toDate', dateRange.to);
         }
 
-        const response = await fetch(`/api/corporate/crm/tracker-shared?${params.toString()}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/crm/tracker-shared?${params.toString()}`);
+
 
         if (response.ok) {
           const data = await response.json();
@@ -574,9 +500,7 @@ export default function CRMDashboard() {
   useEffect(() => {
     const fetchReqsWorked = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
+  
 
         const params = new URLSearchParams();
         if (allDatabaseActive) {
@@ -586,11 +510,8 @@ export default function CRMDashboard() {
           params.set('toDate', dateRange.to);
         }
 
-        const response = await fetch(`/api/corporate/crm/reqs-worked?${params.toString()}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+      const response = await API.apiGet(`/api/corporate/crm/reqs-worked?${params.toString()}`);
+
 
         if (response.ok) {
           const data = await response.json();
@@ -608,15 +529,9 @@ export default function CRMDashboard() {
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
+        
 
-        const response = await fetch(`/api/corporate/crm/conversations?fromDate=${dateRange.from}&toDate=${dateRange.to}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/crm/conversations?fromDate=${dateRange.from}&toDate=${dateRange.to}`);
 
         if (response.ok) {
           const data = await response.json();
@@ -634,15 +549,7 @@ export default function CRMDashboard() {
   useEffect(() => {
     const fetchTodayFollowUps = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
-
-        const response = await fetch('/api/corporate/crm/today-followups', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const response = await API.apiGet("/api/corporate/crm/today-followups");
 
         if (response.ok) {
           const data = await response.json();
@@ -944,7 +851,7 @@ export default function CRMDashboard() {
                       <MessageSquare size={10} className="text-gray-300"/> Last Discussion
                     </p>
                     <p className="text-[10px] text-gray-600 font-medium italic line-clamp-2 leading-relaxed">
-                      "{item.lastConvo}"
+                      {item.lastConvo}
                     </p>
                   </div>
                 </div>

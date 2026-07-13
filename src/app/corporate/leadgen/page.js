@@ -8,7 +8,7 @@ import {
   Rocket, ChevronDown, Filter, PhoneOutgoing, PhoneIncoming, PhoneMissed,
   MessageSquare
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 // --- Helper function to build filter URL ---
 const buildFilterUrl = (router, fromDate, toDate, isAllData, filters) => {
   const params = new URLSearchParams();
@@ -78,12 +78,7 @@ export default function LeadGenHome() {
 
   const fetchTodayFollowUps = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/corporate/leadgen/today-followups', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet("/api/corporate/leadgen/today-followups");
       const data = await response.json();
       if (data.success) {
         setFollowUps(data.data || []);
@@ -95,7 +90,6 @@ export default function LeadGenHome() {
 
   const fetchConversationLog = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       
       if (isAllData) {
@@ -108,11 +102,7 @@ export default function LeadGenHome() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/leadgen/conversation-log?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/leadgen/conversation-log?${params.toString()}`);
       const data = await response.json();
       console.log('Conversation log API response:', data);
       if (data.success && data.data) {
@@ -125,17 +115,12 @@ export default function LeadGenHome() {
 
   const fetchLeadsCount = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       if (!isAllData && fromDate && toDate) {
         params.append('fromDate', fromDate);
         params.append('toDate', toDate);
       }
-      const response = await fetch(`/api/corporate/leadgen/leads-count?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/leadgen/leads-count?${params.toString()}`);
       const data = await response.json();
        if (data.success && data.data) {
          setKpiData(prev => ({
@@ -150,12 +135,7 @@ export default function LeadGenHome() {
 
   const fetchProjectionsCount = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/corporate/leadgen/projections-count', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet("/api/corporate/leadgen/projections-count");
       const data = await response.json();
       if (data.success && data.data) {
         setKpiData(prev => ({
@@ -175,7 +155,6 @@ export default function LeadGenHome() {
 
   const fetchContactsCount = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       
       if (isAllData) {
@@ -188,11 +167,7 @@ export default function LeadGenHome() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/leadgen/contacts-count?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/leadgen/contacts-count?${params.toString()}`);
       const data = await response.json();
        if (data.success && data.data) {
          setKpiData(prev => ({
@@ -211,17 +186,12 @@ export default function LeadGenHome() {
 
   const fetchNormalLeadsCount = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       if (!isAllData && fromDate && toDate) {
         params.append('fromDate', fromDate);
         params.append('toDate', toDate);
       }
-      const response = await fetch(`/api/corporate/leadgen/normal-leads-count?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/leadgen/normal-leads-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setKpiData(prev => ({
@@ -236,7 +206,6 @@ export default function LeadGenHome() {
 
   const fetchNormalCallsCount = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       
       // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
@@ -250,11 +219,7 @@ export default function LeadGenHome() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/leadgen/normal-calls-count?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/leadgen/normal-calls-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setKpiData(prev => ({
@@ -285,16 +250,10 @@ export default function LeadGenHome() {
       
       // Fetch regular calls, startup calls, and master union calls in parallel
       const [callsResponse, startupCallsResponse, masterUnionCallsResponse] = await Promise.all([
-        fetch(`/api/corporate/leadgen/calls-type-count?${params.toString()}`, {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        }),
-        fetch(`/api/corporate/leadgen/startup-calls?${params.toString()}`, {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        }),
-        fetch(`/api/corporate/leadgen/master-union-calls?${params.toString()}`, {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        })
-      ]);
+    API.apiGet(`/api/corporate/leadgen/calls-type-count?${params.toString()}`),
+    API.apiGet(`/api/corporate/leadgen/startup-calls?${params.toString()}`),
+    API.apiGet(`/api/corporate/leadgen/master-union-calls?${params.toString()}`)
+]);
       
       const callsData = await callsResponse.json();
       const startupCallsData = await startupCallsResponse.json();
@@ -324,7 +283,6 @@ export default function LeadGenHome() {
   const notPickedTotal = '-';
   const fetchNotPickedCount = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       
       if (isAllData) {
@@ -337,11 +295,7 @@ export default function LeadGenHome() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/leadgen/not-picked-count?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+     const response = await API.apiGet(`/api/corporate/leadgen/not-picked-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setKpiData(prev => ({
@@ -356,7 +310,6 @@ export default function LeadGenHome() {
 
   const fetchPickedCount = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       
       if (isAllData) {
@@ -369,11 +322,7 @@ export default function LeadGenHome() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/leadgen/picked-count?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/leadgen/picked-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setKpiData(prev => ({
@@ -401,11 +350,7 @@ export default function LeadGenHome() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/leadgen/sent-to-manager-count?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/leadgen/sent-to-manager-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setKpiData(prev => ({
@@ -420,7 +365,6 @@ export default function LeadGenHome() {
 
   const fetchInterestedCount = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       
       if (isAllData) {
@@ -433,11 +377,7 @@ export default function LeadGenHome() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/leadgen/interested-count?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/leadgen/interested-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setKpiData(prev => ({
@@ -452,7 +392,7 @@ export default function LeadGenHome() {
 
   const fetchOnboardCount = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
+      
       const params = new URLSearchParams();
       
       if (isAllData) {
@@ -465,11 +405,7 @@ export default function LeadGenHome() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/leadgen/onboard-count?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/leadgen/onboard-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setKpiData(prev => ({
@@ -497,11 +433,7 @@ export default function LeadGenHome() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/leadgen/contract-count?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/leadgen/contract-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setKpiData(prev => ({
@@ -516,7 +448,6 @@ export default function LeadGenHome() {
 
   const fetchFranchiseDiscussedCount = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       
       if (isAllData) {
@@ -529,11 +460,7 @@ export default function LeadGenHome() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/leadgen/franchise-discussed?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/leadgen/franchise-discussed?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setKpiData(prev => ({
@@ -548,7 +475,6 @@ export default function LeadGenHome() {
 
   const fetchFranchiseFormAskCount = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('status', 'application form share');
       
@@ -562,11 +488,7 @@ export default function LeadGenHome() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/leadgen/franchise-count?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/leadgen/franchise-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setKpiData(prev => ({
@@ -581,7 +503,6 @@ export default function LeadGenHome() {
 
   const fetchFranchiseFormSharedCount = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       params.append('status', 'application form share');
       
@@ -595,11 +516,7 @@ export default function LeadGenHome() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/leadgen/franchise-count?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/leadgen/franchise-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setKpiData(prev => ({
@@ -614,7 +531,6 @@ export default function LeadGenHome() {
 
   const fetchFranchiseAcceptedCount = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       
       if (isAllData) {
@@ -627,11 +543,7 @@ export default function LeadGenHome() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/leadgen/franchise-accepted?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/leadgen/franchise-accepted?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setKpiData(prev => ({
@@ -663,12 +575,7 @@ export default function LeadGenHome() {
 
   const fetchLatestInteractionDate = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/corporate/leadgen/latest-interaction-date', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet("/api/corporate/leadgen/latest-interaction-date");
       const data = await response.json();
       if (data.success && data.latestDate) {
         setLatestInteractionDate(data.latestDate);
@@ -691,7 +598,6 @@ export default function LeadGenHome() {
 
   const fetchMasterUnionCount = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const params = new URLSearchParams();
       
       // Determine dateRange: 'all' if isAllData, 'specific' if date range selected, 'default' otherwise
@@ -705,11 +611,7 @@ export default function LeadGenHome() {
         params.append('dateRange', 'default');
       }
       
-      const response = await fetch(`/api/corporate/leadgen/master-union-count?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/corporate/leadgen/master-union-count?${params.toString()}`);
       const data = await response.json();
       if (data.success && data.data) {
         setKpiData(prev => ({

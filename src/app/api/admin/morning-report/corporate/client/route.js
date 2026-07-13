@@ -1,9 +1,15 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+import { supabaseServer } from '@/lib/supabase-server'
+import { NextResponse } from 'next/server'
+import { getUser } from '@/lib/auth-helper'
 
 export async function GET(request) {
     try {
+        // Authentication - user injected by middleware (no auth calls needed!)
+        const { user, error: authError } = getUser(request);
+        if (authError || !user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { searchParams } = new URL(request.url);
         const clientId = searchParams.get('client_id');
 
@@ -16,7 +22,7 @@ export async function GET(request) {
 
         // Fetch client details from corporate_leadgen_leads
         // Try client_id first, then fall back to id
-        const { data: clientData, error: clientError } = await supabase
+        const { data: clientData, error: clientError } = await supabaseServer
             .from('corporate_leadgen_leads')
             .select('*')
             .eq('client_id', clientId)
@@ -25,7 +31,7 @@ export async function GET(request) {
         // If not found by client_id, try by id
         let finalClientData = clientData;
         if (!finalClientData) {
-            const { data: clientById, error: clientByIdError } = await supabase
+            const { data: clientById, error: clientByIdError } = await supabaseServer
                 .from('corporate_leadgen_leads')
                 .select('*')
                 .eq('id', clientId)
@@ -58,7 +64,7 @@ export async function GET(request) {
         // Use client_id from the found client or the passed id
         const searchClientId = finalClientData?.client_id || clientId;
         
-        const { data: interactionData, error: interactionError } = await supabase
+        const { data: interactionData, error: interactionError } = await supabaseServer
             .from('corporate_leads_interaction')
             .select('*')
             .eq('client_id', searchClientId)

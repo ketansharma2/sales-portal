@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import jsPDF from "jspdf";
 import { useRouter } from "next/navigation"; // <-- यह लाइन जोड़ें
+import * as API from '@/lib/api-client'; 
 export default function JobRequirementsPage() {
   const router = useRouter();
   // ==========================================
@@ -75,12 +76,7 @@ export default function JobRequirementsPage() {
     
     const fetchClients = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/corporate/crm/clients', {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet("/api/corporate/crm/clients");
         const data = await response.json();
         if (isMounted && data.success) {
           setClientsList(data.data);
@@ -104,12 +100,7 @@ export default function JobRequirementsPage() {
 
      const fetchJobpostUsers = async () => {
        try {
-         const session = JSON.parse(localStorage.getItem('session') || '{}');
-         const response = await fetch('/api/corporate/crm/jd/jobpost-users', {
-           headers: {
-             'Authorization': `Bearer ${session.access_token}`
-           }
-         });
+         const response = await API.apiGet("/api/corporate/crm/jd/jobpost-users");
          const data = await response.json();
          console.log("data", data);
          
@@ -155,15 +146,10 @@ export default function JobRequirementsPage() {
     const fetchBranches = async () => {
       setLoadingBranches(true);
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
         const selectedClient = clientsList.find(c => c.company_name === inlineForm.client_name);
         if (!selectedClient) return;
         
-        const response = await fetch(`/api/corporate/crm/branches?client_id=${selectedClient.client_id}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/crm/branches?client_id=${selectedClient.client_id}`);
         const data = await response.json();
         if (isMounted && data.success) {
           setBranchesList(data.data);
@@ -196,13 +182,8 @@ export default function JobRequirementsPage() {
 
       setLoadingRequirements(true);
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
         const branchIds = branchesList.map(b => b.branch_id).join(',');
-        const response = await fetch(`/api/corporate/crm/requirements?branch_ids=${branchIds}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/crm/requirements?branch_ids=${branchIds}`);
         const data = await response.json();
         
         if (isMounted && data.success) {
@@ -254,12 +235,7 @@ export default function JobRequirementsPage() {
 
     const fetchAssignments = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/corporate/crm/jobpost/make', {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet("/api/corporate/crm/jobpost/make");
         const data = await response.json();
         if (isMounted && data.success) {
           setAssignments(data.data);
@@ -329,35 +305,23 @@ export default function JobRequirementsPage() {
     }
 
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/corporate/crm/jobpost/make', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            date: inlineForm.date,
-            client_id: clientsList.find(c => c.company_name === inlineForm.client_name)?.client_id,
-            req_id: selectedRequirement.req_id,
-            job_title: inlineForm.job_title,
-            location: inlineForm.location,
-            pkg: inlineForm.package,
-            branch_id: selectedRequirement.branch_id,
-            assigned_to: inlineForm.assigned_to
-          })
-        });
+        const response = await API.apiPost("/api/corporate/crm/jobpost/make", {
+    date: inlineForm.date,
+    client_id: clientsList.find(c => c.company_name === inlineForm.client_name)?.client_id,
+    req_id: selectedRequirement.req_id,
+    job_title: inlineForm.job_title,
+    location: inlineForm.location,
+    pkg: inlineForm.package,
+    branch_id: selectedRequirement.branch_id,
+    assigned_to: inlineForm.assigned_to
+});
 
         const data = await response.json();
 
         if (data.success) {
           alert(`Job Post Assignment Created successfully for ${inlineForm.job_title}!`);
           // Refresh assignments
-          const refreshResponse = await fetch('/api/corporate/crm/jobpost/make', {
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`
-            }
-          });
+          const refreshResponse = await API.apiGet("/api/corporate/crm/jobpost/make");
           const refreshData = await refreshResponse.json();
           if (refreshData.success) {
             setAssignments(refreshData.data);

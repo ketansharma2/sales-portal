@@ -6,7 +6,7 @@ import {
     ArrowLeft, Clock, Plus, Eye, AlignLeft
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-
+import * as API from '@/lib/api-client';
 export default function TrackerHistoryPage() {
     const params = useParams();
     const router = useRouter();
@@ -32,12 +32,7 @@ export default function TrackerHistoryPage() {
         const fetchEmailHistory = async () => {
             setLoading(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                const response = await fetch(`/api/domestic/crm/emails/history/${params.id}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet(`/api/domestic/crm/emails/history/${params.id}`);
                 
                 const result = await response.json();
                 
@@ -76,17 +71,7 @@ export default function TrackerHistoryPage() {
 
      const handleDelete = async (id) => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-
-            const response = await fetch('/api/domestic/crm/email-history/delete', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ id })
-            });
+           const response = await API.apiPost('/api/domestic/crm/email-history/delete', { id });
 
             const result = await response.json();
 
@@ -111,9 +96,7 @@ export default function TrackerHistoryPage() {
             // Update each row with its journey data from the API
             const updatedHistory = await Promise.all(
                 emailHistoryData.map(async (row) => {
-                    const response = await fetch(`/api/domestic/crm/interview-journey?email_draft_id=${row.id}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const response = await API.apiGet(`/api/domestic/crm/interview-journey?email_draft_id=${row.id}`);
                     const result = await response.json();
                     
                     // Map API field names to UI expected field names
@@ -165,27 +148,18 @@ export default function TrackerHistoryPage() {
             const session = JSON.parse(localStorage.getItem('session') || '{}');
             const token = session.access_token;
             
-            const response = await fetch('/api/domestic/crm/interview-journey', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    email_draft_id: selectedHistoryRow.id,
-                    interview_status: journeyForm.status,
-                    client_remark: journeyForm.remark || "Status updated.",
-                    date: journeyForm.actionDate
-                })
-            });
+const response = await API.apiPost('/api/domestic/crm/interview-journey', {
+    email_draft_id: selectedHistoryRow.id,
+    interview_status: journeyForm.status,
+    client_remark: journeyForm.remark || "Status updated.",
+    date: journeyForm.actionDate
+});
             
             const result = await response.json();
             
             if (result.success) {
                 // Fetch latest journey data from API after save
-                const fetchResponse = await fetch(`/api/domestic/crm/interview-journey?email_draft_id=${selectedHistoryRow.id}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const fetchResponse = await API.apiGet(`/api/domestic/crm/interview-journey?email_draft_id=${selectedHistoryRow.id}`);
                 const fetchResult = await fetchResponse.json();
                 
                 // Map API field names to UI expected field names

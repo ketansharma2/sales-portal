@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import Image from 'next/image';
-
+import * as API from '@/lib/api-client';
 export default function RecruiterWorkbenchReport() {
     
     // --- STATE ---
@@ -37,14 +37,7 @@ export default function RecruiterWorkbenchReport() {
     useEffect(() => {
         const fetchLatestDate = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                if (!token) return;
-                
-                const response = await fetch('/api/domestic/recruiter/latest-cv-date', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet('/api/domestic/recruiter/latest-cv-date');
                 
                 const result = await response.json();
                 
@@ -73,14 +66,7 @@ export default function RecruiterWorkbenchReport() {
             if (!fromDate || !toDate) return;
             
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                if (!token) return;
-                
-                const response = await fetch(`/api/domestic/recruiter/total-cvs?fromDate=${fromDate}&toDate=${toDate}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet(`/api/domestic/recruiter/total-cvs?fromDate=${fromDate}&toDate=${toDate}`);
                 
                 const result = await response.json();
                 
@@ -101,14 +87,7 @@ export default function RecruiterWorkbenchReport() {
             if (!fromDate || !toDate) return;
             
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                if (!token) return;
-                
-                const response = await fetch(`/api/domestic/recruiter/total-sti?fromDate=${fromDate}&toDate=${toDate}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet(`/api/domestic/recruiter/total-sti?fromDate=${fromDate}&toDate=${toDate}`);
                 
                 const result = await response.json();
                 
@@ -129,14 +108,7 @@ export default function RecruiterWorkbenchReport() {
             if (!fromDate || !toDate) return;
             
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                if (!token) return;
-                
-                const response = await fetch(`/api/domestic/recruiter/candidate-stats?fromDate=${fromDate}&toDate=${toDate}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+const response = await API.apiGet(`/api/domestic/recruiter/candidate-stats?fromDate=${fromDate}&toDate=${toDate}`);
                 
                 const result = await response.json();
                 
@@ -180,14 +152,7 @@ export default function RecruiterWorkbenchReport() {
             if (!fromDate || !toDate) return;
             
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                if (!token) return;
-                
-                const response = await fetch(`/api/domestic/recruiter/workbench-data?fromDate=${fromDate}&toDate=${toDate}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet(`/api/domestic/recruiter/workbench-data?fromDate=${fromDate}&toDate=${toDate}`);
                 
                 const result = await response.json();
                 

@@ -5,7 +5,7 @@ import {
   Target, BarChart2, Percent, Trash2,
   Edit, Eye, User, CheckCircle
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function CRMDomesticTargetPage() {
   
   // --- STATES ---
@@ -47,13 +47,7 @@ export default function CRMDomesticTargetPage() {
 
   const fetchTeamUsers = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
-      if (!token) return;
-      
-      const response = await fetch('/api/domestic/crm/team-users', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await API.apiGet('/api/domestic/crm/team-users');
       
       const result = await response.json();
       
@@ -83,14 +77,7 @@ export default function CRMDomesticTargetPage() {
   // Fetch team targets from API
   const fetchMyTargets = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
-      
-      if (!token) return;
-      
-      const response = await fetch('/api/domestic/crm/my-targets', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+     const response = await API.apiGet('/api/domestic/crm/my-targets');
       
       const result = await response.json();
       
@@ -128,9 +115,7 @@ export default function CRMDomesticTargetPage() {
       if (filterRole !== 'All') params.set('role', filterRole);
       if (filterName !== 'All') params.set('name', filterName);
       
-      const response = await fetch(`/api/domestic/crm/team-targets?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await API.apiGet(`/api/domestic/crm/team-targets?${params.toString()}`);
       
       const result = await response.json();
       
@@ -170,9 +155,7 @@ export default function CRMDomesticTargetPage() {
         );
         if (trackerSentTargets.length > 0) {
           try {
-            const response = await fetch(`/api/domestic/crm/team-tracker-sent-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
+const response = await API.apiGet(`/api/domestic/crm/team-tracker-sent-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`);
 
             const result = await response.json();
 
@@ -200,9 +183,7 @@ export default function CRMDomesticTargetPage() {
         );
         if (accuracyTargets.length > 0) {
           try {
-            const response = await fetch(`/api/domestic/crm/team-accuracy-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
+           const response = await API.apiGet(`/api/domestic/crm/team-accuracy-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`);
 
             const result = await response.json();
 
@@ -230,9 +211,7 @@ export default function CRMDomesticTargetPage() {
         );
         if (joiningTargets.length > 0) {
           try {
-            const response = await fetch(`/api/domestic/crm/team-joining-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
+const response = await API.apiGet(`/api/domestic/crm/team-joining-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`);
 
             const result = await response.json();
 
@@ -260,9 +239,7 @@ export default function CRMDomesticTargetPage() {
         );
         if (cvParseTargets.length > 0) {
           try {
-            const response = await fetch(`/api/domestic/crm/team-cv-parse-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
+const response = await API.apiGet(`/api/domestic/crm/team-cv-parse-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`);
 
             const result = await response.json();
 
@@ -290,9 +267,7 @@ export default function CRMDomesticTargetPage() {
         );
         if (conversionTargets.length > 0) {
           try {
-            const response = await fetch(`/api/domestic/crm/team-conversion-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
+           const response = await API.apiGet(`/api/domestic/crm/team-conversion-achievement?month=${combo.month}&year=${combo.year}&assigned_to_id=${combo.assignedToId}`);
 
             const result = await response.json();
 
@@ -397,24 +372,17 @@ export default function CRMDomesticTargetPage() {
 
                 setSavingTarget(true);
 
-                const response = await fetch('/api/domestic/crm/team-targets', {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        target_id: editId,
-                        year: form.year,
-                        month: form.month,
-                        working_days: form.workingDays,
-                        role: form.role,
-                        guideline: t.guideline,
-                        kpi: t.kpi_metric,
-                        frequency: t.frequency,
-                        total_target: t.target
-                    })
-                });
+const response = await API.apiPut('/api/domestic/crm/team-targets', {
+    target_id: editId,
+    year: form.year,
+    month: form.month,
+    working_days: form.workingDays,
+    role: form.role,
+    guideline: t.guideline,
+    kpi: t.kpi_metric,
+    frequency: t.frequency,
+    total_target: t.target
+});
 
                 const result = await response.json();
 
@@ -444,9 +412,7 @@ export default function CRMDomesticTargetPage() {
                     return;
                 }
 
-                const userResponse = await fetch('/api/domestic/crm/team-users', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+               const userResponse = await API.apiGet('/api/domestic/crm/team-users');
                 const userResult = await userResponse.json();
                 const selectedUser = userResult.data?.find(u => u.name === form.assignedTo);
                 
@@ -464,21 +430,14 @@ export default function CRMDomesticTargetPage() {
 
                 setSavingTarget(true);
 
-                const response = await fetch('/api/domestic/crm/team-targets', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        year: form.year,
-                        month: form.month,
-                        working_days: form.workingDays,
-                        role: form.role,
-                        assigned_to: selectedUser.user_id,
-                        targets: targets
-                    })
-                });
+const response = await API.apiPost('/api/domestic/crm/team-targets', {
+    year: form.year,
+    month: form.month,
+    working_days: form.workingDays,
+    role: form.role,
+    assigned_to: selectedUser.user_id,
+    targets: targets
+});
 
                 const result = await response.json();
 

@@ -4,7 +4,7 @@ import {
     Users, UploadCloud, Building2, Rocket, FileImage, 
     MonitorSmartphone, ShieldCheck, Briefcase, Maximize2, Loader2
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function HierarchyPage() {
     // --- STATE ---
     const [activeTab, setActiveTab] = useState("admin"); // 'admin', 'operations', 'sales', 'delivery', 'tech'
@@ -23,14 +23,7 @@ export default function HierarchyPage() {
     useEffect(() => {
         const fetchCharts = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                if (!token) return;
-                
-                const response = await fetch('/api/admin/hierarchy', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet("/api/admin/hierarchy");
                 
                 const result = await response.json();
                 console.log('Fetch charts result:', result);
@@ -67,25 +60,13 @@ export default function HierarchyPage() {
         setIsUploading(true);
 
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            
-            if (!token) {
-                alert("Unauthorized");
-                return;
-            }
+           
 
             const formData = new FormData();
             formData.append('file', file);
             formData.append('dept', deptId);
 
-            const response = await fetch('/api/admin/hierarchy', {
-                method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            });
+           const response = await API.apiUpload("/api/admin/hierarchy", formData);
             
             const result = await response.json();
             

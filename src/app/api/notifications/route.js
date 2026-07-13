@@ -1,6 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { fcm } from '@/lib/firebase-admin'
 import { NextResponse } from 'next/server'
+import { requireAuth, getUserWithProfile } from '@/lib/auth-helper' // Import auth helpers
 
 // Helper: send FCM push to a single user
 async function sendFCM(receiverId, title, message) {
@@ -26,11 +27,11 @@ async function sendFCM(receiverId, title, message) {
 // GET /api/notifications
 export async function GET(request) {
   try {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error } = await supabaseServer.auth.getUser(token)
-    if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+       const { user, response } = requireAuth(request)
+    
+    if (response) {
+      return response // Returns 401 if not authenticated
+    }
 
     const url = new URL(request.url)
     const limit = parseInt(url.searchParams.get('limit') || '50')
@@ -60,19 +61,21 @@ export async function GET(request) {
 // POST /api/notifications – Create P2P or broadcast
 export async function POST(request) {
   try {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error } = await supabaseServer.auth.getUser(token)
-    if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
+    const { user, profile, error } = getUserWithProfile(request)
+    
+    if (error || !user) {
+      return NextResponse.json(
+        { error: error || 'Unauthorized' },
+        { status: 401 }
+      )
+    }
     // Determine if sender has broadcast rights
-    const { data: senderProfile } = await supabaseServer
-      .from('users')
-      .select('role')
-      .eq('user_id', user.id)
-      .single()
-    const isBroadcaster = ['ADMIN'].includes(senderProfile?.role)
+    // const { data: senderProfile } = await supabaseServer
+    //   .from('users')
+    //   .select('role')
+    //   .eq('user_id', user.id)
+    //   .single()
+    const isBroadcaster = ['ADMIN'].includes(profile?.role)
 
     const body = await request.json()
     const { receiverId, receiverIds, role, title, message, entityType, entityId } = body

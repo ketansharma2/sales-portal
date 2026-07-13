@@ -4,7 +4,7 @@ import {
   HelpCircle, Plus, Search, Edit, Trash2, FileText, 
   X, Building2, Briefcase, MessageSquare, AlertCircle, Printer, Download
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function FAQManagement() {
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -189,13 +189,7 @@ export default function FAQManagement() {
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
-
-        const response = await fetch('/api/corporate/crm/clients-list', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await API.apiGet("/api/corporate/crm/clients-list");
         const data = await response.json();
         if (data.success) {
           setClientsList(data.data || []);
@@ -216,13 +210,7 @@ export default function FAQManagement() {
       }
       
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
-
-        const response = await fetch(`/api/corporate/crm/requirements-by-client?client_id=${formData.client}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await API.apiGet(`/api/corporate/crm/requirements-by-client?client_id=${formData.client}`);
         const data = await response.json();
         if (data.success) {
           setProfilesList(data.data || []);
@@ -242,13 +230,7 @@ export default function FAQManagement() {
   useEffect(() => {
     const fetchFaqs = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
-
-        const response = await fetch('/api/corporate/crm/faq', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await API.apiGet("/api/corporate/crm/faq");
         const data = await response.json();
         if (data.success) {
           setFaqs(data.data || []);
@@ -322,39 +304,24 @@ export default function FAQManagement() {
       let response;
       if (isEditing) {
         // Update existing FAQ
-        response = await fetch('/api/corporate/crm/faq', {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            faq_id: formData.id,
-            questions: formData.qaList
-          })
-        });
+        const response = await API.apiPut("/api/corporate/crm/faq", {
+    faq_id: formData.id,
+    questions: formData.qaList
+});
       } else {
         // Create new FAQ
-        response = await fetch('/api/corporate/crm/faq', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            client_id: formData.client,
-            req_id: formData.profile,
-            questions: formData.qaList
-          })
-        });
+       const response = await API.apiPost("/api/corporate/crm/faq", {
+    client_id: formData.client,
+    req_id: formData.profile,
+    questions: formData.qaList
+});
       }
 
       const data = await response.json();
       if (data.success) {
         // Refresh FAQs list
-        const faqsResponse = await fetch('/api/corporate/crm/faq', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const faqsResponse = await API.apiGet("/api/corporate/crm/faq");
+
         const faqsData = await faqsResponse.json();
         if (faqsData.success) {
           setFaqs(faqsData.data || []);
@@ -375,14 +342,7 @@ export default function FAQManagement() {
     if(!confirm("Are you sure you want to delete this FAQ set?")) return;
     
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
-      if (!token) return;
-
-      const response = await fetch(`/api/corporate/crm/faq/${faq_id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await API.apiDelete(`/api/corporate/crm/faq/${faq_id}`);
 
       const data = await response.json();
       if (data.success) {

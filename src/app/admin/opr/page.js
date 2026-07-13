@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { 
   Printer, AlertTriangle 
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function OperationsReport() {
   // --- SECTOR FILTER STATE ---
   const [activeTab, setActiveTab] = useState("All");
@@ -53,11 +53,7 @@ const formatIndianNumber = (num) => {
         url += `?${params.toString()}`;
       }
 
-      const response = await fetch(url, {
-        headers: { 
-          'Authorization': `Bearer ${session.access_token}` 
-        }
-      });
+     const response = await API.apiGet(url);
       
       const data = await response.json();
       if (data.success) {
@@ -77,18 +73,13 @@ const formatIndianNumber = (num) => {
   // Fetch Cafe App data
   const fetchCafeData = async (start, end) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
       const tablesParam = dbs.join(',');
       let url = `/api/admin/operation-report/cafe-app-api?tables=${tablesParam}&kpiFlag=${flagKpi}&dataFlag=${flagData}`;
       
       if (start) url += `&startDate=${start}`;
       if (end) url += `&endDate=${end}`;
       
-      const response = await fetch(url, {
-        headers: { 
-          'Authorization': `Bearer ${session.access_token}` 
-        }
-      });
+    const response = await API.apiGet(url);
       const data = await response.json();
       if (data.success) {
         setCafeData(data?.data?.data);

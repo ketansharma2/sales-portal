@@ -25,7 +25,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-
+import * as API from '@/lib/api-client';
 export default function ManagerLeadsPage() {
   const getWeekNumber = (dateString) => {
     if (!dateString) return null;
@@ -139,20 +139,7 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
 
 const fetchCrmDetails = async (clientId) => {
   try {
-    const session = JSON.parse(localStorage.getItem("session") || "{}");
-    const token = session?.access_token;
-
-    if (!token) {
-      console.error("No auth token found");
-      return null;
-    }
-
-    const response = await fetch(
-      `/api/corporate/manager/client-crm-details?client_id=${clientId}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+const response = await API.apiGet(`/api/corporate/manager/client-crm-details?client_id=${clientId}`);
     const data = await response.json();
 
     if (data.success) {
@@ -218,11 +205,7 @@ const fetchCrmDetails = async (clientId) => {
             ? `/api/corporate/manager/leads?tab=${activeTab}`
             : `/api/corporate/manager/leads-database`;
 
-        const response = await fetch(apiUrl, {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        });
+        const response = await API.apiGet(apiUrl);
         const data = await response.json();
 
         if (data.error) {
@@ -258,10 +241,7 @@ const fetchCrmDetails = async (clientId) => {
 
     const fetchCrmUsers = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem("session") || "{}");
-        const response = await fetch("/api/corporate/manager/crm-users", {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
+        const response = await API.apiGet("/api/corporate/manager/crm-users");
         const data = await response.json();
         if (data.success) setCrmUsers(data.data);
       } catch (error) {
@@ -271,10 +251,7 @@ const fetchCrmDetails = async (clientId) => {
 
     const fetchLeadgenUsers = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem("session") || "{}");
-        const response = await fetch("/api/corporate/manager/leadgen-users", {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
+        const response = await API.apiGet("/api/corporate/manager/leadgen-users");
         const data = await response.json();
         if (data.success) {
           setLeadgenUsers(data.data);
@@ -409,24 +386,13 @@ if (filters.status !== "All") {
     if (type === "view" || type === "pass_delivery") {
       const fetchInteractions = async () => {
         try {
-          const session = JSON.parse(localStorage.getItem("session") || "{}");
 
           // Fetch from corporate_manager_interaction
-          const managerResponse = await fetch(
-            `/api/corporate/manager/interaction?client_id=${lead.id}`,
-            {
-              headers: { Authorization: `Bearer ${session.access_token}` },
-            },
-          );
+          const managerResponse = await API.apiGet(`/api/corporate/manager/interaction?client_id=${lead.id}`);
           const managerData = await managerResponse.json();
 
           // Fetch from corporate_leads_interaction
-          const leadsResponse = await fetch(
-            `/api/corporate/leadgen/interaction?client_id=${lead.id}`,
-            {
-              headers: { Authorization: `Bearer ${session.access_token}` },
-            },
-          );
+          const leadsResponse = await API.apiGet(`/api/corporate/leadgen/interaction?client_id=${lead.id}`);
           const leadsData = await leadsResponse.json();
 
           // Combine both interaction lists
@@ -482,13 +448,7 @@ if (filters.status !== "All") {
 
   const fetchContactSuggestions = async (clientId) => {
     try {
-      const session = JSON.parse(localStorage.getItem("session") || "{}");
-      const response = await fetch(
-        `/api/corporate/manager/contact-suggestions?client_id=${clientId}`,
-        {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        }
-      );
+      const response = await API.apiGet(`/api/corporate/manager/contact-suggestions?client_id=${clientId}`);
       const data = await response.json();
       if (data.success) {
         setContactSuggestions(data.data);
@@ -506,18 +466,11 @@ if (filters.status !== "All") {
         return;
       }
       try {
-        const response = await fetch(
-          "/api/corporate/manager/leads/assign-fse",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              client_id: selectedLead.id,
-              fse_id: fse.id,
-              date: visitDate,
-            }),
-          },
-        );
+        const response = await API.apiPost("/api/corporate/manager/leads/assign-fse", {
+    client_id: selectedLead.id,
+    fse_id: fse.id,
+    date: visitDate,
+});
         if (!response.ok) throw new Error("Failed");
         const updatedLeads = leads.map((l) =>
           l.id === selectedLead.id
@@ -545,34 +498,19 @@ if (filters.status !== "All") {
       // Use latest interaction from corporate_manager_interaction table
       const latestInteraction = latestInteractionForDelivery;
       try {
-        const response = await fetch(
-          "/api/corporate/manager/leads/pass-to-delivery",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${JSON.parse(localStorage.getItem("session") || "{}").access_token}`,
-            },
-            body: JSON.stringify({
-              client_id: selectedLead.id,
-              company_name: selectedLead.company,
-              category: selectedLead.category,
-              location: selectedLead.location,
-              state: selectedLead.state,
-              contact_person:
-                latestInteraction.contact_person ||
-                latestInteraction.person ||
-                "",
-              email: latestInteraction.email || "",
-              phone:
-                latestInteraction.contact_no || latestInteraction.phone || "",
-              remarks:
-                latestInteraction.remarks || latestInteraction.sub_status || "",
-              status: latestInteraction.status || "Handover",
-              user_id: selectedCrmUser,
-            }),
-          },
-        );
+        const response = await API.apiPost("/api/corporate/manager/leads/pass-to-delivery", {
+    client_id: selectedLead.id,
+    company_name: selectedLead.company,
+    category: selectedLead.category,
+    location: selectedLead.location,
+    state: selectedLead.state,
+    contact_person: latestInteraction.contact_person || latestInteraction.person || "",
+    email: latestInteraction.email || "",
+    phone: latestInteraction.contact_no || latestInteraction.phone || "",
+    remarks: latestInteraction.remarks || latestInteraction.sub_status || "",
+    status: latestInteraction.status || "Handover",
+    user_id: selectedCrmUser,
+});
         if (!response.ok) throw new Error("Failed");
         const result = await response.json();
         if (result.success) {
@@ -601,28 +539,18 @@ if (filters.status !== "All") {
       }
     } else if (modalType === "add_conversation") {
       try {
-        const session = JSON.parse(localStorage.getItem("session") || "{}");
-        const response = await fetch("/api/corporate/manager/interaction", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            client_id: selectedLead.id,
-            date:
-              conversationData.interactionDate ||
-              new Date().toISOString().split("T")[0],
-            status: conversationData.status,
-            sub_status: conversationData.subStatus,
-            franchise_status: conversationData.franchiseStatus,
-            remarks: conversationData.remarks,
-            next_follow_up: conversationData.nextFollowUp,
-            contact_person: conversationData.contactPerson,
-            contact_no: conversationData.phone,
-            email: conversationData.email,
-          }),
-        });
+        const response = await API.apiPost("/api/corporate/manager/interaction", {
+    client_id: selectedLead.id,
+    date: conversationData.interactionDate || new Date().toISOString().split("T")[0],
+    status: conversationData.status,
+    sub_status: conversationData.subStatus,
+    franchise_status: conversationData.franchiseStatus,
+    remarks: conversationData.remarks,
+    next_follow_up: conversationData.nextFollowUp,
+    contact_person: conversationData.contactPerson,
+    contact_no: conversationData.phone,
+    email: conversationData.email,
+});
         if (!response.ok) throw new Error("Failed");
         const updatedLeads = leads.map((l) => {
           if (l.id === selectedLead.id) {
@@ -657,13 +585,8 @@ if (filters.status !== "All") {
       }
     } else if (modalType === "edit_basic") {
       try {
-        const response = await fetch("/api/corporate/manager/leads/update", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${JSON.parse(localStorage.getItem("session") || "{}").access_token}`,
-          },
-          body: JSON.stringify({
+        const response = await API.apiPut("/api/corporate/manager/leads/update", {
+         
             id: selectedLead.id,
             client_id: selectedLead.client_id || selectedLead.id,
             company: newLeadData.company,
@@ -683,7 +606,7 @@ if (filters.status !== "All") {
             reference: newLeadData.reference,
             startup: newLeadData.startup,
             projection: newLeadData.projection,
-          }),
+        
         });
         const data = await response.json();
         if (data.success) {

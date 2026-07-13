@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getUser } from '@/lib/auth-helper';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -24,27 +25,12 @@ const getInteractionDate = (interaction) => {
 export async function GET(request) {
   try {
     // =========================
-    // AUTHENTICATION
+    // AUTHENTICATION - user injected by middleware (no auth calls needed!)
     // =========================
-    const authHeader = request.headers.get('authorization');
-
-    if (!authHeader) {
-      return NextResponse.json(
-        { success: false, error: 'No authorization header' },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-
-    const {
-      data: { user },
-      error: authError
-    } = await supabaseServer.auth.getUser(token);
-
+    const { user, error: authError } = getUser(request);
     if (authError || !user) {
       return NextResponse.json(
-        { success: false, error: 'Invalid token' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }

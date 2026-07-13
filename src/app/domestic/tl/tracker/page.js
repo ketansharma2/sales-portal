@@ -6,7 +6,7 @@ import {
     X, Clock, MessageSquare, User, FileCheck, AlertCircle, Loader2, File
 } from "lucide-react";
 import jsPDF from "jspdf";
-
+import * as API from '@/lib/api-client';
 // CV Preview Component - Handles PDF, Images, and Word documents
 function CVPreview({ url, name }) {
     const [blobUrl, setBlobUrl] = useState(null);
@@ -205,9 +205,7 @@ export default function TLTrackerPage() {
                 const userData = session.user || null;
                 setLoggedInUser(userData);
                 
-                const response = await fetch('/api/domestic/tl/tracker', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+              const response = await API.apiGet('/api/domestic/tl/tracker');
                 
                 const result = await response.json();
                 
@@ -268,14 +266,7 @@ export default function TLTrackerPage() {
     useEffect(() => {
         const fetchRcUsers = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                if (!token) return;
-                
-                const response = await fetch('/api/domestic/tl/rc-users', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet('/api/domestic/tl/rc-users');
                 
                 const result = await response.json();
                 
@@ -295,12 +286,7 @@ export default function TLTrackerPage() {
         const loadCrmUsers = async () => {
             setIsLoadingCrmUsers(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                const response = await fetch('/api/domestic/tl/crm-users', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet('/api/domestic/tl/crm-users');
                 
                 const result = await response.json();
                 if (result.success && result.data) {
@@ -379,20 +365,11 @@ export default function TLTrackerPage() {
         setIsBulkSending(true);
 
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-
-            const response = await fetch('/api/domestic/tl/tracker/bulk-send-to-crm', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    conversation_ids: selectedRows,
-                    sent_to_crm: selectedCrmUser
-                })
-            });
+            
+const response = await API.apiPost('/api/domestic/tl/tracker/bulk-send-to-crm', {
+    conversation_ids: selectedRows,
+    sent_to_crm: selectedCrmUser
+});
 
             const result = await response.json();
 
@@ -433,19 +410,10 @@ export default function TLTrackerPage() {
 
             console.log("Calling Redact CV API with cv_parsing_id:", cvParsingId);
             
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
 
-            const response = await fetch('/api/corporate/recruiter/redact-cv', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    cv_parsing_id: cvParsingId
-                })
-            });
+            const response = await API.apiPost('/api/corporate/recruiter/redact-cv', {
+              cv_parsing_id: cvParsingId
+             });
 
             console.log("Redact CV API response status:", response.status);
             
@@ -491,19 +459,11 @@ export default function TLTrackerPage() {
         setIsUpdatingCV(true);
 
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
+           
 
-            const response = await fetch('/api/corporate/recruiter/redact-cv', {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    cv_parsing_id: previewData.cv_parsing_id
-                })
-            });
+          const response = await API.apiPut('/api/corporate/recruiter/redact-cv', {
+    cv_parsing_id: previewData.cv_parsing_id
+});
 
             const result = await response.json();
             console.log("Confirm response:", result);
@@ -550,19 +510,12 @@ export default function TLTrackerPage() {
                 call_respond: tlForm.callResponding
             });
             
-            const response = await fetch('/api/domestic/tl/tracker', {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    conversation_id: selectedCandidate.id,
-                    cv_status: tlForm.cvUpdateStatus,
-                    tl_remarks: tlForm.tlReview,
-                    call_respond: tlForm.callResponding
-                })
-            });
+           const response = await API.apiPut('/api/domestic/tl/tracker', {
+    conversation_id: selectedCandidate.id,
+    cv_status: tlForm.cvUpdateStatus,
+    tl_remarks: tlForm.tlReview,
+    call_respond: tlForm.callResponding
+});
             
             console.log('Save response status:', response.status);
             
@@ -618,20 +571,10 @@ export default function TLTrackerPage() {
         }
 
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            
-            const response = await fetch('/api/domestic/tl/tracker', {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    conversation_id: selectedCandidate.id,
-                    sent_to_crm: selectedCrmUser.user_id
-                })
-            });
+const response = await API.apiPut('/api/domestic/tl/tracker', {
+    conversation_id: selectedCandidate.id,
+    sent_to_crm: selectedCrmUser.user_id
+});
             
             const result = await response.json();
             
@@ -851,7 +794,7 @@ export default function TLTrackerPage() {
                     {/* max-w-[150px] fixed rahega par text niche ki taraf wrap hokar poora dikhega */}
 <td className="py-2 px-2 max-w-[180px] whitespace-normal break-words bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors border-r border-slate-100">
     <p className="text-[10px] font-bold text-slate-600 italic leading-normal">
-        "{row.feedback}"
+        {row.feedback}
     </p>
 </td>
 
@@ -874,7 +817,7 @@ export default function TLTrackerPage() {
             </div>
             {row.tlReview && (
                 <p className="text-[10px] font-medium text-slate-700 italic border-l-2 border-amber-300 pl-1.5 leading-normal">
-                    "{row.tlReview}"
+                    {row.tlReview}
                 </p>
             )}
         </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { requestFCMToken, onForegroundMessage } from '@/lib/firebase-client';
-
+import { apiGet, apiPut, apiDelete } from '@/lib/api-client';
 export function useNotifications() {
   const [user, setUser] = useState(null);
   const [notifications, setNotifications] = useState([]);
@@ -33,35 +33,19 @@ export function useNotifications() {
     return () => listener?.subscription.unsubscribe();
   }, []);
 
-  // Safe API caller
-  const apiCall = async (url, options = {}) => {
-    const session = JSON.parse(localStorage.getItem('session') || '{}');
-  
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-        'Authorization': `Bearer ${session.access_token}` 
-      },
-    });
-    console.log('response', response);
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`API error ${response.status}: ${text.substring(0, 100)}`);
-    }
-    return response.json();
-  };
+
 
   // 2. Fetch historical notifications
   const fetchNotifications = async (unreadOnly = false) => {
     if (!user) return;
     setLoading(true);
     try {
-      const data = await apiCall(`/api/notifications?unreadOnly=${unreadOnly}`);
+     const response = await apiGet(`/api/notifications?unreadOnly=${unreadOnly}`);
+     if (!response.ok) throw new Error(`API error ${response.status}`);
+     const data = await response.json();
       setNotifications(data.notifications);
       if (!unreadOnly) {
-        const unreadData = await apiCall('/api/notifications?unreadOnly=true');
+        const unreadData = await apiGet('/api/notifications?unreadOnly=true');
         setUnreadCount(unreadData.total);
       }
       setError(null);
@@ -91,10 +75,8 @@ export function useNotifications() {
     setUnreadCount(prev => Math.max(0, prev - 1));
     
     try {
-      await apiCall(`/api/notifications/${id}`, { 
-        method: 'PATCH', 
-        body: JSON.stringify({ is_read: true }) 
-      });
+const response = await apiPut(`/api/notifications/${id}`, { is_read: true });
+if (!response.ok) throw new Error(`Failed to mark as read`);
     } catch (err) {
       console.error('markAsRead error:', err);
       // Rollback
@@ -118,7 +100,8 @@ export function useNotifications() {
     }
     
     try {
-      await apiCall(`/api/notifications/${id}`, { method: 'DELETE' });
+     const response = await apiDelete(`/api/notifications/${id}`);
+     if (!response.ok) throw new Error(`Failed to delete`);
     } catch (err) {
       console.error('deleteNotification error:', err);
       // Rollback

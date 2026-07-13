@@ -6,7 +6,7 @@ import {
     Clock, Users, UserCheck, AlertCircle, Briefcase, XCircle, Loader2, File, Trash2, Search, Send,IndianRupee,FileTextIcon ,Upload
 } from "lucide-react";
 import jsPDF from "jspdf";
-
+import * as API from '@/lib/api-client';
 // CV Preview Component - Handles PDF, Images, and Word documents
 function CVPreview({ url, name }) {
     const [blobUrl, setBlobUrl] = useState(null);
@@ -193,12 +193,7 @@ export default function EmailHistoryPage() {
     useEffect(() => {
              const fetchRevenueTeamUsers = async () => {
                  try {
-                     const session = JSON.parse(localStorage.getItem('session') || '{}');
-                     const token = session.access_token;
-                     
-                     const response = await fetch('/api/domestic/crm/revenue-team', {
-                         headers: { 'Authorization': `Bearer ${token}` }
-                     });
+                     const response = await API.apiGet('/api/domestic/crm/revenue-team');
                      
                      const result = await response.json();
                      
@@ -217,12 +212,7 @@ export default function EmailHistoryPage() {
     useEffect(() => {
         const fetchClients = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                const response = await fetch('/api/domestic/crm/clients', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet('/api/domestic/crm/clients');
                 
                 const result = await response.json();
                 
@@ -242,12 +232,7 @@ export default function EmailHistoryPage() {
         const fetchEmailHistory = async () => {
             setLoading(true);
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
-                
-                const response = await fetch('/api/domestic/crm/email-history', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await API.apiGet('/api/domestic/crm/email-history');
                 
                 const result = await response.json();
                 
@@ -297,12 +282,7 @@ export default function EmailHistoryPage() {
     // --- FETCH JOURNEY FOR VIEW MODAL ---
     const openViewJourneyModal = async (candidateRow) => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-            
-            const response = await fetch(`/api/domestic/crm/interview-journey?email_draft_id=${candidateRow.email_draft_id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await API.apiGet(`/api/domestic/crm/interview-journey?email_draft_id=${candidateRow.email_draft_id}`);
             
             const result = await response.json();
             
@@ -392,17 +372,7 @@ export default function EmailHistoryPage() {
 
     const handleDelete = async (id) => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-
-            const response = await fetch('/api/domestic/crm/email-history/delete', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ id })
-            });
+            const response = await API.apiPost('/api/domestic/crm/email-history/delete', { id });
 
             const result = await response.json();
 
@@ -460,8 +430,6 @@ export default function EmailHistoryPage() {
 
         setIsSubmittingRevenue(true);
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
 
             const payload = {
                 user_id: session.user_id || session.id,
@@ -490,34 +458,44 @@ export default function EmailHistoryPage() {
                
             };
 
-            const res = await fetch('/api/domestic/crm/revenue', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
+            const response = await API.apiPost('/api/domestic/crm/revenue', {
+    user_id: session.user_id || session.id,
+                tl_id: revenueForm.tlId || null,
+                rc_id: revenueForm.rcId || null,
+                client_id: revenueForm.clientId || null,
+                client_name: revenueForm.clientName,
+                client_email: revenueForm.clientEmail,
+                client_mobile: revenueForm.clientMobile,
+                candidate_name: revenueForm.candidateName,
+                candidate_email: revenueForm.candidateEmail,
+                candidate_mobile: revenueForm.candidateMobile,
+                profile: selectedCandidate?.profile || '',
+                offer_salary: revenueForm.offerSalary,
+                payment_terms: revenueForm.terms,
+                payment_days: parseInt(revenueForm.paymentDays),
+                payment_from: revenueForm.paymentFrom || null,
+                joining_date: revenueForm.joiningDate || null,
+                kyc_doc: revenueForm.kycDoc || null,
+                parsing_id: revenueForm.parsingId || null,
+                req_id: revenueForm.reqId || null,
+                sent_to_revenue: revenueForm.revenueTeamId,
+                sent_date: new Date().toISOString().split('T')[0],
+                retention_month: revenueForm.retentionMonth || null,
+                retention_amount: revenueForm.retentionAmount || null
+});
 
-            const result = await res.json();
+            const result = await response.json();
 
-            if (!res.ok || !result.success) {
+            if (!response.ok || !result.success) {
                 throw new Error(result.error || 'Failed to send to revenue');
             }
 
             // Optionally update the email history record
             try {
-                await fetch('/api/domestic/crm/email-history', {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        id: selectedCandidate.id,
-                        sent_to_revenue: revenueForm.revenueTeamId
-                    })
-                });
+                await API.apiPut('/api/domestic/crm/emails', {
+    id: selectedCandidate.id,
+    sent_to_revenue: revenueForm.revenueTeamId
+});
             } catch (e) {
                 console.warn('Could not update email sent_to_revenue flag');
             }
@@ -1275,13 +1253,7 @@ export default function EmailHistoryPage() {
                                                              const session = JSON.parse(localStorage.getItem('session') || '{}');
                                                              const token = session.access_token;
                
-                                                             const response = await fetch('/api/domestic/crm/revenue', {
-                                                                 method: 'POST',
-                                                                 headers: {
-                                                                     'Authorization': `Bearer ${token}`,
-                                                                     'Content-Type': 'application/json'
-                                                                 },
-                                                                 body: JSON.stringify({
+                                                             const response = await API.apiPost('/api/domestic/crm/revenue', {
                                                                      // User who sent to revenue
                                                                      user_id: session.user_id || session.id,
                                                                      // Team leads
@@ -1314,7 +1286,6 @@ export default function EmailHistoryPage() {
                                                                      sent_date: new Date().toISOString().split('T')[0],
                                                                        retention_month: revenueForm.retentionMonth || null,
                                                                     retention_amount: revenueForm.retentionAmount || null
-                                                                 })
                                                              });
                
                                                              const result = await response.json();
@@ -1322,17 +1293,10 @@ export default function EmailHistoryPage() {
                                                              if (response.ok && result.success) {
                                                                  // Also update the email record with sent_to_revenue
                                                                  try {
-                                                                     await fetch('/api/domestic/crm/emails', {
-                                                                         method: 'PUT',
-                                                                         headers: {
-                                                                             'Authorization': `Bearer ${token}`,
-                                                                             'Content-Type': 'application/json'
-                                                                         },
-                                                                         body: JSON.stringify({
-                                                                             id: selectedCandidate.id,
-                                                                             sent_to_revenue: revenueForm.revenueTeamId
-                                                                         })
-                                                                     });
+                                                                     await API.apiPut('/api/domestic/crm/emails', {
+    id: selectedCandidate.id,
+    sent_to_revenue: revenueForm.revenueTeamId
+});
                                                                      
                                                                  } catch (updateError) {
                                                                      console.error('Failed to update email sent_to_revenue:', updateError);

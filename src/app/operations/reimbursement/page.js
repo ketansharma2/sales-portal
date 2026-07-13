@@ -9,7 +9,7 @@ import {
   X,
   Eye,
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 // --- BILL PREVIEW MODAL COMPONENT ---
 function BillPreviewModal({ fileUrl, fileName, onClose }) {
   if (!fileUrl) return null;
@@ -80,12 +80,7 @@ export default function HRReimbursementPage() {
 
   const fetchPendingPayouts = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem("session") || "{}");
-      const response = await fetch("/api/operations/pending-payouts", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+      const response = await API.apiGet("/api/operations/pending-payouts");
       const data = await response.json();
       if (data.success) {
         setPendingClaims(data.data);
@@ -99,12 +94,7 @@ export default function HRReimbursementPage() {
 
   const fetchPaymentHistory = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem("session") || "{}");
-      const response = await fetch("/api/operations/payment-history", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+      const response = await API.apiGet("/api/operations/payment-history");
       const data = await response.json();
       if (data.success) {
         setHistoryData(data.data);
@@ -133,15 +123,7 @@ export default function HRReimbursementPage() {
     const claim = pendingClaims.find((c) => c.id === id);
     if (confirm(`Confirm payment of ₹${claim.amount} to ${claim.empName}?`)) {
       try {
-        const session = JSON.parse(localStorage.getItem("session") || "{}");
-        const response = await fetch("/api/operations/process-payment", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ exp_id: id }),
-        });
+        const response = await API.apiPost("/api/operations/process-payment", { exp_id: id });
         const data = await response.json();
         if (data.success) {
           // Refresh data after payment
@@ -212,15 +194,7 @@ export default function HRReimbursementPage() {
 
     if (confirm(`Approve ${selectedClaimIds.length} selected claim(s)?`)) {
       try {
-        const session = JSON.parse(localStorage.getItem("session") || "{}");
-        const response = await fetch("/api/operations/bulk-approve-payment", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ exp_ids: selectedClaimIds }),
-        });
+       const response = await API.apiPost("/api/operations/bulk-approve-payment", { exp_ids: selectedClaimIds });
         const data = await response.json();
         if (data.success) {
           fetchPendingPayouts();

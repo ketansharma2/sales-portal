@@ -6,7 +6,8 @@ import {
   Users, Wallet, CircleDollarSign, ChevronLeft, ChevronRight,
   ArrowUp, ArrowDown, ArrowUpDown, RefreshCcw, Filter, XCircle
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
+import Image from "next/image";
 const DATE_RANGE_OPTIONS = [
   { value: "", label: "All Time" },
   { value: "today", label: "Today" },
@@ -139,13 +140,7 @@ export default function ManagerApprovals() {
   const fetchPendingExpenses = useCallback(async ({ isRefresh = false } = {}) => {
     isRefresh ? setRefreshing(true) : setLoading(true);
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const params = buildParams();
-      const response = await fetch(`/api/domestic/manager/approvals/pending-expenses?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet('/api/domestic/manager/approvals/pending-expenses');
       const data = await response.json();
       if (data.success) {
         setApprovals(data.data);
@@ -165,12 +160,7 @@ export default function ManagerApprovals() {
 
   const fetchTeamCount = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/manager/fse-team', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet('/api/manager/fse-team');
       const data = await response.json();
       if (data.success) {
         setTeamCount(data.count);
@@ -190,15 +180,8 @@ export default function ManagerApprovals() {
 
   const handleApprove = async (exp_id) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/manager/approvals/approve-expense', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ exp_id })
-      });
+      const response = await API.apiPost('/api/domestic/manager/approvals/approve-expense', { exp_id });
+      console.log('Response status:', response.status);
       const data = await response.json();
       if (data.success) {
         fetchPendingExpenses();
@@ -210,15 +193,8 @@ export default function ManagerApprovals() {
 
   const handleReject = async (exp_id) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/manager/approvals/reject-expense', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ exp_id })
-      });
+      const response = await API.apiPost('/api/domestic/manager/approvals/reject-expense', { exp_id });
+      console.log('Response status:', response.status);
       const data = await response.json();
       if (data.success) {
         fetchPendingExpenses();
@@ -230,15 +206,7 @@ export default function ManagerApprovals() {
 
   const handleSendToHR = async (exp_id) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/manager/approvals/send-to-hr', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ exp_id })
-      });
+      const response = await API.apiPost('/api/domestic/manager/approvals/send-to-hr', { exp_id });
       const data = await response.json();
       if (data.success) {
         fetchPendingExpenses();
@@ -536,7 +504,7 @@ export default function ManagerApprovals() {
                   <td className="px-5 py-3">
                     <div className="flex flex-col">
                         <span className="font-black text-gray-700 uppercase tracking-tight text-[11px] mb-0.5">{item.category}</span>
-                        <span className="text-[11px] font-bold text-gray-400 italic">"{item.notes}"</span>
+                        <span className="text-[11px] font-bold text-gray-400 italic">{item.notes}</span>
                     </div>
                   </td>
 
@@ -686,7 +654,7 @@ export default function ManagerApprovals() {
               </div>
             </div>
             <div className="flex justify-center">
-              <img src={previewUrl} alt="Bill Preview" className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg" />
+              <Image src={previewUrl} alt="Bill Preview" className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg" />
             </div>
           </div>
         </div>

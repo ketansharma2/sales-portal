@@ -8,6 +8,8 @@ import {
   MessageSquare, User, Filter
 } from "lucide-react";
 
+import * as API from '@/lib/api-client';
+
 export default function OnboardPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState(""); // State for Search
@@ -20,11 +22,7 @@ export default function OnboardPage() {
     const fetchClients = async () => {
       try {
         const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/domestic/crm/onboard', {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet('/api/domestic/crm/onboard');
         const data = await response.json();
         if (data.success) {
           // Format API data to match UI structure
@@ -61,18 +59,7 @@ export default function OnboardPage() {
   // --- LOGIC: Toggle Status ---
   const handleAcknowledge = async (id) => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
-      if (!token) return;
-
-      const response = await fetch('/api/domestic/crm/acknowledge', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ client_id: id })
-      });
+      const response = await API.apiPost('/api/domestic/crm/acknowledge', { client_id: id });
 
       if (response.ok) {
         const updatedList = onboardingList.map((item) =>
@@ -94,15 +81,10 @@ export default function OnboardPage() {
     }
     
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/crm/client-status', {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ client_id: id, client_status: newStatus })
-      });
+     const response = await API.apiPut('/api/domestic/crm/client-status', {
+    client_id: id,
+    client_status: newStatus
+});
 
       if (response.ok) {
         const updatedList = onboardingList.map((item) =>

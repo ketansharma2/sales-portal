@@ -4,7 +4,7 @@ import {
   Search, Phone, Filter, X, Save, Plus, Eye,Trash2,
   Calendar, MapPin, ListFilter,ArrowRight,Send,Lock,Edit,Award,Users,Briefcase, Loader2,TrendingUp
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function LeadsTablePage() {
   
   // --- MOCK DATA --- (will be replaced by API data)
@@ -115,12 +115,7 @@ export default function LeadsTablePage() {
 
       const fetchLeads = async () => {
         try {
-          const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const response = await fetch('/api/corporate/leadgen/leads', {
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`
-            }
-          });
+          const response = await API.apiGet("/api/corporate/leadgen/leads");
           const data = await response.json();
           if (data.success) {
             // Normalize and store leads - API now returns contact_person, contact_no, email directly from latest interaction
@@ -149,12 +144,7 @@ export default function LeadsTablePage() {
 
     const fetchInteractions = async (clientId) => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch(`/api/corporate/leadgen/interaction?client_id=${clientId}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        const response = await API.apiGet(`/api/corporate/leadgen/interaction?client_id=${clientId}`);
         const data = await response.json();
         if (data.success) {
           setInteractions(data.data);
@@ -261,15 +251,7 @@ export default function LeadsTablePage() {
 
       const fetchManagerName = async () => {
        try {
-         const session = JSON.parse(localStorage.getItem('session') || '{}');
-         const response = await fetch('/api/corporate/leadgen/send-to-manager', {
-           method: 'POST',
-           headers: {
-             'Content-Type': 'application/json',
-             'Authorization': `Bearer ${session.access_token}`
-           },
-           body: JSON.stringify({ client_id: 0 }) // Just to get manager info
-         });
+         const response = await API.apiPost("/api/corporate/leadgen/send-to-manager", { client_id: 0 });
          const data = await response.json();
          if (data.success && data.data?.managerName) {
            setManagerName(data.data.managerName);
@@ -301,12 +283,7 @@ export default function LeadsTablePage() {
        const fetchSuggestions = async () => {
          if (!selectedLead?.id || modalType !== 'add') return;
          try {
-           const session = JSON.parse(localStorage.getItem('session') || '{}');
-           const response = await fetch(`/api/corporate/leadgen/interaction?client_id=${selectedLead.id}`, {
-             headers: {
-               'Authorization': `Bearer ${session.access_token}`
-             }
-           });
+           const response = await API.apiGet(`/api/corporate/leadgen/interaction?client_id=${selectedLead.id}`);
            const data = await response.json();
            if (data.success) {
              const persons = [...new Set(data.data.map(i => i.contact_person).filter(Boolean))];
@@ -332,10 +309,7 @@ export default function LeadsTablePage() {
          }
 
          try {
-           const session = JSON.parse(localStorage.getItem('session') || '{}');
-           const response = await fetch(`/api/corporate/leadgen/leads?company=${encodeURIComponent(newLeadData.company)}&limit=10`, {
-             headers: { 'Authorization': `Bearer ${session.access_token}` }
-           });
+           const response = await API.apiDelete("/api/corporate/leadgen/leads", { client_id: lead.id });
            const data = await response.json();
            if (data.success && data.data && data.data.length > 0) {
              setCompanySuggestions(data.data);
@@ -482,15 +456,7 @@ export default function LeadsTablePage() {
       // Handle delete action directly without opening modal
       if (type === 'delete') {
         try {
-          const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const response = await fetch('/api/corporate/leadgen/leads', {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`
-            },
-            body: JSON.stringify({ client_id: lead.id })
-          });
+         const response = await API.apiDelete("/api/corporate/leadgen/leads", { client_id: lead.id });
           const result = await response.json();
           if (result.success) {
             // Remove deleted lead from state
@@ -574,9 +540,7 @@ export default function LeadsTablePage() {
        // Check for duplicate company name
        if (newLeadData.company) {
          try {
-           const checkResponse = await fetch(`/api/corporate/leadgen/leads?company=${encodeURIComponent(newLeadData.company)}&limit=100`, {
-             headers: { 'Authorization': `Bearer ${session.access_token}` }
-           });
+           const checkResponse = await API.apiGet(`/api/corporate/leadgen/leads?company=${encodeURIComponent(newLeadData.company)}&limit=100`);
            const checkData = await checkResponse.json();
            if (checkData.success && checkData.data && checkData.data.length > 0) {
              const duplicate = checkData.data.find(
@@ -600,14 +564,7 @@ export default function LeadsTablePage() {
          }
        }
 
-       const response = await fetch('/api/corporate/leadgen/leadscreation', {
-         method: 'POST',
-         headers: {
-           'Content-Type': 'application/json',
-           'Authorization': `Bearer ${session.access_token}`
-         },
-         body: JSON.stringify(newLeadData)
-       });
+       const response = await API.apiPost("/api/corporate/leadgen/leadscreation", newLeadData);
        const data = await response.json();
        if (data.success) {
          setIsFormOpen(false);
@@ -629,14 +586,11 @@ export default function LeadsTablePage() {
       }
       setIsSaving(true);
       try {
-       const session = JSON.parse(localStorage.getItem('session') || '{}');
        
        // Check for duplicate company name
        if (newLeadData.company) {
          try {
-           const checkResponse = await fetch(`/api/corporate/leadgen/leads?company=${encodeURIComponent(newLeadData.company)}&limit=100`, {
-             headers: { 'Authorization': `Bearer ${session.access_token}` }
-           });
+           const checkResponse = await API.apiGet(`/api/corporate/leadgen/leads?company=${encodeURIComponent(newLeadData.company)}&limit=100`);
            const checkData = await checkResponse.json();
            if (checkData.success && checkData.data && checkData.data.length > 0) {
              const duplicate = checkData.data.find(
@@ -660,14 +614,8 @@ export default function LeadsTablePage() {
          }
        }
 
-       const response = await fetch('/api/corporate/leadgen/leads', {
-         method: 'POST',
-         headers: {
-           'Content-Type': 'application/json',
-           'Authorization': `Bearer ${session.access_token}`
-         },
-         body: JSON.stringify(newLeadData)
-       });
+       const response = await API.apiPost("/api/corporate/leadgen/leads", newLeadData);
+         
        const data = await response.json();
        if (data.success) {
           setSelectedLead({
@@ -700,19 +648,12 @@ export default function LeadsTablePage() {
         return;
       }
       try {
-       const session = JSON.parse(localStorage.getItem('session') || '{}');
+       
        // Assuming you use PUT or PATCH for updates. Adjust the method/URL if your API is different.
-       const response = await fetch('/api/corporate/leadgen/leads', { 
-         method: 'PUT', 
-         headers: {
-           'Content-Type': 'application/json',
-           'Authorization': `Bearer ${session.access_token}`
-         },
-         body: JSON.stringify({
-           client_id: selectedLead.id, // We need the ID to know which lead to update
-           ...newLeadData
-         })
-       });
+       const response = await API.apiPut("/api/corporate/leadgen/leads", {
+    client_id: selectedLead.id,
+    ...newLeadData
+});
        const data = await response.json();
        if (data.success) {
          setIsFormOpen(false);
@@ -737,14 +678,12 @@ export default function LeadsTablePage() {
          ? { interaction_id: editingInteractionId, client_id: selectedLead.id, ...interactionData }
          : { client_id: selectedLead.id, ...interactionData };
        
-       const response = await fetch('/api/corporate/leadgen/interaction', {
-         method: method,
-         headers: {
-           'Content-Type': 'application/json',
-           'Authorization': `Bearer ${session.access_token}`
-         },
-         body: JSON.stringify(bodyData)
-       });
+       let response;
+if (editingInteractionId) {
+    response = await API.apiPut("/api/corporate/leadgen/interaction", bodyData);
+} else {
+    response = await API.apiPost("/api/corporate/leadgen/interaction", bodyData);
+}
        const data = await response.json();
        if (data.success) {
          setIsFormOpen(false);
@@ -1653,17 +1592,7 @@ export default function LeadsTablePage() {
                         onClick={async () => {
                           if(window.confirm("Are you sure you want to delete this interaction?")) {
                             try {
-                              const session = JSON.parse(localStorage.getItem('session') || '{}');
-                              const token = session.access_token;
-                              
-                              const response = await fetch('/api/corporate/leadgen/interaction', {
-                                method: 'DELETE',
-                                headers: {
-                                  'Authorization': `Bearer ${token}`,
-                                  'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({ interaction_id: interaction.id })
-                              });
+                              const response = await API.apiDelete("/api/corporate/leadgen/interaction", { interaction_id: interaction.id });
                               
                               const result = await response.json();
                               
@@ -1788,15 +1717,8 @@ export default function LeadsTablePage() {
        <button
          onClick={async () => {
            try {
-             const session = JSON.parse(localStorage.getItem('session') || '{}');
-             const response = await fetch('/api/corporate/leadgen/send-to-manager', {
-               method: 'POST',
-               headers: {
-                 'Content-Type': 'application/json',
-                 'Authorization': `Bearer ${session.access_token}`
-               },
-               body: JSON.stringify({ client_id: selectedLead.id })
-             });
+             
+             const response = await API.apiPost("/api/corporate/leadgen/send-to-manager", { client_id: selectedLead.id });
              const data = await response.json();
              if (data.success) {
                const updatedLeads = leads.map(l =>

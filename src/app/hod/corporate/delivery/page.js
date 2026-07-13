@@ -5,7 +5,7 @@ import {
   CheckCircle2, XCircle, AlertCircle, PhoneCall, FileText, 
   TrendingUp, Award, Zap, Briefcase, SlidersHorizontal, ChevronDown,Target, X
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 export default function CorporateDeliveryPage() {
   const [crmOptions, setCrmOptions] = useState([]);
   const [accuracyModalOpen, setAccuracyModalOpen] = useState(false);
@@ -35,10 +35,7 @@ export default function CorporateDeliveryPage() {
   useEffect(() => {
     const fetchCrms = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const response = await fetch('/api/hod/corporate/delivery/filters?type=crms', {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        });
+        const response = await API.apiGet("/api/hod/corporate/delivery/filters?type=crms");
         const data = await response.json();
         if (data.success) {
           setCrmOptions(data.data || []);
@@ -64,10 +61,7 @@ export default function CorporateDeliveryPage() {
       if (crm) {
         setSelectedCrm(crm);
         try {
-          const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const res = await fetch(`/api/hod/corporate/delivery/filters?type=tls&sector=${crm.sector || 'Corporate'}`, {
-            headers: { 'Authorization': `Bearer ${session.access_token}` }
-          });
+          const res = await API.apiGet(`/api/hod/corporate/delivery/filters?type=tls&sector=${crm.sector || 'Corporate'}`);
           const data = await res.json();
           if (data.success) setTlOptions(data.data || []);
         } catch (error) {
@@ -87,10 +81,7 @@ export default function CorporateDeliveryPage() {
     if (tl) {
       setSelectedTl(tl);
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const res = await fetch(`/api/hod/corporate/delivery/filters?type=rcs&tlId=${tl.user_id}`, {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        });
+        const res = await API.apiGet(`/api/hod/corporate/delivery/filters?type=rcs&tlId=${tl.user_id}`);
         const data = await res.json();
         if (data.success) setRcOptions(data.data || []);
       } catch (error) {
@@ -131,22 +122,12 @@ const fetchMetrics = async () => {
     if (dateTo) params.append('to', dateTo);
 
     const [crmRes, tlRes, rcRes, cvRes, stiRes] = await Promise.all([
-      fetch(`/api/hod/corporate/delivery/crm-metrics?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      }),
-      fetch(`/api/hod/corporate/delivery/tl-metrics?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      }),
-      fetch(`/api/hod/corporate/delivery/rc-metrics?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      }),
-       fetch(`/api/hod/corporate/delivery/rc-metrics/total-cvs?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      }),
-      fetch(`/api/hod/corporate/delivery/rc-metrics/total-sti?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      })
-    ]);
+    API.apiGet(`/api/hod/corporate/delivery/crm-metrics?${params.toString()}`),
+    API.apiGet(`/api/hod/corporate/delivery/tl-metrics?${params.toString()}`),
+    API.apiGet(`/api/hod/corporate/delivery/rc-metrics?${params.toString()}`),
+    API.apiGet(`/api/hod/corporate/delivery/rc-metrics/total-cvs?${params.toString()}`),
+    API.apiGet(`/api/hod/corporate/delivery/rc-metrics/total-sti?${params.toString()}`)
+]);
 
     const [crmData, tlData, rcData, cvData, stiData] = await Promise.all([
       crmRes.json(),

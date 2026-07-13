@@ -7,6 +7,7 @@ import {
     UploadCloud, FileText, Search, Calendar, MapPin,
     Loader2, History, File, CheckCircle2, X, AlertCircle, User, MessageSquare
 } from "lucide-react";
+import * as API from '@/lib/api-client';
 
 // CV Preview Component - Handles PDF, Images, and Word documents
 function CVPreview({ url, name }) {
@@ -272,21 +273,8 @@ export default function CVParsingPage() {
 
     const fetchCVParsingData = async () => {
         try {
-            const session = JSON.parse(localStorage.getItem('session') || '{}');
-            const token = session.access_token;
-
-            if (!token) {
-                setIsLoading(false);
-                return;
-            }
-
-            const response = await fetch("/api/jobpost/parsing", {
-                method: "GET",
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                }
-            });
-
+           
+             const response = await API.apiGet("/api/jobpost/parsing");
             const result = await response.json();
 
             if (result.success && result.data) {
@@ -383,10 +371,8 @@ export default function CVParsingPage() {
             const formData = new FormData();
             formData.append("file", selectedFile);
 
-            const response = await fetch("/api/corporate/recruiter/parsing", {
-                method: "POST",
-                body: formData,
-            });
+            const response = await API.apiUpload("/api/corporate/recruiter/parsing", formData);
+
 
             console.log('Parse response status:', response.status);
             console.log('Parse response ok:', response.ok);
@@ -461,17 +447,10 @@ export default function CVParsingPage() {
             const sector =  "JobPost"
 
             // First, save the data to database (without CV URL)
-            const response = await fetch("/api/jobpost/save-parsed-data", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({
+            const response = await API.apiPost("/api/jobpost/save-parsed-data", {
                     ...editableData,
                     sector: sector,
                     cv_url: null
-                }),
             });
 
             console.log('Save response status:', response.status);
@@ -494,13 +473,7 @@ export default function CVParsingPage() {
                     uploadFormData.append('file', selectedFile);
                     uploadFormData.append('cv_parsing_id', result.insertedId);
 
-                    const uploadResponse = await fetch("/api/corporate/recruiter/upload-cv", {
-                        method: "POST",
-                        headers: {
-                            "Authorization": `Bearer ${token}`
-                        },
-                        body: uploadFormData,
-                    });
+                   const uploadResponse = await API.apiUpload("/api/corporate/recruiter/upload-cv", uploadFormData);
 
                     console.log('Upload response status:', uploadResponse.status);
                     console.log('Upload response ok:', uploadResponse.ok);
@@ -929,7 +902,7 @@ export default function CVParsingPage() {
                                 <div className="text-center text-slate-500">
                                     <File size={48} className="mx-auto mb-4 opacity-50" />
                                     <p className="text-lg font-black uppercase tracking-widest mb-1">No CV Available</p>
-                                    <p className="text-xs font-bold">This candidate's CV has not been uploaded yet</p>
+                                    <p className="text-xs font-bold">{"This candidate's CV has not been uploaded yet"}</p>
                                 </div>
                             )}
                         </div>
@@ -1229,7 +1202,7 @@ export default function CVParsingPage() {
                                             </div>
                                             {conv.remarks && (
                                                 <p className="text-[10px] font-medium text-slate-600 italic border-l-2 border-slate-300 pl-2">
-                                                    "{conv.remarks}"
+                                                    {conv.remarks}
                                                 </p>
                                             )}
                                         </div>
@@ -1258,18 +1231,10 @@ export default function CVParsingPage() {
                                 onClick={async () => {
                                     setIsAddingToParsing(true);
                                     try {
-                                        const session = JSON.parse(localStorage.getItem('session') || '{}');
-                                        const token = session.access_token;
+
                                         
-                                        const response = await fetch('/api/corporate/recruiter/add-to-parsing', {
-                                            method: 'PUT',
-                                            headers: {
-                                                'Authorization': `Bearer ${token}`,
-                                                'Content-Type': 'application/json'
-                                            },
-                                            body: JSON.stringify({
+                                        const response = await API.apiPut('/api/corporate/recruiter/add-to-parsing', {           
                                                 candidate_id: duplicateData.existing_candidate.id
-                                            })
                                         });
                                         
                                         const result = await response.json();

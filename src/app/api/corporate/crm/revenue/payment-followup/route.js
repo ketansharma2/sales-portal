@@ -1,16 +1,19 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { supabaseServer } from '@/lib/supabase-server'
+import { NextResponse } from 'next/server'
+import { getUser } from '@/lib/auth-helper'
 
 export async function GET(request) {
   try {
+    // Authentication - user injected by middleware (no auth calls needed!)
+    const { user, error: authError } = getUser(request);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const revenue_id = searchParams.get('revenue_id');
     
-    let query = supabase
+    let query = supabaseServer
       .from('corporate_payment_followup')
       .select('*')
       .order('contact_date', { ascending: false });
@@ -45,21 +48,14 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    // Get the user from the token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return Response.json({ success: false, error: 'No authorization header' }, { status: 401 });
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
+    // Authentication - user injected by middleware (no auth calls needed!)
+    const { user, error: authError } = getUser(request);
     if (authError || !user) {
-      return Response.json({ success: false, error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
     // Get user_id from users table
-    const { data: userData, error: userError } = await supabase
+    const { data: userData, error: userError } = await supabaseServer
       .from('users')
       .select('user_id')
       .eq('email', user.email)

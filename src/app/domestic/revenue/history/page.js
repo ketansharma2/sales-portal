@@ -7,7 +7,7 @@ import {
   Building2, Clock, CheckCircle, AlertCircle,
   History, CheckSquare, X, Printer, FileText, FileCheck, Award
 } from "lucide-react";
-
+import * as API from '@/lib/api-client';
 // --- CONSTANTS ---
 const COMPANY_DATA = {
   name: "SAVVI SALES & SERVICES PVT LTD",
@@ -63,12 +63,8 @@ function DomesticBillingPage() {
     useEffect(() => {
       const fetchRevenueData = async () => {
         try {
-          const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const token = session.access_token;
+          const response = await API.apiGet('/api/domestic/revenue/history');
 
-          const response = await fetch('/api/domestic/revenue/history', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
 
           const result = await response.json();
 

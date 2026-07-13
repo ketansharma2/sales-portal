@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-
+import * as API from '@/lib/api-client';
 export const dynamic = 'force-dynamic';
 import {
   Filter, MapPin, Phone, User, Calendar,
@@ -62,12 +62,7 @@ function FSETeamTracking() {
 
   const fetchFseTeam = async () => {
     try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const response = await fetch('/api/domestic/manager/fse-team', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet('/api/domestic/manager/fse-team');
       const data = await response.json();
       if (data.success) {
         setFseTeam(data.data);
@@ -88,11 +83,8 @@ function FSETeamTracking() {
       if (filters.fromDate) params.push(`from_date=${filters.fromDate}`);
       if (filters.toDate) params.push(`to_date=${filters.toDate}`);
       const query = params.length > 0 ? `?${params.join('&')}` : "";
-      const response = await fetch(`/api/domestic/manager/fse-clients-today${query}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      const response = await API.apiGet(`/api/domestic/manager/fse-clients-today${query}`);
+
       const data = await response.json();
       if (data.success) {
         let sortedData = data.data;
