@@ -551,11 +551,11 @@ useEffect(() => {
                   {/* Status Column */}
                   <td className="px-5 py-3 text-center">
                     <span className={`px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border italic flex items-center justify-center gap-1.5 w-fit mx-auto
-                      ${item.status === 'Approved'
+                      ${item.status === 'Sent to HR'
                         ? 'bg-indigo-50 text-indigo-600 border-indigo-100'
                         : item.status === 'Clarification Req'
                           ? 'bg-yellow-50 text-yellow-600 border-yellow-100'
-                          : item.status === 'Sent to HR'
+                          : item.status === 'Approved'
                             ? 'bg-green-50 text-green-600 border-green-100'
                             : item.status === 'Rejected'
                               ? 'bg-red-50 text-red-600 border-red-100'
@@ -564,11 +564,11 @@ useEffect(() => {
                                 : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
 
                       {item.status === 'Pending Review' && <Clock size={10} />}
-                      {item.status === 'Sent to HR' && <Building2 size={10} />}
-                      {item.status === 'Approved' && <CheckCircle size={10} />}
+                      {item.status === 'Approved' && <Building2 size={10} />}
+                      {item.status === 'Sent to HR' && <CheckCircle size={10} />}
                       {item.status === 'Rejected' && <X size={10} />}
                       {item.status === 'PAID' && <Lock size={10} />}
-                      {item.status === 'Sent to HR' ? 'Approved' : item.status}
+                      {item.status}
                     </span>
                   </td>
 
@@ -583,7 +583,7 @@ useEffect(() => {
                     </span>
                   </div>
                   </div>
-                  ): item.status === "Sent to HR" ? (
+                  ): item.status === "Approved" ? (
                       <div className="flex justify-center items-center gap-2 opacity-80">
                          <span className="px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border bg-indigo-50 text-indigo-600 border-indigo-100 flex items-center gap-1">
     <Building2 size={10} />
@@ -603,7 +603,7 @@ useEffect(() => {
                       </div>
                     ) : (
                       <div className="flex justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => handleSendToHR(item.id)} className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Approve">
+                        <button onClick={() => handleApprove(item.id)} className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Approve">
                           <Check size={16} strokeWidth={3}/>
                         </button>
                         <button onClick={() => handleReject(item.id)} className="bg-red-50 text-red-600 p-2 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Reject">

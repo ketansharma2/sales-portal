@@ -31,7 +31,7 @@ export async function GET(request) {
         )
       `)
       .eq('submitted', true)
-      .ilike('status', 'SENT TO HR')
+      .ilike('status', 'Approved')
       .order('created_at', { ascending: false })
 
     if (expensesError) {
