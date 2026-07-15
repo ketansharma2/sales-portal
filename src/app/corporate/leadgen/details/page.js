@@ -235,7 +235,7 @@ useEffect(() => {
          
         
         const queryString = params.toString();
-        const response = await API.apiGet(`/api/corporate/leadgen/not-picked-count?${queryString}`);
+        const response = await API.apiGet(`/api/corporate/leadgen/calls-type-count?${queryString}`);
         const data = await response.json();
         if (data.success || data.records) {
           const calls = data.records || [];
