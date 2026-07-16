@@ -1,3 +1,5 @@
+import { supabaseServer } from '@/lib/supabase-server';
+
 /**
  * Auth Helper - Simple API Route Authentication
  * 
@@ -102,6 +104,42 @@ export function requireAuth(request) {
   }
   
   return { user, response: null }
+}
+
+/**
+ * Get user name from database
+ * 
+ * @param {Request} request - Next.js request object
+ * @param {string} userId - Optional user ID (defaults to authenticated user)
+ * @returns {Promise<string>} - User name or fallback
+ */
+export async function getUserName(request, userId = null) {
+  try {
+    // If no userId provided, get from request
+    const targetUserId = userId || request.headers.get('x-user-id')
+    
+    if (!targetUserId) {
+      return 'System'
+    }
+    
+    const { data: user, error } = await supabaseServer
+      .from('users')
+      .select('name')
+      .eq('user_id', targetUserId)
+      .single()
+    
+    if (error || !user) {
+      console.error('[getUserName] Error fetching name:', error)
+      // Try to get email from headers as fallback
+      const userEmail = request.headers.get('x-user-email')
+      return userEmail || 'System'
+    }
+    
+    return user.name || 'System'
+  } catch (error) {
+    console.error('[getUserName] Error:', error)
+    return 'System'
+  }
 }
 
 /**

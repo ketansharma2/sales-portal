@@ -2,7 +2,7 @@ import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 import { notificationService } from '@/lib/services/notificationService'
 import { actions } from '@/lib/messages/userMessages';   // your notification file
-import { getUser } from '@/lib/auth-helper';
+import { getUser, getUserName } from '@/lib/auth-helper' // Import getUserName
 
 export async function GET(request) {
   try {
@@ -90,6 +90,8 @@ export async function POST(request) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const actorName = await getUserName(request);
+    
 
     const body = await request.json()
     const { year, month, working_days, assigned_to, role, targets } = body
@@ -131,6 +133,9 @@ export async function POST(request) {
   [assigned_to],
   actions.crm.targetCreated,
   user.id,
+  { 
+        extra: { actorName: actorName } 
+      }
 );
 
     return NextResponse.json({ success: true, data })
@@ -147,6 +152,9 @@ export async function PUT(request) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const actorName = await getUserName(request);
+    
 
     const body = await request.json()
     const { target_id, year, month, working_days, role, guideline, kpi, frequency, total_target } = body
@@ -193,7 +201,9 @@ if (targetError) {
 
 const receiverId = targetData.assigned_to
 
-    await notificationService.createDynamicNotification( [receiverId],actions.crm.targetUpdated,user.id );
+    await notificationService.createDynamicNotification( [receiverId],actions.crm.targetUpdated,user.id, { 
+        extra: { actorName: actorName } 
+      } );
 
     return NextResponse.json({ success: true, data })
 

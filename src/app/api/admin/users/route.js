@@ -1,6 +1,6 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-import { getUser } from '@/lib/auth-helper'
+import { getUser, getUserName } from '@/lib/auth-helper' // Import getUserName
 
 import { notificationService } from '@/lib/services/notificationService'
 import { actions } from '@/lib/messages/userMessages';   // your notification file
@@ -170,6 +170,8 @@ export async function PUT(request) {
     if (!user_id) {
       return NextResponse.json({ error: 'user_id is required' }, { status: 400 })
     }
+        
+    const actorName = await getUserName(request);
 
     const updateData = {}
     if (name) updateData.name = name
@@ -193,8 +195,10 @@ export async function PUT(request) {
     }
 
    
-
-    await notificationService.createDynamicNotification( [user_id],actions.admin.userProfileUpdated,authUser.id );
+ console.log("teets",user_id, actorName,user.id );
+    await notificationService.createDynamicNotification( [user_id],actions.admin.userProfileUpdated,user.id, { 
+        extra: { actorName: actorName } 
+      } );
    const successMessage = "User updated successfully";
 
     return NextResponse.json({

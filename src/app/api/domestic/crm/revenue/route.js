@@ -2,7 +2,7 @@ import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 import { notificationService } from '@/lib/services/notificationService'
 import { actions } from '@/lib/messages/userMessages';   // your notification file
-import { getUser } from '@/lib/auth-helper';
+import { getUser, getUserName } from '@/lib/auth-helper' // Import getUserName
 
 export async function GET(request) {
   try {
@@ -134,6 +134,7 @@ export async function POST(request) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const actorName = await getUserName(request);
 
     const body = await request.json()
     const {
@@ -214,7 +215,9 @@ export async function POST(request) {
       }, { status: 500 })
     }
 
-    await notificationService.createDynamicNotification( [sent_to_revenue],actions.crm.sentRevenue,user.id );//revernue sent to crm notification
+    await notificationService.createDynamicNotification( [sent_to_revenue],actions.crm.sentRevenue,user.id , { 
+        extra: { actorName: actorName } 
+      });//revernue sent to crm notification
 
     return NextResponse.json({
       success: true,

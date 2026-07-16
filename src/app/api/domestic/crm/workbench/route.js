@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { notificationService } from '@/lib/services/notificationService'
 
 import { actions } from '@/lib/messages/userMessages';   // your notification file
-import { getUser } from '@/lib/auth-helper';
+import { getUser, getUserName } from '@/lib/auth-helper' // Import getUserName
 
 export async function GET(request) {
   try {
@@ -219,6 +219,7 @@ export async function POST(request) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+      const actorName = await getUserName(request);
 
     const body = await request.json()
     const {
@@ -262,7 +263,9 @@ export async function POST(request) {
 
 
    
-  await notificationService.createDynamicNotification( [sent_to_tl],actions.crm.workbenchCreated,user.id );
+  await notificationService.createDynamicNotification( [sent_to_tl],actions.crm.workbenchCreated,user.id, { 
+        extra: { actorName: actorName } 
+      } );
 
     return NextResponse.json({
       success: true,
@@ -284,6 +287,7 @@ export async function PUT(request) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+        const actorName = await getUserName(request);
 
     const body = await request.json()
     const {
@@ -327,7 +331,9 @@ export async function PUT(request) {
     }
 
    
-     await notificationService.createDynamicNotification( [sent_to_tl],actions.crm.workbenchUpdated,user.id );
+     await notificationService.createDynamicNotification( [sent_to_tl],actions.crm.workbenchUpdated,user.id, { 
+        extra: { actorName: actorName } 
+      } );
     
     return NextResponse.json({
       success: true,

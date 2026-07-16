@@ -1,6 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 import { getUserWithProfile } from '@/lib/auth-helper'
+import { getUser, getUserName } from '@/lib/auth-helper' // Import getUserName
 
 import { notificationService } from '@/lib/services/notificationService'
 import { actions } from '@/lib/messages/userMessages';  
@@ -11,7 +12,8 @@ export async function POST(request) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
+     const actorName = await getUserName(request);
+    
     // Check if user has HOD role (from cached profile data)
     if (!profile || !profile.role) {
       return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
@@ -61,7 +63,9 @@ export async function POST(request) {
     }
 
     const expenseUserId = updatedExpense?.user_id
-      await notificationService.createDynamicNotification( [expenseUserId],actions.hod.rejectExpense,user.id );
+      await notificationService.createDynamicNotification( [expenseUserId],actions.hod.rejectExpense,user.id , { 
+        extra: { actorName: actorName } 
+      });
 
 
     return NextResponse.json({

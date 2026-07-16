@@ -14,8 +14,9 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
 export const messaging = typeof window !== 'undefined' ? getMessaging(app) : null
 
 export async function requestFCMToken(userId, accessToken) {
+   console.log("requestFCMToken called", userId);
   if (!messaging) return null
-  
+   console.log("Messaging initialized");
   try {
     const token = await getToken(messaging, {
       vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
@@ -53,10 +54,21 @@ export function onForegroundMessage(callback) {
   }
   
   try {
-    onMessage(messaging, (payload) => {
-      console.log('Foreground message received:', payload)
-      callback(payload)
-    })
+   onMessage(messaging, (payload) => {
+  console.log("Foreground message received:", payload);
+
+  if (Notification.permission === "granted") {
+    new Notification(
+      payload.notification?.title || payload.data?.title || "Notification",
+      {
+        body: payload.notification?.body || payload.data?.body || "",
+        icon: "/favicon.ico", // ya apna icon path
+      }
+    );
+  }
+
+  callback(payload);
+});
   } catch (error) {
     console.error('Error setting up foreground message listener:', error)
   }
