@@ -81,11 +81,14 @@ export async function GET(request) {
 
     let reqsMap = new Map()
     if (reqIds.length > 0) {
-      const { data: reqsData } = await supabaseServer
+      const { data: reqsData , error } = await supabaseServer
         .from('domestic_crm_reqs')
-        .select('req_id, job_title, location, experience, package, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers')
+        .select(`req_id, job_title, location, experience, package, employment_type, working_days, timings, tool_req, job_summary, rnr, req_skills, preferred_qual, company_offers, domestic_crm_branch (
+    branch_id,
+    branch_name
+  )`)
         .in('req_id', reqIds)
-      
+         console.log(error);
       if (reqsData) {
         reqsMap = new Map(reqsData.map(r => [r.req_id, r]))
       }
@@ -94,6 +97,7 @@ export async function GET(request) {
     const transformedData = conversations.map(conversation => {
       const cvData = cvParsingMap.get(conversation.parsing_id)
       const reqData = reqsMap.get(conversation.req_id)
+     
       return {
         conversation_id: conversation.conversation_id,
         recruiter_name: usersMap.get(conversation.user_id) || 'Unknown',
@@ -103,6 +107,7 @@ export async function GET(request) {
         curr_ctc: conversation.curr_ctc,
         exp_ctc: conversation.exp_ctc,
         remarks: conversation.remarks || '',
+        branch_name: reqData?.domestic_crm_branch?.branch_name || '',
         candidate_name: cvData?.name || '',
         candidate_email: cvData?.email || '',
         candidate_phone: cvData?.mobile || '',
