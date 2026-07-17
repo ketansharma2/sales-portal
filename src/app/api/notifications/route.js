@@ -29,6 +29,7 @@ export async function GET(request) {
   try {
        const { user, response } = requireAuth(request)
     
+       console.log("user, response",user, response);
     if (response) {
       return response // Returns 401 if not authenticated
     }
@@ -37,14 +38,14 @@ export async function GET(request) {
     const limit = parseInt(url.searchParams.get('limit') || '50')
     const offset = parseInt(url.searchParams.get('offset') || '0')
     const unreadOnly = url.searchParams.get('unreadOnly') === 'true'
-
+     console.log("receiver_id12",user.id);
     let query = supabaseServer
       .from('notifications')
       .select('*', { count: 'exact' })
       .eq('receiver_id', user.id)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
-   
+       
     if (unreadOnly) query = query.eq('is_read', false)
 
     const { data, error: dbError, count } = await query

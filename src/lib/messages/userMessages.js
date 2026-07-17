@@ -8,61 +8,60 @@ export const actions = {
   },
   
     "admin": {
-      "userCreated": "User created successfully",
-      "userUpdated": "User updated successfully",
-      "userDeleted": "User deleted successfully",
-      "userProfileUpdated": {"title": "User Profile Updated", "message": "User profile details updated"},
-      "fetchUsersError": "Failed to fetch users",
-      "createUserError": "Failed to create user account",
-      "profileCreateError": "User account created but profile creation failed",
-      "updateUserError": "Failed to update user"
+       "userCreated": "{actorName} created a new user account successfully",
+    "userUpdated": "{actorName} updated a user profile successfully",
+    "userDeleted": "{actorName} deleted a user account successfully",
+    "userProfileUpdated": {"title": "User Profile Updated", "message": "{actorName} updated user profile details"},
+    "fetchUsersError": "Failed to fetch users",
+    "createUserError": "Failed to create user account",
+    "profileCreateError": "User account created but profile creation failed",
+    "updateUserError": "Failed to update user profile"
     },
      "crm": {
-      "userCreated": {"title": "User Created", "message": "New team member added"},
-      "userUpdated": {"title": "User Updated", "message": "Team member details updated"},
-      "workbenchUpdated": {"title": "Workbench Updated", "message": "Workbench updated successfully"},
-      "workbenchCreated": {"title": "Workbench Created", "message": "Workbench created successfully"},
-      "workbenchDeleted": {"title": "Workbench Deleted", "message": "Workbench deleted successfully"},
-      "targetUpdated": {"title": "Target Updated", "message": "Target updated successfully"},
-      "targetCreated": {"title": "Target Created", "message": "Target created successfully"},
-      "createdNewdomesticJobpost": {"title": "New Job Post Required", "message": "New job post required for the domestic team"},
-      "createdNewcorporateJobpost": {"title": "New Job Post Required", "message": "New job post required for the corporate team"},
-      "sentRevenue": {"title": "Revenue Sent", "message": "Revenue details sent to Revenue By CRM"}
+        "userCreated": {"title": "User Created", "message": "{actorName} added a new team member"},
+    "userUpdated": {"title": "User Updated", "message": "{actorName} updated user details"},
+    "workbenchUpdated": {"title": "Workbench Updated", "message": "{actorName} updated the workbench successfully"},
+    "workbenchCreated": {"title": "Workbench Created", "message": "{actorName} created a new workbench successfully"},
+    "workbenchDeleted": {"title": "Workbench Deleted", "message": "{actorName} deleted the workbench successfully"},
+    "targetUpdated": {"title": "Target Updated", "message": "{actorName} updated the target successfully"},
+    "targetCreated": {"title": "Target Created", "message": "{actorName} created a new target successfully"},
+    "createdNewdomesticJobpost": {"title": "New Job Post Required", "message": "{actorName} requested a new domestic job post"},
+    "createdNewcorporateJobpost": {"title": "New Job Post Required", "message": "{actorName} requested a new corporate job post"},
+    "sentRevenue": {"title": "Revenue Sent", "message": "{actorName} sent revenue details to Revenue By CRM"}
     },
     "manager": {
-      "userCreated": {"title": "User Created", "message": "New team member added"},
-      "userUpdated": {"title": "User Updated", "message": "Team member details updated"},
-      "targetUpdated": {"title": "Target Updated", "message": "Target updated by Manager successfully"},
-      "targetCreated": {"title": "Target Created", "message": "Target created by Manager successfully"},
-      "expenseApproved": {"title": "Expense Approved", "message": "Expense approved by Manager "},
-      "expenseRejected": {"title": "Expense Rejected", "message": "Expense rejected by Manager HOD"}
+      "userCreated": {"title": "User Created", "message": "{actorName} added a new team member"},
+    "userUpdated": {"title": "User Updated", "message": "{actorName} updated user details"},
+    "targetUpdated": {"title": "Target Updated", "message": "{actorName} updated the target successfully"},
+    "targetCreated": {"title": "Target Created", "message": "{actorName} created a new target successfully"},
+    "expenseApproved": {"title": "Expense Approved", "message": "{actorName} approved the expense"},
+    "expenseRejected": {"title": "Expense Rejected", "message": "{actorName} rejected the expense"}
     },
     "recruiter": {
-      "userCreated": {"title": "User Created", "message": "Recruiter account created"},
-      "userUpdated": {"title": "User Updated", "message": "Recruiter profile updated"},
-      "trackerSentbyRC": {"title": "Tracker Sent By Recruiter", "message": "Tracker sent by Recruiter to Team Lead"}
+       "userCreated": {"title": "User Created", "message": "{actorName} created a recruiter account"},
+    "userUpdated": {"title": "User Updated", "message": "{actorName} updated the recruiter profile"},
+    "trackerSentbyRC": {"title": "Tracker Sent By Recruiter", "message": "{actorName} sent a tracker to Team Lead"}
     },
     "tl": {
-      "userCreated": {"title": "User Created", "message": "Team lead account created"},
-      "userUpdated": {"title": "User Updated", "message": "Team lead profile updated"},
-      "tlAssignedWorkbench": {"title": "Workbench Assigned", "message": "Team lead assigned to workbench"},
-      "targetUpdated": {"title": "Target Updated", "message": "Target updated by Team Lead successfully"},
-      "targetCreated": {"title": "Target Created", "message": "Target created by Team Lead successfully"},
-      "tlsendBulkTracker": {"title": "Bulk Tracker Sent By Team Lead", "message": "Bulk tracker sent by Team Lead"},
-      "tlsendTracker": {"title": "Tracker Sent By Team Lead", "message": "Tracker sent by Team Lead"}
-
+    "userCreated": {"title": "User Created", "message": "{actorName} created a team lead account"},
+    "userUpdated": {"title": "User Updated", "message": "{actorName} updated the team lead profile"},
+    "tlAssignedWorkbench": {"title": "Workbench Assigned", "message": "{actorName} assigned a team member to workbench"},
+    "targetUpdated": {"title": "Target Updated", "message": "{actorName} updated the target successfully"},
+    "targetCreated": {"title": "Target Created", "message": "{actorName} created a new target successfully"},
+    "tlsendBulkTracker": {"title": "Bulk Tracker Sent By Team Lead", "message": "{actorName} sent a bulk tracker"},
+    "tlsendTracker": {"title": "Tracker Sent By Team Lead", "message": "{actorName} sent a tracker"}
     },
     "fse": {
-      "userCreated": {"title": "User Created", "message": "Field sales executive added"},
-      "userUpdated": {"title": "User Updated", "message": "FSE profile updated"}
+        "userCreated": {"title": "User Created", "message": "{actorName} added a new Field Sales Executive"},
+    "userUpdated": {"title": "User Updated", "message": "{actorName} updated the FSE profile"}
     },
     "hod": {
-      "userCreated": {"title": "User Created", "message": "HOD account created"},
-      "userUpdated": {"title": "User Updated", "message": "HOD profile updated"},
-      "targetUpdated": {"title": "Target Updated", "message": "Target updated by HOD successfully"},
-      "targetCreated": {"title": "Target Created", "message": "Target created by HOD successfully"},
-      "approveExpense": {"title": "Expense Approved", "message": "Expense approved by HOD successfully"},
-      "rejectExpense": {"title": "Expense Rejected", "message": "Expense rejected by HOD"}
+       "userCreated": {"title": "User Created", "message": "{actorName} created an HOD account"},
+    "userUpdated": {"title": "User Updated", "message": "{actorName} updated the HOD profile"},
+    "targetUpdated": {"title": "Target Updated", "message": "{actorName} updated the target successfully"},
+    "targetCreated": {"title": "Target Created", "message": "{actorName} created a new target successfully"},
+    "approveExpense": {"title": "Expense Approved", "message": "{actorName} approved the expense successfully"},
+    "rejectExpense": {"title": "Expense Rejected", "message": "{actorName} rejected the expense"}
     }
   ,
   "validation": {

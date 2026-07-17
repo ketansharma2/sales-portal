@@ -1,6 +1,6 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-import { getUser } from '@/lib/auth-helper'
+import { getUser, getUserName } from '@/lib/auth-helper' // Import getUserName
 
 import { notificationService } from '@/lib/services/notificationService'
 import { actions } from '@/lib/messages/userMessages';   // your notification file
@@ -86,6 +86,7 @@ export async function POST(request) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+         const actorName = await getUserName(request);
 
     const body = await request.json()
     // Accept both camelCase and snake_case for working_days
@@ -155,7 +156,9 @@ export async function POST(request) {
         details: error.message
       }, { status: 500 })
     }
-   await notificationService.createDynamicNotification( [sm_id],actions.hod.targetCreated,user.id );
+   await notificationService.createDynamicNotification( [sm_id],actions.hod.targetCreated,user.id , { 
+        extra: { actorName: actorName } 
+      });
 
     return NextResponse.json({
       success: true,
@@ -195,6 +198,7 @@ export async function PUT(request) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+        const actorName = await getUserName(request);
 
     const body = await request.json()
     // Accept both camelCase and snake_case for working_days
@@ -289,7 +293,9 @@ export async function PUT(request) {
     }
 
 
-    await notificationService.createDynamicNotification( [smId],actions.hod.targetUpdated,user.id );
+    await notificationService.createDynamicNotification( [smId],actions.hod.targetUpdated,user.id, { 
+        extra: { actorName: actorName } 
+      } );
 
 
     return NextResponse.json({

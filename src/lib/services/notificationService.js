@@ -28,7 +28,9 @@ async function sendFCMToMultiple(receivers, title, message) {
         });
       }
     } catch (err) {
-      console.error(`FCM send error for ${receiverId}:`, err);
+      console.error("FCM Code:", err.code);
+console.error("FCM Message:", err.message);
+console.error("HTTP:", err.httpResponse?.text);
     }
   });
   
@@ -127,7 +129,7 @@ export const notificationService = {
     }
 
     // Send FCM pushes to all receivers in background
-    await sendFCMToMultiple(receivers, title, message);
+    sendFCMToMultiple(receivers, title, message);
 
     return data;
   },

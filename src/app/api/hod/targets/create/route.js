@@ -2,7 +2,7 @@ import { supabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 import { notificationService } from '@/lib/services/notificationService'
 import { actions } from '@/lib/messages/userMessages';   // your notification file
-import { getUser } from "@/lib/auth-helper";
+import { getUser, getUserName } from '@/lib/auth-helper' // Import getUserName
 
 // ✅ CREATE TARGET
 export async function POST(request) {
@@ -14,7 +14,8 @@ if (authError || !user) {
   console.log('[API] Auth error:', authError)
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 }
-
+      const actorName = await getUserName(request);
+ 
 
     // 📥 Get body
     const body = await request.json()
@@ -66,7 +67,9 @@ if (authError || !user) {
         { status: 500 }
       )
     }
-     await notificationService.createDynamicNotification( [user_id],actions.hod.targetCreated,user.id );
+     await notificationService.createDynamicNotification( [user_id],actions.hod.targetCreated,user.id, { 
+        extra: { actorName: actorName } 
+      }  );
 
     return NextResponse.json({
       success: true,
@@ -92,6 +95,9 @@ if (authError || !user) {
   console.log('[API] Auth error:', authError)
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 }
+
+     const actorName = await getUserName(request);
+
     const body = await request.json()
 
     const {
@@ -148,7 +154,9 @@ if (authError || !user) {
       )
     }
     const assignedTo = data?.[0]?.assigned_to;
-    await notificationService.createDynamicNotification( [assignedTo],actions.hod.targetUpdated,user.id );
+    await notificationService.createDynamicNotification( [assignedTo],actions.hod.targetUpdated,user.id , { 
+        extra: { actorName: actorName } 
+      } );
 
     return NextResponse.json({
       success: true,

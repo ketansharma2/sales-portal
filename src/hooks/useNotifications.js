@@ -6,7 +6,7 @@ export function useNotifications() {
   const [user, setUser] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Add refs to fix stale closures
@@ -23,24 +23,32 @@ export function useNotifications() {
   }, [unreadCount]);
 
   // 1. Track authenticated user
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => listener?.subscription.unsubscribe();
-  }, []);
+useEffect(() => {
+  async function loadUser() {
+    const response = await apiGet("/api/auth/get-current-user");
+       
+    if (!response.ok) return;
+
+    const data = await response.json();
+
+    console.log("Current User:", data);
+
+    setUser(data);
+  }
+
+  loadUser();
+}, []);
 
 
 
   // 2. Fetch historical notifications
   const fetchNotifications = async (unreadOnly = false) => {
+    console.log("test1");
     if (!user) return;
     setLoading(true);
     try {
      const response = await apiGet(`/api/notifications?unreadOnly=${unreadOnly}`);
+     console.log("response12",response);
      if (!response.ok) throw new Error(`API error ${response.status}`);
      const data = await response.json();
       setNotifications(data.notifications);
@@ -112,16 +120,16 @@ if (!response.ok) throw new Error(`Failed to mark as read`);
 
   // 5. FCM token & foreground messages
   useEffect(() => {
+      console.log("Notification effect started",user);
     if (!user) return;
     const initFCM = async () => {
       if (typeof window !== 'undefined' && Notification.permission === 'default') {
         await Notification.requestPermission();
       }
-      const session = await supabase.auth.getSession();
-      const accessToken = session.data.session?.access_token;
-      if (accessToken) {
-        await requestFCMToken(accessToken);
-      }
+      
+      if (user?.id) {
+  await requestFCMToken(user.id);
+}
     };
     initFCM();
     const unsubscribe = onForegroundMessage(() => {

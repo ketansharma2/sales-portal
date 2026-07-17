@@ -221,6 +221,7 @@ export default function TLTrackerPage() {
                         email: item.candidate_email || '-',
                         mobile: item.candidate_phone || '-',
                         location: item.candidate_location || '-',
+                        branch_name: item.branch_name || '-',
                         qualification: item.candidate_qualification || '-',
                         experience: item.candidate_experience ? `${item.candidate_experience} ` : '-',
                         relevantExp: item.relevant_exp ? `${item.relevant_exp} ` : '-',
@@ -754,7 +755,8 @@ const response = await API.apiPut('/api/domestic/tl/tracker', {
                     {/* 3. Profile & Slot (Controlled) */}
                     <td className="py-2 px-2 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors max-w-[120px]">
                         <div className="min-w-0 flex flex-col">
-                            <p className="text-[10px] font-black text-indigo-700 uppercase truncate" title={row.profile}>{row.profile}</p>
+                            <p className="text-[10px] font-black text-indigo-700 uppercase truncate" title={row.profile}>{row.profile}</p> 
+                            <p className="text-[9px] font-semibold text-emerald-600 truncate"  title={row.branch_name}>📍 {row.branch_name || "-"}</p>
                             <p className="text-[9px] font-bold text-slate-500 flex items-center gap-1 truncate" title={row.slot}><Clock size={9}/> {row.slot}</p>
                         </div>
                     </td>
