@@ -85,7 +85,7 @@ if (authError || !user) {
     
         // ✅ Call external API
         const response = await fetch(
-          "https://seik6pgemh.us-east-1.awsapprunner.com/api/candidate",
+          "http://search-bar-backend-env.eba-zdtxcvjr.ap-south-1.elasticbeanstalk.com/api/candidate",
           {
             method: "POST",
             headers: {
