@@ -208,7 +208,7 @@ export async function POST(request) {
 
     // ✅ Call external API
     const response = await fetch(
-      "https://seik6pgemh.us-east-1.awsapprunner.com/api/candidate",
+      "https://be-searchbar-new-1.onrender.com/api/candidate",
       {
         method: "POST",
         headers: {
@@ -327,11 +327,22 @@ export async function PUT(request) {
       }, { status: 500 })
     }
 
-      await notificationService.createDynamicNotification( [sent_to_tl],actions.recruiter.trackerSentbyRC,user.id , { 
-        extra: { actorName: actorName } 
-      } );
 
 
+    if (sent_to_tl) {
+  await notificationService.createDynamicNotification(
+    [sent_to_tl],
+    actions.recruiter.trackerSentbyRC,
+    user.id,
+    {
+      extra: {
+        actorName: actorName,
+      },
+    }
+  );
+}
+
+   console.log("sent_to_tl",sent_to_tl);
     return NextResponse.json({
       success: true,
       data: data[0]
