@@ -219,7 +219,7 @@ if (authError || !user) {
 
     // ✅ Call external API
     const response = await fetch(
-      "https://be-searchbar-new-1.onrender.com/api/candidate",
+      "http://search-bar-backend-env.eba-zdtxcvjr.ap-south-1.elasticbeanstalk.com/api/candidate",
       {
         method: "POST",
         headers: {
