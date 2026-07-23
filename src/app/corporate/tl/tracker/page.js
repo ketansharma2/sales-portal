@@ -366,13 +366,10 @@ export default function TLTrackerPage() {
         setIsBulkSending(true);
 
         try {
-            const response = await API.apiPut('/api/corporate/tl/tracker', {
-    conversation_id: selectedCandidate.id,
-    cv_status: tlForm.cvUpdateStatus,
-    tl_remarks: tlForm.tlReview,
-    sent_to_crm: selectedCrmUser.user_id,
-    call_respond: tlForm.callResponding
-});
+            const response = await API.apiPost('/api/domestic/tl/tracker/bulk-send-to-crm', {
+                conversation_ids: selectedRows,
+                sent_to_crm: selectedCrmUser
+            });
             const result = await response.json();
 
             if (!response.ok || result.error) {
