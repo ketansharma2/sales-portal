@@ -465,14 +465,7 @@ const formatMobileNumber = (mobile) => {
 
         try {
             // Get session from localStorage
-            const session = JSON.parse(localStorage.getItem('session') || '{}')
-            const token = session.access_token
-
-            if (!token) {
-                alert("Please login first")
-                return
-            }
-
+            
             // Get sector from local storage user object
             const userStr = localStorage.getItem('user')
             const userObj = userStr ? JSON.parse(userStr) : null

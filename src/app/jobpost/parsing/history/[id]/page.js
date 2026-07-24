@@ -46,13 +46,7 @@ export default function CandidateHistoryPage() {
     try {
       setIsLoadingFollowups(true);
 
-      const session = JSON.parse(localStorage.getItem("session") || "{}");
-      const token = session.access_token;
-
-      if (!token) {
-        alert("Please login first");
-        return;
-      }
+     
 
       const res = await API.apiGet(`/api/jobpost/parsing/history?parsing_id=${candidateId}`);
 
