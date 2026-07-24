@@ -435,13 +435,7 @@ export default function CVParsingPage() {
 
         try {
             // Get session from localStorage
-            const session = JSON.parse(localStorage.getItem('session') || '{}')
-            const token = session.access_token
-
-            if (!token) {
-                alert("Please login first")
-                return
-            }
+          
 
            
             const sector =  "JobPost"
