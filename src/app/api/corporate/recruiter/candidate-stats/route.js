@@ -103,40 +103,46 @@ export async function GET(request) {
     // Calculate New Calls and FollowUp Calls
     // New Call = first call (oldest created_at) for each candidate - regardless of portal_date
     // FollowUp Calls = all subsequent calls for the same candidate
-    let newCalls = 0
-    let followUpCalls = 0
+    // Calculate New Calls and FollowUp Calls
+let newCalls = 0
+let followUpCalls = 0
 
-    if (allConversations && allConversations.length > 0) {
-      // Group conversations by parsing_id
-      const convByParsingId = {}
-      allConversations.forEach(conv => {
-        if (conv.parsing_id) {
-          if (!convByParsingId[conv.parsing_id]) {
-            convByParsingId[conv.parsing_id] = []
-          }
-          convByParsingId[conv.parsing_id].push(conv)
-        }
-      })
+if (allConversations && allConversations.length > 0) {
 
-      // For each candidate, find new calls and followup calls
-      Object.values(convByParsingId).forEach(convs => {
-        // Sort by created_at to get oldest first
-        const sortedConvs = convs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-        
-        sortedConvs.forEach((conv, index) => {
-          if (index === 0) {
-            // First call for this candidate = New Call
-            newCalls++
-          } else {
-            // Subsequent calls = FollowUp Calls
-            followUpCalls++
-          }
-        })
-      })
+  const parsingIds = [
+    ...new Set(
+      allConversations
+        .map(c => c.parsing_id)
+        .filter(Boolean)
+    )
+  ]
+
+  const { data: history } = await supabaseServer
+    .from("candidates_conversation")
+    .select("conversation_id, parsing_id, created_at")
+    .in("parsing_id", parsingIds)
+    .order("created_at", { ascending: true })
+
+  const firstConversationMap = new Map()
+
+  history?.forEach(item => {
+    if (!firstConversationMap.has(item.parsing_id)) {
+      firstConversationMap.set(item.parsing_id, item.conversation_id)
     }
+  })
 
-    const totalCalls = newCalls + followUpCalls
+  allConversations.forEach(conv => {
+    if (
+      firstConversationMap.get(conv.parsing_id) === conv.conversation_id
+    ) {
+      newCalls++
+    } else {
+      followUpCalls++
+    }
+  })
+}
 
+const totalCalls = newCalls + followUpCalls
     // Get count for Asset status - no sent_to_tl filter
     let assetQuery = supabaseServer
       .from('candidates_conversation')

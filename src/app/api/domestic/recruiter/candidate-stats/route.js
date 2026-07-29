@@ -88,35 +88,45 @@ export async function GET(request) {
 
     const trackerSent = newTrackerCount + oldTrackerCount
 
-    let newCalls = 0
-    let followUpCalls = 0
+   let newCalls = 0
+let followUpCalls = 0
 
-    if (allConversations && allConversations.length > 0) {
-      const convByParsingId = {}
-      allConversations.forEach(conv => {
-        if (conv.parsing_id) {
-          if (!convByParsingId[conv.parsing_id]) {
-            convByParsingId[conv.parsing_id] = []
-          }
-          convByParsingId[conv.parsing_id].push(conv)
-        }
-      })
+if (allConversations && allConversations.length > 0) {
 
-      Object.values(convByParsingId).forEach(convs => {
-        const sortedConvs = convs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-        
-        sortedConvs.forEach((conv, index) => {
-          if (index === 0) {
-            newCalls++
-          } else {
-            followUpCalls++
-          }
-        })
-      })
+  const parsingIds = [
+    ...new Set(
+      allConversations
+        .map(c => c.parsing_id)
+        .filter(Boolean)
+    )
+  ]
+
+  const { data: history } = await supabaseServer
+    .from("candidates_conversation")
+    .select("conversation_id, parsing_id, created_at")
+    .in("parsing_id", parsingIds)
+    .order("created_at", { ascending: true })
+
+  const firstConversationMap = new Map()
+
+  history?.forEach(item => {
+    if (!firstConversationMap.has(item.parsing_id)) {
+      firstConversationMap.set(item.parsing_id, item.conversation_id)
     }
+  })
 
-    const totalCalls = newCalls + followUpCalls
+  allConversations.forEach(conv => {
+    if (
+      firstConversationMap.get(conv.parsing_id) === conv.conversation_id
+    ) {
+      newCalls++
+    } else {
+      followUpCalls++
+    }
+  })
+}
 
+const totalCalls = newCalls + followUpCalls
     let assetQuery = supabaseServer
       .from('candidates_conversation')
       .select('calling_date')
