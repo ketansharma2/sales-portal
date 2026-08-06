@@ -57,8 +57,11 @@ export async function apiPut(url, data, options = {}) {
 /**
  * DELETE request helper
  */
-export async function apiDelete(url, options = {}) {
-  return apiRequest(url, { ...options, method: 'DELETE' });
+export async function apiDelete(url, data = {}) {
+  return apiRequest(url, {
+    method: "DELETE",
+    body: JSON.stringify(data),
+  });
 }
 
 /**
