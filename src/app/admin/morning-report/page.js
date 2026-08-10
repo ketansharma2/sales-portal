@@ -93,7 +93,11 @@ const [domesticJoining, setDomesticJoining] = useState(0);
 const [domesticCrmClientCalling, setDomesticCrmClientCalling] = useState(0);
 const [domesticConversationLog, setDomesticConversationLog] = useState([]);
 // ==================== DOMESTIC CLIENT HANDLING APIS ====================
-
+const [lifetimeTotals, setLifetimeTotals] = useState({
+    indeedCvs: 0, indeedCalls: 0,
+    naukriCvs: 0, naukriCalls: 0
+  });
+  const [loadingTotals, setLoadingTotals] = useState(true);
 // 1. API for Domestic Client Onboard
 useEffect(() => {
     const fetchDomesticClientOnboard = async () => {
@@ -719,6 +723,27 @@ useEffect(() => {
 
     // --- FETCH DOMESTIC SECTOR DATA ---
     useEffect(() => {
+
+         const fetchPlatformTotals = async () => {
+              try {
+                   const response = await API.apiGet('/api/jobpost/platform-totals');
+                const data = await response.json();
+                console.log('Platform Totals API Response:', data);
+                if (data.success) {
+                  setLifetimeTotals({
+                    indeedCvs: data.platformTotals.indeed?.cvs || 0,
+                    indeedCalls: data.platformTotals.indeed?.calls || 0,
+                    naukriCvs: data.platformTotals.naukri?.cvs || 0,
+                    naukriCalls: data.platformTotals.naukri?.calls || 0
+                  });
+                }
+              } catch (error) {
+                console.error('Error fetching platform totals:', error);
+              } finally {
+                setLoadingTotals(false);
+              }
+            };
+            fetchPlatformTotals();
         const fetchDomesticStats = async () => {
             try {
                 const response = await API.apiGet('/api/admin/morning-report/domestic');
@@ -750,6 +775,9 @@ useEffect(() => {
         };
 
         fetchDomesticStats();
+
+
+        
     }, []);
 
     // --- FETCH DOMESTIC CRM CLIENT CALLING DATA ---
@@ -945,8 +973,8 @@ useEffect(() => {
     // --- TAB DEFINITIONS ---
     const tabs = [
         { name: "Sales & Delivery", icon: <Briefcase size={16} /> },
-        { name: "HR and IT", icon: <Users size={16} /> },
-        { name: "Tech", icon: <Laptop size={16} /> }
+        // { name: "HR and IT", icon: <Users size={16} /> },
+        // { name: "Tech", icon: <Laptop size={16} /> }
     ];
 
     return (
@@ -2230,12 +2258,12 @@ useEffect(() => {
                                                 <div className="flex justify-between items-center text-left px-2">
                                                     <div>
                                                         <p className="text-[8px] text-gray-300 uppercase">CVs</p>
-                                                        <p className="text-base font-black">{jobPostData.totals?.indeed?.cvs || 0}</p>
+                                                        <p className="text-base font-black">{lifetimeTotals.indeedCvs}</p>
                                                     </div>
                                                     <div className="w-px h-5 bg-blue-500"></div>
                                                     <div className="text-right">
                                                         <p className="text-[8px] text-gray-300 uppercase">Calls</p>
-                                                        <p className="text-base font-black text-green-400">{jobPostData.totals?.indeed?.calls || 0}</p>
+                                                        <p className="text-base font-black text-green-400">{lifetimeTotals.indeedCalls}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2246,12 +2274,12 @@ useEffect(() => {
                                                 <div className="flex justify-between items-center text-left px-2">
                                                     <div>
                                                         <p className="text-[8px] text-gray-300 uppercase">CVs</p>
-                                                        <p className="text-base font-black">{jobPostData.totals?.naukri?.cvs || 0}</p>
+                                                        <p className="text-base font-black">{lifetimeTotals.naukriCvs}</p>
                                                     </div>
                                                     <div className="w-px h-5 bg-blue-500"></div>
                                                     <div className="text-right">
                                                         <p className="text-[8px] text-gray-300 uppercase">Calls</p>
-                                                        <p className="text-base font-black text-green-400">{jobPostData.totals?.naukri?.calls || 0}</p>
+                                                        <p className="text-base font-black text-green-400">{lifetimeTotals.naukriCalls}</p>
                                                     </div>
                                                 </div>
                                             </div>
