@@ -70,11 +70,28 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { data: jobpostUsers, error: jobpostUsersError } =
+  await supabaseAdmin
+    .from('users')
+    .select('user_id')
+    .contains('role', ['JOBPOST']);
+
+if (jobpostUsersError) {
+  console.error('Error fetching JOBPOST users:', jobpostUsersError);
+
+  return NextResponse.json(
+    { error: jobpostUsersError.message },
+    { status: 400 }
+  );
+}
+
+const jobpostUserIds = (jobpostUsers || []).map(u => u.user_id);
+
     // ✅ Step 1: Fetch all conversations
     const { data: conversations, error: conversationsError } = await supabaseAdmin
       .from('candidates_conversation')
       .select('conversation_id, user_id, calling_date, call_respond, parsing_id, created_at, req_id')
-      .eq('user_id', user.id)
+      .in('user_id', jobpostUserIds)
       .not('req_id', 'is', null)
       .order('created_at', { ascending: false })
       
