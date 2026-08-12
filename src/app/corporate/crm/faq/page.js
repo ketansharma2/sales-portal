@@ -289,54 +289,65 @@ export default function FAQManagement() {
     setFormData({ ...formData, qaList: updatedQA });
   };
 
-  const handleSave = async () => {
-    if (!formData.client || !formData.profile || formData.qaList[0].question.trim() === "") {
-      alert("Please fill in the Client, Profile, and at least one Question.");
-      return;
+ const handleSave = async () => {
+  console.log("Saving FAQ with data:", formData);
+
+  if (
+    !formData.client ||
+    !formData.profile ||
+    formData.qaList[0].question.trim() === ""
+  ) {
+    alert("Please fill in the Client, Profile, and at least one Question.");
+    return;
+  }
+
+  setSavingFaq(true);
+
+  try {
+    let response;
+
+    if (isEditing) {
+      // Update existing FAQ
+      response = await API.apiPut("/api/corporate/crm/faq", {
+        faq_id: formData.id,
+        questions: formData.qaList,
+      });
+    } else {
+      // Create new FAQ
+      response = await API.apiPost("/api/corporate/crm/faq", {
+        client_id: formData.client,
+        req_id: formData.profile,
+        questions: formData.qaList,
+      });
     }
 
-    setSavingFaq(true);
-    try {
-      const session = JSON.parse(localStorage.getItem('session') || '{}');
-      const token = session.access_token;
-      if (!token) return;
+    console.log("Save FAQ response:", response);
 
-      let response;
-      if (isEditing) {
-        // Update existing FAQ
-        const response = await API.apiPut("/api/corporate/crm/faq", {
-    faq_id: formData.id,
-    questions: formData.qaList
-});
-      } else {
-        // Create new FAQ
-       const response = await API.apiPost("/api/corporate/crm/faq", {
-    client_id: formData.client,
-    req_id: formData.profile,
-    questions: formData.qaList
-});
+    const data = await response.json();
+
+    if (data.success) {
+      // Refresh FAQs list
+      const faqsResponse = await API.apiGet("/api/corporate/crm/faq");
+      const faqsData = await faqsResponse.json();
+
+      if (faqsData.success) {
+        setFaqs(faqsData.data || []);
       }
 
-      const data = await response.json();
-      if (data.success) {
-        // Refresh FAQs list
-        const faqsResponse = await API.apiGet("/api/corporate/crm/faq");
-
-        const faqsData = await faqsResponse.json();
-        if (faqsData.success) {
-          setFaqs(faqsData.data || []);
-        }
-        handleCloseModal();
-      } else {
-        alert('Failed to save FAQ: ' + (data.error || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Error saving FAQ:', error);
-      alert('Error saving FAQ');
-    } finally {
-      setSavingFaq(false);
+      handleCloseModal();
+    } else {
+      alert(
+        "Failed to save FAQ: " +
+          (data.error || "Unknown error")
+      );
     }
-  };
+  } catch (error) {
+    console.error("Error saving FAQ:", error);
+    alert("Error saving FAQ");
+  } finally {
+    setSavingFaq(false);
+  }
+};
 
   const handleDelete = async (faq_id) => {
     if(!confirm("Are you sure you want to delete this FAQ set?")) return;
