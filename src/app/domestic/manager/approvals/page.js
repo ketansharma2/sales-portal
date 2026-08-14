@@ -99,6 +99,7 @@ export default function ManagerApprovals() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [showFilters, setShowFilters] = useState(true);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   // Sort & pagination
   const [sortBy, setSortBy] = useState("created_at");
@@ -229,6 +230,63 @@ useEffect(() => {
       console.error('Failed to reject expense:', error);
     }
   };
+
+  const actionableApprovals = approvals.filter(
+  item =>
+    item.status !== "PAID" &&
+    item.status !== "Approved" &&
+    item.status !== "Rejected" &&
+    item.status !== "Sent to HR"
+);
+
+const handleSelectAll = () => {
+  setSelectedIds(actionableApprovals.map(item => item.id));
+};
+
+const handleClearSelection = () => {
+  setSelectedIds([]);
+};
+
+const handleToggleSelection = (id) => {
+  setSelectedIds(prev =>
+    prev.includes(id)
+      ? prev.filter(itemId => itemId !== id)
+      : [...prev, id]
+  );
+};
+
+const handleBulkAction = async (action) => {
+  if (!selectedIds.length) return;
+
+  try {
+    const endpoint =
+      action === "approve"
+        ? "/api/domestic/manager/approvals/approve-expense"
+        : "/api/domestic/manager/approvals/reject-expense";
+
+    await Promise.all(
+      selectedIds.map(exp_id =>
+        API.apiPost(endpoint, { exp_id })
+      )
+    );
+
+    setApprovals(prev =>
+      prev.map(item =>
+        selectedIds.includes(item.id)
+          ? {
+              ...item,
+              status: action === "approve" ? "Approved" : "Rejected"
+            }
+          : item
+      )
+    );
+
+    setSelectedIds([]);
+  } catch (error) {
+    console.error(`Bulk ${action} failed:`, error);
+    alert(`Failed to ${action} selected claims`);
+  }
+};
 
   const handleSendToHR = async (exp_id) => {
     try {
@@ -462,7 +520,42 @@ useEffect(() => {
               </select>
             </div>
 
-     
+         <div className="ml-auto flex items-center gap-2">
+
+  <button
+    onClick={handleSelectAll}
+    disabled={actionableApprovals.length === 0}
+    className="px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-[10px] font-black uppercase"
+  >
+    Select All
+  </button>
+
+  <button
+    onClick={() => handleBulkAction("approve")}
+    disabled={selectedIds.length === 0}
+    className="px-3 py-2 bg-green-50 text-green-700 border border-green-200 rounded-xl text-[10px] font-black uppercase disabled:opacity-40"
+  >
+    Approve Selected ({selectedIds.length})
+  </button>
+
+  <button
+    onClick={() => handleBulkAction("reject")}
+    disabled={selectedIds.length === 0}
+    className="px-3 py-2 bg-red-50 text-red-700 border border-red-200 rounded-xl text-[10px] font-black uppercase disabled:opacity-40"
+  >
+    Reject Selected ({selectedIds.length})
+  </button>
+
+  {selectedIds.length > 0 && (
+    <button
+      onClick={handleClearSelection}
+      className="px-3 py-2 bg-gray-100 text-gray-600 border border-gray-200 rounded-xl text-[10px] font-black uppercase"
+    >
+      Clear
+    </button>
+  )}
+
+</div>
 
             {activeFilterCount > 0 && (
               <button
@@ -483,6 +576,20 @@ useEffect(() => {
           <table className="w-full text-left border-collapse relative">
             <thead className="sticky top-0 bg-[#103c7f] text-white z-10 text-[10px] uppercase font-black tracking-[0.1em]">
               <tr>
+                 <th className="px-3 py-3.5 text-center">
+    <input
+      type="checkbox"
+      checked={
+        actionableApprovals.length > 0 &&
+        actionableApprovals.every(item => selectedIds.includes(item.id))
+      }
+      onChange={(e) =>
+        e.target.checked
+          ? handleSelectAll()
+          : handleClearSelection()
+      }
+    />
+  </th>
                 <SortHeader label="Field Executive" field="name" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <th className="px-5 py-3.5">Expense Category & Notes</th>
                 <SortHeader label="Amount" field="amount" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} center />
@@ -495,7 +602,7 @@ useEffect(() => {
             <tbody className="text-sm">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-16 text-center">
+                  <td colSpan={7} className="py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <RefreshCcw size={24} className="text-[#103c7f] animate-spin" />
                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Loading claims...</p>
@@ -504,7 +611,7 @@ useEffect(() => {
                 </tr>
               ) : approvals.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-16 text-center">
+                  <td colSpan={7} className="py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <FileText size={28} className="text-gray-200" />
                       <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">No expense claims found</p>
@@ -514,7 +621,20 @@ useEffect(() => {
                 </tr>
               ) : approvals.map((item) => (
                 <tr key={item.id} className="border-b border-gray-50 hover:bg-blue-50 transition-all group">
-
+                     {/* Selection Checkbox */}
+  <td className="px-3 py-3 text-center">
+    <input
+      type="checkbox"
+      checked={selectedIds.includes(item.id)}
+      disabled={
+        item.status === "PAID" ||
+        item.status === "Approved" ||
+        item.status === "Rejected" ||
+        item.status === "Sent to HR"
+      }
+      onChange={() => handleToggleSelection(item.id)}
+    />
+  </td>
                   {/* Name Column */}
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
