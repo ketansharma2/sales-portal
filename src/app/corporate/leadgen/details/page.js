@@ -1199,10 +1199,36 @@ useEffect(() => {
   }, []);
 
   // Apply filters when filter params change
-  useEffect(() => {
-    fetchInteractions();
-  }, [statusFilter, subStatusFilter, franchiseStatusFilter, fromDateFilter, toDateFilter, startupFilter, isSubmittedFilter, searchTerm]);
+useEffect(() => {
+  let filtered = [...interactions];
 
+  if (statusFilter && statusFilter !== 'All') {
+    filtered = filtered.filter(item =>
+      (item.status || '').toLowerCase() === statusFilter.toLowerCase()
+    );
+  }
+
+  if (subStatusFilter && subStatusFilter !== 'All') {
+    filtered = filtered.filter(item =>
+      (item.sub_status || '').toLowerCase() === subStatusFilter.toLowerCase()
+    );
+  }
+
+  if (franchiseStatusFilter && franchiseStatusFilter !== 'All') {
+    filtered = filtered.filter(item =>
+      (item.franchise_status || '').toLowerCase() ===
+      franchiseStatusFilter.toLowerCase()
+    );
+  }
+
+  setFilteredInteractions(filtered);
+}, [
+  interactions,
+  statusFilter,
+  subStatusFilter,
+  franchiseStatusFilter,
+  searchTerm
+]);
   // Handle action
   const handleAction = async (interaction, type) => {
     setSelectedLead(interaction);
