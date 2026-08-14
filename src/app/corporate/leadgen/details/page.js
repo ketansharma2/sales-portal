@@ -1128,7 +1128,7 @@ useEffect(() => {
       }
       
       const queryString = params.toString();
-      const response = await API.apiGet(`/api/corporate/leadgen/all-interactions${queryString ? '?' + queryString : ''}`);
+      const response = await API.apiGet(`/api/corporate/leadgen/leads${queryString ? '?' + queryString : ''}`);
       const data = await response.json();
       if (data.success) {
         // Sort by date descending (newest first)
