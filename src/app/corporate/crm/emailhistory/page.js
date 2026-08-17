@@ -1122,7 +1122,7 @@ export default function EmailHistoryPage() {
                                               alert('Please fill in all required fields: Offer Salary, Terms, and Payment Days');
                                               return;
                                           }
-
+                                            const session = JSON.parse(localStorage.getItem("user") || "{}");
                                           setIsSubmittingRevenue(true);
                                           try {
 
