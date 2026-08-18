@@ -208,7 +208,7 @@ export async function POST(request) {
 
     // ✅ Call external API
     const response = await fetch(
-      "http://search-bar-backend-env.eba-zdtxcvjr.ap-south-1.elasticbeanstalk.com/api/candidate",
+      "https://search.mavenjobs.in/api/candidate",
       {
         method: "POST",
         headers: {
