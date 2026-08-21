@@ -47,7 +47,7 @@ export default function Header() {
 
   // 1. Determine Sector Label
   if (currentSector === "corporate") sectorLabel = "CORPORATE SALES";
-  else if (currentSector === "domestic") sectorLabel = "DOMESTIC SALES";
+  else if (currentSector === "domestic") sectorLabel = "DOMESTIC DEliVERY";
   else if (currentRole === "hod") sectorLabel = "DEPARTMENT HEADQUARTERS";
   else if (currentRole === "admin") sectorLabel = "SYSTEM ADMINISTRATION";
 

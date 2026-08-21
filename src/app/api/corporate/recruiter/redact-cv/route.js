@@ -42,9 +42,9 @@ export async function POST(request) {
     }
 
     // Call the external Redacting API
-    const REDACT_API_URL = process.env.REDACT_API_URL || 'http://python-api-env.eba-ejbkeat3.ap-south-1.elasticbeanstalk.com'
+    const REDACT_API_URL = process.env.REDACT_API_URL || 'https://python.mavenjobs.in'
     
-    console.log('Calling Redact API with URL:', cvData.cv_url)
+    console.log('Calling Confirm API with REDACT_API_URL:', process.env.REDACT_API_URL)
     
     // Encode the URL to handle special characters like spaces
     const encodedUrl = encodeURI(cvData.cv_url)
@@ -148,10 +148,10 @@ export async function PUT(request) {
       )
     }
 
-    const REDACT_API_URL = process.env.REDACT_API_URL || 'http://python-api-env.eba-ejbkeat3.ap-south-1.elasticbeanstalk.com'
+    const REDACT_API_URL = process.env.REDACT_API_URL || 'https://python.mavenjobs.in'
     const encodedUrl = encodeURI(cvData.cv_url)
 
-    console.log('Calling Confirm API with URL:', cvData.cv_url)
+    console.log('Calling Confirm API with REDACT_API_URL:', process.env.REDACT_API_URL);
 
     const confirmResponse = await fetch(`${REDACT_API_URL}/redact/confirm`, {
       method: 'POST',
