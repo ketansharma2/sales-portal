@@ -93,9 +93,9 @@ const response = await API.apiGet('/api/domestic/crm/expiring-clients');
   useEffect(() => {
     const fetchTotalOnboarded = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
+        // const session = JSON.parse(localStorage.getItem('session') || '{}');
+        // const token = session.access_token;
+        // if (!token) return;
 
         const params = new URLSearchParams();
         if (allDatabaseActive) {
@@ -123,9 +123,9 @@ const response = await API.apiGet('/api/domestic/crm/expiring-clients');
   useEffect(() => {
     const fetchAcknowledged = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
+        // const session = JSON.parse(localStorage.getItem('session') || '{}');
+        // const token = session.access_token;
+        // if (!token) return;
 
         const params = new URLSearchParams();
         if (allDatabaseActive) {
@@ -154,9 +154,9 @@ const response = await API.apiGet('/api/domestic/crm/expiring-clients');
   useEffect(() => {
     const fetchPipeline = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
+        // const session = JSON.parse(localStorage.getItem('session') || '{}');
+        // const token = session.access_token;
+        // if (!token) return;
 
         const params = new URLSearchParams();
         if (allDatabaseActive) {
@@ -184,9 +184,9 @@ const response = await API.apiGet('/api/domestic/crm/expiring-clients');
   useEffect(() => {
     const fetchRejectedByClient = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
+        // const session = JSON.parse(localStorage.getItem('session') || '{}');
+        // const token = session.access_token;
+        // if (!token) return;
 
         const params = new URLSearchParams();
         if (allDatabaseActive) {
@@ -215,9 +215,9 @@ const response = await API.apiGet('/api/domestic/crm/expiring-clients');
   useEffect(() => {
     const fetchShortlisted = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
+        // const session = JSON.parse(localStorage.getItem('session') || '{}');
+        // const token = session.access_token;
+        // if (!token) return;
 
         const params = new URLSearchParams();
         if (allDatabaseActive) {
@@ -245,9 +245,9 @@ const response = await API.apiGet('/api/domestic/crm/expiring-clients');
   useEffect(() => {
     const fetchGhosted = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
+        // const session = JSON.parse(localStorage.getItem('session') || '{}');
+        // const token = session.access_token;
+        // if (!token) return;
 
         const params = new URLSearchParams();
         if (allDatabaseActive) {
@@ -275,10 +275,9 @@ const response = await API.apiGet('/api/domestic/crm/expiring-clients');
   useEffect(() => {
     const fetchTotalInterviews = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
-
+        //const session = JSON.parse(localStorage.getItem('session') || '{}');
+      // const token = session.access_token;
+       // if (!token) return;
         const params = new URLSearchParams();
         if (allDatabaseActive) {
           params.set('allDatabase', 'true');
@@ -305,10 +304,9 @@ const response = await API.apiGet('/api/domestic/crm/expiring-clients');
   useEffect(() => {
     const fetchTotalSelected = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
-
+        //const session = JSON.parse(localStorage.getItem('session') || '{}');
+      // const token = session.access_token;
+       // if (!token) return;
         const params = new URLSearchParams();
         if (allDatabaseActive) {
           params.set('allDatabase', 'true');
@@ -335,10 +333,9 @@ const response = await API.apiGet('/api/domestic/crm/expiring-clients');
   useEffect(() => {
     const fetchTotalJoined = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
-
+        //const session = JSON.parse(localStorage.getItem('session') || '{}');
+      // const token = session.access_token;
+       // if (!token) return;
         const params = new URLSearchParams();
         if (allDatabaseActive) {
           params.set('allDatabase', 'true');
@@ -365,10 +362,9 @@ const response = await API.apiGet('/api/domestic/crm/expiring-clients');
   useEffect(() => {
     const fetchCallsMade = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
-
+        //const session = JSON.parse(localStorage.getItem('session') || '{}');
+      // const token = session.access_token;
+       // if (!token) return;
         const params = new URLSearchParams();
         if (allDatabaseActive) {
           params.set('allDatabase', 'true');
@@ -394,9 +390,9 @@ const response = await API.apiGet('/api/domestic/crm/expiring-clients');
    useEffect(() => {
      const fetchTotalReqs = async () => {
        try {
-         const session = JSON.parse(localStorage.getItem('session') || '{}');
-         const token = session.access_token;
-         if (!token) return;
+         //const session = JSON.parse(localStorage.getItem('session') || '{}');
+      // const token = session.access_token;
+       // if (!token) return;
 
          const params = new URLSearchParams();
          if (allDatabaseActive) {
@@ -424,9 +420,9 @@ const response = await API.apiGet('/api/domestic/crm/expiring-clients');
    useEffect(() => {
      const fetchTotalRequirements = async () => {
        try {
-         const session = JSON.parse(localStorage.getItem('session') || '{}');
-         const token = session.access_token;
-         if (!token) return;
+         //const session = JSON.parse(localStorage.getItem('session') || '{}');
+      // const token = session.access_token;
+       // if (!token) return;
 
          const params = new URLSearchParams();
          if (allDatabaseActive) {
@@ -454,9 +450,9 @@ const response = await API.apiGet('/api/domestic/crm/expiring-clients');
     useEffect(() => {
       const fetchTotalPackage = async () => {
         try {
-          const session = JSON.parse(localStorage.getItem('session') || '{}');
-          const token = session.access_token;
-          if (!token) return;
+          // const session = JSON.parse(localStorage.getItem('session') || '{}');
+          // const token = session.access_token;
+          // if (!token) return;
 
           const params = new URLSearchParams();
           if (allDatabaseActive) {
@@ -484,10 +480,9 @@ const response = await API.apiGet('/api/domestic/crm/expiring-clients');
   useEffect(() => {
     const fetchTrackerShared = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
-
+        //const session = JSON.parse(localStorage.getItem('session') || '{}');
+      // const token = session.access_token;
+       // if (!token) return;
         const params = new URLSearchParams();
         if (allDatabaseActive) {
           params.set('allDatabase', 'true');
@@ -514,10 +509,9 @@ const response = await API.apiGet('/api/domestic/crm/expiring-clients');
   useEffect(() => {
     const fetchReqsWorked = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem('session') || '{}');
-        const token = session.access_token;
-        if (!token) return;
-
+        //const session = JSON.parse(localStorage.getItem('session') || '{}');
+      // const token = session.access_token;
+       // if (!token) return;
         const params = new URLSearchParams();
         if (allDatabaseActive) {
           params.set('allDatabase', 'true');
