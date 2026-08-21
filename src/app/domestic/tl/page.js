@@ -79,10 +79,10 @@ export default function TLWorkbenchReport() {
     useEffect(() => {
         const fetchRcUsers = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
+                // const session = JSON.parse(localStorage.getItem('session') || '{}');
+                // const token = session.access_token;
                 
-                if (!token) return;
+                // if (!token) return;
                 
                 const response = await API.apiGet('/api/domestic/tl/rc-users');
                 
