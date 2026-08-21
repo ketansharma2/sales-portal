@@ -94,10 +94,10 @@ export default function CRMWorkbenchReport() {
         
         const fetchLatestDate = async () => {
             try {
-                const session = JSON.parse(localStorage.getItem('session') || '{}');
-                const token = session.access_token;
+                // const session = JSON.parse(localStorage.getItem('session') || '{}');
+                // const token = session.access_token;
                 
-                if (!token) return;
+                // if (!token) return;
                 
                 const userIds = allRecruiters.map(r => r.user_id).join(',');
                 if (!userIds) return;
