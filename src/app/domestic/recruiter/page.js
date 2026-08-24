@@ -411,6 +411,9 @@ const response = await API.apiGet(`/api/domestic/recruiter/candidate-stats?fromD
                     <table className="w-full text-left border-collapse min-w-[1200px]">
                         <thead className="bg-[#103c7f] text-white text-[10px] uppercase font-bold sticky top-0 z-10">
                             <tr>
+                                <th className="p-3 border-r border-blue-800 w-[60px] text-center">
+        S.No.
+    </th>
                                 <th className="p-3 border-r border-blue-800 min-w-[100px]"><div className="flex items-center gap-1.5"><Calendar size={12}/> Date</div></th>
                                 <th className="p-3 border-r border-blue-800 min-w-[120px]"><div className="flex items-center gap-1.5"><Building2 size={12}/> Client</div></th>
                                 <th className="p-3 border-r border-blue-800 min-w-[140px]"><div className="flex items-center gap-1.5"><Briefcase size={12}/> Profile</div></th>
@@ -440,7 +443,9 @@ const response = await API.apiGet(`/api/domestic/recruiter/candidate-stats?fromD
                                     
                                     return (
                                         <tr key={row.workbench_id || index} className="hover:bg-blue-50/50 transition">
-                                            
+                                            <td className="p-3 border-r border-gray-200 text-center font-black text-gray-500 bg-gray-50">
+    {index + 1}
+</td>
                                             {/* Date */}
                                             <td className="p-3 border-r border-gray-200 font-bold text-gray-600 bg-gray-50">{row.date}</td>
                                             
@@ -500,7 +505,7 @@ const response = await API.apiGet(`/api/domestic/recruiter/candidate-stats?fromD
                                 })
                             ) : (
                                 <tr>
-                                    <td colSpan="13" className="p-12 text-center bg-white">
+                                    <td colSpan="14" className="p-12 text-center bg-white">
                                         <Calendar size={40} className="text-gray-300 mx-auto mb-3" />
                                         <h4 className="text-lg font-black text-gray-500 uppercase tracking-widest">No Work Logged</h4>
                                         <p className="text-sm font-bold text-gray-400 mt-1">No activities were recorded for the selected date range.</p>
