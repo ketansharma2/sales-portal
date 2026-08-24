@@ -20,6 +20,7 @@ export async function GET(request) {
       .eq('user_id', user.id)
       .eq('interview_status', 'Shortlisted')
 
+     
     if (allDatabase !== 'true' && fromDate && toDate) {
       query = query.gte('date', fromDate)
       query = query.lte('date', toDate)
@@ -35,8 +36,15 @@ export async function GET(request) {
       }, { status: 500 })
     }
 
-    const uniqueEmails = new Set(data.map(row => row.email_draft_id).filter(Boolean))
-    const count = uniqueEmails.size
+    const latestEmails = new Set()
+
+for (const row of data) {
+  if (row.email_draft_id && !latestEmails.has(row.email_draft_id)) {
+    latestEmails.add(row.email_draft_id)
+  }
+}
+
+const count = latestEmails.size
 
     return NextResponse.json({
       success: true,

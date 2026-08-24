@@ -618,6 +618,9 @@ export default function EmailHistoryPage() {
                         <thead className="sticky top-0 z-20 shadow-sm">
                             <tr className="bg-slate-900 text-white">
                                 {/* 2. Added fixed widths (w-[...px]) to all headers */}
+                                <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest border-b border-slate-700 w-[70px] text-center">
+    S.No.
+</th>
                                 <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest border-b border-slate-700 w-[160px]">Client Company</th>
                                 <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest border-b border-slate-700 w-[140px]">Candidate</th>
                                 <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest border-b border-slate-700 w-[180px]">Profile & Location</th>
@@ -630,9 +633,11 @@ export default function EmailHistoryPage() {
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
                             {filteredData.length > 0 ? (
-                                filteredData.map((row) => (
+                                filteredData.map((row, index) => (
                                     <tr key={row.id} className="hover:bg-slate-50 transition-colors">
-                                        
+                                        <td className="py-3 px-4 border-r border-slate-50 bg-slate-50/30 overflow-hidden text-center">
+                                            {index + 1}
+                                        </td>
                                         {/* Company & Date */}
                                         <td className="py-3 px-4 border-r border-slate-50 bg-slate-50/30 overflow-hidden">
                                             {/* 3. Added truncate and title for Tooltips */}
@@ -742,7 +747,7 @@ export default function EmailHistoryPage() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="8" className="py-12 text-center">
+                                    <td colSpan="9" className="py-12 text-center">
                                         <History size={32} className="text-slate-300 mx-auto mb-3" />
                                         <p className="text-sm font-bold text-slate-500">No email history found for the selected client.</p>
                                     </td>
