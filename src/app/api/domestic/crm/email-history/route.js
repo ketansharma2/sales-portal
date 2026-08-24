@@ -86,7 +86,6 @@ export async function GET(request) {
            .from('domestic_crm_interview')
            .select('interview_status, date, client_remark, created_at')
            .eq('email_draft_id', email.id)
-           .order('created_at', { ascending: false })
            .limit(1)
            .single();
 
