@@ -571,23 +571,23 @@ const response = await API.apiGet('/api/domestic/crm/expiring-clients');
 
   // --- MOCK DATA: ROW 1 (LIFETIME TOTALS - Always Visible) ---
   const totalStats = [
-    { label: "Total Onboarded Clients", value: totalOnboarded, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-    { label: "Acknowledged", value: acknowledged, icon: Mail, color: "text-green-600", bg: "bg-green-50" },
-    { label: "Active Clients", value: activeClients, icon: Briefcase, color: "text-emerald-600", bg: "bg-emerald-50" },
-    { label: "Non-Active Clients", value: nonActiveClients, icon: Clock, color: "text-rose-600", bg: "bg-rose-50" },
+    { label: "Total Onboarded Clients", value: totalOnboarded, icon: Users, color: "text-blue-600", bg: "bg-blue-50", link: "/domestic/crm/onboard"},
+    { label: "Acknowledged", value: acknowledged, icon: Mail, color: "text-green-600", bg: "bg-green-50", link: "/domestic/crm/onboard?status=acknowledged" },
+    { label: "Active Clients", value: activeClients, icon: Briefcase, color: "text-emerald-600", bg: "bg-emerald-50", link: "/domestic/crm/onboard?status=active" },
+    { label: "Non-Active Clients", value: nonActiveClients, icon: Clock, color: "text-rose-600", bg: "bg-rose-50", link: "/domestic/crm/onboard?status=inactive" },
      { label: "TOTAL PROFILE ADDED", value: totalReqs, icon: FileText, color: "text-purple-600", bg: "bg-purple-50" },
      { label: "TOTAL REQUIREMENTS", value: totalRequirements, icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
      { label: "Total Package", value: totalPackage ? `${totalPackage} Lakh` : '-', icon: Award, color: "text-orange-600", bg: "bg-orange-50" },
-    { label: "Trackers Shared", value: trackerShared, icon: Share2, color: "text-indigo-600", bg: "bg-indigo-50" },
+    { label: "Trackers Shared", value: trackerShared, icon: Share2, color: "text-indigo-600", bg: "bg-indigo-50", link: "/domestic/crm/email-history" },
     { label: "Reqs Worked", value: reqsWorked, icon: Briefcase, color: "text-violet-600", bg: "bg-violet-50" },
     { label: "Calls Made", value: callsMade, icon: Phone, color: "text-green-600", bg: "bg-green-50" },
-    { label: "Pipeline", value: pipelineClients, icon: TrendingUp, color: "text-cyan-600", bg: "bg-cyan-50" },
-    { label: "Rejected By Client", value: rejectedByClient, icon: XCircle, color: "text-red-600", bg: "bg-red-50" },
-    { label: "Shortlisted", value: shortlistedClients, icon: CheckCircle, color: "text-lime-600", bg: "bg-lime-50" },
-    { label: "Ghosted", value: ghostedClients, icon: MessageSquare, color: "text-slate-600", bg: "bg-slate-50" },
-    { label: "Total Interviews", value: totalInterviews, icon: Phone, color: "text-pink-600", bg: "bg-pink-50" },
-    { label: "Total Selected", value: totalSelected, icon: CheckCircle, color: "text-green-600", bg: "bg-green-50" },
-    { label: "Total Joined", value: totalJoined, icon: UserCheck, color: "text-teal-600", bg: "bg-teal-50" },
+    { label: "Pipeline", value: pipelineClients, icon: TrendingUp, color: "text-cyan-600", bg: "bg-cyan-50", link: "/domestic/crm/emailhistory?status=pipeline" },
+    { label: "Rejected By Client", value: rejectedByClient, icon: XCircle, color: "text-red-600", bg: "bg-red-50", link: "/domestic/crm/emailhistory?status=rejected" },
+    { label: "Shortlisted", value: shortlistedClients, icon: CheckCircle, color: "text-lime-600", bg: "bg-lime-50", link: "/domestic/crm/emailhistory?status=shortlisted" },
+    { label: "Ghosted", value: ghostedClients, icon: MessageSquare, color: "text-slate-600", bg: "bg-slate-50", link: "/domestic/crm/emailhistory?status=ghosted" },
+    { label: "Total Interviews", value: totalInterviews, icon: Phone, color: "text-pink-600", bg: "bg-pink-50", link: "/domestic/crm/emailhistory?status=interviewed" },
+    { label: "Total Selected", value: totalSelected, icon: CheckCircle, color: "text-green-600", bg: "bg-green-50", link: "/domestic/crm/emailhistory?status=selected" },
+    { label: "Total Joined", value: totalJoined, icon: UserCheck, color: "text-teal-600", bg: "bg-teal-50", link: "/domestic/crm/emailhistory?status=joined" },
   ];
 
   
@@ -688,25 +688,39 @@ const response = await API.apiGet('/api/domestic/crm/expiring-clients');
 
   {/* Clean Left-Aligned Grid Matrix (6 Columns for 6 + 6 + 5 exact row mapping) */}
   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-    {totalStats.map((stat, idx) => (
-      <div 
-        key={idx} 
-        className="p-3.5 bg-white rounded-xl border border-slate-200 border-t-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between h-24 min-w-[150px] sm:min-w-[160px] lg:min-w-0 group"
-        style={{ borderTopColor: stat.color ? undefined : '#103c7f' }}
-      >
-        <div className="flex justify-between items-start gap-1 w-full">
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight group-hover:text-slate-700 transition-colors line-clamp-2">
-            {stat.label}
-          </p>
-          <div className={`p-1.5 rounded-lg shrink-0 scale-90 ${stat.bg || 'bg-slate-50'} ${stat.color || 'text-slate-600'}`}>
-            <stat.icon size={14} />
-          </div>
-        </div>
-        <div className="mt-auto">
-          <h4 className="text-2xl font-black text-slate-900 tracking-tight leading-none">{stat.value}</h4>
+    {totalStats.map((stat, idx) => {
+  const card = (
+    <div 
+      className="p-3.5 bg-white rounded-xl border border-slate-200 border-t-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between h-24 min-w-[150px] sm:min-w-[160px] lg:min-w-0 group"
+    >
+      <div className="flex justify-between items-start gap-1 w-full">
+        <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight">
+          {stat.label}
+        </p>
+
+        <div className={`p-1.5 rounded-lg shrink-0 ${stat.bg} ${stat.color}`}>
+          <stat.icon size={14} />
         </div>
       </div>
-    ))}
+
+      <div className="mt-auto">
+        <h4 className="text-2xl font-black text-slate-900 tracking-tight leading-none">
+          {stat.value}
+        </h4>
+      </div>
+    </div>
+  );
+
+  return stat.link ? (
+    <Link key={idx} href={stat.link} className="block cursor-pointer">
+      {card}
+    </Link>
+  ) : (
+    <div key={idx}>
+      {card}
+    </div>
+  );
+})}
   </div>
 </div>
 

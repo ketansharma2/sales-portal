@@ -1,5 +1,7 @@
 "use client";
 import { useState, useMemo ,useEffect} from "react";
+
+import { useRouter, useSearchParams } from "next/navigation";
 import {
     Building2, History, Calendar, X, FileText,
     MapPin, GraduationCap, Eye, Mail, CheckCircle2,Phone,User,
@@ -189,7 +191,8 @@ export default function EmailHistoryPage() {
     retentionAmount: ''     // NEW
     });
     const [isSubmittingRevenue, setIsSubmittingRevenue] = useState(false);
-
+    const searchParams = useSearchParams();
+    const statusFilter = searchParams.get("status");
     useEffect(() => {
              const fetchRevenueTeamUsers = async () => {
                  try {
@@ -321,6 +324,48 @@ export default function EmailHistoryPage() {
             data = data.filter(row => row.clientCompany === selectedClient);
         }
 
+         // Status filter
+    if (statusFilter === "pipeline") {
+        data = data.filter(
+            row => row.currentStatus === "Pipeline"
+        );
+    }
+
+    if (statusFilter === "rejected") {
+        data = data.filter(
+            row => row.currentStatus === "Rejected"
+        );
+    }
+
+    if (statusFilter === "shortlisted") {
+    data = data.filter(
+        row => row.currentStatus === "Shortlisted"
+    );
+}
+
+if (statusFilter === "ghosted") {
+    data = data.filter(
+        row => row.currentStatus === "Ghosted"
+    );
+}
+
+if (statusFilter === "interviewed") {
+    data = data.filter(
+        row => row.currentStatus === "Interviewed"
+    );
+}
+
+if (statusFilter === "selected") {
+    data = data.filter(
+        row => row.currentStatus === "Selected"
+    );
+}
+
+if (statusFilter === "joined") {
+    data = data.filter(
+        row => row.currentStatus === "Joined"
+    );
+}
         // Filter by date range
         if (dateRange.start && dateRange.end) {
             data = data.filter(row => {
