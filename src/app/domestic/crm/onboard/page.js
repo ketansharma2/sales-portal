@@ -7,10 +7,10 @@ import {
   MapPin, Phone, Mail, FileText,
   MessageSquare, User, Filter
 } from "lucide-react";
-
+import { Suspense } from "react";
 import * as API from '@/lib/api-client';
 
-export default function OnboardPage() {
+function OnboardPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState(""); // State for Search
   const [loading, setLoading] = useState(true);
@@ -319,5 +319,13 @@ const statusFilter = searchParams.get("status");
       </div>
       
     </div>
+  );
+}
+
+export default function Onboard() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <OnboardPage />
+    </Suspense>
   );
 }

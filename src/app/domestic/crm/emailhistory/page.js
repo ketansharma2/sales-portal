@@ -1,6 +1,6 @@
 "use client";
 import { useState, useMemo ,useEffect} from "react";
-
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
     Building2, History, Calendar, X, FileText,
@@ -149,7 +149,10 @@ function CVPreview({ url, name }) {
     );
 }
 
-export default function EmailHistoryPage() {
+ function EmailHistoryPage() {
+
+        const searchParams = useSearchParams();
+
     // --- STATE ---
     const [selectedClient, setSelectedClient] = useState("All");
     const [dateRange, setDateRange] = useState({ start: "", end: "" });
@@ -191,7 +194,6 @@ export default function EmailHistoryPage() {
     retentionAmount: ''     // NEW
     });
     const [isSubmittingRevenue, setIsSubmittingRevenue] = useState(false);
-    const searchParams = useSearchParams();
     const statusFilter = searchParams.get("status");
     useEffect(() => {
              const fetchRevenueTeamUsers = async () => {
@@ -1438,4 +1440,12 @@ function KpiCard({ title, count, icon, color }) {
             </div>
         </div>
     );
+}
+
+export default function EmailHistory() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <EmailHistoryPage />
+    </Suspense>
+  );
 }
