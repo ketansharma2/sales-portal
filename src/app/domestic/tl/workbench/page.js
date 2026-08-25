@@ -43,6 +43,11 @@ export default function TLWorkbenchPage() {
         "Other"
     ];
 
+    const [dateRange, setDateRange] = useState({
+  start: "",
+  end: "",
+});
+
     // Fetch RC users on component mount
     useEffect(() => {
         const fetchRcUsers = async () => {
@@ -242,10 +247,31 @@ export default function TLWorkbenchPage() {
     };
 
     // Filter Logic
-    const filteredData = assignments.filter(item => 
-        item.profile.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.recruiter.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // const filteredData = assignments.filter(item => 
+    //     item.profile.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    //     item.recruiter.toLowerCase().includes(searchTerm.toLowerCase())
+
+        
+    // );
+
+    const filteredData = assignments.filter((item) => {
+    const search = searchTerm.toLowerCase();
+
+    const matchesSearch =
+        item.profile?.toLowerCase().includes(search) ||
+        item.recruiter?.toLowerCase().includes(search);
+
+    // Date filter
+    const itemDate = item.date ? item.date.split("T")[0] : "";
+
+    const matchesStartDate =
+        !dateRange.start || itemDate >= dateRange.start;
+
+    const matchesEndDate =
+        !dateRange.end || itemDate <= dateRange.end;
+
+    return matchesSearch && matchesStartDate && matchesEndDate;
+});
 
     return (
         <div className="min-h-screen bg-gray-50 font-['Calibri'] p-4 md:p-6 relative">
@@ -260,18 +286,80 @@ export default function TLWorkbenchPage() {
                         Allocate CRM requirements & track recruiter progress
                     </p>
                 </div>
-                <div className="relative">
-                    <input 
-                        type="text" 
-                        placeholder="Search profile, recruiter..." 
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs font-bold w-72 outline-none focus:border-[#103c7f] transition shadow-sm"
-                    />
-                    <div className="absolute inset-y-0 left-0 flex items-center px-3 text-gray-400">
-                        <Search size={14} />
-                    </div>
-                </div>
+
+  <div className="flex items-end gap-3">
+
+    {/* DATE FILTER GROUP */}
+    <div className="flex items-end gap-2">
+        <div>
+            <label className="block text-[9px] font-bold text-gray-400 uppercase mb-1">
+                From
+            </label>
+            <input
+                type="date"
+                value={dateRange.start}
+                onChange={(e) =>
+                    setDateRange(prev => ({
+                        ...prev,
+                        start: e.target.value
+                    }))
+                }
+                className="h-9 w-[135px] px-2.5 border border-gray-200 rounded-lg
+                           text-xs font-bold text-gray-600 bg-white
+                           outline-none focus:border-[#103c7f]"
+            />
+        </div>
+
+        <div>
+            <label className="block text-[9px] font-bold text-gray-400 uppercase mb-1">
+                To
+            </label>
+            <input
+                type="date"
+                value={dateRange.end}
+                onChange={(e) =>
+                    setDateRange(prev => ({
+                        ...prev,
+                        end: e.target.value
+                    }))
+                }
+                className="h-9 w-[135px] px-2.5 border border-gray-200 rounded-lg
+                           text-xs font-bold text-gray-600 bg-white
+                           outline-none focus:border-[#103c7f]"
+            />
+        </div>
+
+        {(dateRange.start || dateRange.end) && (
+            <button
+                onClick={() => setDateRange({ start: "", end: "" })}
+                className="h-9 px-2.5 rounded-lg border border-gray-200
+                           bg-white text-[10px] font-bold text-gray-500
+                           hover:bg-gray-50"
+            >
+                Clear
+            </button>
+        )}
+    </div>
+
+    {/* SEARCH */}
+    <div className="relative ml-1">
+        <input
+            type="text"
+            placeholder="Search profile, recruiter..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 pr-4 h-9 w-64 border border-gray-200
+                       rounded-xl text-xs font-bold bg-white
+                       outline-none focus:border-[#103c7f]
+                       transition shadow-sm"
+        />
+
+        <div className="absolute inset-y-0 left-0 flex items-center px-3 text-gray-400">
+            <Search size={14} />
+        </div>
+    </div>
+
+</div>
             </div>
 
             {/* --- WORKBENCH SPREADSHEET TABLE --- */}

@@ -1,19 +1,22 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter , useSearchParams} from "next/navigation";
 import {
   CheckCircle, Search, ArrowLeft,
   MapPin, Phone, Mail, FileText,
   MessageSquare, User, Filter
 } from "lucide-react";
-
+import { Suspense } from "react";
 import * as API from '@/lib/api-client';
 
-export default function OnboardPage() {
+function OnboardPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState(""); // State for Search
   const [loading, setLoading] = useState(true);
+  const searchParams = useSearchParams();
+
+const statusFilter = searchParams.get("status");
 
   // --- DATA STATE ---
   const [onboardingList, setOnboardingList] = useState([]);
@@ -100,6 +103,17 @@ export default function OnboardPage() {
   // --- LOGIC: Filter Data ---
   const filteredList = onboardingList.filter((item) => {
     const searchLower = searchQuery.toLowerCase();
+     if (statusFilter === "acknowledged" && !item.isAcknowledged) {
+    return false;
+  }
+
+    if (statusFilter === "active" && item.clientStatus !== "Active") {
+    return false;
+  }
+
+  if (statusFilter === "inactive" && item.clientStatus !== "Inactive") {
+    return false;
+  }
     return (
       (item.company && item.company.toLowerCase().includes(searchLower)) ||
       (item.contact.name && item.contact.name.toLowerCase().includes(searchLower)) ||
@@ -305,5 +319,13 @@ export default function OnboardPage() {
       </div>
       
     </div>
+  );
+}
+
+export default function Onboard() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <OnboardPage />
+    </Suspense>
   );
 }

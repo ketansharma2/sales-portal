@@ -727,8 +727,11 @@ const response = await API.apiPut('/api/domestic/tl/tracker', {
 
         {/* Dense Table Body Area */}
         <tbody className="divide-y divide-slate-100 bg-white">
-            {filteredData.map((row) => (
+            {filteredData.map((row, index) => (
                 <tr key={row.id} className={`hover:bg-emerald-50/30 transition-colors group ${selectedRows.includes(row.id) ? 'bg-amber-50/30' : ''}`}>
+                    <td className="py-3 px-4 text-center text-xs font-black text-slate-600">
+    {index + 1}
+</td>
                     
                     {/* 1. RC CV View Button */}
                     <td className="py-2 px-2 sticky left-0 bg-blue-50/10 group-hover:bg-blue-50/50 transition-colors z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] text-center">
