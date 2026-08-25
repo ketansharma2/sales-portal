@@ -14,7 +14,8 @@ export default function RecruiterWorkbenchPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [assignments, setAssignments] = useState([]);
     const [loadingAssignments, setLoadingAssignments] = useState(true);
-    
+    const [fromDate, setFromDate] = useState("");
+const [toDate, setToDate] = useState("");
     // View Work Modal State
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [selectedWork, setSelectedWork] = useState(null);
@@ -282,10 +283,25 @@ const response = await API.apiGet(`/api/domestic/recruiter/advance-sti?workbench
     };
 
     // Filter Logic
-    const filteredData = assignments.filter(item => 
+    // const filteredData = assignments.filter(item => 
+    //     item.profile.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    //     item.tl_name.toLowerCase().includes(searchTerm.toLowerCase())
+    // );
+    const filteredData = assignments.filter(item => {
+    const matchesSearch =
         item.profile.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.tl_name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+        item.tl_name.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const itemDate = item.date ? item.date.substring(0, 10) : "";
+
+    const matchesFromDate =
+        !fromDate || itemDate >= fromDate;
+
+    const matchesToDate =
+        !toDate || itemDate <= toDate;
+
+    return matchesSearch && matchesFromDate && matchesToDate;
+});
 
     return (
         <div className="min-h-screen bg-gray-50 font-['Calibri'] p-4 md:p-6 relative">
@@ -300,18 +316,68 @@ const response = await API.apiGet(`/api/domestic/recruiter/advance-sti?workbench
                         View assigned requirements & track your progress
                     </p>
                 </div>
-                <div className="relative">
-                    <input 
-                        type="text" 
-                        placeholder="Search profile, TL..." 
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs font-bold w-72 outline-none focus:border-[#103c7f] transition shadow-sm"
-                    />
-                    <div className="absolute inset-y-0 left-0 flex items-center px-3 text-gray-400">
-                        <Search size={14} />
-                    </div>
-                </div>
+                <div className="flex flex-wrap items-center gap-2">
+
+    {/* From Date */}
+    <div className="flex flex-col">
+        <label className="text-[9px] font-bold text-gray-500 uppercase mb-1">
+            From Date
+        </label>
+        <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-xl text-xs font-bold outline-none focus:border-[#103c7f] transition shadow-sm"
+        />
+    </div>
+
+    {/* To Date */}
+    <div className="flex flex-col">
+        <label className="text-[9px] font-bold text-gray-500 uppercase mb-1">
+            To Date
+        </label>
+        <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-xl text-xs font-bold outline-none focus:border-[#103c7f] transition shadow-sm"
+        />
+    </div>
+
+    {/* Search */}
+    <div className="relative">
+        <label className="text-[9px] font-bold text-gray-500 uppercase mb-1 block">
+            Search
+        </label>
+
+        <input
+            type="text"
+            placeholder="Search profile, TL..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs font-bold w-72 outline-none focus:border-[#103c7f] transition shadow-sm"
+        />
+
+        <div className="absolute inset-y-0 left-0 top-4 flex items-center px-3 text-gray-400">
+            <Search size={14} />
+        </div>
+    </div>
+
+    {/* Clear */}
+    {(fromDate || toDate || searchTerm) && (
+        <button
+            onClick={() => {
+                setFromDate("");
+                setToDate("");
+                setSearchTerm("");
+            }}
+            className="mt-4 px-3 py-2 bg-red-50 text-red-600 border border-red-200 rounded-xl text-xs font-bold hover:bg-red-100 transition"
+        >
+            Clear
+        </button>
+    )}
+
+</div>
             </div>
 
             {/* --- WORKBENCH SPREADSHEET TABLE --- */}
