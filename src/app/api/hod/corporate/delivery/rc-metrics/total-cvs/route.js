@@ -20,7 +20,7 @@ export async function GET(request) {
     let query = supabaseServer
       .from('cv_parsing')
       .select('*', { count: 'exact', head: true })
-
+      .eq('sector', 'Corporate')
     // Only add user_id filter if provided
     if (userId) {
       query = query.eq('user_id', userId)
