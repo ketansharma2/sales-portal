@@ -160,7 +160,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed , onOpenProfile })
       { name: "Domestic Delivery", href: `${roleBaseHref}/domestic/delivery`, icon: <ShoppingCart size={18} /> },
       { name: "Sector Targets", href: `${roleBaseHref}/targets`, icon: <Target size={18} /> },
       // { name: "Expense Approval", href: `${roleBaseHref}/approvals`, icon: <FileText size={18} /> },
-      { name: "My Expenses", href: `${roleBaseHref}/expense`, icon: <Wallet size={18} /> },
+      { name: "Expenses", href: `${roleBaseHref}/expense`, icon: <Wallet size={18} /> },
       { name: "Packages", href: `${roleBaseHref}/packages`, icon: <Package size={18} /> },
     ];
   } else if (currentRole === "manager") {
