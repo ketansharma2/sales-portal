@@ -17,9 +17,26 @@ export async function GET(request) {
     const toDate = searchParams.get('to')
 
     // Build query - if userId provided, filter by it, otherwise get ALL
-    let query = supabaseServer
-      .from('domestic_workbench_sti')
-      .select('advance_sti')
+    const { data: corporateUsers, error: corporateUsersError } =
+  await supabaseServer
+    .from('users')
+    .select('user_id')
+    .eq('sector', 'Domestic')
+
+if (corporateUsersError) {
+  console.error('Fetch domestic users error:', corporateUsersError)
+  return NextResponse.json(
+    { error: 'Failed to fetch domestic users' },
+    { status: 500 }
+  )
+}
+
+const corporateUserIds = (corporateUsers || []).map(u => u.user_id)
+
+let query = supabaseServer
+  .from('domestic_workbench_sti')
+  .select('advance_sti')
+  .in('user_id', corporateUserIds)
 
     // Only add user_id filter if provided
     if (userId) {

@@ -18,10 +18,28 @@ export async function GET(request) {
     // ✅ Use passed user_id or fallback to authenticated user
     const targetUserId = userId
 
+
+    const { data: corporateUsers, error: corporateUsersError } =
+  await supabaseServer
+    .from('users')
+    .select('user_id')
+    .eq('sector', 'Corporate')
+
+if (corporateUsersError) {
+  console.error('Corporate users fetch error:', corporateUsersError)
+  return NextResponse.json(
+    { error: 'Failed to fetch corporate users' },
+    { status: 500 }
+  )
+}
+
+const corporateUserIds = (corporateUsers || []).map(u => u.user_id)
+
     // Build base query with date filters
     let baseQuery = supabaseServer
       .from('candidates_conversation')
-      .select('conversation_id', { count: 'exact' });
+      .select('conversation_id', { count: 'exact' })
+      .in('user_id', corporateUserIds)
     console.log('Building query for TL metrics with user_id:', targetUserId, 'fromDate:', fromDate, 'toDate:', toDate); 
     // ✅ Only add sent_to_tl filter if userId is provided
     if (userId) {
@@ -44,7 +62,8 @@ export async function GET(request) {
     let rejectedQuery = supabaseServer
       .from('candidates_conversation')
       .select('conversation_id', { count: 'exact' })   
-      .eq('cv_status', 'Rejected');
+      .eq('cv_status', 'Rejected')
+       .in('user_id', corporateUserIds)
 
      if (userId) {
       rejectedQuery = rejectedQuery.eq('sent_to_tl', userId);
@@ -62,7 +81,8 @@ export async function GET(request) {
     let sentToCrmQuery = supabaseServer
       .from('candidates_conversation')
       .select('conversation_id', { count: 'exact' })
-      .not('sent_to_crm', 'is', null);
+      .not('sent_to_crm', 'is', null)
+       .in('user_id', corporateUserIds)
 
       if (userId) {
         sentToCrmQuery = sentToCrmQuery.eq('sent_to_tl', userId);
@@ -82,7 +102,8 @@ export async function GET(request) {
       .from('candidates_conversation')
       .select('conversation_id', { count: 'exact' })
   
-      .eq('call_respond', 'No');
+      .eq('call_respond', 'No')
+        .in('user_id', corporateUserIds)
 
         if (userId) {
       notRespondingQuery = notRespondingQuery.eq('sent_to_tl', userId);
@@ -104,7 +125,8 @@ export async function GET(request) {
   let convQuery = supabaseServer
   .from('candidates_conversation')
   .select('conversation_id')
-  .not('sent_to_crm', 'is', null);
+  .not('sent_to_crm', 'is', null)
+  .in('user_id', corporateUserIds)
 
 if (userId) {
   convQuery = convQuery.eq('sent_to_tl', userId);
@@ -148,7 +170,8 @@ const { data: convData } = await convQuery;
     let jdMatchQuery = supabaseServer
       .from('candidates_conversation')
       .select('conversation_id', { count: 'exact' })
-      .eq('cv_status', 'JD Match');
+      .eq('cv_status', 'JD Match')
+        .in('user_id', corporateUserIds)
   if (userId) {
       jdMatchQuery = jdMatchQuery.eq('sent_to_tl', userId);
     }
@@ -171,7 +194,8 @@ const { data: convData } = await convQuery;
   .from('candidates_conversation')
   .select('conversation_id', { count: 'exact' })   
   .is('sent_to_crm', null)
-  .lt('sent_date', twoDaysAgoStr);
+  .lt('sent_date', twoDaysAgoStr)
+  .in('user_id', corporateUserIds)
 
 // ✅ Only add user filter if userId exists
 if (userId) {

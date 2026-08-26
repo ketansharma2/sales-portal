@@ -20,11 +20,31 @@ export async function GET(request) {
     const targetUserId = userId 
 
     // Build base query for TRACKER SENT - only count conversations that are actually SENT to TL
-    let trackerQuery = supabaseServer
-      .from('candidates_conversation')
-      .select('*')
-      .not('sent_to_tl', 'is', null)
+    // let trackerQuery = supabaseServer
+    //   .from('candidates_conversation')
+    //   .select('*')
+    //   .not('sent_to_tl', 'is', null)
 
+      const { data: corporateUsers, error: corporateUsersError } =
+  await supabaseServer
+    .from('users')
+    .select('user_id')
+    .eq('sector', 'Corporate')
+
+if (corporateUsersError) {
+  console.error('Corporate users fetch error:', corporateUsersError)
+  return NextResponse.json(
+    { error: 'Failed to fetch corporate users' },
+    { status: 500 }
+  )
+}
+
+const corporateUserIds = (corporateUsers || []).map(u => u.user_id)
+console.log('Corporate User IDs:', corporateUserIds);
+let trackerQuery = supabaseServer
+  .from('candidates_conversation')
+  .select('*')
+  .in('user_id', corporateUserIds)
 
 if (userId) {
   trackerQuery = trackerQuery.eq('user_id', userId)
@@ -48,11 +68,13 @@ if (userId) {
       return callingDateStr === sentDateStr
     })
 
+    
     // Build separate query for CALLS - no sent_to_tl filter, no calling_date === sent_date filter
     let callsQuery = supabaseServer
       .from('candidates_conversation')
       .select('*')
-     
+      .in('user_id', corporateUserIds)
+
     if ( targetUserId) {
       callsQuery = callsQuery.eq('user_id', targetUserId)
     }
@@ -142,6 +164,7 @@ if (userId) {
         })
       })
     }
+        console.log('New Calls Corporate :', newCalls, 'FollowUp Calls:', followUpCalls);
 
     const totalCalls = newCalls + followUpCalls
 
@@ -150,7 +173,7 @@ if (userId) {
       .from('candidates_conversation')
       .select('calling_date, sent_date')
       .eq('candidate_status', 'Asset')
-
+assetQuery = assetQuery.in('user_id', corporateUserIds)
        if (targetUserId) {
       assetQuery = assetQuery.eq('user_id', targetUserId)
     }
@@ -173,7 +196,7 @@ if (userId) {
       .from('candidates_conversation')
       .select('calling_date, sent_date')
       .eq('candidate_status', 'Conversion')
-
+   conversionQuery = conversionQuery.in('user_id', corporateUserIds)
         if (targetUserId) {
       conversionQuery = conversionQuery.eq('user_id', targetUserId)
     }
@@ -197,6 +220,8 @@ if (userId) {
       .select('calling_date, sent_date')
       .eq('cv_status', 'JD Match')
       .not('sent_to_tl', 'is', null)
+      jdMatchQuery = jdMatchQuery.in('user_id', corporateUserIds)
+
 
         if (targetUserId) {
       jdMatchQuery = jdMatchQuery.eq('user_id', targetUserId)
@@ -220,7 +245,7 @@ if (userId) {
       .from('candidates_conversation')
       .select('conversation_id, calling_date, sent_date, cv_status, req_id, parsing_id')
       .not('sent_to_tl', 'is', null)
-
+detailsQuery = detailsQuery.in('user_id', corporateUserIds)
       if (targetUserId) {
       detailsQuery = detailsQuery.eq('user_id', targetUserId)
     }
