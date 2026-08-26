@@ -104,8 +104,9 @@ export default function NotificationBell() {
         )}
       </button>
 
+
       {isOpen && (
-        <div className="absolute right-0 mt-4 w-80 bg-white rounded-[24px] shadow-2xl border border-gray-100 py-4 z-50 animate-in fade-in slide-in-from-top-2">
+        <div className="absolute left-full ml-3 top-0 w-80 bg-white rounded-[24px] shadow-2xl border border-gray-100 py-4 z-50 animate-in fade-in slide-in-from-left-2">
           <div className="px-6 pb-3 border-b border-gray-50 flex justify-between items-center">
             <h3 className="text-xs font-black text-[#103c7f] uppercase tracking-widest">
               Notifications
@@ -128,7 +129,7 @@ export default function NotificationBell() {
                   key={notif.id}
                   onClick={() => {
                     markAsRead(notif.id);
-                    setIsOpen(false); // ✅ close dropdown immediately after clicking
+                    setIsOpen(false); 
                   }}
                   className={`p-4 border-b border-gray-50 flex gap-3 items-start transition-colors cursor-pointer hover:bg-gray-50/80 ${
                     !notif.is_read ? 'bg-blue-50/40' : 'bg-white'
@@ -155,15 +156,13 @@ export default function NotificationBell() {
                       )}
                     </p>
                     <p className="text-[9px] text-gray-400 mt-1 font-bold">
-                    
                        {formatNotificationTime(notif.created_at)}
                     </p>
                   </div>
                   <button
                     onClick={(e) => {
-                      e.stopPropagation(); // prevents the parent div's onClick
+                      e.stopPropagation();
                       deleteNotification(notif.id);
-                      // keep dropdown open – user may want to delete multiple
                     }}
                     className="text-gray-300 hover:text-red-500 transition-colors"
                   >
