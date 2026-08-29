@@ -111,7 +111,67 @@ useEffect(() => {
    useEffect(() => {
      fetchRevenueHistory();
    }, []);
+const handleCompanyChange = async (clientId) => {
+  // Company select hui
+  setFormData(prev => ({
+    ...prev,
+    client_id: clientId
+  }));
 
+  if (!clientId) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `/api/corporate/company?client_id=${encodeURIComponent(clientId)}`
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error(result.error);
+      return;
+    }
+
+    // Existing company found
+    if (result.exists && result.data) {
+      const company = result.data;
+
+      setFormData(prev => ({
+        ...prev,
+
+        client_id: company.client_id || clientId,
+
+        client_name: company.client_name || '',
+
+        gstin: company.gst || '',
+
+        state: company.state || '',
+
+        address: company.address || '',
+
+        pincode: company.pincode || ''
+      }));
+    }
+
+    // Existing company nahi hai
+    else {
+      setFormData(prev => ({
+        ...prev,
+        client_id: clientId,
+        client_name: '',
+        gstin: '',
+        state: '',
+        address: '',
+        pincode: ''
+      }));
+    }
+
+  } catch (error) {
+    console.error('Company lookup failed:', error);
+  }
+};
   // --- HANDLERS ---
   const handleViewHistory = (id) => {
     router.push(`/corporate/revenue/history/${id}`); 
@@ -248,18 +308,39 @@ return matchesSearch && matchesDateRange && matchesMonth && matchesCandidateStat
       [revenueData]
     );
 
-    // Build client options directly from revenueData (each row has client_name and client_id)
+    // // Build client options directly from revenueData (each row has client_name and client_id)
+    // const clientOptions = useMemo(() => {
+    //   const clientMap = new Map();
+    //   revenueData.forEach(row => {
+    //     if (row.client_name && row.client_id) {
+    //       clientMap.set(row.client_name, String(row.client_id));
+    //     }
+    //   });
+    //   return uniqueClientNames
+    //     .map(name => ({ name, id: clientMap.get(name) }))
+    //     .filter(opt => opt.id);
+    // }, [revenueData, uniqueClientNames]);
+
+
     const clientOptions = useMemo(() => {
-      const clientMap = new Map();
-      revenueData.forEach(row => {
-        if (row.client_name && row.client_id) {
-          clientMap.set(row.client_name, String(row.client_id));
-        }
-      });
-      return uniqueClientNames
-        .map(name => ({ name, id: clientMap.get(name) }))
-        .filter(opt => opt.id);
-    }, [revenueData, uniqueClientNames]);
+  const clientMap = new Map();
+
+  revenueData.forEach(row => {
+    if (row.client_id && row.client_name) {
+      clientMap.set(
+        String(row.client_id),
+        row.client_name
+      );
+    }
+  });
+
+  return Array.from(clientMap.entries()).map(
+    ([id, name]) => ({
+      id,
+      name
+    })
+  );
+}, [revenueData]);
 
    // --- SELECTION HANDLERS ---
    const toggleRowSelection = (revenueId) => {
@@ -267,78 +348,372 @@ return matchesSearch && matchesDateRange && matchesMonth && matchesCandidateStat
    };
 
    // Open PI modal — either for CREATE (no args) or EDIT (invoiceId provided)
-   const openPiModal = async (invoiceId = null) => {
-     if (invoiceId) {
-       // EDIT MODE: Fetch invoice data and populate form
-       setEditMode(true);
-       setEditingInvoiceId(invoiceId);
-       try {
-         const response = await API.apiGet(`/api/corporate/revenue/invoice/${invoiceId}`);
-         const result = await response.json();
-         if (response.ok && result.success) {
-           const inv = result.data;
-           setPiForm({
-             clientId: inv.client_id || "",
-             clientName: inv.client_name,
-             address: inv.address || "",
-             gstin: inv.gst || "",
-             state: inv.state || "",
-             pincode: inv.pincode || "",
-             fromDate: inv.from_date || "",
-             toDate: inv.to_date || "",
-             candidates: inv.candidate_details?.map(c => ({
-               id: c.revenue_id,
-               name: c.candidate_name,
-               role: c.profile,
-               ctc: c.ctc,
-               billingPercent: c.billing_percent
-             })) || [],
-           });
-         } else {
-           alert(result.error || 'Failed to load invoice');
-           return;
-         }
-       } catch (error) {
-         console.error('Fetch invoice error:', error);
-         alert('Failed to load invoice');
-         return;
-       }
-     } else {
-       // CREATE MODE: Reset to empty form, populate from selected rows
-       setEditMode(false);
-       setEditingInvoiceId(null);
-       const selectedRows = revenueData.filter(item => selectedRowIds.includes(item.revenue_id));
-       const selectedCandidates = selectedRows.map(item => ({
-         id: item.revenue_id,
-         role: item.profile || item.position || '',
-         name: item.candidate_name,
-         ctc: item.ctc || 500000,
-         billingPercent: 8.33
-       }));
-       const firstSelected = selectedRows[0];
-       const clientName = firstSelected?.client_name || '';
-       const clientId = firstSelected?.client_id ? String(firstSelected.client_id) : '';
-       setPiForm(prev => ({
-         ...prev,
-         candidates: selectedCandidates,
-         clientName,
-         clientId
-       }));
-     }
-     setIsPiModalOpen(true);
-   };
+  //  const openPiModal = async (invoiceId = null) => {
+  //    if (invoiceId) {
+  //      // EDIT MODE: Fetch invoice data and populate form
+  //      setEditMode(true);
+  //      setEditingInvoiceId(invoiceId);
+  //      try {
+  //        const response = await API.apiGet(`/api/corporate/revenue/invoice/${invoiceId}`);
+  //        const result = await response.json();
+  //        if (response.ok && result.success) {
+  //          const inv = result.data;
+  //          setPiForm({
+  //            clientId: inv.client_id || "",
+  //            clientName: inv.client_name,
+  //            address: inv.address || "",
+  //            gstin: inv.gst || "",
+  //            state: inv.state || "",
+  //            pincode: inv.pincode || "",
+  //            fromDate: inv.from_date || "",
+  //            toDate: inv.to_date || "",
+  //            candidates: inv.candidate_details?.map(c => ({
+  //              id: c.revenue_id,
+  //              name: c.candidate_name,
+  //              role: c.profile,
+  //              ctc: c.ctc,
+  //              billingPercent: c.billing_percent
+  //            })) || [],
+  //          });
+  //        } else {
+  //          alert(result.error || 'Failed to load invoice');
+  //          return;
+  //        }
+  //      } catch (error) {
+  //        console.error('Fetch invoice error:', error);
+  //        alert('Failed to load invoice');
+  //        return;
+  //      }
+  //    } else {
+  //      // CREATE MODE: Reset to empty form, populate from selected rows
+  //      setEditMode(false);
+  //      setEditingInvoiceId(null);
+  //      const selectedRows = revenueData.filter(item => selectedRowIds.includes(item.revenue_id));
+  //      const selectedCandidates = selectedRows.map(item => ({
+  //        id: item.revenue_id,
+  //        role: item.profile || item.position || '',
+  //        name: item.candidate_name,
+  //        ctc: item.ctc || 500000,
+  //        billingPercent: 8.33
+  //      }));
+  //      const firstSelected = selectedRows[0];
+  //      const clientName = firstSelected?.client_name || '';
+  //      const clientId = firstSelected?.client_id ? String(firstSelected.client_id) : '';
+  //      setPiForm(prev => ({
+  //        ...prev,
+  //        candidates: selectedCandidates,
+  //        clientName,
+  //        clientId
+  //      }));
+  //    }
+  //    setIsPiModalOpen(true);
+  //  };
 
-   const handleClientSelect = (clientId) => {
-     // Find client from clientOptions using the selected clientId
-     const client = clientOptions.find(c => c.id == clientId);
-     if (client) {
-       setPiForm(prev => ({
-         ...prev,
-         clientId,
-         clientName: client.name
-       }));
-     }
-   };
+const openPiModal = async (invoiceId = null) => {
+  if (invoiceId) {
+    // ==========================================
+    // EDIT MODE
+    // ==========================================
+    setEditMode(true);
+    setEditingInvoiceId(invoiceId);
+
+    try {
+      const response = await API.apiGet(
+        `/api/corporate/revenue/invoice/${invoiceId}`
+      );
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        const inv = result.data;
+
+        setPiForm({
+          clientId: inv.client_id || "",
+          clientName: inv.client_name || "",
+          address: inv.address || "",
+          gstin: inv.gst || "",
+          state: inv.state || "",
+          pincode: inv.pincode || "",
+          fromDate: inv.from_date || "",
+          toDate: inv.to_date || "",
+          candidates:
+            inv.candidate_details?.map(c => ({
+              id: c.revenue_id,
+              name: c.candidate_name,
+              role: c.profile,
+              ctc: c.ctc,
+              billingPercent: c.billing_percent
+            })) || []
+        });
+
+      } else {
+        alert(
+          result.error ||
+          "Failed to load invoice"
+        );
+        return;
+      }
+
+    } catch (error) {
+      console.error(
+        "Fetch invoice error:",
+        error
+      );
+
+      alert(
+        "Failed to load invoice"
+      );
+
+      return;
+    }
+
+  } else {
+
+    // ==========================================
+    // CREATE MODE
+    // ==========================================
+    setEditMode(false);
+    setEditingInvoiceId(null);
+
+    const selectedRows = revenueData.filter(
+      item =>
+        selectedRowIds.includes(item.revenue_id)
+    );
+
+    if (selectedRows.length === 0) {
+      alert(
+        "Please select at least one record"
+      );
+      return;
+    }
+
+    const selectedCandidates =
+      selectedRows.map(item => ({
+        id: item.revenue_id,
+        role:
+          item.profile ||
+          item.position ||
+          "",
+        name:
+          item.candidate_name,
+        ctc:
+          item.ctc || 500000,
+        billingPercent: 8.33
+      }));
+
+    const firstSelected =
+      selectedRows[0];
+
+    const clientName =
+      firstSelected?.client_name || "";
+
+    const clientId =
+      firstSelected?.client_id
+        ? String(firstSelected.client_id)
+        : "";
+
+    // ==========================================
+    // DEFAULT COMPANY DATA
+    // ==========================================
+    let companyData = null;
+
+    // ==========================================
+    // CHECK EXISTING COMPANY DATA
+    // ==========================================
+    if (clientId) {
+      try {
+
+        const response = await fetch(
+          `/api/corporate/revenue/invoice/company?client_id=${encodeURIComponent(
+            clientId
+          )}`
+        );
+
+        const result =
+          await response.json();
+
+        console.log(
+          "Existing company API result:",
+          result
+        );
+
+        if (
+          response.ok &&
+          result.exists &&
+          result.data
+        ) {
+          companyData =
+            result.data;
+
+          console.log(
+            "Existing company found:",
+            companyData
+          );
+        }
+
+      } catch (error) {
+
+        console.error(
+          "Company data fetch error:",
+          error
+        );
+
+        // API fail hone par bhi
+        // modal normally open hoga
+      }
+    }
+
+    // ==========================================
+    // SET FORM
+    // ==========================================
+    setPiForm({
+      clientId: clientId,
+
+      clientName:
+        companyData?.client_name ||
+        clientName,
+
+      address:
+        companyData?.address ||
+        "",
+
+      gstin:
+        companyData?.gst ||
+        "",
+
+      state:
+        companyData?.state ||
+        "",
+
+      pincode:
+        companyData?.pincode ||
+        "",
+
+      fromDate: "",
+      toDate: "",
+
+      candidates:
+        selectedCandidates
+    });
+  }
+
+  // ==========================================
+  // OPEN PI MODAL
+  // ==========================================
+  setIsPiModalOpen(true);
+};
+
+
+
+  
+
+   const handleClientSelect = async (clientId) => {
+  // Client select nahi hai
+  if (!clientId) {
+    setPiForm(prev => ({
+      ...prev,
+      clientId: "",
+      clientName: "",
+      gstin: "",
+      state: "",
+      address: "",
+      pincode: ""
+    }));
+
+    return;
+  }
+
+  // Selected client revenueData se find karo
+  const client = clientOptions.find(
+    c => String(c.id) === String(clientId)
+  );
+
+  if (!client) {
+    return;
+  }
+
+  // Pehle client ID + name set karo
+  setPiForm(prev => ({
+    ...prev,
+    clientId: String(clientId),
+    clientName: client.name
+  }));
+
+  try {
+    // Existing company data fetch karo
+    const response = await API.apiGet(
+      `/api/corporate/revenue/invoice/company?client_id=${encodeURIComponent(clientId)}`
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error(
+        "Existing company fetch failed:",
+        result.error
+      );
+      return;
+    }
+
+    // Existing company mil gayi
+    if (result.success && result.exists && result.data) {
+      const company = result.data;
+
+      setPiForm(prev => ({
+        ...prev,
+
+        clientId: String(clientId),
+
+        clientName:
+          company.client_name || client.name || "",
+
+        gstin:
+          company.gst || "",
+
+        state:
+          company.state || "",
+
+        address:
+          company.address || "",
+
+        pincode:
+          company.pincode || ""
+      }));
+
+      console.log(
+        "Existing company data loaded:",
+        company
+      );
+    }
+
+    // Company ka old data nahi mila
+    else {
+      console.log(
+        "New company - manual details required"
+      );
+
+      setPiForm(prev => ({
+        ...prev,
+
+        clientId: String(clientId),
+
+        clientName:
+          client.name || "",
+
+        gstin: "",
+        state: "",
+        address: "",
+        pincode: ""
+      }));
+    }
+
+  } catch (error) {
+    console.error(
+      "Company lookup error:",
+      error
+    );
+  }
+};
 
    const handleViewInvoice = async (invoiceId, viewType = 'PI') => {
      setInvoiceViewType(viewType);
@@ -398,6 +773,12 @@ return matchesSearch && matchesDateRange && matchesMonth && matchesCandidateStat
        alert('Failed to fetch invoice: ' + error.message);
      }
    };
+
+
+
+
+
+
 
   const handleGeneratePI = async () => {
     if (!piForm.clientId || !piForm.clientName) {

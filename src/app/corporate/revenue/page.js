@@ -20,7 +20,8 @@ export default function RevenueDashboard() {
   const [payStatusFilter, setPayStatusFilter] = useState("All");
 
   // --- CONFIG ---
-  const TODAY = new Date("2026-04-09");
+  const TODAY = new Date();
+TODAY.setHours(0, 0, 0, 0);
   const MONTHLY_REVENUE_TARGET = 500000; 
 
   useEffect(() => {
@@ -107,17 +108,79 @@ export default function RevenueDashboard() {
       return true;
     });
   }, [data, fromDate, toDate, clientFilter, crmFilter, candStatusFilter, payStatusFilter]); // Updated dependencies
+const handleCompanyChange = async (clientId) => {
+  // Company select hui
+  setFormData(prev => ({
+    ...prev,
+    client_id: clientId
+  }));
 
+  if (!clientId) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `/api/corporate/company?client_id=${encodeURIComponent(clientId)}`
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error(result.error);
+      return;
+    }
+
+    // Existing company found
+    if (result.exists && result.data) {
+      const company = result.data;
+
+      setFormData(prev => ({
+        ...prev,
+
+        client_id: company.client_id || clientId,
+
+        client_name: company.client_name || '',
+
+        gstin: company.gst || '',
+
+        state: company.state || '',
+
+        address: company.address || '',
+
+        pincode: company.pincode || ''
+      }));
+    }
+
+    // Existing company nahi hai
+    else {
+      setFormData(prev => ({
+        ...prev,
+        client_id: clientId,
+        client_name: '',
+        gstin: '',
+        state: '',
+        address: '',
+        pincode: ''
+      }));
+    }
+
+  } catch (error) {
+    console.error('Company lookup failed:', error);
+  }
+};
   // 2. UNIFIED ALERTS (Payments + Calls)
   const allAlerts = [];
   data.forEach(d => {
       // Payment Alerts
-      if (d.payment_status !== 'Received' && d.payment_due_date) {
-          const payDiff = calculateDaysDiff(d.payment_due_date);
+     if (d.payment_status !== 'Received' && (d.payment_follow_up || d.pi_date)) {
+    const alertDate = d.payment_follow_up || d.pi_date;
+    const payDiff = calculateDaysDiff(alertDate);
+
           if (payDiff <= 2) {
               allAlerts.push({
-                  id: `pay-${d.id}`, type: 'Payment', title: d.client_name, subtitle: `Invoice: ₹ ${d.base_invoice}`, 
-                  dueDate: d.payment_due_date, diffDays: payDiff, actionText: "Update Payment"
+                  id: `pay-${d.revenue_id}`, type: 'Payment', title: d.client_name, subtitle: `Invoice: ₹ ${d.base_invoice}`, 
+                  dueDate: alertDate, diffDays: payDiff, actionText: "Update Payment"
               });
           }
       }
@@ -126,7 +189,7 @@ export default function RevenueDashboard() {
           const clientDiff = calculateDaysDiff(d.next_client_followup);
           if (clientDiff <= 2) {
               allAlerts.push({
-                  id: `client-${d.id}`, type: 'Client Call', title: d.client_name, subtitle: `Ref: ${d.candidate_name}`, 
+                  id: `client-${d.revenue_id}`, type: 'Client Call', title: d.client_name, subtitle: `Ref: ${d.candidate_name}`, 
                   dueDate: d.next_client_followup, diffDays: clientDiff, actionText: "Log Discussion"
               });
           }
@@ -136,7 +199,7 @@ export default function RevenueDashboard() {
           const candDiff = calculateDaysDiff(d.next_candidate_followup);
           if (candDiff <= 2) {
               allAlerts.push({
-                  id: `cand-${d.id}`, type: 'Candidate Call', title: d.candidate_name, subtitle: `Client: ${d.client_name}`, 
+                  id: `cand-${d.revenue_id}`, type: 'Candidate Call', title: d.candidate_name, subtitle: `Client: ${d.client_name}`, 
                   dueDate: d.next_candidate_followup, diffDays: candDiff, actionText: "Log Check-in"
               });
           }

@@ -208,17 +208,154 @@ export default function CandidateHistoryPage() {
       setIsModalOpen(true);
   };
 
-   const handleBaseInvoiceChange = (val) => {
-       const baseNum = parseInt(val) || 0;
-       const gstNum = Math.round(baseNum * 0.18);
-       const totalNum = baseNum + gstNum;
-       setRevenueForm(prev => ({ 
-           ...prev, 
-           base_invoice: val, 
-           total_with_gst: totalNum > 0 ? totalNum.toString() : "" 
-       }));
-   };
+const handleBaseInvoiceChange = (value) => {
+    const baseInvoice = Number(value);
 
+    setRevenueForm(prev => ({
+        ...prev,
+        base_invoice: value,
+        total_with_gst:
+            Number.isFinite(baseInvoice) && baseInvoice > 0
+                ? String(Math.round(baseInvoice * 1.18))
+                : ""
+    }));
+};
+useEffect(() => {
+    // Wait until API data has populated mainForm
+    const salary = Number(
+        String(mainForm.offer_salary ?? "")
+            .replace(/,/g, "")
+            .trim()
+    );
+
+    const terms = Number(
+        String(mainForm.payment_terms ?? "")
+            .replace(/%/g, "")
+            .trim()
+    );
+
+    // Salary or Terms missing -> do nothing
+    if (!salary || !terms) {
+        return;
+    }
+
+    // Calculate only when database Base Invoice is empty
+    if (revenueForm.base_invoice) {
+        return;
+    }
+
+    const baseInvoice =
+        terms < 100
+            ? salary * (terms / 100)
+            : terms;
+
+    const totalWithGst = baseInvoice * 1.18;
+
+    setRevenueForm(prev => ({
+        ...prev,
+        base_invoice: String(Math.round(baseInvoice)),
+        total_with_gst: String(Math.round(totalWithGst))
+    }));
+}, [
+    mainForm.offer_salary,
+    mainForm.payment_terms,
+    revenueForm.base_invoice
+]);
+// Automatically calculate Base Invoice
+// useEffect(() => {
+//     const salary = Number(
+//         String(mainForm.offer_salary || "").replace(/,/g, "").trim()
+//     );
+
+//     const term = Number(
+//         String(mainForm.payment_terms || "").replace("%", "").trim()
+//     );
+
+//     if (!salary || !term) return;
+
+//     const baseInvoice =
+//         term < 100
+//             ? salary * (term / 100)
+//             : term;
+
+//     const totalWithGst = baseInvoice * 1.18;
+
+//     setRevenueForm(prev => ({
+//         ...prev,
+//         base_invoice: String(Math.round(baseInvoice)),
+//         total_with_gst: String(Math.round(totalWithGst))
+//     }));
+// }, [mainForm.offer_salary, mainForm.payment_terms]);
+
+
+
+// Offer Salary change
+
+
+
+// Terms change
+
+
+
+// Base Invoice manually editable
+// const handleBaseInvoiceChange = (value) => {
+//     const baseInvoice = Number(value) || 0;
+//     const gst = Math.round(baseInvoice * 0.18);
+//     const total = Math.round(baseInvoice + gst);
+
+//     setRevenueForm(prev => ({
+//         ...prev,
+//         base_invoice: value,
+//         total_with_gst: baseInvoice > 0 ? total.toString() : ""
+//     }));
+// };
+
+const calculateBaseInvoice = (salary, terms) => {
+    const salaryNum = Number(
+        String(salary ?? "").replace(/,/g, "").trim()
+    );
+
+    const termsNum = Number(
+        String(terms ?? "").replace("%", "").trim()
+    );
+
+    if (!salaryNum || !termsNum) {
+        return {
+            baseInvoice: "",
+            totalWithGst: ""
+        };
+    }
+
+    const baseInvoice =
+        termsNum < 100
+            ? salaryNum * (termsNum / 100)
+            : termsNum;
+
+    return {
+        baseInvoice: String(Math.round(baseInvoice)),
+        totalWithGst: String(Math.round(baseInvoice * 1.18))
+    };
+};
+
+const handleSalaryOrTermsChange = (field, value) => {
+    const updatedForm = {
+        ...mainForm,
+        [field]: value
+    };
+
+    setMainForm(updatedForm);
+
+    const result = calculateBaseInvoice(
+        updatedForm.offer_salary,
+        updatedForm.payment_terms
+    );
+
+    setRevenueForm(prev => ({
+        ...prev,
+        base_invoice: result.baseInvoice,
+        total_with_gst: result.totalWithGst
+    }));
+};
    const handleSaveCRMDetails = async () => {
      try {
        const session = JSON.parse(localStorage.getItem('session') || '{}');
@@ -570,11 +707,15 @@ const remainingBalance = totalExpected - totalReceived;
                       <div className="grid grid-cols-2 gap-2">
                           <div>
                               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Offer Salary</label>
-                              {isEditingCRMData ? <input type="number" value={mainForm.offer_salary} onChange={e => setMainForm({...mainForm, offer_salary: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-emerald-500 bg-white"/> : <p className="text-sm font-bold text-emerald-700 font-mono">₹ {mainForm.offer_salary || "0"}</p>}
+                              {isEditingCRMData ? <input type="number" value={mainForm.offer_salary} onChange={(e) =>
+    handleSalaryOrTermsChange("offer_salary", e.target.value)
+} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-emerald-500 bg-white"/> : <p className="text-sm font-bold text-emerald-700 font-mono">₹ {mainForm.offer_salary || "0"}</p>}
                           </div>
                           <div>
                               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Terms (%)</label>
-                              {isEditingCRMData ? <input type="text" value={mainForm.payment_terms} onChange={e => setMainForm({...mainForm, payment_terms: e.target.value})} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-emerald-500 bg-white"/> : <p className="text-sm font-bold text-gray-800">{mainForm.payment_terms ? `${mainForm.payment_terms}%` : "0%"}</p>}
+                              {isEditingCRMData ? <input type="text" value={mainForm.payment_terms} onChange={(e) =>
+    handleSalaryOrTermsChange("payment_terms", e.target.value)
+} className="w-full border border-gray-200 p-2 rounded-md text-xs font-bold text-gray-700 outline-none focus:border-emerald-500 bg-white"/> : <p className="text-sm font-bold text-gray-800">{mainForm.payment_terms ? `${mainForm.payment_terms}%` : "0%"}</p>}
                           </div>
                       </div>
                         <div className="grid grid-cols-2 gap-2">
