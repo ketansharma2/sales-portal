@@ -230,10 +230,14 @@ export async function PUT(request) {
       .select()
       .single()
 
+     
+      
+          
+
     if (updateError) {
       return NextResponse.json({ error: 'Failed to update record', details: updateError.message }, { status: 500 })
     }
-
+   
     return NextResponse.json({ success: true, data: updated })
 
   } catch (error) {

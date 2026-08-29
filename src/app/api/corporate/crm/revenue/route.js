@@ -202,6 +202,35 @@ export async function POST(request) {
       .select()
       .single()
 
+const date = joining_date
+  ? joining_date.split('T')[0]
+  : new Date().toISOString().split('T')[0];
+   const revenueId = revenue.revenue_id;
+      const insertData1 = {
+            revenue_id: revenueId,
+            user_id: user.id,
+            date,
+            candidate_status: "Joined",
+            remarks:"NA",
+            created_at: new Date().toISOString()
+          }
+
+    const { data: track, error: insertError } = await supabaseServer
+            .from('corporate_candidate_track')
+            .insert(insertData1)
+            .select()
+            .single()
+
+            console.log('Insert candidate track result:', track, insertError);
+            if (insertError) {
+  return NextResponse.json({
+    error: 'Revenue updated but candidate track insert failed',
+    details: insertError.message,
+    data: updated
+  }, { status: 500 })
+}
+
+
     if (error) {
       console.error('Insert revenue error:', error)
       return NextResponse.json({ 
