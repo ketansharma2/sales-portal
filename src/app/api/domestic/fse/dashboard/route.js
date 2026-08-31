@@ -330,32 +330,46 @@ export async function POST(request) {
 
       // FIXED: Count UNIQUE clients - one per client based on LATEST interaction
       // Take only the latest interaction per client (prevents double counting)
-      const rangeLatestByClient = new Map()
-      rangeInteractions.forEach(interaction => {
-        if (!rangeLatestByClient.has(interaction.client_id)) {
-          rangeLatestByClient.set(interaction.client_id, interaction)
-        }
-      })
+      // const rangeLatestByClient = new Map()
+      // rangeInteractions.forEach(interaction => {
+      //   if (!rangeLatestByClient.has(interaction.client_id)) {
+      //     rangeLatestByClient.set(interaction.client_id, interaction)
+      //   }
+      // })
       
-      // Count visits from unique latest interactions
-      const rangeUniqueVisitClients = [...rangeLatestByClient.values()]
-        .filter(i => i.contact_mode?.toLowerCase() === 'visit').length
+      // // Count visits from unique latest interactions
+      // const rangeUniqueVisitClients = [...rangeLatestByClient.values()]
+      //   .filter(i => i.contact_mode?.toLowerCase() === 'visit').length
       
-      // Count calls from unique latest interactions  
-      const rangeUniqueCallClients = [...rangeLatestByClient.values()]
-        .filter(i => i.contact_mode?.toLowerCase() === 'call').length
+      // // Count calls from unique latest interactions  
+      // const rangeUniqueCallClients = [...rangeLatestByClient.values()]
+      //   .filter(i => i.contact_mode?.toLowerCase() === 'call').length
       
-      // Total unique clients (latest interaction only, counted once)
-      const rangeTotalUniqueClients = rangeLatestByClient.size
+      // // Total unique clients (latest interaction only, counted once)
+      // const rangeTotalUniqueClients = rangeLatestByClient.size
       
-      console.log('FIXED - Unique Visit clients:', rangeUniqueVisitClients)
-      console.log('FIXED - Unique Call clients:', rangeUniqueCallClients)
-      console.log('FIXED - Total unique clients:', rangeTotalUniqueClients)
+      // console.log('FIXED - Unique Visit clients:', rangeUniqueVisitClients)
+      // console.log('FIXED - Unique Call clients:', rangeUniqueCallClients)
+      // console.log('FIXED - Total unique clients:', rangeTotalUniqueClients)
       
-      // Update values for UI
-      latestTotalVisits = rangeUniqueVisitClients
-      latestCalls = rangeUniqueCallClients
-      
+      // // Update values for UI
+      // latestTotalVisits = rangeUniqueVisitClients
+      // latestCalls = rangeUniqueCallClients
+      // Count ALL visits in selected date range
+// Same logic as Month Stat
+const rangeVisitInteractions = rangeInteractions.filter(
+  interaction => interaction.contact_mode?.toLowerCase() === 'visit'
+);
+
+const rangeCallInteractions = rangeInteractions.filter(
+  interaction => interaction.contact_mode?.toLowerCase() === 'call'
+);
+
+latestTotalVisits = rangeVisitInteractions.length;
+latestCalls = rangeCallInteractions.length;
+
+console.log('Range Total Visits:', latestTotalVisits);
+console.log('Range Total Calls:', latestCalls);
       // Count statuses from unique latest interactions
       const rangeStatuses = [...rangeLatestByClient.values()].map(i => i.status)
       
