@@ -435,6 +435,9 @@ export default function FSEDashboard() {
             <table className="w-full text-left border-separate border-spacing-0">
               <thead className="sticky top-0 z-20 shadow-sm bg-white">
                 <tr>
+                 <th className="px-4 py-3 text-[10px] uppercase font-black text-gray-400 tracking-wider border-b border-gray-100 bg-white text-center">
+      Sr. No.
+    </th>
                   <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 tracking-wider border-b border-gray-100 bg-white">Date</th>
                   <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 tracking-wider border-b border-gray-100 bg-white">Client Name</th>
                   <th className="px-6 py-3 text-[10px] uppercase font-black text-gray-400 tracking-wider border-b border-gray-100 bg-white text-center">Status</th>
@@ -444,6 +447,9 @@ export default function FSEDashboard() {
               <tbody className="divide-y divide-gray-100">
                 {stats.clients.map((client, idx) => (
                   <tr key={idx} className="hover:bg-blue-50 transition-all group">
+                     <td className="px-4 py-2 text-xs font-bold text-gray-500 text-center">
+        {idx + 1}
+      </td>
                     <td className="px-6 py-2 text-xs font-bold text-slate-700">{client.date}</td>
                     <td className="px-6 py-2 text-xs font-bold text-slate-700">{client.name} </td>
                     <td className="px-6 py-2 text-center">
