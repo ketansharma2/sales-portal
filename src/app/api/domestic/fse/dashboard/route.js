@@ -357,6 +357,8 @@ export async function POST(request) {
       // latestCalls = rangeUniqueCallClients
       // Count ALL visits in selected date range
 // Same logic as Month Stat
+// Count ALL visits in selected date range
+// Same logic as Month Stat
 const rangeVisitInteractions = rangeInteractions.filter(
   interaction => interaction.contact_mode?.toLowerCase() === 'visit'
 );
@@ -370,14 +372,36 @@ latestCalls = rangeCallInteractions.length;
 
 console.log('Range Total Visits:', latestTotalVisits);
 console.log('Range Total Calls:', latestCalls);
+
+// Count ALL statuses in selected date range
+const rangeStatuses = rangeInteractions.map(i => i.status);
+
+latestOnboarded = rangeStatuses.filter(
+  status => status === 'Onboarded'
+).length;
+
+latestInterested = rangeStatuses.filter(
+  status => status === 'Interested'
+).length;
+
+latestNotInterested = rangeStatuses.filter(
+  status => status === 'Not Interested'
+).length;
+
+latestReachedOut = rangeStatuses.filter(
+  status => status === 'Reached Out'
+).length;
+
+latestRepeat =
+  (latestTotalVisits + latestCalls) - latestIndividualVisits;
       // Count statuses from unique latest interactions
-      const rangeStatuses = [...rangeLatestByClient.values()].map(i => i.status)
+      // const rangeStatuses = [...rangeLatestByClient.values()].map(i => i.status)
       
-      latestOnboarded = rangeStatuses.filter(status => status === 'Onboarded').length
-      latestInterested = rangeStatuses.filter(status => status === 'Interested').length
-      latestNotInterested = rangeStatuses.filter(status => status === 'Not Interested').length
-      latestReachedOut = rangeStatuses.filter(status => status === 'Reached Out').length
-      latestRepeat = (latestTotalVisits + latestCalls) - latestIndividualVisits
+      // latestOnboarded = rangeStatuses.filter(status => status === 'Onboarded').length
+      // latestInterested = rangeStatuses.filter(status => status === 'Interested').length
+      // latestNotInterested = rangeStatuses.filter(status => status === 'Not Interested').length
+      // latestReachedOut = rangeStatuses.filter(status => status === 'Reached Out').length
+      // latestRepeat = (latestTotalVisits + latestCalls) - latestIndividualVisits
     } else {
       // For latest date - Count UNIQUE clients with visit mode per date
       const latestDateInteractions = allInteractions?.filter(interaction => interaction.contact_date === latestContactDate) || []
