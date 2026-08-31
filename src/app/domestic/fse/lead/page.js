@@ -700,6 +700,9 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
 
               {/* Level 2: Column Headers */}
               <tr>
+                <th className="px-2 py-2 border-r border-white/10 min-w-[60px]">
+  SR No.
+</th>
                 <th className="px-2 py-2 border-r border-white/10 min-w-[100px] whitespace-nowrap">Sourcing Date</th>
                 <th className="px-2 py-2 border-r border-white/10 min-w-[220px]">Company & Category</th>
                 <th className="px-2 py-2 border-r border-white/10 min-w-[120px]">Location & State</th>
@@ -731,7 +734,10 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
               ) : (
                 leads.map((lead, idx) => (
                   <tr key={idx} className="hover:bg-blue-50/40 transition-colors duration-150 group border-b border-gray-100 last:border-0">
-                     
+                     {/* SR No. */}
+<td className="px-2 py-2 text-center text-gray-600 font-bold text-[11px]">
+  {idx + 1}
+</td>
                     {/* Sourcing Date */}
                     <td className="px-2 py-2 text-gray-600 font-semibold whitespace-nowrap text-[11px]">
                       {lead.sourcing_date}
