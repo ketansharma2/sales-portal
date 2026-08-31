@@ -20,6 +20,10 @@ export async function POST(request) {
     const currentYear = new Date().getFullYear()
     const startDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`
 
+const monthEnd =
+  `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(currentYear, currentMonth, 0).getDate()}`
+
+
     // Get monthly visits from interactions (convert contact_mode to lowercase first)
     const { count: monthlyTotalVisitsCount, error: monthlyVisitsError } = await supabaseServer
       .from('domestic_clients_interaction')
@@ -34,6 +38,21 @@ export async function POST(request) {
     }
 
     const monthlyTotalVisits = monthlyTotalVisitsCount || 0
+
+    // Get monthly calls from interactions
+const { count: monthlyTotalCallsCount, error: monthlyCallsError } = await supabaseServer
+  .from('domestic_clients_interaction')
+  .select('*', { count: 'exact', head: true })
+  .eq('user_id', user.id)
+  .gte('contact_date', startDate)
+  .lte('contact_date', monthEnd)
+  .ilike('contact_mode', 'call')
+
+if (monthlyCallsError) {
+  console.error('Monthly calls error:', monthlyCallsError)
+}
+
+const monthlyTotalCalls = monthlyTotalCallsCount || 0
 
     // Get monthly individual visits from domestic_clients
     const { count: monthlyIndividualVisitsCount, error: monthlyIndividualError } = await supabaseServer
@@ -50,7 +69,7 @@ export async function POST(request) {
     const monthlyIndividualVisits = monthlyIndividualVisitsCount || 0
 
     // Get monthly onboarded from interactions
-    const monthEnd = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(currentYear, currentMonth, 0).getDate()}`
+    // const monthEnd = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(currentYear, currentMonth, 0).getDate()}`
     let monthlyInteractions = []
     let monthlyOffset = 0
     const monthlyBatchSize = 1000
@@ -633,7 +652,7 @@ latestRepeat =
       projections: projections,
       monthlyStats: {
         month: new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }).toUpperCase(),
-        totalVisits: monthlyTotalVisits,
+        totalVisits: monthlyTotalVisits + monthlyTotalCalls,
         individualVisits: monthlyIndividualVisits,
         totalOnboarded: monthlyOnboarded,
         mtdMp: `${monthlyOnboarded}/12`,
