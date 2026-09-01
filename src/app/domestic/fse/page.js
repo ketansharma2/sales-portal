@@ -15,6 +15,7 @@ export default function FSEDashboard() {
   const [loading, setLoading] = useState(true);
   const [latestDate, setLatestDate] = useState("");
   const [avgVisitModal, setAvgVisitModal] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState("");
   const router = useRouter();
 
   useEffect(() => { setMounted(true); }, []);
@@ -158,7 +159,12 @@ export default function FSEDashboard() {
   };
 
   if (!mounted) return null;
-
+const filteredClients = selectedStatus
+  ? stats.clients.filter(
+      (client) =>
+        client.status?.toLowerCase() === selectedStatus.toLowerCase()
+    )
+  : stats.clients;
   
   return (
     <div className="p-1 bg-[#f8fafc] font-['Calibri'] h-full text-slate-800 flex flex-col">
@@ -415,10 +421,37 @@ export default function FSEDashboard() {
           <DynamicCard label="Calls" value={stats.dynamicMetrics.calls || '-'} color="border-l-[#1a4da1]" />
           <DynamicCard label="Individual" value={stats.dynamicMetrics.individual} color="border-l-blue-400" />
           <DynamicCard label="Repeat" value={stats.dynamicMetrics.repeat} color="border-l-blue-400" />
-          <DynamicCard label="Interested" value={stats.dynamicMetrics.interested} color="border-l-[#a1db40]" />
-          <DynamicCard label="Not Interested" value={stats.dynamicMetrics.notInterested} color="border-l-red-400" />
-          <DynamicCard label="Reached Out" value={stats.dynamicMetrics.reachedOut} color="border-l-orange-400" />
-          <DynamicCard label="Onboarded" value={stats.dynamicMetrics.onboard} color="border-l-emerald-500" />
+          <DynamicCard
+  label="Interested"
+  value={stats.dynamicMetrics.interested}
+  color="border-l-[#a1db40]"
+  filter="Interested"
+  onClick={setSelectedStatus}
+/>
+
+<DynamicCard
+  label="Not Interested"
+  value={stats.dynamicMetrics.notInterested}
+  color="border-l-red-400"
+  filter="Not Interested"
+  onClick={setSelectedStatus}
+/>
+
+<DynamicCard
+  label="Reached Out"
+  value={stats.dynamicMetrics.reachedOut}
+  color="border-l-orange-400"
+  filter="Reached Out"
+  onClick={setSelectedStatus}
+/>
+
+<DynamicCard
+  label="Onboarded"
+  value={stats.dynamicMetrics.onboard}
+  color="border-l-emerald-500"
+  filter="Onboarded"
+  onClick={setSelectedStatus}
+/>
         </div>
 
         {/* --- ROW 5: SCROLLABLE TABLE (FIXED) --- */}
@@ -445,7 +478,7 @@ export default function FSEDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {stats.clients.map((client, idx) => (
+                {filteredClients.map((client, idx) => (
                   <tr key={idx} className="hover:bg-blue-50 transition-all group">
                      <td className="px-4 py-2 text-xs font-bold text-gray-500 text-center">
         {idx + 1}
@@ -588,14 +621,41 @@ function ProjItem({ label, value }) {
   );
 }
 
-function DynamicCard({ label, value, color }) {
+// function DynamicCard({ label, value, color }) {
+//   return (
+//     <div className={`bg-white p-2 rounded-xl border border-gray-100 border-l-4 ${color} shadow-sm text-center`}>
+//       <p className="text-[12px] font-black text-gray-400 uppercase mb-1 truncate">{label}</p>
+//       <p className="text-lg font-black text-[#103c7f]">{value}</p>
+//     </div>
+//   );
+// }
+function DynamicCard({ label, value, color, filter, onClick }) {
+
   return (
-    <div className={`bg-white p-2 rounded-xl border border-gray-100 border-l-4 ${color} shadow-sm text-center`}>
-      <p className="text-[12px] font-black text-gray-400 uppercase mb-1 truncate">{label}</p>
-      <p className="text-lg font-black text-[#103c7f]">{value}</p>
-    </div>
+    <button
+      onClick={() => {
+        if (filter) {
+          onClick(filter);
+        }
+      }}
+      className={`
+        bg-white p-2 rounded-xl border border-gray-100 border-l-4
+        ${color}
+        shadow-sm text-center w-full transition-all
+        ${filter ? "cursor-pointer hover:shadow-md hover:-translate-y-0.5" : "cursor-default"}
+      `}
+    >
+      <p className="text-[12px] font-black text-gray-400 uppercase mb-1 truncate">
+        {label}
+      </p>
+
+      <p className="text-lg font-black text-[#103c7f]">
+        {value}
+      </p>
+    </button>
   );
 }
+
 
 function DateInput({ label, value, onChange }) {
     return (
