@@ -524,7 +524,8 @@ export async function POST(request) {
       if (data.length < batchSize) break
     }
 
-    const totalVisitsEver = new Set(allVisitClients.map(i => `${i.user_id}_${i.client_id}`)).size
+    // const totalVisitsEver = new Set(allVisitClients.map(i => `${i.user_id}_${i.client_id}`)).size
+    const totalVisitsEver = allVisitClients.length
 
     const dashboardData = {
       totalClients: totalClients || 0,
