@@ -31,7 +31,7 @@ export default function SalesManagerDashboard() {
   const [totalClientsCount, setTotalClientsCount] = useState(0);
   const [totalOnboardedCount, setTotalOnboardedCount] = useState(0);
   const [totalVisitsCount, setTotalVisitsCount] = useState(0);
-
+  const [selectedStatus, setSelectedStatus] = useState(null);
   // Fetch FSE team from API
   useEffect(() => {
     const fetchFseTeam = async () => {
@@ -163,7 +163,19 @@ clientsFSE: d.latestLeads || []
   };
 
   if (!mounted) return null;
+const filteredClientsFSE = selectedStatus
+  ? stats.clientsFSE.filter((client) => {
+      const clientStatus = (client.status || "")
+        .toLowerCase()
+        .trim();
 
+      const selected = selectedStatus
+        .toLowerCase()
+        .trim();
+
+      return clientStatus === selected;
+    })
+  : stats.clientsFSE;
   return (
     <div className="p-2 md:p-4 bg-[#f8fafc] font-['Calibri'] min-h-screen text-slate-800 flex flex-col">
       <div className="max-w-8xl mx-auto w-full space-y-4">
@@ -374,10 +386,57 @@ clientsFSE: d.latestLeads || []
                             <DynamicCard label="Calls" value={stats.dynamicMetrics.calls} color="border-l-[#1a4da1]" />
                             <DynamicCard label="Individual" value={stats.dynamicMetrics.individual} color="border-l-blue-400" />
                             <DynamicCard label="Repeat" value={stats.dynamicMetrics.repeat} color="border-l-blue-400" />
-                            <DynamicCard label="Interested" value={stats.dynamicMetrics.interested} color="border-l-[#a1db40]" />
-                            <DynamicCard label="Not Int." value={stats.dynamicMetrics.notInterested} color="border-l-red-400" />
-                            <DynamicCard label="Reached Out" value={stats.dynamicMetrics.reachedOut} color="border-l-orange-400" />
-                            <DynamicCard label="Onboarded" value={stats.dynamicMetrics.onboard} color="border-l-emerald-500" />
+                            <DynamicCard
+  label="Interested"
+  value={stats.dynamicMetrics.interested}
+  color="border-l-[#a1db40]"
+  status="Interested"
+  selectedStatus={selectedStatus}
+  onClick={() =>
+    setSelectedStatus(
+      selectedStatus === "Interested" ? null : "Interested"
+    )
+  }
+/>
+
+<DynamicCard
+  label="Not Int."
+  value={stats.dynamicMetrics.notInterested}
+  color="border-l-red-400"
+  status="Not Interested"
+  selectedStatus={selectedStatus}
+  onClick={() =>
+    setSelectedStatus(
+      selectedStatus === "Not Interested" ? null : "Not Interested"
+    )
+  }
+/>
+
+<DynamicCard
+  label="Reached Out"
+  value={stats.dynamicMetrics.reachedOut}
+  color="border-l-orange-400"
+  status="Reached Out"
+  selectedStatus={selectedStatus}
+  onClick={() =>
+    setSelectedStatus(
+      selectedStatus === "Reached Out" ? null : "Reached Out"
+    )
+  }
+/>
+
+<DynamicCard
+  label="Onboarded"
+  value={stats.dynamicMetrics.onboard}
+  color="border-l-emerald-500"
+  status="Onboarded"
+  selectedStatus={selectedStatus}
+  onClick={() =>
+    setSelectedStatus(
+      selectedStatus === "Onboarded" ? null : "Onboarded"
+    )
+  }
+/>
                           </div>
 
                           {/* --- FSE SPECIFIC TABLE --- */}
@@ -401,7 +460,7 @@ clientsFSE: d.latestLeads || []
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                  {stats.clientsFSE.map((client, idx) => (
+                                  {filteredClientsFSE.map((client, idx) => (
                                     <tr key={idx} className="hover:bg-blue-50 transition-all group">
                                       <td className="px-4 py-2.5 font-bold text-slate-700">{idx + 1}</td>
                                       <td className="px-6 py-2.5 font-bold text-slate-700">{client.date}</td>
@@ -494,12 +553,49 @@ function ProjItem({ label, value }) {
   );
 }
 
-function DynamicCard({ label, value, color }) {
+// function DynamicCard({ label, value, color }) {
+//   return (
+//     <div className={`bg-white p-2 rounded-xl border border-gray-100 border-l-4 ${color} shadow-sm text-center`}>
+//       <p className="text-[12px] font-black text-gray-400 uppercase mb-1 truncate">{label}</p>
+//       <p className="text-lg font-black text-[#103c7f]">{value}</p>
+//     </div>
+//   );
+// }
+
+function DynamicCard({
+  label,
+  value,
+  color,
+  status,
+  selectedStatus,
+  onClick
+}) {
+  const isSelected = selectedStatus === status;
+
   return (
-    <div className={`bg-white p-2 rounded-xl border border-gray-100 border-l-4 ${color} shadow-sm text-center`}>
-      <p className="text-[12px] font-black text-gray-400 uppercase mb-1 truncate">{label}</p>
-      <p className="text-lg font-black text-[#103c7f]">{value}</p>
-    </div>
+    <button
+      onClick={onClick}
+      className={`
+        bg-white p-2 rounded-xl
+        border border-gray-100 border-l-4 ${color}
+        shadow-sm text-center
+        cursor-pointer
+        transition-all duration-200
+        hover:shadow-md hover:-translate-y-0.5
+        ${isSelected
+          ? "ring-2 ring-[#103c7f] bg-blue-50 scale-[1.02]"
+          : ""
+        }
+      `}
+    >
+      <p className="text-[12px] font-black text-gray-400 uppercase mb-1 truncate">
+        {label}
+      </p>
+
+      <p className="text-lg font-black text-[#103c7f]">
+        {value}
+      </p>
+    </button>
   );
 }
 
