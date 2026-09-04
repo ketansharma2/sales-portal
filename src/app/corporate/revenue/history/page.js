@@ -54,7 +54,7 @@ const [paymentStatusFilter, setPaymentStatusFilter] = useState(searchParams.get(
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const previewRef = useRef(null);
-  
+  const [refreshKey, setRefreshKey] = useState(0);
   // Sync filters with URL
 useEffect(() => {
     const params = new URLSearchParams();
@@ -89,9 +89,10 @@ useEffect(() => {
 
    // Data fetching function
    const fetchRevenueHistory = async () => {
+    
      setLoading(true);
      try {
-       const response = await API.apiGet("/api/corporate/revenue/history");
+       const response = await API.apiGet(`/api/corporate/revenue/history?t=${Date.now()}`);
        
        const result = await response.json();
        
@@ -109,8 +110,8 @@ useEffect(() => {
    };
 
    useEffect(() => {
-     fetchRevenueHistory();
-   }, []);
+  fetchRevenueHistory();
+}, [refreshKey]); // Add refreshKey as dependency
 const handleCompanyChange = async (clientId) => {
   // Company select hui
   setFormData(prev => ({
@@ -301,7 +302,7 @@ return matchesSearch && matchesDateRange && matchesMonth && matchesCandidateStat
          }
        };
        fetchNextSno();
-     }, []);
+     }, [refreshKey]);
 
      const uniqueClientNames = useMemo(() => 
       Array.from(new Set(revenueData.map(r => r.client_name).filter(Boolean))),
@@ -423,7 +424,7 @@ const openPiModal = async (invoiceId = null) => {
       );
 
       const result = await response.json();
-
+     console.log("'result", result);
       if (response.ok && result.success) {
         const inv = result.data;
 
@@ -497,8 +498,8 @@ const openPiModal = async (invoiceId = null) => {
         name:
           item.candidate_name,
         ctc:
-          item.ctc || 500000,
-        billingPercent: 8.33
+          item.offer_salary || 500000,
+        billingPercent: item.terms ||8.33
       }));
 
     const firstSelected =
@@ -886,7 +887,8 @@ const openPiModal = async (invoiceId = null) => {
         setEditMode(false);
         setEditingInvoiceId(null);
         // Refresh revenue data
-        fetchRevenueHistory();
+         setRefreshKey(prev => prev + 1);
+        // fetchRevenueHistory();
       } else {
         alert(result.error || 'Failed to save invoice');
       }
