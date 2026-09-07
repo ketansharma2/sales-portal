@@ -382,10 +382,10 @@ const filteredClientsFSE = selectedStatus
 
                           {/* 8 Dynamic Metric Cards */}
                           <div className="grid grid-cols-4 md:grid-cols-8 gap-2 mb-4">
-                            <DynamicCard label="Total Visits" value={stats.dynamicMetrics.totalVisits} color="border-l-[#103c7f]" />
-                            <DynamicCard label="Calls" value={stats.dynamicMetrics.calls} color="border-l-[#1a4da1]" />
-                            <DynamicCard label="Individual" value={stats.dynamicMetrics.individual} color="border-l-blue-400" />
-                            <DynamicCard label="Repeat" value={stats.dynamicMetrics.repeat} color="border-l-blue-400" />
+                            <DynamicCard label="Total Visits" value={stats.dynamicMetrics.totalVisits} color="border-l-[#103c7f]" isSelectable={false} />
+                            <DynamicCard label="Calls" value={stats.dynamicMetrics.calls} color="border-l-[#1a4da1]" isSelectable={false}/>
+                            <DynamicCard label="Individual" value={stats.dynamicMetrics.individual} color="border-l-blue-400" isSelectable={false} />
+                            <DynamicCard label="Repeat" value={stats.dynamicMetrics.repeat} color="border-l-blue-400" isSelectable={false} />
                             <DynamicCard
   label="Interested"
   value={stats.dynamicMetrics.interested}
@@ -568,21 +568,25 @@ function DynamicCard({
   color,
   status,
   selectedStatus,
-  onClick
+  onClick,
+  isSelectable = true // Add this prop with default true
 }) {
   const isSelected = selectedStatus === status;
 
   return (
     <button
-      onClick={onClick}
+      onClick={isSelectable ? onClick : undefined}
+      disabled={!isSelectable}
       className={`
         bg-white p-2 rounded-xl
         border border-gray-100 border-l-4 ${color}
         shadow-sm text-center
-        cursor-pointer
         transition-all duration-200
-        hover:shadow-md hover:-translate-y-0.5
-        ${isSelected
+        ${isSelectable 
+          ? "cursor-pointer hover:shadow-md hover:-translate-y-0.5" 
+          : "cursor-default opacity-90"
+        }
+        ${isSelected && isSelectable
           ? "ring-2 ring-[#103c7f] bg-blue-50 scale-[1.02]"
           : ""
         }

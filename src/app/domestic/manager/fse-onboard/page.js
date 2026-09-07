@@ -117,14 +117,14 @@ const [selectedCrmLead, setSelectedCrmLead] = useState(null);
   const fetchData = async () => {
     try {
       setLoading(true);
-      const session = JSON.parse(localStorage.getItem("session") || "{}");
-      const token = session?.access_token;
+      // const session = JSON.parse(localStorage.getItem("session") || "{}");
+      // const token = session?.access_token;
 
-      if (!token) {
-        console.error("No auth token found");
-        setLoading(false);
-        return;
-      }
+      // if (!token) {
+      //   console.error("No auth token found");
+      //   setLoading(false);
+      //   return;
+      // }
 
       if (activeTab === "database") {
         // Fetch from All Database API
