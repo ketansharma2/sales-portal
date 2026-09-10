@@ -46,6 +46,8 @@ export default function CandidateHistoryPage() {
       client_email: "", client_phone: "", candidate_email: "", candidate_phone: "", 
       offer_salary: "", payment_terms: "", joining_date: "", payment_days: "",
   });
+
+  
   
    const [revenueForm, setRevenueForm] = useState({
        base_invoice: "",
@@ -103,7 +105,20 @@ export default function CandidateHistoryPage() {
                 payment_follow_up: record.payment_follow_up || '',
                 pi_date: record.pi_date || ''
             });
-
+            setTimeout(() => {
+    if (record.joining_date && record.payment_days) {
+        const dueDate = calculatePaymentDueDate(
+            record.joining_date,
+            record.payment_days
+        );
+        if (dueDate) {
+            setRevenueForm(prev => ({
+                ...prev,
+                payment_due_date: dueDate
+            }));
+        }
+    }
+}, 100);
             // Set basic data
             const uiData = {
                 ...record,
@@ -220,6 +235,67 @@ const handleBaseInvoiceChange = (value) => {
                 : ""
     }));
 };
+
+const calculatePaymentDueDate = (joiningDate, paymentDays) => {
+  if (!joiningDate || !paymentDays) {
+    return "";
+  }
+
+  const date = new Date(joiningDate);
+
+  if (isNaN(date.getTime())) {
+    return "";
+  }
+
+  date.setDate(date.getDate() + Number(paymentDays));
+
+  return date.toISOString().split("T")[0];
+};
+
+
+
+useEffect(() => {
+  // Force calculation even if already set
+  if (!mainForm.joining_date || !mainForm.payment_days) {
+    return;
+  }
+
+  const dueDate = calculatePaymentDueDate(
+    mainForm.joining_date,
+    mainForm.payment_days
+  );
+
+  if (!dueDate) {
+    return;
+  }
+
+  // ALWAYS update, don't check if already set
+  setRevenueForm((prev) => ({
+    ...prev,
+    payment_due_date: dueDate,
+  }));
+}, [mainForm.joining_date, mainForm.payment_days, mainForm.offer_salary]); 
+useEffect(() => {
+  // Force calculation even if already set
+  if (!mainForm.joining_date || !mainForm.payment_days) {
+    return;
+  }
+
+  const dueDate = calculatePaymentDueDate(
+    mainForm.joining_date,
+    mainForm.payment_days
+  );
+
+  if (!dueDate) {
+    return;
+  }
+
+  // ALWAYS update, don't check if already set
+  setRevenueForm((prev) => ({
+    ...prev,
+    payment_due_date: dueDate,
+  }));
+}, [mainForm.joining_date, mainForm.payment_days, mainForm.offer_salary]); // offer_salary bhi add karo
 useEffect(() => {
     // Wait until API data has populated mainForm
     const salary = Number(
