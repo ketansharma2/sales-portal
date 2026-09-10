@@ -304,6 +304,18 @@ export default function DirectorDashboardPage() {
         );
     }
 
+     const calculateDueDate = (joiningDate, paymentDays) => {
+    if (!joiningDate || !paymentDays) return null;
+
+    const date = new Date(joiningDate);
+
+    if (isNaN(date.getTime())) return null;
+
+    date.setDate(date.getDate() + Number(paymentDays));
+
+    return date.toISOString().split("T")[0];
+};
+
     // --- MAIN RETURN ---
     return (
         <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-4 md:p-4">
@@ -574,7 +586,9 @@ export default function DirectorDashboardPage() {
                                                         <td className="p-2 font-bold text-gray-800 border-r border-gray-50">{item.candidate_name}</td>
                                                         <td className="p-2 text-center font-mono text-gray-600 border-r border-gray-50">{item.joining_date || "-"}</td>
                                                         <td className="p-2 text-center font-mono font-bold text-indigo-600 border-r border-gray-50 bg-indigo-50/30">
-                                                            {item.payment_due_date || "-"}
+                                                            {item.payment_due_date ||
+        calculateDueDate(item.joining_date, item.payment_days) ||
+        "-"}
                                                         </td>
                                                         <td className="p-2 text-right font-black text-emerald-600 border-r border-gray-50">
                                                             {item.total_with_gst ? `₹ ${parseInt(item.total_with_gst).toLocaleString('en-IN')}` : "-"}

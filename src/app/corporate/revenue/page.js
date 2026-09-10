@@ -275,6 +275,16 @@ const handleCompanyChange = async (clientId) => {
           paymentMetrics: pMetrics // यहाँ हम पूरा ऑब्जेक्ट भेज रहे हैं
       };
   }, [filteredData]);
+
+
+  // Add this function near other helper functions (after numberToWords)
+const calculateDueDate = (joiningDate, paymentDays) => {
+  if (!joiningDate || !paymentDays) return null;
+  const date = new Date(joiningDate);
+  if (isNaN(date.getTime())) return null;
+  date.setDate(date.getDate() + Number(paymentDays));
+  return date.toISOString().split("T")[0];
+};
   return (
     <div className="min-h-screen bg-[#f8fafc] font-['Calibri'] p-2 md:p-3">
       
@@ -533,9 +543,18 @@ const handleCompanyChange = async (clientId) => {
                                 </td>
                                 <td className="p-2 font-bold text-gray-800 border-r border-gray-50">{item.candidate_name}</td>
                                 <td className="p-2 text-center font-mono text-gray-600 border-r border-gray-50">{item.joining_date || "-"}</td>
-                                <td className="p-2 text-center font-mono font-bold text-indigo-600 border-r border-gray-50 bg-indigo-50/30">
-                                    {item.payment_due_date || "-"}
-                                </td>
+                               <td className="p-2 text-center font-mono font-bold border-r border-gray-50 bg-indigo-50/30">
+    {item.payment_due_date ? (
+        // Database se aayi hui due date
+        <span className="text-emerald-600">{item.payment_due_date}</span>
+    ) : item.joining_date && item.payment_days ? (
+        // Calculate from joining_date + payment_days
+        <span className="text-amber-600">{calculateDueDate(item.joining_date, item.payment_days)}</span>
+    ) : (
+        // Kuch nahi hai
+        <span className="text-gray-400">-</span>
+    )}
+</td>
                                 <td className="p-2 text-right font-black text-emerald-600 border-r border-gray-50">
                                     {item.total_with_gst ? `₹ ${parseInt(item.total_with_gst).toLocaleString('en-IN')}` : "-"}
                                 </td>
