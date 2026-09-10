@@ -1,7 +1,44 @@
 import { NextResponse } from 'next/server';
 import { getUser } from '@/lib/auth-helper';
 import { supabaseServer } from '@/lib/supabase-server';
+export const getTargetUserId = async (supabase, currentUserId) => {
+  // Current user data
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('role, sector')
+    .eq('user_id', currentUserId)
+    .single();
 
+  if (userError) {
+    throw userError;
+  }
+
+  const userRole = userData.role;
+  const userSector = userData.sector;
+
+  // LEADGEN + Corporate
+  if (
+    Array.isArray(userRole) &&
+    userRole.includes('LEADGEN') &&
+    userSector === 'Corporate'
+  ) {
+    return currentUserId;
+  }
+
+  // Find LEADGEN user in same sector
+  const { data, error } = await supabase
+    .from('users')
+    .select('user_id')
+    .contains('role', ['LEADGEN'])
+    .eq('sector', userSector)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data.user_id;
+}; 
 // Helper function to get date - returns date or created_at if date is null
 const getInteractionDate = (interaction) => {
   const date = interaction.date;
@@ -27,7 +64,10 @@ export async function GET(request) {
     if (authError || !user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
-
+         const user_id = await getTargetUserId(
+                               supabaseServer,
+                               user.id
+                             );
     // Get query params
     const { searchParams } = new URL(request.url);
     const dateRange = searchParams.get('dateRange') || 'default';
@@ -59,7 +99,7 @@ export async function GET(request) {
           startup
         )
       `)
-      .eq('leadgen_id', user.id)
+      .eq('leadgen_id', user_id)
       .ilike('sub_status', 'Contract Share')
       .order('created_at', { ascending: true });
 
