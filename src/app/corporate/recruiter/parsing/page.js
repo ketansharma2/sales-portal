@@ -224,7 +224,7 @@ useEffect(() => {
         "Conversion",
         "Asset",
         "Not Picked",
-        "Not Interested",
+        "Not Interseted",
         "Interview",
         "Not In Service",
         "Other"
