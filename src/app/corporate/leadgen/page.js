@@ -41,7 +41,7 @@ export default function LeadGenHome() {
   const [toDate, setToDate] = useState('');
   const [isAllData, setIsAllData] = useState(false);
   const [latestInteractionDate, setLatestInteractionDate] = useState('');
-  
+  const [showKpis, setShowKpis] = useState(true);
   const [activeDropdown, setActiveDropdown] = useState(null); 
   const [selectedLabel, setSelectedLabel] = useState("Today");
    const [kpiData, setKpiData] = useState({
@@ -87,6 +87,16 @@ export default function LeadGenHome() {
       console.error('Failed to fetch today follow-ups:', error);
     }
   };
+
+
+
+useEffect(() => {
+  const saved = localStorage.getItem("showKpis");
+
+  if (saved !== null) {
+    setShowKpis(saved === "true");
+  }
+}, []);
 
   const fetchConversationLog = async () => {
     try {
@@ -866,6 +876,37 @@ export default function LeadGenHome() {
             </div>
           </div>
 
+          <div className="flex justify-end mb-3">
+  <button
+    type="button"
+    onClick={() => {
+  const newValue = !showKpis;
+  setShowKpis(newValue);
+  localStorage.setItem("showKpis", String(newValue));
+}}
+    className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg shadow-sm"
+  >
+    <span className="text-xs font-semibold text-gray-700">
+      Show KPIs
+    </span>
+
+    <span
+      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+        showKpis ? "bg-[#24a9ec]" : "bg-gray-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+          showKpis ? "translate-x-4" : "translate-x-1"
+        }`}
+      />
+    </span>
+  </button>
+</div>
+
+{showKpis && (
+  <>
+
           {/* ROW 2: NORMAL */}
           <div>
             <h4 className="text-xs font-black text-teal-600 uppercase tracking-[0.2em] mb-3 flex items-center gap-2"><UserCheck size={14} /> 2. Normal Clients</h4>
@@ -892,7 +933,8 @@ export default function LeadGenHome() {
               <KpiCard title="Calls" total={kpiData.masterUnion.calling} icon={<Phone size={18}/>} color="purple" onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { startup: 'Master Union', cardType: 'master_union_calls' })} />
             </div>
           </div>
-
+</>
+)}
           {/* ROW 5: FRANCHISE */}
           <div>
             <h4 className="text-xs font-black text-green-600 uppercase tracking-[0.2em] mb-3 flex items-center gap-2"><Award size={14} /> 5. Franchise Pipeline</h4>
