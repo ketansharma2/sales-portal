@@ -347,7 +347,19 @@ if (filters.status !== "All") {
        );
      }
 
-    setFilteredLeads(result);
+    result.sort((a, b) => {
+  const dateA = a.arrivedDateRaw
+    ? new Date(a.arrivedDateRaw).getTime()
+    : 0;
+
+  const dateB = b.arrivedDateRaw
+    ? new Date(b.arrivedDateRaw).getTime()
+    : 0;
+
+  return dateB - dateA; // latest Arrived Date first
+});
+
+setFilteredLeads(result);
   }, [filters, leads, activeTab]);
 
   const handleFilterChange = (key, value) => {
