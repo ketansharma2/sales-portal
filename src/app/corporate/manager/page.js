@@ -984,20 +984,49 @@ const navigateToDetails = (filters = {}) => {
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Corporate Sector</p>
             </div>
             
-            <div className="flex bg-gray-100 p-1 rounded-xl shrink-0">
-                <button 
-                    onClick={() => { setActiveTab("LeadGen"); setSelectedAgent("All"); }}
-                    className={`flex items-center gap-2 px-6 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === "LeadGen" ? "bg-white text-[#103c7f] shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-                >
-                    <Headset size={14} /> LeadGen
-                </button>
-                <button 
-                    onClick={() => { setActiveTab("FSE"); setSelectedAgent("All"); }}
-                    className={`flex items-center gap-2 px-6 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === "FSE" ? "bg-white text-[#103c7f] shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-                >
-                    <MapPin size={14} /> FSE Team
-                </button>
-            </div>
+           <div className="flex bg-gray-100 p-1 rounded-xl shrink-0">
+  <button
+    onClick={() => {
+      setActiveTab("LeadGen");
+      setSelectedAgent("All");
+    }}
+    className={`flex items-center gap-2 px-6 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+      activeTab === "LeadGen"
+        ? "bg-white text-[#103c7f] shadow-sm"
+        : "text-gray-500 hover:text-gray-700"
+    }`}
+  >
+    <Headset size={14} /> LeadGen
+  </button>
+
+  <button
+    onClick={() => {
+      setActiveTab("FSE");
+      setSelectedAgent("All");
+    }}
+    className={`flex items-center gap-2 px-6 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+      activeTab === "FSE"
+        ? "bg-white text-[#103c7f] shadow-sm"
+        : "text-gray-500 hover:text-gray-700"
+    }`}
+  >
+    <MapPin size={14} /> FSE
+  </button>
+
+  <button
+    onClick={() => {
+      setActiveTab("Manager");
+      setSelectedAgent("All");
+    }}
+    className={`flex items-center gap-2 px-6 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+      activeTab === "Manager"
+        ? "bg-white text-[#103c7f] shadow-sm"
+        : "text-gray-500 hover:text-gray-700"
+    }`}
+  >
+    <UserCheck size={14} /> Manager
+  </button>
+</div>
         </div>
 
         {/* ========================================= */}
