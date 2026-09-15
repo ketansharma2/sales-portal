@@ -216,58 +216,163 @@ useEffect(() => {
         fetchTlUsers();
     }, []);
 
+const normalizeTrackerDate = (value) => {
+  if (!value || value === "-") return "";
+
+  const raw = String(value).trim();
+
+  // YYYY-MM-DD / ISO format
+  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  }
+
+  // Supports:
+  // 14 Sept 2026
+  // 14-Sep-2026
+  // 14 Sep 2026
+  const normalized = raw
+    .replace(/,/g, "")
+    .replace(/\s+/g, "-")
+    .toLowerCase();
+
+  const parts = normalized.split("-");
+
+  if (parts.length >= 3) {
+    const day = parts[0].padStart(2, "0");
+    const monthStr = parts[1].slice(0, 3);
+    const year = parts[2].slice(0, 4);
+
+    const monthMap = {
+      jan: "01",
+      feb: "02",
+      mar: "03",
+      apr: "04",
+      may: "05",
+      jun: "06",
+      jul: "07",
+      aug: "08",
+      sep: "09",
+      oct: "10",
+      nov: "11",
+      dec: "12",
+    };
+
+    const monthNum = monthMap[monthStr];
+
+    if (
+      monthNum &&
+      /^\d{2}$/.test(day) &&
+      /^\d{4}$/.test(year)
+    ) {
+      return `${year}-${monthNum}-${day}`;
+    }
+  }
+
+  return "";
+};
     // Filter data based on TL, date range, and search term
+    // const filteredCrmData = useMemo(() => {
+    //     return crmData.filter(row => {
+    //         // TL Filter
+    //         if (selectedTL && row.tlName !== selectedTL) return false;
+
+    //         // Date Range Filter (based on trackerShareDate column - Column 1)
+    //         if (dateRange.start || dateRange.end) {
+    //             const rowDate = row.trackerShareDate;
+    //             if (!rowDate || rowDate === '-') return false;
+
+    //             // Parse date - handle formats: "04-Apr-2026" or "04 APR 2026" or "04-apr-2026"
+    //             let dateStr = '';
+
+    //             // Replace spaces with hyphens and handle both cases
+    //             const normalizedDate = rowDate.replace(/\s+/g, '-').toLowerCase();
+    //             const parts = normalizedDate.split('-');
+
+    //             if (parts.length === 3) {
+    //                 const day = parts[0].padStart(2, '0');
+    //                 const monthStr = parts[1];
+    //                 const year = parts[2];
+
+    //                 // Handle month names
+    //                 const monthMap = {
+    //                     'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+    //                     'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
+    //                     'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+    //                 };
+    //                 const monthNum = monthMap[monthStr];
+
+    //                 if (monthNum) {
+    //                     dateStr = `${year}-${monthNum}-${day}`;
+    //                 }
+    //             }
+
+    //             if (!dateStr) return false;
+
+    //             // Compare dates (YYYY-MM-DD format)
+    //             if (dateRange.start && dateStr < dateRange.start) return false;
+    //             if (dateRange.end && dateStr > dateRange.end) return false;
+    //         }
+
+    //         // Search Filter (Name or Profile)
+    //         if (searchTerm) {
+    //             const term = searchTerm.toLowerCase();
+    //             if (!row.name.toLowerCase().includes(term) && !row.profile.toLowerCase().includes(term)) return false;
+    //         }
+
+    //         return true;
+    //     });
+    // }, [crmData, selectedTL, dateRange, searchTerm]);
+
+
     const filteredCrmData = useMemo(() => {
-        return crmData.filter(row => {
-            // TL Filter
-            if (selectedTL && row.tlName !== selectedTL) return false;
+  return crmData.filter((row) => {
+    // TL filter
+    if (selectedTL && row.tlName !== selectedTL) {
+      return false;
+    }
 
-            // Date Range Filter (based on trackerShareDate column - Column 1)
-            if (dateRange.start || dateRange.end) {
-                const rowDate = row.trackerShareDate;
-                if (!rowDate || rowDate === '-') return false;
+    // Date filter
+    if (dateRange.start || dateRange.end) {
+      const dateStr = normalizeTrackerDate(row.trackerShareDate);
 
-                // Parse date - handle formats: "04-Apr-2026" or "04 APR 2026" or "04-apr-2026"
-                let dateStr = '';
+      if (!dateStr) {
+        return false;
+      }
 
-                // Replace spaces with hyphens and handle both cases
-                const normalizedDate = rowDate.replace(/\s+/g, '-').toLowerCase();
-                const parts = normalizedDate.split('-');
+      if (dateRange.start && dateStr < dateRange.start) {
+        return false;
+      }
 
-                if (parts.length === 3) {
-                    const day = parts[0].padStart(2, '0');
-                    const monthStr = parts[1];
-                    const year = parts[2];
+      if (dateRange.end && dateStr > dateRange.end) {
+        return false;
+      }
+    }
 
-                    // Handle month names
-                    const monthMap = {
-                        'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
-                        'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
-                        'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
-                    };
-                    const monthNum = monthMap[monthStr];
+    // Search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
 
-                    if (monthNum) {
-                        dateStr = `${year}-${monthNum}-${day}`;
-                    }
-                }
+      const name = String(row.name || "").toLowerCase();
+      const profile = String(row.profile || "").toLowerCase();
 
-                if (!dateStr) return false;
+      if (
+        !name.includes(term) &&
+        !profile.includes(term)
+      ) {
+        return false;
+      }
+    }
 
-                // Compare dates (YYYY-MM-DD format)
-                if (dateRange.start && dateStr < dateRange.start) return false;
-                if (dateRange.end && dateStr > dateRange.end) return false;
-            }
-
-            // Search Filter (Name or Profile)
-            if (searchTerm) {
-                const term = searchTerm.toLowerCase();
-                if (!row.name.toLowerCase().includes(term) && !row.profile.toLowerCase().includes(term)) return false;
-            }
-
-            return true;
-        });
-    }, [crmData, selectedTL, dateRange, searchTerm]);
+    return true;
+  });
+}, [
+  crmData,
+  selectedTL,
+  dateRange,
+  searchTerm,
+]);
 
     // Fetch CRM Tracker Data from API
     useEffect(() => {
