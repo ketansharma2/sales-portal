@@ -30,7 +30,8 @@ export default function LeadsTablePage() {
       sourcing_date: '',
       startup: '',
       district_city: '',
-      projection: ''  // Add this line
+      projection: '' , // Add this line
+      currently_flag: false
     });
 
     const [formErrors, setFormErrors] = useState({});
@@ -118,13 +119,23 @@ export default function LeadsTablePage() {
           const response = await API.apiGet("/api/corporate/leadgen/leads");
           const data = await response.json();
           if (data.success) {
+
+            console.log('Fetched leads:', data.data);
+             console.log('🔍 RAW API DATA (first item):', data.data[0]);
+      console.log('🔍 currently_flag raw value:', data.data[0]?.currently_flag);
+      console.log('🔍 currently_flag type:', typeof data.data[0]?.currently_flag);
+
             // Normalize and store leads - API now returns contact_person, contact_no, email directly from latest interaction
             const normalized = data.data.map(item => ({
               ...item,
               contact_person: item.contact_person || item.contactPerson || '',
               contact_no: item.contact_no || item.contactNo || item.phone || item.mobile || '',
               phone: item.phone || item.contact_no || item.contactNo || item.mobile || '',
-              email: item.email || item.contact_email || item.contactEmail || ''
+              email: item.email || item.contact_email || item.contactEmail || '', currently_flag: 
+    item.currently_flag === true || 
+    item.currently_flag === 1 || 
+    item.currently_flag === '1' || 
+    String(item.currently_flag).toLowerCase() === 'true'
             }));
 
             // Sort by sourcing date (newest first)
@@ -211,9 +222,13 @@ export default function LeadsTablePage() {
     errors.projection = 'Projection is required';
   }
       
-   alert('⚠️ Please fill  all required fields');
-      // setFormErrors(errors);
-      return Object.keys(errors).length === 0;
+     if (Object.keys(errors).length > 0) {
+    alert('⚠️ Please fill all required fields');
+    return false;
+  }
+  
+
+      return true;
     };
 
     // Validate form fields for interaction
@@ -299,35 +314,71 @@ export default function LeadsTablePage() {
      }, [selectedLead, modalType]);
 
      // Fetch company suggestions when company name changes (for create form)
-     useEffect(() => {
-       const fetchCompanySuggestions = async () => {
-         // Only fetch when modal is open for create mode and company name has at least 2 chars
-         if (modalType !== 'create' || !newLeadData.company || newLeadData.company.length < 2) {
-           setCompanySuggestions([]);
-           setShowCompanySuggestions(false);
-           return;
-         }
+    //  useEffect(() => {
+    //    const fetchCompanySuggestions = async () => {
+    //      // Only fetch when modal is open for create mode and company name has at least 2 chars
+    //      if (modalType !== 'create' || !newLeadData.company || newLeadData.company.length < 2) {
+    //        setCompanySuggestions([]);
+    //        setShowCompanySuggestions(false);
+    //        return;
+    //      }
 
-         try {
-           const response = await API.apiDelete("/api/corporate/leadgen/leads", { client_id: lead.id });
-           const data = await response.json();
-           if (data.success && data.data && data.data.length > 0) {
-             setCompanySuggestions(data.data);
-             setShowCompanySuggestions(data.data.length > 0);
-           } else {
-             setCompanySuggestions([]);
-             setShowCompanySuggestions(false);
-           }
-         } catch (err) {
-           console.error('Failed to fetch company suggestions:', err);
-           setCompanySuggestions([]);
-           setShowCompanySuggestions(false);
-         }
-       };
+    //      try {
+    //        const response = await API.apiDelete("/api/corporate/leadgen/leads", { client_id: lead.id });
+    //        const data = await response.json();
+    //        if (data.success && data.data && data.data.length > 0) {
+    //          setCompanySuggestions(data.data);
+    //          setShowCompanySuggestions(data.data.length > 0);
+    //        } else {
+    //          setCompanySuggestions([]);
+    //          setShowCompanySuggestions(false);
+    //        }
+    //      } catch (err) {
+    //        console.error('Failed to fetch company suggestions:', err);
+    //        setCompanySuggestions([]);
+    //        setShowCompanySuggestions(false);
+    //      }
+    //    };
 
-       const debounceTimer = setTimeout(fetchCompanySuggestions, 150);
-       return () => clearTimeout(debounceTimer);
-     }, [newLeadData.company, modalType]);
+    //    const debounceTimer = setTimeout(fetchCompanySuggestions, 150);
+    //    return () => clearTimeout(debounceTimer);
+    //  }, [newLeadData.company, modalType]);
+
+    // Fetch company suggestions when company name changes (for create form)
+useEffect(() => {
+  const fetchCompanySuggestions = async () => {
+    // Only fetch when modal is open for create mode and company name has at least 2 chars
+    if (modalType !== 'edit' || !newLeadData.company || newLeadData.company.length < 2) {
+      setCompanySuggestions([]);
+      setShowCompanySuggestions(false);
+      return;
+    }
+
+    try {
+      // ✅ FIX 1: apiGet use karo (DELETE nahi)
+      // ✅ FIX 2: company query param bhejo, client_id nahi
+      const response = await API.apiGet(
+        `/api/corporate/leadgen/leads?company=${encodeURIComponent(newLeadData.company)}&limit=10`
+      );
+      const data = await response.json();
+      
+      if (data.success && data.data && data.data.length > 0) {
+        setCompanySuggestions(data.data);
+        setShowCompanySuggestions(data.data.length > 0);
+      } else {
+        setCompanySuggestions([]);
+        setShowCompanySuggestions(false);
+      }
+    } catch (err) {
+      console.error('Failed to fetch company suggestions:', err);
+      setCompanySuggestions([]);
+      setShowCompanySuggestions(false);
+    }
+  };
+
+  const debounceTimer = setTimeout(fetchCompanySuggestions, 150);
+  return () => clearTimeout(debounceTimer);
+}, [newLeadData.company, modalType]);
 
      // Apply filters whenever allLeads changes (to preserve filters after data refresh)
      useEffect(() => {
@@ -504,7 +555,8 @@ export default function LeadsTablePage() {
          sourcing_date: lead.sourcingDate || '',
          startup: lead.startup || '',
          district_city: lead.districtCity || lead.district_city || '',
-          projection: lead.projection || ''  // Add this line
+          projection: lead.projection || '',  // Add this line
+          currently_flag: lead.currently_flag === true || lead.currently_flag === 'true' || lead.currently_flag === 1
        });
      }
    };
@@ -525,7 +577,9 @@ export default function LeadsTablePage() {
         sourcing_date: '',
         startup: '',
         district_city: '',
-        projection: ''
+        projection: '',
+        currently_flag: false   // ✅
+
       });
    };
 
@@ -535,7 +589,6 @@ export default function LeadsTablePage() {
       }
       setIsSaving(true);
       try {
-       const session = JSON.parse(localStorage.getItem('session') || '{}');
        
        // Check for duplicate company name
        if (newLeadData.company) {
@@ -568,7 +621,8 @@ export default function LeadsTablePage() {
        const data = await response.json();
        if (data.success) {
          setIsFormOpen(false);
-         setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '', startup: '', district_city: '' });
+         setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '', startup: '', district_city: '' ,  projection: '', 
+  currently_flag: false});
          fetchLeads();
        } else {
          alert('Failed to save lead');
@@ -631,7 +685,7 @@ export default function LeadsTablePage() {
             subStatus: 'New Lead'
           });
           setModalType("add");
-          setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '', startup: '', district_city: '' ,projection: ''});
+          setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '', startup: '', district_city: '' ,projection: '',currently_flag: false });
          fetchLeads();
        } else {
          alert('Failed to save lead');
@@ -657,7 +711,8 @@ export default function LeadsTablePage() {
        const data = await response.json();
        if (data.success) {
          setIsFormOpen(false);
-         setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '', startup: '', district_city: '' });
+         setNewLeadData({ company: '', category: '', state: '', location: '', emp_count: '1 - 10', reference: '', sourcing_date: '', startup: '', district_city: '',projection: '', 
+  currently_flag: false  });
          fetchLeads(); // Refresh table
        } else {
          alert('Failed to update lead');
@@ -940,7 +995,7 @@ if (editingInteractionId) {
                 {lead.sourcingDate}
               </td>
 
-              <td className="px-2 py-2 border-r border-gray-100 font-bold text-[#103c7f] text-left">
+              <td className="px-2 py-2 border-r border-gray-100 font-bold text-[#103c7f] text-left relative">
                 <div className="flex items-center justify-start gap-1">
                   {(lead?.startup === true || String(lead?.startup).toLowerCase() === 'yes' || String(lead?.startup) === '1' || String(lead?.startup).toLowerCase() === 'true') && (
                     <span className="bg-green-100 text-green-700 text-[8px] font-black px-1 rounded-full border border-green-200 shrink-0">S</span>
@@ -950,6 +1005,18 @@ if (editingInteractionId) {
                   )}
                   <span className="truncate block" title={lead.company}>{lead.company}</span>
                 </div>
+                { (lead.currently_flag === true ||
+  lead.currently_flag === 1 ||
+  lead.currently_flag === '1' ||
+  String(lead.currently_flag).toLowerCase() === 'true')
+ && (
+    <button
+      className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg border-2 border-white transition-transform hover:scale-110 z-10 animate-pulse"
+      title="🚫 Not Further Calls"
+    >
+      <X size={11} strokeWidth={3} />
+    </button>
+  )}
               </td>
 
               <td className="px-1 py-2 border-r border-gray-100 truncate text-[10px]" title={lead.category}>
@@ -985,7 +1052,7 @@ if (editingInteractionId) {
                     {formatDateForDisplay(lead.latestFollowup)}
                   </span>
                   <span className="text-gray-500 italic truncate w-full px-1 text-[10px]" title={lead.remarks}>
-                    "{lead.remarks}"
+                    {lead.remarks}
                   </span>
                 </div>
               </td>
@@ -1168,6 +1235,7 @@ if (editingInteractionId) {
                               {formErrors.sourcing_date && <p className="text-red-500 text-xs mt-1">{formErrors.sourcing_date}</p>}
                           </div>
                       </div>
+                      
 
                        {/* Row 2: State, District/City & Emp Count */}
                        <div className="grid grid-cols-3 gap-4">
@@ -1215,38 +1283,87 @@ if (editingInteractionId) {
                            <textarea value={newLeadData.location} onChange={(e) => setNewLeadData({...newLeadData, location: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 h-16 resize-none focus:border-[#103c7f] outline-none" placeholder="E.g., Okhla Phase 3, Near Crown Plaza..."></textarea>
                        </div>
 
-                       {/* Row 4: Reference & Startup */}
-                       <div className="grid grid-cols-2 gap-4">
-                           <div>
-                               <label className="text-[10px] font-bold text-gray-400 uppercase">Reference / Source</label>
-                               <input type="text" placeholder="LinkedIn, Google, Cold Call..." value={newLeadData.reference} onChange={(e) => setNewLeadData({...newLeadData, reference: e.target.value})} className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none" />
-                           </div>
-                            <div>
-                                <label className="text-[10px] font-bold text-gray-400 uppercase">Startup <span className="text-red-500">*</span></label>
-                                <select value={newLeadData.startup} onChange={(e) => setNewLeadData({...newLeadData, startup: e.target.value})} className={`w-full border rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none ${formErrors.startup ? 'border-red-500' : 'border-gray-300'}`}>
-                                    <option value="">Select Option</option>
-                                    <option value="Yes">Yes</option>
-                                    <option value="No">No</option>
-                                    <option value="Master Union">Master Union</option>
-                                </select>
-                                {formErrors.startup && <p className="text-red-500 text-xs mt-1">{formErrors.startup}</p>}
-                            </div>
-                            <div>
-    <label className="text-[10px] font-bold text-gray-400 uppercase">Projection<span className="text-red-500">*</span></label>
-    <select
-      value={newLeadData.projection}
-      onChange={(e) => setNewLeadData({...newLeadData, projection: e.target.value})}
-      className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none"
-    >
-      <option value="">Select Projection</option>
-      <option value="Not Projected">Not Projected</option>
-      <option value="WP > 50">WP &gt; 50</option>
-      <option value="WP < 50">WP &lt; 50</option>
-      <option value="MP > 50">MP &gt; 50</option>
-      <option value="MP < 50">MP &lt; 50</option>
-    </select>
-  </div>
-                       </div>
+                       {/* Row 4: Reference & Startup & Projection & Currently Flag */}
+<div className="grid grid-cols-2 gap-4">
+    <div>
+        <label className="text-[10px] font-bold text-gray-400 uppercase">Reference / Source</label>
+        <input 
+          type="text" 
+          placeholder="LinkedIn, Google, Cold Call..." 
+          value={newLeadData.reference} 
+          onChange={(e) => setNewLeadData({...newLeadData, reference: e.target.value})} 
+          className="w-full border border-gray-300 rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none" 
+        />
+    </div>
+
+    <div>
+        <label className="text-[10px] font-bold text-gray-400 uppercase">Startup <span className="text-red-500">*</span></label>
+        <select 
+          value={newLeadData.startup} 
+          onChange={(e) => setNewLeadData({...newLeadData, startup: e.target.value})} 
+          className={`w-full border rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none ${formErrors.startup ? 'border-red-500' : 'border-gray-300'}`}
+        >
+            <option value="">Select Option</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+            <option value="Master Union">Master Union</option>
+        </select>
+        {formErrors.startup && <p className="text-red-500 text-xs mt-1">{formErrors.startup}</p>}
+    </div>
+
+    <div>
+        <label className="text-[10px] font-bold text-gray-400 uppercase">Projection <span className="text-red-500">*</span></label>
+        <select
+          value={newLeadData.projection}
+          onChange={(e) => setNewLeadData({...newLeadData, projection: e.target.value})}
+          className={`w-full border rounded p-2 text-sm mt-1 focus:border-[#103c7f] outline-none ${formErrors.projection ? 'border-red-500' : 'border-gray-300'}`}
+        >
+          <option value="">Select Projection</option>
+          <option value="Not Projected">Not Projected</option>
+          <option value="WP > 50">WP &gt; 50</option>
+          <option value="WP < 50">WP &lt; 50</option>
+          <option value="MP > 50">MP &gt; 50</option>
+          <option value="MP < 50">MP &lt; 50</option>
+        </select>
+        {formErrors.projection && <p className="text-red-500 text-xs mt-1">{formErrors.projection}</p>}
+    </div>
+
+    {/* ===== CURRENTLY FLAG TOGGLE ===== */}
+    <div>
+        <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">
+          DROP 
+        </label>
+        <div className="flex items-center gap-3 mt-2">
+          <button
+            type="button"
+            onClick={() =>
+              setNewLeadData(prev => ({
+                ...prev,
+                currently_flag: !prev.currently_flag
+              }))
+            }
+            className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${
+              newLeadData.currently_flag ? 'bg-red-500' : 'bg-gray-300'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 ${
+                newLeadData.currently_flag ? 'translate-x-6' : 'translate-x-0'
+              }`}
+            />
+          </button>
+          <span className={`text-xs font-bold uppercase ${
+            newLeadData.currently_flag ? 'text-red-500' : 'text-gray-400'
+          }`}>
+            {newLeadData.currently_flag ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+    </div>
+    {/* ===== END CURRENTLY FLAG ===== */}
+</div>
+
+                       {/* Currently Flag */}
+
                   </div>
                 )}
 
