@@ -11,7 +11,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { company, category, state, location, emp_count, reference, sourcing_date, district_city, startup ,  projection } = body;
+    const { company, category, state, location, emp_count, reference, sourcing_date, district_city, startup ,  projection,  currently_flag } = body;
 
     if (!company) {
       return NextResponse.json({ error: 'Company name is required' }, { status: 400 });
@@ -30,6 +30,7 @@ export async function POST(request) {
         district_city,
         startup,
           projection ,
+          currently_flag: currently_flag === true || currently_flag === 1 || currently_flag === '1' || String(currently_flag).toLowerCase() === 'true',  // ✅ ADD
         leadgen_id: user.id
       })
       .select()
@@ -53,7 +54,8 @@ export async function POST(request) {
         reference: data.reference,
         sourcing_date: data.sourcing_date,
         district_city: data.district_city,
-        startup: data.startup
+        startup: data.startup,
+        currently_flag: data.currently_flag 
       }
     });
 
@@ -75,7 +77,7 @@ export async function PUT(request) {
     }
 
     const body = await request.json();
-    const { client_id, company, category, state, location, emp_count, reference, sourcing_date, district_city, startup ,  projection } = body;
+    const { client_id, company, category, state, location, emp_count, reference, sourcing_date, district_city, startup ,  projection,  currently_flag } = body;
 
     if (!client_id) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
@@ -108,6 +110,7 @@ export async function PUT(request) {
         sourcing_date,
         district_city,
           projection ,
+          currently_flag: currently_flag === true || currently_flag === 1 || currently_flag === '1' || String(currently_flag).toLowerCase() === 'true',
         startup
       })
       .eq('client_id', client_id)
@@ -128,7 +131,8 @@ export async function PUT(request) {
         location: data.location,
         emp_count: data.emp_count,
         reference: data.reference,
-        sourcing_date: data.sourcing_date
+        sourcing_date: data.sourcing_date,
+        currently_flag: data.currently_flag 
       }
     });
 
@@ -232,6 +236,8 @@ export const getTargetUserId = async (supabase, currentUserId) => {
 
   return data.user_id;
 }; 
+
+
 export async function GET(request) {
   try {
     // Authentication - user injected by middleware (no auth calls needed!)
@@ -266,6 +272,7 @@ export async function GET(request) {
         startup,
         projection,
         sourcing_date,
+        currently_flag,
         sent_to_sm,
         corporate_leads_interaction!left (
           id,
@@ -336,6 +343,7 @@ export async function GET(request) {
         empCount: lead.emp_count,
         reference: lead.reference,
         startup: lead.startup,
+        currently_flag: lead.currently_flag,
         projection: lead.projection,
         status: latestInteraction?.status || 'New',
         subStatus: latestInteraction?.sub_status || 'New Lead',
