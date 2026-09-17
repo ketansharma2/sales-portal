@@ -1074,6 +1074,20 @@ const filteredCrmData = useMemo(() => {
                         </div>
                         {/* TL Filter */}
                         {/* 👇 NEW: Latest Status Filter */}
+                        {/* TL Filter */}
+<div className="flex items-center gap-2">
+    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">TL:</label>
+    <select 
+        className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer max-w-[150px]"
+        value={selectedTL}
+        onChange={(e) => setSelectedTL(e.target.value)}
+    >
+        <option value="">All TLs</option>
+        {tlUsers.map(tl => (
+            <option key={tl.user_id} value={tl.name}>{tl.name}</option>
+        ))}
+    </select>
+</div>
 <div className="flex items-center gap-2">
     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Status:</label>
     <select 
