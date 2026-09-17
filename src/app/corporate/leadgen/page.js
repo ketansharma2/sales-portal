@@ -6,7 +6,7 @@ import {
   Database, Phone, CheckCircle, Clock, Calendar,
   TrendingUp, UserCheck, FileText, Briefcase, Award, Send,
   Rocket, ChevronDown, Filter, PhoneOutgoing, PhoneIncoming, PhoneMissed,
-  MessageSquare
+  MessageSquare, Flag, FlagOff
 } from "lucide-react";
 import * as API from '@/lib/api-client';
 // --- Helper function to build filter URL ---
@@ -26,6 +26,7 @@ const buildFilterUrl = (router, fromDate, toDate, isAllData, filters) => {
       if (key === 'startup') params.append('startup', value);
       if (key === 'isSubmitted') params.append('isSubmitted', value);
       if (key === 'cardType') params.append('cardType', value);
+      if (key === 'flagStatus') params.append('flagStatus', value);  // 👈 ADD
     }
   });
   
@@ -55,6 +56,8 @@ export default function LeadGenHome() {
      sentToManager: { total: '-', startup: '-' },
      onboarded: { total: '-', startup: '-' },
      interested: { total: '-', startup: '-' },
+     flagged: { total: '-', startup: '-' },
+     unflagged: { total: '-', startup: '-' }, 
      
      masterUnion: { company: '-', profiles: '-', calling: '-' },
  
@@ -213,6 +216,41 @@ useEffect(() => {
       console.error('Failed to fetch normal leads count:', error);
     }
   };
+
+  const fetchFlaggedCount = async () => {
+  try {
+    const params = new URLSearchParams();
+    
+    if (isAllData) {
+      params.append('dateRange', 'all');
+    } else if (fromDate && toDate) {
+      params.append('dateRange', 'specific');
+      params.append('fromDate', fromDate);
+      params.append('toDate', toDate);
+    } else {
+      params.append('dateRange', 'default');
+    }
+    
+    const response = await API.apiGet(`/api/corporate/leadgen/flagged-count?${params.toString()}`);
+    const data = await response.json();
+    
+    if (data.success && data.data) {
+      setKpiData(prev => ({
+        ...prev,
+        flagged: { 
+          total: data.data.flagged?.total || '0', 
+          startup: data.data.flagged?.startup || '0' 
+        },
+         unflagged: {  // 👈 ADD THIS
+          total: data.data.unflagged?.total ?? '0',
+          startup: data.data.unflagged?.startup ?? '0',
+        },
+      }));
+    }
+  } catch (error) {
+    console.error('Failed to fetch flagged count:', error);
+  }
+};
 
   const fetchNormalCallsCount = async () => {
     try {
@@ -657,6 +695,7 @@ useEffect(() => {
       fetchInterestedCount();
       fetchOnboardCount();
       fetchMasterUnionCount();
+      fetchFlaggedCount();  // 👈 ADD
       fetchConversationLog();
     }
   }, [latestInteractionDate]);
@@ -679,6 +718,7 @@ useEffect(() => {
     fetchFranchiseFormAskCount();
     fetchFranchiseFormSharedCount();
     fetchFranchiseAcceptedCount();
+    fetchFlaggedCount();
     fetchConversationLog();
   }, [isAllData]);
 
@@ -705,6 +745,7 @@ useEffect(() => {
       fetchFranchiseFormAskCount();
       fetchFranchiseFormSharedCount();
       fetchFranchiseAcceptedCount();
+      fetchFlaggedCount();  // 👈 ADD
       fetchMasterUnionCount();
       fetchConversationLog();
     }
@@ -873,6 +914,21 @@ useEffect(() => {
                        </div>
                    </div>
                </div>
+
+               <KpiCard 
+  title="Droped" 
+  total={kpiData.flagged.total} 
+  icon={<Flag size={18}/>} 
+  color="red" 
+  onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { flagStatus: 'true' })} 
+/>              
+               <KpiCard 
+  title="Undropped" 
+  total={kpiData.unflagged.total} 
+  icon={<FlagOff size={18}/>} 
+  color="green" 
+  onClick={() => buildFilterUrl(router, fromDate, toDate, isAllData, { flagStatus: 'false' })} 
+/>
             </div>
           </div>
 

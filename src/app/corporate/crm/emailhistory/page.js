@@ -158,7 +158,7 @@ export default function EmailHistoryPage() {
      const [loading, setLoading] = useState(true);
      const [clientsList, setClientsList] = useState([]);
      const [revenueTeamUsers, setRevenueTeamUsers] = useState([]);
-     
+    const [statusFilter, setStatusFilter] = useState("All");   // ✅ Add this
      // PDF Preview State
      const [cvViewer, setCvViewer] = useState({ isOpen: false });
      
@@ -316,50 +316,118 @@ export default function EmailHistoryPage() {
     const clientCompanies = [...new Set(emailData.map(item => item.clientCompany))];
 
     // --- FILTER DATA BASED ON DROPDOWN, DATE RANGE, AND SEARCH TERM ---
-    const filteredData = useMemo(() => {
-        let data = emailData;
+    // const filteredData = useMemo(() => {
+    //     let data = emailData;
 
-        // Filter by client
-        if (selectedClient !== "All") {
-            data = data.filter(row => row.clientCompany === selectedClient);
-        }
+    //     // Filter by client
+    //     if (selectedClient !== "All") {
+    //         data = data.filter(row => row.clientCompany === selectedClient);
+    //     }
 
-        // Filter by date range
-        if (dateRange.start && dateRange.end) {
-            data = data.filter(row => {
-                if (!row.shared_date) return false;
-                const rowDate = new Date(row.shared_date);
-                const startDate = new Date(dateRange.start);
-                const endDate = new Date(dateRange.end);
-                return rowDate >= startDate && rowDate <= endDate;
-            });
-        }
+    //     // Filter by date range
+    //     if (dateRange.start && dateRange.end) {
+    //         data = data.filter(row => {
+    //             if (!row.shared_date) return false;
+    //             const rowDate = new Date(row.shared_date);
+    //             const startDate = new Date(dateRange.start);
+    //             const endDate = new Date(dateRange.end);
+    //             return rowDate >= startDate && rowDate <= endDate;
+    //         });
+    //     }
 
-        // Search Filter (Name or Profile)
-        if (searchTerm) {
-            const term = searchTerm.toLowerCase();
-            data = data.filter(row =>
-                row.name.toLowerCase().includes(term) ||
-                row.profile.toLowerCase().includes(term)
-            );
-        }
+    //     // Search Filter (Name or Profile)
+    //     if (searchTerm) {
+    //         const term = searchTerm.toLowerCase();
+    //         data = data.filter(row =>
+    //             row.name.toLowerCase().includes(term) ||
+    //             row.profile.toLowerCase().includes(term)
+    //         );
+    //     }
 
-        return data;
-    }, [selectedClient, dateRange, searchTerm, emailData]);
+    //     return data;
+    // }, [selectedClient, dateRange, searchTerm, emailData]);
+// ============ BASE DATA (KPI counts ke liye — statusFilter ke bina) ============
+const baseFilteredData = useMemo(() => {
+    let data = emailData;
 
+    if (selectedClient !== "All") {
+        data = data.filter(row => row.clientCompany === selectedClient);
+    }
+
+    if (dateRange.start && dateRange.end) {
+        data = data.filter(row => {
+            if (!row.shared_date) return false;
+            const rowDate = new Date(row.shared_date);
+            const startDate = new Date(dateRange.start);
+            const endDate = new Date(dateRange.end);
+            return rowDate >= startDate && rowDate <= endDate;
+        });
+    }
+
+    if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        data = data.filter(row =>
+            row.name.toLowerCase().includes(term) ||
+            row.profile.toLowerCase().includes(term)
+        );
+    }
+
+    return data;
+}, [selectedClient, dateRange, searchTerm, emailData]);
+
+// ============ TABLE DATA (base + statusFilter) ============
+const filteredData = useMemo(() => {
+    let data = baseFilteredData;
+
+    if (statusFilter === "NoStatus") {
+        // ✅ No Status — jinka currentStatus khaali ya unknown hai
+        const knownStatuses = [
+            'Shortlisted', 'Selected', 'Interviewed', 
+            'Joining', 'Pipeline', 'Ghosted', 'Rejected'
+        ];
+        data = data.filter(row => 
+            !row.currentStatus || 
+            row.currentStatus === '-' || 
+            row.currentStatus === '' ||
+            row.currentStatus === 'null' ||
+            row.currentStatus === 'undefined' ||
+            !knownStatuses.includes(row.currentStatus)
+        );
+    } else if (statusFilter !== "All") {
+        data = data.filter(row => row.currentStatus === statusFilter);
+    }
+
+    return data;
+}, [baseFilteredData, statusFilter]);
     // --- CALCULATE DYNAMIC KPIs ---
-    const kpiCounts = useMemo(() => {
-        return {
-            shared: filteredData.length, // Total rows in the filtered list
-            shortlisted: filteredData.filter(d => d.currentStatus === 'Shortlisted').length,
-            selected: filteredData.filter(d => d.currentStatus === 'Selected').length,
-            interviewed: filteredData.filter(d => d.currentStatus === 'Interviewed').length,       
-            joining: filteredData.filter(d => d.currentStatus === 'Joining').length,
-            pipeline: filteredData.filter(d => d.currentStatus === 'Pipeline').length,
-            ghosted: filteredData.filter(d => d.currentStatus === 'Ghosted').length,
-            rejected: filteredData.filter(d => d.currentStatus === 'Rejected').length, // New KPI added here
-        };
-    }, [filteredData]);
+  // ============ KPI COUNTS (baseFilteredData se — statusFilter se NAHI) ============
+const kpiCounts = useMemo(() => {
+    // ✅ Known statuses list — jo bhi aapke system me valid hain
+    const knownStatuses = [
+        'Shortlisted', 'Selected', 'Interviewed', 
+        'Joining', 'Pipeline', 'Ghosted', 'Rejected'
+    ];
+    
+    return {
+        shared: baseFilteredData.length,
+        shortlisted: baseFilteredData.filter(d => d.currentStatus === 'Shortlisted').length,
+        selected: baseFilteredData.filter(d => d.currentStatus === 'Selected').length,
+        interviewed: baseFilteredData.filter(d => d.currentStatus === 'Interviewed').length,
+        joining: baseFilteredData.filter(d => d.currentStatus === 'Joining').length,
+        pipeline: baseFilteredData.filter(d => d.currentStatus === 'Pipeline').length,
+        ghosted: baseFilteredData.filter(d => d.currentStatus === 'Ghosted').length,
+        rejected: baseFilteredData.filter(d => d.currentStatus === 'Rejected').length,
+        // ✅ NEW: No Status — jinka currentStatus khaali ya unknown hai
+        noStatus: baseFilteredData.filter(d => 
+            !d.currentStatus || 
+            d.currentStatus === '-' || 
+            d.currentStatus === '' ||
+            d.currentStatus === 'null' ||
+            d.currentStatus === 'undefined' ||
+            !knownStatuses.includes(d.currentStatus)
+        ).length,
+    };
+}, [baseFilteredData]);
 
       // --- HANDLERS ---
        const sendToRevenueTeam = (row) => {
@@ -494,29 +562,89 @@ export default function EmailHistoryPage() {
                     </div>
 
                     {/* Clear Filters */}
-                    {(selectedClient !== "All" || dateRange.start || dateRange.end || searchTerm) && (
-                        <button
-                            onClick={() => { setSelectedClient("All"); setDateRange({ start: "", end: "" }); setSearchTerm(""); }}
-                            className="text-[10px] font-bold text-red-600 hover:text-white bg-red-50 hover:bg-red-500 px-3 py-2 rounded-lg uppercase tracking-widest transition-colors shrink-0 ml-1 shadow-sm"
-                            title="Clear Filters"
-                        >
-                            Clear
-                        </button>
-                    )}
+                  {(selectedClient !== "All" || dateRange.start || dateRange.end || searchTerm || statusFilter !== "All") && (
+    <button
+        onClick={() => { 
+            setSelectedClient("All"); 
+            setDateRange({ start: "", end: "" }); 
+            setSearchTerm(""); 
+            setStatusFilter("All");   // ✅ Add
+        }}
+        className="text-[10px] font-bold text-red-600 hover:text-white bg-red-50 hover:bg-red-500 px-3 py-2 rounded-lg uppercase tracking-widest transition-colors shrink-0 ml-1 shadow-sm"
+        title="Clear Filters"
+    >
+        Clear
+    </button>
+)}
                 </div>
             </div>
 
             {/* --- DYNAMIC KPI CARDS --- */}
-            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3 mb-6">
-                <KpiCard title="Tracker Shared" count={kpiCounts.shared} icon={<Mail size={16}/>} color="indigo" />
-                <KpiCard title="Shortlisted" count={kpiCounts.shortlisted} icon={<UserCheck size={16}/>} color="blue" />
-                <KpiCard title="Selected" count={kpiCounts.selected} icon={<CheckCircle2 size={16}/>} color="green" />
-                <KpiCard title="Interviewed" count={kpiCounts.interviewed} icon={<Users size={16}/>} color="amber" />
-                <KpiCard title="Joining" count={kpiCounts.joining} icon={<CheckCircle2 size={16}/>} color="emerald" />
-                <KpiCard title="Pipeline" count={kpiCounts.pipeline} icon={<Clock size={16}/>} color="purple" />
-                <KpiCard title="Ghosted / No Reply" count={kpiCounts.ghosted} icon={<AlertCircle size={16}/>} color="rose" />
-                <KpiCard title="Rejected" count={kpiCounts.rejected} icon={<XCircle size={16}/>} color="red" />
-            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-9 gap-3 mb-6">
+    <KpiCard 
+        title="Tracker Shared" 
+        count={kpiCounts.shared} 
+        color="indigo" 
+        onClick={() => setStatusFilter("All")}
+        isActive={statusFilter === "All"}
+    />
+    <KpiCard 
+        title="Shortlisted" 
+        count={kpiCounts.shortlisted} 
+        color="blue" 
+        onClick={() => setStatusFilter("Shortlisted")}
+        isActive={statusFilter === "Shortlisted"}
+    />
+    <KpiCard 
+        title="Selected" 
+        count={kpiCounts.selected} 
+        color="green" 
+        onClick={() => setStatusFilter("Selected")}
+        isActive={statusFilter === "Selected"}
+    />
+    <KpiCard 
+        title="Interviewed" 
+        count={kpiCounts.interviewed} 
+        color="amber" 
+        onClick={() => setStatusFilter("Interviewed")}
+        isActive={statusFilter === "Interviewed"}
+    />
+    <KpiCard 
+        title="Joining" 
+        count={kpiCounts.joining} 
+        color="emerald" 
+        onClick={() => setStatusFilter("Joining")}
+        isActive={statusFilter === "Joining"}
+    />
+    <KpiCard 
+        title="Pipeline" 
+        count={kpiCounts.pipeline} 
+        color="purple" 
+        onClick={() => setStatusFilter("Pipeline")}
+        isActive={statusFilter === "Pipeline"}
+    />
+    <KpiCard 
+        title="Ghosted / No Reply" 
+        count={kpiCounts.ghosted} 
+        color="rose" 
+        onClick={() => setStatusFilter("Ghosted")}
+        isActive={statusFilter === "Ghosted"}
+    />
+    <KpiCard 
+        title="Rejected" 
+        count={kpiCounts.rejected} 
+        color="red" 
+        onClick={() => setStatusFilter("Rejected")}
+        isActive={statusFilter === "Rejected"}
+    />
+    <KpiCard 
+        title="No Status" 
+        count={kpiCounts.noStatus} 
+        color="slate" 
+        onClick={() => setStatusFilter("NoStatus")}
+        isActive={statusFilter === "NoStatus"}
+    />
+</div>
 
             {/* --- MAIN EMAIL HISTORY TABLE --- */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -1233,7 +1361,35 @@ export default function EmailHistoryPage() {
 }
 
 // --- HELPER COMPONENT: KPI CARD ---
-function KpiCard({ title, count, icon, color }) {
+// function KpiCard({ title, count, icon, color }) {
+//     const colorClasses = {
+//         indigo: "bg-indigo-50 text-indigo-700 border-indigo-100",
+//         blue: "bg-blue-50 text-blue-700 border-blue-100",
+//         amber: "bg-amber-50 text-amber-700 border-amber-100",
+//         emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
+//         purple: "bg-purple-50 text-purple-700 border-purple-100",
+//         rose: "bg-rose-50 text-rose-700 border-rose-100",
+//         red: "bg-red-50 text-red-700 border-red-100",
+//     };
+
+//     const activeColor = colorClasses[color] || colorClasses.indigo;
+
+//     return (
+//         <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+//             <div className="flex items-center gap-3 mb-2">
+//                 <div className={`p-2 rounded-lg ${activeColor} border shrink-0`}>
+//                     {icon}
+//                 </div>
+//                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-tight">{title}</p>
+//             </div>
+//             <div className="flex items-end justify-between mt-1 pl-1">
+//                 <h3 className="text-2xl font-black text-slate-800 leading-none">{count}</h3>
+//             </div>
+//         </div>
+//     );
+// }
+
+function KpiCard({ title, count, color, onClick, isActive }) {
     const colorClasses = {
         indigo: "bg-indigo-50 text-indigo-700 border-indigo-100",
         blue: "bg-blue-50 text-blue-700 border-blue-100",
@@ -1242,20 +1398,40 @@ function KpiCard({ title, count, icon, color }) {
         purple: "bg-purple-50 text-purple-700 border-purple-100",
         rose: "bg-rose-50 text-rose-700 border-rose-100",
         red: "bg-red-50 text-red-700 border-red-100",
+        slate: "bg-slate-100 text-slate-600 border-slate-200",
     };
 
     const activeColor = colorClasses[color] || colorClasses.indigo;
 
     return (
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
-            <div className="flex items-center gap-3 mb-2">
-                <div className={`p-2 rounded-lg ${activeColor} border shrink-0`}>
-                    {icon}
-                </div>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-tight">{title}</p>
+        <div
+            onClick={onClick}
+            className={`p-3.5 rounded-xl border-2 shadow-sm transition-all flex flex-col justify-between ${
+                onClick ? 'cursor-pointer hover:shadow-lg hover:-translate-y-0.5' : 'cursor-default'
+            } ${
+                isActive
+                    ? 'bg-indigo-50 border-indigo-400 ring-2 ring-indigo-200'
+                    : 'bg-white border-slate-200'
+            }`}
+        >
+            {/* Title with color accent bar */}
+            <div className="flex items-center gap-2 mb-2">
+                <div className={`w-1 h-4 rounded-full ${activeColor.split(' ')[0]}`}></div>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-tight">
+                    {title}
+                </p>
             </div>
+
+            {/* Count */}
             <div className="flex items-end justify-between mt-1 pl-1">
-                <h3 className="text-2xl font-black text-slate-800 leading-none">{count}</h3>
+                <h3 className={`text-2xl font-black leading-none ${isActive ? 'text-indigo-700' : 'text-slate-800'}`}>
+                    {count}
+                </h3>
+                {isActive && (
+                    <span className="text-[9px] font-black text-indigo-600 bg-white border border-indigo-200 px-1.5 py-0.5 rounded uppercase">
+                        Filter ON
+                    </span>
+                )}
             </div>
         </div>
     );
