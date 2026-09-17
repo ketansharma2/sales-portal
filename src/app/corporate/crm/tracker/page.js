@@ -402,6 +402,7 @@ const normalizeTrackerDate = (value) => {
                         tlEvaluation: item.cv_status ? `${item.cv_status}${item.tl_remarks ? ' - ' + item.tl_remarks : ''}` : '-',
                         emailCount: item.email_count || 0,
                         crmFeedback: "",
+                        latestInterviewStatus: item.latest_interview_status || null,
                     }));
                     setCrmData(transformed);
                 }
@@ -1153,6 +1154,7 @@ const normalizeTrackerDate = (value) => {
                     <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600 w-[100px]">Exp & Rel Exp</th>
                     <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600 w-[140px]">CTC (Current / Expected)</th>
                     <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600 w-[200px]">TL Evaluation</th>
+                    <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest border-b border-slate-600 w-[150px]">Latest Status</th>
                     <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest text-center border-b border-slate-600 w-[80px]">Updated CV</th>
                     
                     {/* Action Column */}
@@ -1239,9 +1241,40 @@ const normalizeTrackerDate = (value) => {
                             {/* TL Evaluation */}
                             <td className="py-2 px-3 overflow-hidden">
                                 <p className="text-[9px] font-medium text-slate-600 italic leading-snug border-l-2 border-amber-400 pl-2 truncate w-full" title={row.tlEvaluation}>
-                                    "{row.tlEvaluation}"
+                                    {row.tlEvaluation}
                                 </p>
                             </td>
+                            {/* 👇 NEW: Latest Interview Status */}
+<td className="py-2 px-3 overflow-hidden">
+    {row.latestInterviewStatus ? (
+        <div className="flex flex-col gap-0.5">
+            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border w-fit ${
+                row.latestInterviewStatus === 'Selected' ? 'bg-green-50 text-green-700 border-green-200' :
+                row.latestInterviewStatus === 'Shortlisted' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                row.latestInterviewStatus === 'Interviewed' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                row.latestInterviewStatus === 'Joining' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                row.latestInterviewStatus === 'Pipeline' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                row.latestInterviewStatus === 'Ghosted' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                row.latestInterviewStatus === 'Rejected' ? 'bg-red-50 text-red-700 border-red-200' :
+                'bg-slate-50 text-slate-600 border-slate-200'
+            }`}>
+                {row.latestInterviewStatus}
+            </span>
+            {row.latestInterviewDate && (
+                <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
+                    <Calendar size={8} /> {row.latestInterviewDate}
+                </span>
+            )}
+            {row.latestInterviewRemark && (
+                <p className="text-[8px] font-medium text-slate-500 italic truncate" title={row.latestInterviewRemark}>
+                    {row.latestInterviewRemark}
+                </p>
+            )}
+        </div>
+    ) : (
+        <span className="text-[9px] font-bold text-slate-400">-</span>
+    )}
+</td>
 
                             {/* View CV File */}
                             <td className="py-2 px-3 text-center">

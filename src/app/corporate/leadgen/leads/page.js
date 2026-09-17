@@ -398,7 +398,8 @@ useEffect(() => {
       subStatus: "All",
       franchiseStatus: "All",
       startup: "All",
-       projection: "All"  // Add this line
+       projection: "All",  // Add this line
+       currentlyFlag: "All"
     });
 
     // --- REAL-TIME FILTER LOGIC ---
@@ -438,9 +439,12 @@ useEffect(() => {
             (newFilters.subStatus === "Contract Share" ? lead.everContractShare : ((lead.subStatus || '').trim().toLowerCase()) === (newFilters.subStatus || '').trim().toLowerCase());
           const matchFranchiseStatus = newFilters.franchiseStatus === "All" || ((lead.franchiseStatus || '').trim().toLowerCase()) === (newFilters.franchiseStatus || '').trim().toLowerCase();
           const matchStartup = newFilters.startup === "All" || ((lead.startup || '').trim().toLowerCase()) === (newFilters.startup || '').trim().toLowerCase();
+          // ✅ NEW: Currently Flag filter
+const matchCurrentlyFlag = newFilters.currentlyFlag === "All" ||
+  (newFilters.currentlyFlag === "Flagged" && lead.currently_flag === true);
           const matchProjection = newFilters.projection === "All" || 
   ((lead.projection || '').trim().toLowerCase() === (newFilters.projection || '').trim().toLowerCase());
-         return isAfterFrom && isBeforeTo && matchCompany && matchLocation && matchStatus && matchSubStatus && matchFranchiseStatus && matchStartup && matchProjection;
+         return isAfterFrom && isBeforeTo && matchCompany && matchLocation && matchStatus && matchSubStatus && matchFranchiseStatus && matchStartup && matchProjection && matchCurrentlyFlag;
       });
 
       setLeads(filtered);
@@ -479,9 +483,11 @@ useEffect(() => {
            (filters.subStatus === "Contract Share" ? lead.everContractShare : ((lead.subStatus || '').trim().toLowerCase()) === (filters.subStatus || '').trim().toLowerCase());
          const matchFranchiseStatus = filters.franchiseStatus === "All" || ((lead.franchiseStatus || '').trim().toLowerCase()) === (filters.franchiseStatus || '').trim().toLowerCase();
          const matchStartup = filters.startup === "All" || ((lead.startup || '').trim().toLowerCase()) === (filters.startup || '').trim().toLowerCase();
+         const matchCurrentlyFlag = filters.currentlyFlag === "All" ||
+  (filters.currentlyFlag === "Flagged" && lead.currently_flag === true);
         const matchProjection = filters.projection === "All" || 
   ((lead.projection || '').trim().toLowerCase() === (filters.projection || '').trim().toLowerCase());
-        return isAfterFrom && isBeforeTo && matchCompany && matchLocation && matchStatus && matchSubStatus && matchFranchiseStatus && matchStartup && matchProjection;
+        return isAfterFrom && isBeforeTo && matchCompany && matchLocation && matchStatus && matchSubStatus && matchFranchiseStatus && matchStartup && matchProjection && matchCurrentlyFlag;
      });
 
      setLeads(filtered);
@@ -498,7 +504,8 @@ useEffect(() => {
         subStatus: "All",
         franchiseStatus: "All",
         startup: "All",
-        projection: "All" 
+        projection: "All" ,
+        currentlyFlag: "All" 
       });
       setLeads(allLeads);
     };
@@ -908,12 +915,27 @@ if (editingInteractionId) {
                <div className="relative">
                  <select
                    className="w-full pl-3 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:border-[#103c7f] outline-none appearance-none cursor-pointer"
-                   onChange={(e) => handleFilterChange("startup", e.target.value)}
+                   onChange={(e) => {
+    const val = e.target.value;
+
+    // ✅ Pehle dono reset karo
+    setFilters(prev => ({ ...prev, startup: "All", currentlyFlag: "All" }));
+
+    if (val.startsWith('startup:')) {
+      handleFilterChange("startup", val.replace('startup:', ''));
+    } else if (val.startsWith('flag:')) {
+      handleFilterChange("currentlyFlag", val.replace('flag:', ''));
+    }
+  }}
                  >
-                   <option>All</option>
-                   <option>Yes</option>
-                   <option>No</option>
-                   <option>Master Union</option>
+                   <optgroup label="Startup">
+        <option value="startup:Yes">Yes</option>
+        <option value="startup:No">No</option>
+        <option value="startup:Master Union">Master Union</option>
+      </optgroup>
+      <optgroup label="Currently Flag">
+        <option value="flag:Flagged">DROP</option>
+      </optgroup>
                  </select>
                </div>
             </div>
