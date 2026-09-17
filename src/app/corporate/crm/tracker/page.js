@@ -185,6 +185,7 @@ function CRMClientTrackerPage() {
     end: searchParams.get('endDate') || ""
 });
     const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("");
     const [tlUsers, setTlUsers] = useState([]);
 
 
@@ -194,10 +195,10 @@ useEffect(() => {
     if (selectedTL) params.set('tl', selectedTL);
     if (dateRange.start) params.set('startDate', dateRange.start);
     if (dateRange.end) params.set('endDate', dateRange.end);
-
+    if (statusFilter) params.set('status', statusFilter);
     const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
     window.history.replaceState({}, '', newUrl);
-}, [selectedTL, dateRange]);
+}, [selectedTL, dateRange, statusFilter]);
     // Fetch TL users for dropdown
     useEffect(() => {
         const fetchTlUsers = async () => {
@@ -326,7 +327,7 @@ const normalizeTrackerDate = (value) => {
     // }, [crmData, selectedTL, dateRange, searchTerm]);
 
 
-    const filteredCrmData = useMemo(() => {
+const filteredCrmData = useMemo(() => {
   return crmData.filter((row) => {
     // TL filter
     if (selectedTL && row.tlName !== selectedTL) {
@@ -346,6 +347,17 @@ const normalizeTrackerDate = (value) => {
       }
 
       if (dateRange.end && dateStr > dateRange.end) {
+        return false;
+      }
+    }
+
+    // 👇 NEW: Status filter
+    if (statusFilter) {
+      const currentStatus = row.latestInterviewStatus || 'No Status';
+      if (statusFilter === 'NoStatus') {
+        // No Status — jinka latest interview status null hai
+        if (row.latestInterviewStatus) return false;
+      } else if (currentStatus !== statusFilter) {
         return false;
       }
     }
@@ -371,6 +383,7 @@ const normalizeTrackerDate = (value) => {
   crmData,
   selectedTL,
   dateRange,
+  statusFilter, // 👈 ADD
   searchTerm,
 ]);
 
@@ -1060,19 +1073,25 @@ const normalizeTrackerDate = (value) => {
                             />
                         </div>
                         {/* TL Filter */}
-                        <div className="flex items-center gap-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">TL:</label>
-                            <select 
-                                className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer max-w-[150px]"
-                                value={selectedTL}
-                                onChange={(e) => setSelectedTL(e.target.value)}
-                            >
-                                <option value="">All TLs</option>
-                                {tlUsers.map(tl => (
-                                    <option key={tl.user_id} value={tl.name}>{tl.name}</option>
-                                ))}
-                            </select>
-                        </div>
+                        {/* 👇 NEW: Latest Status Filter */}
+<div className="flex items-center gap-2">
+    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Status:</label>
+    <select 
+        className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer max-w-[150px]"
+        value={statusFilter}
+        onChange={(e) => setStatusFilter(e.target.value)}
+    >
+        <option value="">All Status</option>
+        <option value="Shortlisted">Shortlisted</option>
+        <option value="Selected">Selected</option>
+        <option value="Interviewed">Interviewed</option>
+        <option value="Joining">Joining</option>
+        <option value="Pipeline">Pipeline</option>
+        <option value="Ghosted">Ghosted</option>
+        <option value="Rejected">Rejected</option>
+        <option value="NoStatus">No Status</option>
+    </select>
+</div>
 
                         {/* Date Range Filter */}
                         <div className="flex items-center gap-2">
@@ -1095,14 +1114,19 @@ const normalizeTrackerDate = (value) => {
                         </div>
 
                         {/* Clear Filters */}
-                        {(selectedTL || dateRange.start || dateRange.end || searchTerm) && (
-                            <button
-                                onClick={() => { setSelectedTL(""); setDateRange({ start: "", end: "" }); setSearchTerm(""); }}
-                                className="text-[10px] font-bold text-red-600 hover:text-red-800 uppercase tracking-widest"
-                            >
-                                Clear
-                            </button>
-                        )}
+                       {(selectedTL || dateRange.start || dateRange.end || searchTerm || statusFilter) && (
+    <button
+        onClick={() => { 
+            setSelectedTL(""); 
+            setDateRange({ start: "", end: "" }); 
+            setSearchTerm(""); 
+            setStatusFilter(""); // 👈 ADD
+        }}
+        className="text-[10px] font-bold text-red-600 hover:text-red-800 uppercase tracking-widest"
+    >
+        Clear
+    </button>
+)}
                     </div>
 
                     {/* Bulk Actions (Appears when rows are selected) */}
