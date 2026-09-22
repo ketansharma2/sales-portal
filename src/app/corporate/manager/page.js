@@ -6,7 +6,7 @@ import {
   TrendingUp, Calendar, Filter,MessageSquare,
   Search, Activity, Phone, Ghost, AlertCircle, Copy,
   UserCheck, Headset, PhoneCall, CalendarDays, Database, Clock,
-  PhoneOutgoing, PhoneIncoming, PhoneMissed, Send, FileText, Briefcase, Award, Rocket
+  PhoneOutgoing, PhoneIncoming, PhoneMissed, Send, FileText, Briefcase, Award, Rocket, XCircle, Ban  // 👈 ADD
 } from "lucide-react";
 import * as API from '@/lib/api-client';
 // --- Helper function to build filter URL ---
@@ -96,7 +96,19 @@ export default function SalesManagerDashboard() {
          wpLess50: '-',
          wpGreater50: '-'
      }
-    }
+    },
+    managerKpis: {
+  onboardTeam: '-',
+  managerCalls: '-',
+  sendToCRM: '-',
+  dpm: '-',
+  interested: '-',
+  interaction: '-',
+  notInterested: '-',
+  notPicked: '-',
+  callBack: '-',
+  abandoned: '-',
+}
   });
 
   const fetchProjectionsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
@@ -341,6 +353,36 @@ export default function SalesManagerDashboard() {
       console.error('Error fetching startup calls:', error);
     }
   };
+
+const fetchManagerKpis = async () => {
+  try {
+    const params = new URLSearchParams();
+
+    if (fromDate && toDate) {
+      params.append("fromDate", fromDate);
+      params.append("toDate", toDate);
+    }
+
+    const response = await fetch(
+      `/api/corporate/manager/manager-kpis?${params.toString()}`
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data?.error || "Failed to fetch Manager KPIs"
+      );
+    }
+
+    setStats((prev) => ({
+      ...prev,
+      managerKpis: data.managerKpis,
+    }));
+  } catch (error) {
+    console.error("Manager KPI error:", error);
+  }
+};
 
   // Fetch Master Union leads count
   const fetchMasterUnionLeadsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
@@ -916,6 +958,7 @@ const navigateToDetails = (filters = {}) => {
       fetchMasterUnionCallsCount(false),
       fetchConversationLog(false),
       fetchProjectionsCount(false),
+      fetchManagerKpis(),
     ]);
     setLoading(false);
     setIsFetching(false);
@@ -926,6 +969,13 @@ const navigateToDetails = (filters = {}) => {
       fetchDashboard();
     }
   }, [mounted, leadGenTeam.length]);
+
+
+  useEffect(() => {
+  if (mounted && activeTab === "Manager") {
+    fetchManagerKpis();
+  }
+}, [mounted, activeTab]);
 
   useEffect(() => {
     if (mounted && leadGenTeam.length > 0 && selectedAgent && !isFetching) {
@@ -1292,6 +1342,152 @@ const navigateToDetails = (filters = {}) => {
                     </div>
                 )}
 
+{/* ========================================= */}
+{/* TAB 3: MANAGER CONTENT */}
+{/* ========================================= */}
+{activeTab === "Manager" && (
+  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 mt-4 space-y-4">
+    
+    {/* ========================================= */}
+    {/* SECTION 1: TEAM FLOW TREE                 */}
+    {/* ========================================= */}
+    <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-2xl shadow-sm w-full">
+      <div className="flex items-center gap-2 mb-4">
+        <Users size={16} className="text-indigo-700" />
+        <h2 className="text-xs font-black text-indigo-700 uppercase tracking-widest">
+          1. Team Flow Overview
+        </h2>
+      </div>
+
+      {/* ============ TREE STRUCTURE START ============ */}
+      <div className="flex flex-col items-center py-4">
+        
+        {/* ROOT: TEAM / SPAN MANAGER */}
+        <div className="bg-[#103c7f] text-white rounded-xl px-6 py-3 shadow-md border-2 border-indigo-300 text-center min-w-[200px]">
+          <p className="text-[9px] font-black uppercase tracking-widest text-indigo-200 leading-tight">Team Span Manager</p>
+          <h3 className="text-sm font-black uppercase tracking-tight mt-0.5">1</h3>
+        </div>
+
+        {/* Vertical Line */}
+        <div className="w-0.5 h-6 bg-slate-300"></div>
+
+        {/* Horizontal Split Line */}
+        <div className="relative w-full max-w-2xl flex justify-center">
+          <div className="absolute top-0 left-1/4 right-1/4 h-0.5 bg-slate-300"></div>
+          <div className="absolute top-0 left-1/4 w-0.5 h-6 bg-slate-300"></div>
+          <div className="absolute top-0 right-1/4 w-0.5 h-6 bg-slate-300"></div>
+          <div className="w-full h-6"></div>
+        </div>
+
+        {/* TWO BRANCHES */}
+        <div className="grid grid-cols-2 gap-12 md:gap-20 w-full max-w-2xl">
+          
+          {/* LEFT BRANCH: ONBOARD TEAM */}
+          <div className="flex flex-col items-center">
+            {/* Onboard Team Node */}
+            <div className="bg-teal-500 text-white rounded-xl px-5 py-3 shadow-md border-2 border-teal-300 w-full text-center">
+              <p className="text-[9px] font-black uppercase tracking-widest text-teal-100">Onboard Team</p>
+              <h3 className="text-2xl font-black mt-0.5">{stats?.managerKpis?.onboard ?? '-'}</h3>
+            </div>
+
+            {/* Vertical Line */}
+            <div className="w-0.5 h-6 bg-slate-300"></div>
+
+            {/* Send to CRM Node */}
+            <div className="bg-blue-500 text-white rounded-xl px-5 py-3 shadow-md border-2 border-blue-300 w-full text-center">
+              <p className="text-[9px] font-black uppercase tracking-widest text-blue-100">Send to CRM</p>
+              <h3 className="text-2xl font-black mt-0.5">{stats?.managerKpis?.sendToCRM ?? '-'}</h3>
+            </div>
+          </div>
+
+          {/* RIGHT BRANCH: MANAGER CALLS */}
+          <div className="flex flex-col items-center">
+            {/* Manager Calls Node */}
+            <div className="bg-purple-500 text-white rounded-xl px-5 py-3 shadow-md border-2 border-purple-300 w-full text-center">
+              <p className="text-[9px] font-black uppercase tracking-widest text-purple-100">Manager Dependent</p>
+              <h3 className="text-2xl font-black mt-0.5">{stats?.managerKpis?.managerCalls ?? '-'}</h3>
+            </div>
+
+            {/* Vertical Line */}
+            <div className="w-0.5 h-6 bg-slate-300"></div>
+
+            {/* Horizontal Split */}
+            <div className="relative w-full flex justify-center">
+              <div className="absolute top-0 left-1/4 right-1/4 h-0.5 bg-slate-300"></div>
+              <div className="absolute top-0 left-1/4 w-0.5 h-6 bg-slate-300"></div>
+              <div className="absolute top-0 right-1/4 w-0.5 h-6 bg-slate-300"></div>
+              <div className="w-full h-6"></div>
+            </div>
+
+            {/* DPM + INTERESTED */}
+            <div className="grid grid-cols-2 gap-3 w-full">
+              <div className="bg-orange-500 text-white rounded-xl px-3 py-3 shadow-md border-2 border-orange-300 text-center">
+                <p className="text-[9px] font-black uppercase tracking-widest text-orange-100">Pending</p>
+                <h3 className="text-xl font-black mt-0.5">{stats?.managerKpis?.dpm ?? '-'}</h3>
+              </div>
+              <div className="bg-emerald-500 text-white rounded-xl px-3 py-3 shadow-md border-2 border-emerald-300 text-center">
+                <p className="text-[9px] font-black uppercase tracking-widest text-emerald-100">Interacted</p>
+                <h3 className="text-xl font-black mt-0.5">{stats?.managerKpis?.interested ?? '-'}</h3>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* ============ TREE STRUCTURE END ============ */}
+    </div>
+
+    {/* ========================================= */}
+    {/* SECTION 2: INTERACTION STATUS KPI         */}
+    {/* ========================================= */}
+    <div className="bg-emerald-50/40 border border-emerald-100 p-4 rounded-2xl shadow-sm w-full">
+      <div className="flex items-center gap-2 mb-4">
+        <TrendingUp size={16} className="text-emerald-700" />
+        <h2 className="text-xs font-black text-emerald-700 uppercase tracking-widest">
+          2. Interaction Status KPI
+        </h2>
+      </div>
+
+      {/* KPI Row — 4 cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+        <KpiCard
+          title="Interested"
+          total={stats?.managerKpis?.interaction ?? '-'}
+          icon={<UserCheck size={18} />}
+          color="blue"
+        />
+        <KpiCard
+          title="Not Interested"
+          total={stats?.managerKpis?.notInterested ?? '-'}
+          icon={<XCircle size={18} />}
+          color="red"
+        />
+        <KpiCard
+          title="Not Picked"
+          total={stats?.managerKpis?.notPicked ?? '-'}
+          icon={<PhoneMissed size={18} />}
+          color="orange"
+        />
+        <KpiCard
+          title="Call Back"
+          total={stats?.managerKpis?.callBack ?? '-'}
+          icon={<PhoneIncoming size={18} />}
+          color="purple"
+        />
+      </div>
+
+      {/* Abandoned — separate row (jaisa aapke diagram mein tha) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KpiCard
+          title="onboard"
+          total={stats?.managerKpis?.onboard ?? '-'}
+          icon={<Ban size={18} />}
+          color="teal"
+        />
+      </div>
+    </div>
+
+  </div>
+)}
             </div>
         )}
       </div>
@@ -1417,7 +1613,63 @@ function KpiCard({ title, total, icon, color, onClick }) {
         </div>
     );
 }
+/* ==================== INTERACTION KPI CARD ==================== */
+function InteractionKpiCard({ title, value, icon, color }) {
+  const colorClasses = {
+    blue: {
+      bg: "bg-blue-50",
+      border: "border-blue-200",
+      icon: "bg-blue-100 text-blue-600 border-blue-200",
+      value: "text-blue-700",
+    },
+    rose: {
+      bg: "bg-rose-50",
+      border: "border-rose-200",
+      icon: "bg-rose-100 text-rose-600 border-rose-200",
+      value: "text-rose-700",
+    },
+    amber: {
+      bg: "bg-amber-50",
+      border: "border-amber-200",
+      icon: "bg-amber-100 text-amber-600 border-amber-200",
+      value: "text-amber-700",
+    },
+    purple: {
+      bg: "bg-purple-50",
+      border: "border-purple-200",
+      icon: "bg-purple-100 text-purple-600 border-purple-200",
+      value: "text-purple-700",
+    },
+    slate: {
+      bg: "bg-slate-50",
+      border: "border-slate-200",
+      icon: "bg-slate-100 text-slate-600 border-slate-200",
+      value: "text-slate-700",
+    },
+    emerald: {
+      bg: "bg-emerald-50",
+      border: "border-emerald-200",
+      icon: "bg-emerald-100 text-emerald-600 border-emerald-200",
+      value: "text-emerald-700",
+    },
+  };
 
+  const c = colorClasses[color] || colorClasses.slate;
+
+  return (
+    <div className={`${c.bg} ${c.border} border-2 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center`}>
+      <div className={`w-12 h-12 rounded-full ${c.icon} border-2 flex items-center justify-center mb-3 shadow-sm`}>
+        {icon}
+      </div>
+      <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest leading-tight mb-2">
+        {title}
+      </p>
+      <h3 className={`text-3xl font-black ${c.value} leading-none`}>
+        {value}
+      </h3>
+    </div>
+  );
+}
 function SearchIcon() {
     return (
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
