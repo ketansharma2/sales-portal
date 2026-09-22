@@ -508,15 +508,15 @@ export async function GET(request) {
         .select(`
           client_id,
           leadgen_id,
-          sourcing_date
+          created_at
         `)
         .in("leadgen_id", leadgenIds);
 
       // Apply date filter only when dates are provided
       if (fromDate && toDate) {
         leadgenQuery = leadgenQuery
-          .gte("sourcing_date", fromDate)
-          .lte("sourcing_date", toDate);
+          .gte("created_at", fromDate)
+          .lte("created_at", toDate);
       }
 
       const {
@@ -680,8 +680,8 @@ export async function GET(request) {
       if (fromDate && toDate) {
         managerInteractionQuery =
           managerInteractionQuery
-            .gte("date", fromDate)
-            .lte("date", toDate);
+            .gte("created_at", fromDate)
+            .lte("created_at", toDate);
       }
 
       const {
@@ -827,6 +827,7 @@ export async function GET(request) {
             leadgen_id,
             date,
             status,
+            created_at,
             sub_status,
             created_at
           `)
@@ -839,8 +840,8 @@ export async function GET(request) {
       if (fromDate && toDate) {
         leadgenInteractionQuery =
           leadgenInteractionQuery
-            .gte("date", fromDate)
-            .lte("date", toDate);
+            .gte("created_at", fromDate)
+            .lte("created_at", toDate);
       }
 
       const {
