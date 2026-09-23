@@ -149,7 +149,7 @@ function CVPreview({ url, name }) {
 
 export default function EmailHistoryPage() {
       // --- STATE ---
-      const [selectedClient, setSelectedClient] = useState("All");
+const [selectedClientId, setSelectedClientId] = useState("All");
       const [dateRange, setDateRange] = useState({ start: "", end: "" });
       const [searchTerm, setSearchTerm] = useState("");
      const [modalType, setModalType] = useState(null);
@@ -350,8 +350,8 @@ export default function EmailHistoryPage() {
 const baseFilteredData = useMemo(() => {
     let data = emailData;
 
-    if (selectedClient !== "All") {
-        data = data.filter(row => row.clientCompany === selectedClient);
+    if (selectedClientId !== "All") {
+        data = data.filter(row => row.client_id === selectedClientId);
     }
 
     if (dateRange.start && dateRange.end) {
@@ -373,7 +373,7 @@ const baseFilteredData = useMemo(() => {
     }
 
     return data;
-}, [selectedClient, dateRange, searchTerm, emailData]);
+}, [selectedClientId, dateRange, searchTerm, emailData]);
 
 // ============ TABLE DATA (base + statusFilter) ============
 const filteredData = useMemo(() => {
@@ -530,12 +530,12 @@ const kpiCounts = useMemo(() => {
                     </label>
                     <select 
                         className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all w-full"
-                        value={selectedClient} 
-                        onChange={(e) => setSelectedClient(e.target.value)}
+                        value={selectedClientId} 
+                        onChange={(e) => setSelectedClientId(e.target.value)}
                     >
                         <option value="All">All Clients (Overall View)</option>
                         <optgroup label="Specific Companies">
-                            {clientsList.map(c => <option key={c.client_id} value={c.company_name}>{c.company_name}</option>)}
+                            {clientsList.map(c => <option key={c.client_id} value={c.client_id}>{c.company_name}</option>)}
                         </optgroup>
                     </select>
                 </div>
@@ -562,10 +562,10 @@ const kpiCounts = useMemo(() => {
                     </div>
 
                     {/* Clear Filters */}
-                  {(selectedClient !== "All" || dateRange.start || dateRange.end || searchTerm || statusFilter !== "All") && (
+                  {(selectedClientId !== "All" || dateRange.start || dateRange.end || searchTerm || statusFilter !== "All") && (
     <button
         onClick={() => { 
-            setSelectedClient("All"); 
+            setSelectedClientId("All"); 
             setDateRange({ start: "", end: "" }); 
             setSearchTerm(""); 
             setStatusFilter("All");   // ✅ Add
