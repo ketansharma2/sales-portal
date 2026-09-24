@@ -508,6 +508,7 @@ export async function GET(request) {
         .select(`
           client_id,
           leadgen_id,
+          sent_to_sm,
           created_at
         `)
         .in("leadgen_id", leadgenIds);
@@ -545,6 +546,18 @@ export async function GET(request) {
       leadgenLeads = data || [];
     }
 
+    const sentToSMLeads =
+  leadgenLeads.filter(
+    (lead) =>
+      lead.sent_to_sm === true
+  );
+
+const sentToSMClientIds =
+  new Set(
+    sentToSMLeads
+      .map((lead) => lead.client_id)
+      .filter(Boolean)
+  );
     // =====================================================
     // 6. Onboard Team
     // =====================================================
@@ -614,8 +627,8 @@ export async function GET(request) {
     // 8. Manager Calls
     // =====================================================
 
-    const managerCalls =
-      managerLeadRows.length;
+    // const managerCalls =
+    //   managerLeadRows.length;
 
     const managerClientIds =
       new Set(
@@ -735,7 +748,7 @@ export async function GET(request) {
       );
 
     const interacted =
-      interactedClientIds.size;
+      sentToSMClientIds.size;
 
     // =====================================================
     // 12. Pending
@@ -885,6 +898,7 @@ export async function GET(request) {
 
     const onboardClientIds =
       new Set();
+    const nonOnboardClientIds = new Set();
 
     for (
       const interactionRow of
@@ -895,14 +909,16 @@ export async function GET(request) {
           interactionRow.status
         );
 
-      if (
-        status === "onboard"
-      ) {
-        onboardClientIds.add(
-          interactionRow.client_id
-        );
-      }
+      if (status === "onboard") {
+    onboardClientIds.add(interactionRow.client_id);
+  } else {
+    nonOnboardClientIds.add(interactionRow.client_id);
+  }
     }
+
+
+    const managerCalls =
+   nonOnboardClientIds.size;
 
     // =====================================================
     // 18. Latest LeadGen Interaction Per Client
@@ -970,9 +986,9 @@ export async function GET(request) {
         notPicked++;
       } else if (
         currentStatus ===
-          "call back" ||
+          "call later" ||
         currentStatus ===
-          "callback"
+          "Call Later"
       ) {
         callBack++;
       }
@@ -984,7 +1000,9 @@ export async function GET(request) {
 
     const onboard =
       onboardClientIds.size;
+    
 
+    const pendingCount =  managerCalls-interacted;  
     // =====================================================
     // 21. Final Response
     // =====================================================
@@ -1014,7 +1032,7 @@ export async function GET(request) {
         managerCalls,
 
         // Pending
-        dpm: pending,
+        dpm: pendingCount,
 
         // Existing frontend compatibility
         interested: interacted,
