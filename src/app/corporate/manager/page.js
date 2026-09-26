@@ -47,12 +47,13 @@ export default function SalesManagerDashboard() {
   const [loading, setLoading] = useState(true);
   const [latestDate, setLatestDate] = useState("");
   const [isFetching, setIsFetching] = useState(false); // Flag to prevent duplicate calls
-
+  const [selectedManagerKpi, setSelectedManagerKpi] = useState('all');
   const currentMonth = new Date().toLocaleString('default', { month: 'long' }).toUpperCase();
 
   const [leadGenTeam, setLeadGenTeam] = useState([]);
   const [leadGenLoading, setLeadGenLoading] = useState(true);
-
+  const [managerCurrentPage, setManagerCurrentPage] = useState(1);
+  const managerPageSize = 10;
   const leadGenList = leadGenTeam.map(lg => lg.name);
   const leadGenIdList = leadGenTeam.map(lg => lg.user_id);
 
@@ -378,6 +379,7 @@ const fetchManagerKpis = async () => {
     setStats((prev) => ({
       ...prev,
       managerKpis: data.managerKpis,
+      leads: data.leads || [],
     }));
   } catch (error) {
     console.error("Manager KPI error:", error);
@@ -971,11 +973,12 @@ const navigateToDetails = (filters = {}) => {
   }, [mounted, leadGenTeam.length]);
 
 
-  useEffect(() => {
+useEffect(() => {
   if (mounted && activeTab === "Manager") {
     fetchManagerKpis();
+    setManagerCurrentPage(1);
   }
-}, [mounted, activeTab]);
+}, [mounted, activeTab, fromDate, toDate]);
 
   useEffect(() => {
     if (mounted && leadGenTeam.length > 0 && selectedAgent && !isFetching) {
@@ -1019,6 +1022,115 @@ const navigateToDetails = (filters = {}) => {
 
   if (!mounted) return null;
 
+const getManagerKpiPriority = (lead) => {
+  const status = String(lead.status || '')
+    .trim()
+    .toLowerCase();
+
+  const subStatus = String(lead.subStatus || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ');
+
+  if (status === 'interested') return 1;
+
+  if (status === 'onboard') return 2;
+
+  if (
+    status === 'call later' ||
+    status === 'callback' ||
+    status === 'call back'
+  ) {
+    return 3;
+  }
+
+  if (
+    status === 'new'
+   
+  ) {
+    return 4;
+  }
+
+  if (
+    status === 'not picked' ||
+    status === 'not picked call'
+   
+  ) {
+    return 5;
+  }
+
+  if (status === 'not interested') return 6;
+
+  if (!subStatus) return 7;
+
+  if (subStatus === 'contract share') return 8;
+
+  return 99;
+};
+
+const getManagerKpiLeads = () => {
+  const leads = stats?.leads || [];
+
+  if (selectedManagerKpi === 'all') {
+    return leads;
+  }
+
+  return leads.filter((lead) => {
+    const status = String(lead.status || '')
+      .trim()
+      .toLowerCase();
+
+    const subStatus = String(lead.subStatus || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ');
+
+    switch (selectedManagerKpi) {
+      case 'interested':
+        return status === 'interested';
+
+      case 'notInterested':
+        return status === 'not interested';
+
+      case 'notPicked':
+        return (
+          status === 'not picked' ||
+          status === 'not picked call'
+        );
+
+      case 'callBack':
+        return (
+          status === 'call later' ||
+          status === 'callback' ||
+          status === 'call back'
+        );
+
+      case 'onboard':
+        return status === 'onboard';
+
+      case 'new':
+        return (
+          status === 'new'
+        );
+
+      default:
+        return true;
+    }
+  });
+};
+
+const managerFilteredLeads = getManagerKpiLeads();
+
+const managerTotalPages = Math.ceil(
+  managerFilteredLeads.length / managerPageSize
+);
+
+const managerPaginatedLeads = managerFilteredLeads.slice(
+  (managerCurrentPage - 1) * managerPageSize,
+  managerCurrentPage * managerPageSize
+);
   return (
     <div className="p-2 md:p-4 bg-[#f8fafc] font-['Calibri'] min-h-screen text-slate-800 flex flex-col">
       <div className="max-w-8xl mx-auto w-full space-y-4">
@@ -1427,7 +1539,7 @@ const navigateToDetails = (filters = {}) => {
               </div>
               <div className="bg-emerald-500 text-white rounded-xl px-3 py-3 shadow-md border-2 border-emerald-300 text-center">
                 <p className="text-[9px] font-black uppercase tracking-widest text-emerald-100">Interacted</p>
-                <h3 className="text-xl font-black mt-0.5">{stats?.managerKpis?.interested ?? '-'}</h3>
+                <h3 className="text-xl font-black mt-0.5">{stats?.managerKpis?.interaction ?? '-'}</h3>
               </div>
             </div>
           </div>
@@ -1451,28 +1563,45 @@ const navigateToDetails = (filters = {}) => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
         <KpiCard
           title="Interested"
-          total={stats?.managerKpis?.interaction ?? '-'}
+          total={stats?.managerKpis?.interested ?? '-'}
           icon={<UserCheck size={18} />}
           color="blue"
+          onClick={() => {
+  setSelectedManagerKpi('interested');
+  setManagerCurrentPage(1);
+}}
         />
         <KpiCard
           title="Not Interested"
           total={stats?.managerKpis?.notInterested ?? '-'}
           icon={<XCircle size={18} />}
           color="red"
+          onClick={() => {
+  setSelectedManagerKpi('notInterested');
+  setManagerCurrentPage(1);
+}}
         />
         <KpiCard
           title="Not Picked"
           total={stats?.managerKpis?.notPicked ?? '-'}
           icon={<PhoneMissed size={18} />}
           color="orange"
+          onClick={() => {
+  setSelectedManagerKpi('notPicked');
+  setManagerCurrentPage(1);
+}}
         />
         <KpiCard
           title="Call Back"
           total={stats?.managerKpis?.callBack ?? '-'}
           icon={<PhoneIncoming size={18} />}
           color="purple"
+          onClick={() => {
+  setSelectedManagerKpi('callBack');
+  setManagerCurrentPage(1);
+}}
         />
+       
       </div>
 
       {/* Abandoned — separate row (jaisa aapke diagram mein tha) */}
@@ -1482,9 +1611,176 @@ const navigateToDetails = (filters = {}) => {
           total={stats?.managerKpis?.onboard ?? '-'}
           icon={<Ban size={18} />}
           color="teal"
+          onClick={() => {
+  setSelectedManagerKpi('onboard');
+  setManagerCurrentPage(1);
+}}
         />
+         <KpiCard 
+  title="New" 
+  total={stats?.managerKpis?.newLeads ?? '-'} 
+  icon={<PhoneIncoming size={18} />} 
+  color="blue"
+  onClick={() => {
+  setSelectedManagerKpi('new');
+  setManagerCurrentPage(1);
+}} 
+/>
       </div>
     </div>
+
+    {/* ========================================= */}
+{/* SECTION 3: MANAGER LEAD LIST              */}
+{/* ========================================= */}
+
+<div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm w-full">
+
+  <div className="flex items-center justify-between mb-4">
+    <div className="flex items-center gap-2">
+      <Users size={16} className="text-indigo-700" />
+
+      <h2 className="text-xs font-black text-indigo-700 uppercase tracking-widest">
+        3. Manager Lead List
+      </h2>
+    </div>
+
+    <span className="text-xs font-bold text-slate-500">
+      {stats?.leads?.length ?? 0} Leads
+    </span>
+  </div>
+
+  <div className="overflow-x-auto">
+    <table className="w-full text-left">
+      <thead>
+        <tr className="border-b border-slate-200">
+          <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
+            Company
+          </th>
+
+          <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
+            Contact
+          </th>
+
+          <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
+            Phone
+          </th>
+
+          <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
+            Status
+          </th>
+
+          <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
+            Sub Status
+          </th>
+
+          <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
+            Follow Up
+          </th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {managerPaginatedLeads.map((lead) => (
+          <tr
+            key={lead.client_id || lead.id}
+            className="border-b border-slate-100 hover:bg-slate-50 transition"
+          >
+
+            <td className="px-3 py-3">
+              <div className="text-xs font-bold text-slate-800">
+                {lead.company ||
+                  lead.companyName ||
+                  lead.clientName ||
+                  'N/A'}
+              </div>
+            </td>
+
+            <td className="px-3 py-3">
+              <div className="text-xs text-slate-700">
+                {lead.contactPerson || 'N/A'}
+              </div>
+            </td>
+
+            <td className="px-3 py-3">
+              <div className="text-xs text-slate-700">
+                {lead.contactNo || 'N/A'}
+              </div>
+            </td>
+
+            <td className="px-3 py-3">
+              <span className="inline-flex px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold">
+                {lead.status || 'N/A'}
+              </span>
+            </td>
+
+            <td className="px-3 py-3">
+              <span className="text-[10px] font-semibold text-slate-600">
+                {lead.subStatus || '-'}
+              </span>
+            </td>
+
+            <td className="px-3 py-3">
+              <span className="text-[10px] text-slate-600">
+                {lead.nextFollowup ||
+                  lead.latestFollowup ||
+                  '-'}
+              </span>
+            </td>
+
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    {managerTotalPages > 1 && (
+  <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200">
+
+    <div className="text-xs text-slate-500">
+      Showing{" "}
+      {((managerCurrentPage - 1) * managerPageSize) + 1}
+      {" - "}
+      {Math.min(
+        managerCurrentPage * managerPageSize,
+        managerFilteredLeads.length
+      )}
+      {" of "}
+      {managerFilteredLeads.length}
+    </div>
+
+    <div className="flex items-center gap-2">
+
+      <button
+        type="button"
+        disabled={managerCurrentPage === 1}
+        onClick={() =>
+          setManagerCurrentPage((page) => page - 1)
+        }
+        className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+      >
+        Previous
+      </button>
+
+      <span className="px-3 py-1.5 text-xs font-bold text-slate-700">
+        Page {managerCurrentPage} of {managerTotalPages}
+      </span>
+
+      <button
+        type="button"
+        disabled={managerCurrentPage === managerTotalPages}
+        onClick={() =>
+          setManagerCurrentPage((page) => page + 1)
+        }
+        className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+      >
+        Next
+      </button>
+
+    </div>
+
+  </div>
+)}
+  </div>
+
+</div>
 
   </div>
 )}
