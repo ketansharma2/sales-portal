@@ -1,1105 +1,935 @@
-// import { supabaseServer } from "@/lib/supabase-server";
-// import { NextResponse } from "next/server";
-// import { getUser } from "@/lib/auth-helper";
+import { supabaseServer } from '@/lib/supabase-server';
 
-// export async function GET(request) {
-//   try {
-//     // 1. Authentication
-//     const { user, error: authError } = getUser(request);
+import { NextResponse } from 'next/server';
 
-//     if (authError || !user) {
-//       return NextResponse.json(
-//         { error: "Unauthorized" },
-//         { status: 401 }
-//       );
-//     }
+import { getUser } from '@/lib/auth-helper';
 
-//     // 2. Check Manager role
-//     const { data: userProfile, error: profileError } =
-//       await supabaseServer
-//         .from("users")
-//         .select("user_id, role")
-//         .eq("user_id", user.id)
-//         .single();
 
-//     if (profileError || !userProfile) {
-//       return NextResponse.json(
-//         { error: "User profile not found" },
-//         { status: 404 }
-//       );
-//     }
-
-//     if (
-//       !userProfile.role ||
-//       !userProfile.role.includes("MANAGER")
-//     ) {
-//       return NextResponse.json(
-//         {
-//           error: "Access denied. Manager role required.",
-//         },
-//         { status: 403 }
-//       );
-//     }
-
-//     // 3. Get Manager's LeadGen team
-//     const { data: leadgenTeam, error: leadgenTeamError } =
-//       await supabaseServer
-//         .from("users")
-//         .select("user_id, name")
-//         .eq("manager_id", user.id)
-//         .contains("role", ["LEADGEN"]);
-
-//     if (leadgenTeamError) {
-//       console.error(
-//         "LeadGen team fetch error:",
-//         leadgenTeamError
-//       );
-
-//       return NextResponse.json(
-//         {
-//           error: "Failed to fetch LeadGen team",
-//           details: leadgenTeamError.message,
-//         },
-//         { status: 500 }
-//       );
-//     }
-
-//     const leadgenIds =
-//       leadgenTeam?.map((member) => member.user_id) || [];
-
-//     // 4. Get LeadGen leads
-//     let leadgenLeads = [];
-
-//     if (leadgenIds.length > 0) {
-//       const { data, error } = await supabaseServer
-//         .from("corporate_leadgen_leads")
-//         .select("client_id, leadgen_id")
-//         .in("leadgen_id", leadgenIds);
-
-//       if (error) {
-//         console.error(
-//           "LeadGen leads fetch error:",
-//           error
-//         );
-
-//         return NextResponse.json(
-//           {
-//             error: "Failed to fetch LeadGen leads",
-//             details: error.message,
-//           },
-//           { status: 500 }
-//         );
-//       }
-
-//       leadgenLeads = data || [];
-//     }
-
-//     // 5. Onboard Team
-//     const onboardTeam = leadgenLeads.length;
-
-//     const leadgenClientIds = new Set(
-//       leadgenLeads.map((lead) => lead.client_id)
-//     );
-
-//     // 6. Get Manager leads
-//     const { data: managerLeads, error: managerLeadsError } =
-//       await supabaseServer
-//         .from("corporate_manager_leads")
-//         .select(`
-//           client_id,
-//           user_id,
-//           sourcing_date,
-//           sent_to_crm
-//         `)
-//         .eq("user_id", user.id);
-
-//     if (managerLeadsError) {
-//       console.error(
-//         "Manager leads fetch error:",
-//         managerLeadsError
-//       );
-
-//       return NextResponse.json(
-//         {
-//           error: "Failed to fetch Manager leads",
-//           details: managerLeadsError.message,
-//         },
-//         { status: 500 }
-//       );
-//     }
-
-//     const managerLeadRows = managerLeads || [];
-
-//     // 7. Manager Dependent
-//     const managerCalls = managerLeadRows.length;
-
-//     const managerClientIds = new Set(
-//       managerLeadRows.map((lead) => lead.client_id)
-//     );
-
-//     // 8. Send to CRM
-//     const sendToCRM = managerLeadRows.filter((lead) => {
-//       const value = String(lead.sent_to_crm || "")
-//         .trim()
-//         .toLowerCase();
-
-//       return (
-//         value === "true" ||
-//         value === "yes" ||
-//         value === "1" ||
-//         value === "sent"
-//       );
-//     }).length;
-
-//     // 9. Get Manager interactions
-//     let managerInteractions = [];
-
-//     if (managerClientIds.size > 0) {
-//       const { data, error } = await supabaseServer
-//         .from("corporate_manager_interaction")
-//         .select(`
-//           id,
-//           client_id,
-//           user_id,
-//           date,
-//           status,
-//           sub_status,
-//           created_at
-//         `)
-//         .in(
-//           "client_id",
-//           Array.from(managerClientIds)
-//         )
-//         .order("created_at", {
-//           ascending: false,
-//         });
-
-//       if (error) {
-//         console.error(
-//           "Manager interaction fetch error:",
-//           error
-//         );
-
-//         return NextResponse.json(
-//           {
-//             error: "Failed to fetch Manager interactions",
-//             details: error.message,
-//           },
-//           { status: 500 }
-//         );
-//       }
-
-//       managerInteractions = data || [];
-//     }
-
-//     // 10. Unique interacted clients
-//     const interactedClientIds = new Set(
-//       managerInteractions
-//         .map((interaction) => interaction.client_id)
-//         .filter((clientId) =>
-//           managerClientIds.has(clientId)
-//         )
-//     );
-
-//     const interacted = interactedClientIds.size;
-
-//     // 11. Pending
-//     let pending = 0;
-
-//     for (const clientId of managerClientIds) {
-//       if (!interactedClientIds.has(clientId)) {
-//         pending++;
-//       }
-//     }
-
-//     // 12. Latest interaction per client
-//     const latestInteractionByClient = new Map();
-
-//     for (const interaction of managerInteractions) {
-//       const clientId = interaction.client_id;
-
-//       if (!managerClientIds.has(clientId)) {
-//         continue;
-//       }
-
-//       if (!latestInteractionByClient.has(clientId)) {
-//         latestInteractionByClient.set(
-//           clientId,
-//           interaction
-//         );
-//       }
-//     }
-
-//     // 13. Normalize status
-//     const normalize = (value) =>
-//       String(value || "")
-//         .trim()
-//         .toLowerCase()
-//         .replace(/[_-]+/g, " ")
-//         .replace(/\s+/g, " ");
-
-//     // 14. Interaction status KPIs
-//     let interested = 0;
-//     let notInterested = 0;
-//     let notPicked = 0;
-//     let callBack = 0;
-
-   
-
-//     // 15. LeadGen interactions
-//     let leadgenInteractions = [];
-//     if (leadgenClientIds.size > 0) {
-//       const { data, error } = await supabaseServer
-//   .from("corporate_leads_interaction")
-//   .select("*")
-
-
-
-
-//       if (error) {
-//         console.error(
-//           "LeadGen interaction fetch error:",
-//           error
-//         );
-
-//         return NextResponse.json(
-//           {
-//             error: "Failed to fetch LeadGen interactions",
-//             details: error.message,
-//           },
-//           { status: 500 }
-//         );
-//       }
-
-//       leadgenInteractions = data || [];
-//     }
-
-//     // 16. Actual Onboard
-//     const onboardClientIds = new Set();
-
-//     for (const interactionRow of leadgenInteractions) {
-//       const status = normalize(interactionRow.status);
-//       const subStatus = normalize(
-//         interactionRow.sub_status
-//       );
-
-//       if (
-//         status === "onboard" 
-//       ) {
-//         onboardClientIds.add(
-//           interactionRow.client_id
-//         );
-//       }
-//     }
-
-
-//      for (const latest of leadgenInteractions) {
-//       const status = normalize(latest.status);
-//       const subStatus = normalize(latest.sub_status);
-
-//       const currentStatus = status || subStatus;
-
-//       if (currentStatus === "interested") {
-//         interested++;
-//       } else if (currentStatus === "not interested") {
-//         notInterested++;
-//       } else if (
-//         currentStatus === "not picked" ||
-//         currentStatus === "not picked call"
-//       ) {
-//         notPicked++;
-//       } else if (
-//         currentStatus === "call back" ||
-//         currentStatus === "callback"
-//       ) {
-//         callBack++;
-//       }
-//     }
-
-   
-
-// for (const interactionRow of leadgenInteractions) {
-//   const status = normalize(interactionRow.status);
- 
-  
-//   if (
-//     status === "onboard" 
-//   ) {
-//     console.log("LeadGen Interaction Row:", interactionRow);
-//   console.log("Normalized Status:", status);
-//     onboardClientIds.add(interactionRow.client_id);
-//   }
-// }
-
-
-
-//     const onboard = onboardClientIds.size;
-
-//     // 17. Final response
-//     return NextResponse.json({
-//       success: true,
-
-//       managerId: user.id,
-
-//       team: {
-//         leadgenCount: leadgenIds.length,
-//         leadgenIds,
-//       },
-
-//       managerKpis: {
-//         // Team Flow Tree
-//         onboardTeam,
-//         sendToCRM,
-//         managerCalls: managerCalls,
-//         dpm: pending,
-//         interested: interacted,
-
-//         // Interaction Status
-//         interaction: interested,
-//         notInterested,
-//         notPicked,
-//         callBack,
-
-//         // Actual Onboard
-//         onboard,
-
-//         // Current frontend compatibility
-//         abandoned: onboard,
-//       },
-
-//       summary: {
-//         totalLeadgenLeads: onboardTeam,
-//         totalManagerLeads: managerCalls,
-//         totalInteracted: interacted,
-//         totalPending: pending,
-//         totalOnboard: onboard,
-//       },
-//     });
-//   } catch (error) {
-//     console.error(
-//       "Manager KPI API error:",
-//       error
-//     );
-
-//     return NextResponse.json(
-//       {
-//         error: "Internal server error",
-//         details: error?.message || "Unknown error",
-//       },
-//       { status: 500 }
-//     );
-//   }
-// }
-
-
-import { supabaseServer } from "@/lib/supabase-server";
-import { NextResponse } from "next/server";
-import { getUser } from "@/lib/auth-helper";
 
 export async function GET(request) {
-  try {
-    // =====================================================
-    // 1. Authentication
-    // =====================================================
 
+  try {
+
+    // Authentication - user injected by middleware (no auth calls needed!)
     const { user, error: authError } = getUser(request);
 
     if (authError || !user) {
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    // =====================================================
-    // 2. Date Filter
-    // =====================================================
 
-    const { searchParams } = new URL(request.url);
 
-    const fromDate = searchParams.get("fromDate");
-    const toDate = searchParams.get("toDate");
+    // Check if user has MANAGER role
+    const { data: userProfile, error: profileError } =
+      await supabaseServer
+        .from('users')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
 
-    console.log("====================================");
-    console.log("MANAGER KPI");
-    console.log("Manager:", user.id);
-    console.log("From Date:", fromDate);
-    console.log("To Date:", toDate);
-    console.log("====================================");
 
-    // =====================================================
-    // 3. Check Manager Role
-    // =====================================================
-
-    const {
-      data: userProfile,
-      error: profileError,
-    } = await supabaseServer
-      .from("users")
-      .select("user_id, role")
-      .eq("user_id", user.id)
-      .single();
 
     if (profileError || !userProfile) {
       return NextResponse.json(
-        {
-          error: "User profile not found",
-          details: profileError?.message,
-        },
+        { error: 'User profile not found' },
         { status: 404 }
       );
     }
 
+
+
     if (
       !userProfile.role ||
-      !userProfile.role.includes("MANAGER")
+      !userProfile.role.includes('MANAGER')
     ) {
       return NextResponse.json(
         {
           error:
-            "Access denied. Manager role required.",
+            'Access denied. Manager role required.'
         },
         { status: 403 }
       );
     }
 
-    // =====================================================
-    // 4. Get Manager's LeadGen Team
-    // =====================================================
 
-    const {
-      data: leadgenTeam,
-      error: leadgenTeamError,
-    } = await supabaseServer
-      .from("users")
-      .select("user_id, name")
-      .eq("manager_id", user.id)
-      .contains("role", ["LEADGEN"]);
 
-    if (leadgenTeamError) {
+    // Get FSE team members under this manager
+    const { data: fseTeam, error: fseError } =
+      await supabaseServer
+        .from('users')
+        .select('user_id, name')
+        .eq('manager_id', user.id)
+        .contains('role', ['FSE']);
+
+
+
+    if (fseError) {
       console.error(
-        "LeadGen team fetch error:",
-        leadgenTeamError
-      );
-
-      return NextResponse.json(
-        {
-          error: "Failed to fetch LeadGen team",
-          details: leadgenTeamError.message,
-        },
-        { status: 500 }
+        'FSE team fetch error:',
+        fseError
       );
     }
 
-    const leadgenIds =
-      leadgenTeam?.map(
-        (member) => member.user_id
-      ) || [];
 
-    // =====================================================
-    // 5. Get LeadGen Leads
-    // =====================================================
 
-    let leadgenLeads = [];
 
-    if (leadgenIds.length > 0) {
-      let leadgenQuery = supabaseServer
-        .from("corporate_leadgen_leads")
-        .select(`
-          client_id,
-          leadgen_id,
-          sent_to_sm,
-          created_at
-        `)
-        .in("leadgen_id", leadgenIds);
 
-      // Apply date filter only when dates are provided
-      if (fromDate && toDate) {
-        leadgenQuery = leadgenQuery
-          .gte("created_at", fromDate)
-          .lte("created_at", toDate);
-      }
 
-      const {
-        data,
-        error,
-      } = await leadgenQuery;
+
+    let rawData;
+    let managerInteractionsData = [];
+
+
+   
+
+      // For Interested/Onboarded tab:
+      // use corporate_manager_leads table
+
+      // Fetch leads first
+     const { searchParams } = new URL(request.url);
+
+const fromDate = searchParams.get('fromDate');
+const toDate = searchParams.get('toDate');
+
+let leadsQuery = supabaseServer
+  .from('corporate_manager_leads')
+  .select('*')
+  .eq('user_id', user.id);
+
+if (fromDate) {
+  leadsQuery = leadsQuery.gte(
+    'sourcing_date',
+    `${fromDate}T00:00:00`
+  );
+}
+
+if (toDate) {
+  leadsQuery = leadsQuery.lte(
+    'sourcing_date',
+    `${toDate}T23:59:59`
+  );
+}
+
+const { data, error } = await leadsQuery
+  .order('sourcing_date', {
+    ascending: false
+  });
+
 
       if (error) {
+
         console.error(
-          "LeadGen leads fetch error:",
+          'Leads fetch error:',
           error
         );
 
         return NextResponse.json(
           {
             error:
-              "Failed to fetch LeadGen leads",
-            details: error.message,
-            code: error.code || null,
-            hint: error.hint || null,
+              'Failed to fetch leads',
+            details:
+              error.message
           },
           { status: 500 }
         );
       }
 
-      leadgenLeads = data || [];
-    }
 
-    const sentToSMLeads =
-  leadgenLeads.filter(
-    (lead) =>
-      lead.sent_to_sm === true
-  );
 
-const sentToSMClientIds =
-  new Set(
-    sentToSMLeads
-      .map((lead) => lead.client_id)
-      .filter(Boolean)
-  );
-    // =====================================================
-    // 6. Onboard Team
-    // =====================================================
+      rawData = data;
 
-    const onboardTeam =
-      leadgenLeads.length;
 
-    const leadgenClientIds = new Set(
-      leadgenLeads
-        .map(
-          (lead) => lead.client_id
-        )
-        .filter(Boolean)
-    );
 
-    // =====================================================
-    // 7. Get Manager Leads
-    // =====================================================
+      // Fetch all unique sourced_by UUIDs
+      // and get their names
 
-    let managerQuery = supabaseServer
-      .from("corporate_manager_leads")
-      .select(`
-        client_id,
-        user_id,
-        sourcing_date,
-        sent_to_crm
-      `)
-      .eq("user_id", user.id);
+      if (
+        rawData &&
+        rawData.length > 0
+      ) {
 
-    // Apply date filter
-    if (fromDate && toDate) {
-      managerQuery = managerQuery
-        .gte("sourcing_date", fromDate)
-        .lte("sourcing_date", toDate);
-    }
-
-    const {
-      data: managerLeads,
-      error: managerLeadsError,
-    } = await managerQuery;
-
-    if (managerLeadsError) {
-      console.error(
-        "Manager leads fetch error:",
-        managerLeadsError
-      );
-
-      return NextResponse.json(
-        {
-          error:
-            "Failed to fetch Manager leads",
-          details:
-            managerLeadsError.message,
-          code:
-            managerLeadsError.code || null,
-          hint:
-            managerLeadsError.hint || null,
-        },
-        { status: 500 }
-      );
-    }
-
-    const managerLeadRows =
-      managerLeads || [];
-
-    // =====================================================
-    // 8. Manager Calls
-    // =====================================================
-
-    // const managerCalls =
-    //   managerLeadRows.length;
-
-    const managerClientIds =
-      new Set(
-        managerLeadRows
-          .map(
-            (lead) => lead.client_id
+        const uniqueSourcedByIds = [
+          ...new Set(
+            rawData
+              .map(
+                lead =>
+                  lead.sourced_by
+              )
+              .filter(Boolean)
           )
-          .filter(Boolean)
-      );
+        ];
 
-    // =====================================================
-    // 9. Send To CRM
-    // =====================================================
 
-    const sendToCRM =
-      managerLeadRows.filter(
+
+        if (
+          uniqueSourcedByIds.length > 0
+        ) {
+
+          const { data: usersData } =
+            await supabaseServer
+              .from('users')
+              .select(
+                'user_id, name'
+              )
+              .in(
+                'user_id',
+                uniqueSourcedByIds
+              );
+
+
+
+          // Create a map of UUID to name
+          const userNameMap = {};
+
+          usersData?.forEach(
+            user => {
+              userNameMap[
+                user.user_id
+              ] = user.name;
+            }
+          );
+
+
+
+          // Add sourcedByName to each lead
+          rawData =
+            rawData.map(
+              lead => ({
+                ...lead,
+                sourcedByName:
+                  userNameMap[
+                    lead.sourced_by
+                  ] ||
+                  lead.sourced_by ||
+                  'Unknown'
+              })
+            );
+
+        } else {
+
+          rawData =
+            rawData.map(
+              lead => ({
+                ...lead,
+                sourcedByName:
+                  'Unknown'
+              })
+            );
+        }
+      }
+
+
+
+      // Now fetch interactions
+      // from BOTH tables for these leads
+
+      if (
+        rawData &&
+        rawData.length > 0
+      ) {
+
+        const clientIds =
+          rawData.map(
+            lead =>
+              lead.client_id
+          );
+
+
+
+        // Fetch from corporate_manager_interaction
+        // (manager's interactions)
+
+       const {
+  data: managerInteractions,
+  error: managerInteractionsError
+} = await supabaseServer
+  .from('corporate_manager_interaction')
+  .select('*')
+  .in(
+    'client_id',
+    clientIds
+  )
+  .order(
+    'created_at',
+    {
+      ascending: false
+    }
+  );
+
+managerInteractionsData = managerInteractions || [];
+
+console.log(
+  'Manager interactions fetched:',
+  managerInteractionsData.length
+);
+
+        // Fetch from corporate_leads_interaction
+        // (leadgen's interactions)
+
+        const {
+          data: leadsInteractionsData,
+          error: leadsInteractionsError
+        } = await supabaseServer
+          .from(
+            'corporate_leads_interaction'
+          )
+          .select('*')
+          .in(
+            'client_id',
+            clientIds
+          )
+          .order(
+            'created_at',
+            {
+              ascending: false
+            }
+          );
+
+
+
+        // Combine both interaction sources
+
+        const allInteractions = [
+          ...(managerInteractionsData || []),
+          ...(leadsInteractionsData || [])
+        ];
+
+
+
+        // Group by client_id
+
+        const interactionsByClient = {};
+
+        allInteractions.forEach(
+          interaction => {
+
+            if (
+              !interactionsByClient[
+                interaction.client_id
+              ]
+            ) {
+              interactionsByClient[
+                interaction.client_id
+              ] = [];
+            }
+
+            interactionsByClient[
+              interaction.client_id
+            ].push(interaction);
+          }
+        );
+
+
+
+        // Sort each client's interactions
+        // by date (newest first),
+        // pushing null dates to end
+
+        Object.keys(
+          interactionsByClient
+        ).forEach(
+          clientId => {
+
+            interactionsByClient[
+              clientId
+            ].sort((a, b) => {
+
+              // Push null/undefined dates to end
+              if (!a.date) return 1;
+              if (!b.date) return -1;
+
+              return (
+                new Date(b.date) -
+                new Date(a.date)
+              );
+
+            });
+
+          }
+        );
+
+
+
+        // Attach interactions to each lead
+
+        rawData =
+          rawData.map(
+            lead => {
+
+              const interactions =
+                interactionsByClient[
+                  lead.client_id
+                ] || [];
+
+
+
+              // Check if ANY interaction
+              // has Contract Share
+
+              const everContractShare =
+                interactions.some(
+                  interaction =>
+                    (
+                      interaction.sub_status ||
+                      interaction.subStatus
+                    ) ===
+                    'Contract Share'
+                ) || false;
+
+
+
+              return {
+                ...lead,
+
+                allInteractions:
+                  interactions,
+
+                everContractShare:
+                  everContractShare
+              };
+
+            }
+          );
+
+      }
+
+    
+
+
+   
+
+
+
+    // Format the data
+
+    let formattedLeads =
+      rawData?.map(
         (lead) => {
-          const value = String(
-            lead.sent_to_crm || ""
-          )
+
+          // For actionable tab,
+          // use allInteractions;
+          // for database tab,
+          // use corporate_leads_interaction
+
+          const interactions =
+            lead.allInteractions ||
+            lead.corporate_leads_interaction ||
+            [];
+
+
+
+          const latestInteraction =
+            interactions.length > 0
+              ? interactions[0]
+              : null;
+
+
+
+          // Check if ANY interaction
+          // has Contract Share
+
+          const everContractShare =
+            lead.everContractShare ||
+            interactions.some(
+              interaction =>
+                (
+                  interaction.sub_status ||
+                  interaction.subStatus
+                ) ===
+                'Contract Share'
+            ) ||
+            false;
+
+
+
+          return {
+
+            id:
+              lead.client_id,
+
+            sourcingDate:
+              lead.sourcing_date
+                ? new Date(
+                    lead.sourcing_date
+                  ).toLocaleDateString(
+                    'en-GB'
+                  )
+                : 'N/A',
+
+            sourcingDateRaw:
+              lead.sourcing_date ||
+              null,
+
+            arrivedDate:
+              lead.arrived_date
+                ? new Date(
+                    lead.arrived_date
+                  ).toLocaleDateString(
+                    'en-GB'
+                  )
+                : 'N/A',
+
+            arrivedDateRaw:
+              lead.arrived_date ||
+              null,
+
+            company:
+              lead.company,
+
+            category:
+              lead.category,
+
+            state:
+              lead.state,
+
+            city:
+              lead.city || '',
+
+            location:
+              lead.location ||
+              lead.district_city ||
+              '',
+
+            districtCity:
+              lead.district_city ||
+              '',
+
+            empCount:
+              lead.emp_count,
+
+            reference:
+              lead.reference,
+
+            startup:
+              lead.startup,
+
+            projection:
+              lead.projection,
+
+            status:
+              latestInteraction?.status ||
+              'New',
+
+            subStatus:
+              latestInteraction?.sub_status ||
+              'New Lead',
+
+            franchiseStatus:
+              latestInteraction?.franchise_status ||
+              '',
+
+            latestFollowup:
+              (
+                latestInteraction &&
+                latestInteraction.date
+              )
+                ? new Date(
+                    latestInteraction.date
+                  ).toLocaleDateString(
+                    'en-GB',
+                    {
+                      day: '2-digit',
+                      month: 'short',
+                      year: '2-digit'
+                    }
+                  )
+                : 'N/A',
+
+            latestFollowupRaw:
+              latestInteraction?.date ||
+              null,
+
+            remarks:
+              latestInteraction?.remarks ||
+              '',
+
+            latestRemark:
+              latestInteraction?.remarks ||
+              '',
+
+            nextFollowup:
+              latestInteraction?.next_follow_up
+                ? new Date(
+                    latestInteraction.next_follow_up
+                  ).toLocaleDateString(
+                    'en-GB',
+                    {
+                      day: '2-digit',
+                      month: 'short',
+                      year: '2-digit'
+                    }
+                  )
+                : (
+                    lead.next_follow_up
+                      ? new Date(
+                          lead.next_follow_up
+                        ).toLocaleDateString(
+                          'en-GB',
+                          {
+                            day: '2-digit',
+                            month: 'short',
+                            year: '2-digit'
+                          }
+                        )
+                      : 'N/A'
+                  ),
+
+            contactPerson:
+              latestInteraction?.contact_person ||
+              '',
+
+            contactNo:
+              latestInteraction?.contact_no ||
+              '',
+
+            email:
+              latestInteraction?.email ||
+              '',
+
+            phone:
+              latestInteraction?.contact_no ||
+              '',
+
+            // Leadgen info
+
+            leadgenId:
+              lead.leadgen_id ||
+              lead.user_id,
+
+            sourcedBy:
+              lead.sourcedByName ||
+              lead.sourced_by ||
+              'Unknown',
+
+            // Submission status
+
+            isSubmitted:
+              lead.sent_to_sm ||
+              false,
+
+            sentToCrm:
+              lead.sent_to_crm ||
+              false,
+
+            // Historical sub-status
+            // check for Contract Share
+
+            everContractShare:
+              everContractShare,
+
+            // Interactions array
+            // for compatibility
+
+            interactions:
+              latestInteraction
+                ? [
+                    {
+                      date:
+                        latestInteraction.date,
+
+                      person:
+                        latestInteraction.contact_person ||
+                        'N/A',
+
+                      phone:
+                        latestInteraction.contact_no ||
+                        '',
+
+                      email:
+                        latestInteraction.email ||
+                        '',
+
+                      remarks:
+                        latestInteraction.remarks ||
+                        '',
+
+                      status:
+                        latestInteraction.status ||
+                        '',
+
+                      subStatus:
+                        latestInteraction.sub_status ||
+                        '',
+
+                      franchiseStatus:
+                        latestInteraction.franchise_status ||
+                        '',
+
+                      nextFollowUp:
+                        latestInteraction.next_follow_up ||
+                        ''
+                    }
+                  ]
+                : []
+
+          };
+
+        }
+      ) || [];
+
+
+          // =====================================================
+    // KPI LOGIC
+    // =====================================================
+
+    let managerKpis = {
+      totalLeads: 0,
+
+      // Team Flow
+      managerCalls: 0,
+      sendToCRM: 0,
+
+      // Interaction Status
+      interested: 0,
+      interaction: 0,
+      notInterested: 0,
+      notPicked: 0,
+      callBack: 0,
+      newLeads: 0,
+      
+      // Onboard
+      onboard: 0,
+
+      // Contract
+      contractShare: 0,
+      everContractShare: 0,
+
+      // Submission
+      isSubmitted: 0,
+
+      // Pending
+      pending: 0,
+      dpm: 0,
+
+      // Frontend compatibility
+      abandoned: 0
+    };
+
+
+    
+
+      // -----------------------------------------------------
+      // Total Manager Leads / Manager Calls
+      // -----------------------------------------------------
+
+      managerKpis.totalLeads =
+        formattedLeads.length;
+
+     
+
+
+      // -----------------------------------------------------
+      // Send To CRM
+      // -----------------------------------------------------
+
+      managerKpis.sendToCRM =
+        formattedLeads.filter((lead) => {
+          const value =
+            String(lead.sentToCrm || '')
+              .trim()
+              .toLowerCase();
+
+          return (
+            value === 'true' ||
+            value === 'yes' ||
+            value === '1' ||
+            value === 'sent'
+          );
+        }).length;
+
+
+      // -----------------------------------------------------
+      // Status Counts
+      // -----------------------------------------------------
+
+      for (const lead of formattedLeads) {
+
+        const status =
+          String(lead.status || '')
             .trim()
             .toLowerCase();
 
-          return (
-            value === "true" ||
-            value === "yes" ||
-            value === "1" ||
-            value === "sent"
-          );
+        const subStatus =
+          String(lead.subStatus || '')
+            .trim()
+            .toLowerCase()
+            .replace(/[_-]+/g, ' ')
+            .replace(/\s+/g, ' ');
+
+
+        // Interested
+        
+
+
+        // Not Interested
+        if (status === 'not interested') {
+          managerKpis.notInterested++;
         }
-      ).length;
 
-    // =====================================================
-    // 10. Manager Interactions
-    // =====================================================
 
-    let managerInteractions = [];
+        // Not Picked
+        if (
+          status === 'not picked' ||
+          status === 'not picked call'
+        ) {
+          managerKpis.notPicked++;
+        }
 
-    if (managerClientIds.size > 0) {
-      let managerInteractionQuery =
-        supabaseServer
-          .from(
-            "corporate_manager_interaction"
+
+        // Callback
+        if (
+          status === 'call later' ||
+          status === 'callback' ||
+          status === 'call back'
+        ) {
+          managerKpis.callBack++;
+        }
+
+
+        // New
+        if (
+          status == 'new'    
+        ) {
+          managerKpis.newLeads++;
+        }
+
+
+        // Onboard
+        if (status === 'onboard') {
+          managerKpis.onboard++;
+        }
+
+         if (status === 'interested') {
+          managerKpis.interested++;
+        }
+
+
+        // Contract Share
+        if (subStatus === 'contract share') {
+          managerKpis.contractShare++;
+        }
+        
+        if (status === '') {
+  managerKpis.new++;
+}
+
+        // Historical Contract Share
+        if (lead.everContractShare === true) {
+          managerKpis.everContractShare++;
+        }
+
+
+        
+
+        // Submitted
+        const submitted =
+          String(lead.isSubmitted || '')
+            .trim()
+            .toLowerCase();
+
+        if (
+          submitted === 'true' ||
+          submitted === 'yes' ||
+          submitted === '1'
+        ) {
+          managerKpis.isSubmitted++;
+        }
+      }
+
+
+      // -----------------------------------------------------
+      // Manager Interaction / Pending
+      //
+      // corporate_manager_interaction is NOT removed.
+      // We use the already fetched managerInteractionsData.
+      // -----------------------------------------------------
+
+     const managerInteractedClientIds =
+  new Set(
+    (managerInteractionsData || [])
+      .map(
+        interaction => interaction.client_id
+      )
+      .filter(Boolean)
+  );
+
+  console.log(
+    'Manager interacted client IDs:',
+    managerInteractedClientIds.size
+  );
+
+
+  
+
+
+      const managerClientIds =
+        new Set(
+          formattedLeads
+            .map(lead => lead.id)
+            .filter(Boolean)
+        );
+
+
+      const interacted =
+        [...managerInteractedClientIds]
+          .filter(clientId =>
+            managerClientIds.has(clientId)
           )
-          .select(`
-            id,
-            client_id,
-            user_id,
-            date,
-            status,
-            sub_status,
-            created_at
-          `)
-          .in(
-            "client_id",
-            Array.from(
-              managerClientIds
-            )
-          );
+          .length;
+      
+      managerKpis.managerCalls =
+        formattedLeads.length -  managerKpis.onboard ;
 
-      // Apply date filter
-      if (fromDate && toDate) {
-        managerInteractionQuery =
-          managerInteractionQuery
-            .gte("created_at", fromDate)
-            .lte("created_at", toDate);
-      }
+      // Pending = Manager Calls - Manager Interacted
+      managerKpis.pending =
+        managerKpis.managerCalls - interacted;
+     
 
-      const {
-        data,
-        error,
-      } = await managerInteractionQuery
-        .order("created_at", {
-          ascending: false,
-        });
-
-      if (error) {
-        console.error(
-          "Manager interaction fetch error:",
-          error
-        );
-
-        return NextResponse.json(
-          {
-            error:
-              "Failed to fetch Manager interactions",
-            details: error.message,
-            code:
-              error.code || null,
-            hint:
-              error.hint || null,
-          },
-          { status: 500 }
-        );
-      }
-
-      managerInteractions =
-        data || [];
-    }
-
-    // =====================================================
-    // 11. Unique Interacted Clients
-    // =====================================================
-
-    const interactedClientIds =
-      new Set(
-        managerInteractions
-          .map(
-            (interaction) =>
-              interaction.client_id
-          )
-          .filter((clientId) =>
-            managerClientIds.has(
-              clientId
-            )
-          )
-      );
-
-    const interacted =
-      sentToSMClientIds.size;
-
-    // =====================================================
-    // 12. Pending
-    // =====================================================
-
-    let pending = 0;
-
-    for (
-      const clientId of managerClientIds
-    ) {
-      if (
-        !interactedClientIds.has(
-          clientId
-        )
-      ) {
-        pending++;
-      }
-    }
-
-    // =====================================================
-    // 13. Latest Manager Interaction
-    // =====================================================
-
-    const latestInteractionByClient =
-      new Map();
-
-    for (
-      const interaction of
-      managerInteractions
-    ) {
-      const clientId =
-        interaction.client_id;
-
-      if (
-        !managerClientIds.has(
-          clientId
-        )
-      ) {
-        continue;
-      }
-
-      if (
-        !latestInteractionByClient.has(
-          clientId
-        )
-      ) {
-        latestInteractionByClient.set(
-          clientId,
-          interaction
-        );
-      }
-    }
-
-    // =====================================================
-    // 14. Normalize Status
-    // =====================================================
-
-    const normalize = (value) =>
-      String(value || "")
-        .trim()
-        .toLowerCase()
-        .replace(/[_-]+/g, " ")
-        .replace(/\s+/g, " ");
-
-    // =====================================================
-    // 15. Interaction Status KPIs
-    // =====================================================
-
-    let interested = 0;
-    let notInterested = 0;
-    let notPicked = 0;
-    let callBack = 0;
-
-    // =====================================================
-    // 16. LeadGen Interactions
-    // =====================================================
-
-    let leadgenInteractions = [];
-
-    if (leadgenIds.length > 0) {
-      let leadgenInteractionQuery =
-        supabaseServer
-          .from(
-            "corporate_leads_interaction"
-          )
-          .select(`
-            id,
-            client_id,
-            leadgen_id,
-            date,
-            status,
-            created_at,
-            sub_status,
-            created_at
-          `)
-          .in(
-            "leadgen_id",
-            leadgenIds
-          );
-
-      // Apply date filter
-      if (fromDate && toDate) {
-        leadgenInteractionQuery =
-          leadgenInteractionQuery
-            .gte("created_at", fromDate)
-            .lte("created_at", toDate);
-      }
-
-      const {
-        data,
-        error,
-      } = await leadgenInteractionQuery
-        .order("created_at", {
-          ascending: false,
-        });
-
-      if (error) {
-        console.error(
-          "LeadGen interaction fetch error:",
-          error
-        );
-
-        return NextResponse.json(
-          {
-            error:
-              "Failed to fetch LeadGen interactions",
-            details:
-              error.message,
-            code:
-              error.code || null,
-            hint:
-              error.hint || null,
-            supabaseDetails:
-              error.details || null,
-          },
-          { status: 500 }
-        );
-      }
-
-      leadgenInteractions =
-        data || [];
-    }
-
-    // =====================================================
-    // 17. Actual Onboard
-    // =====================================================
-
-    const onboardClientIds =
-      new Set();
-    const nonOnboardClientIds = new Set();
-
-    for (
-      const interactionRow of
-      leadgenInteractions
-    ) {
-      const status =
-        normalize(
-          interactionRow.status
-        );
-
-      if (status === "onboard") {
-    onboardClientIds.add(interactionRow.client_id);
-  } else {
-    nonOnboardClientIds.add(interactionRow.client_id);
-  }
-    }
+      managerKpis.dpm =
+       managerKpis.managerCalls - interacted;
+    
+      managerKpis.interaction=interacted;
 
 
-    const managerCalls =
-   nonOnboardClientIds.size;
-
-    // =====================================================
-    // 18. Latest LeadGen Interaction Per Client
-    // =====================================================
-
-    const latestLeadgenByClient =
-      new Map();
-
-    for (
-      const interaction of
-      leadgenInteractions
-    ) {
-      const clientId =
-        interaction.client_id;
-
-      if (
-        !latestLeadgenByClient.has(
-          clientId
-        )
-      ) {
-        latestLeadgenByClient.set(
-          clientId,
-          interaction
-        );
-      }
-    }
-
-    // =====================================================
-    // 19. Status Counts
-    // =====================================================
-
-    for (
-      const latest of
-      latestLeadgenByClient.values()
-    ) {
-      const status =
-        normalize(
-          latest.status
-        );
-
-      const subStatus =
-        normalize(
-          latest.sub_status
-        );
-
-      const currentStatus =
-        status || subStatus;
-
-      if (
-        currentStatus ===
-        "interested"
-      ) {
-        interested++;
-      } else if (
-        currentStatus ===
-        "not interested"
-      ) {
-        notInterested++;
-      } else if (
-        currentStatus ===
-          "not picked" ||
-        currentStatus ===
-          "not picked call"
-      ) {
-        notPicked++;
-      } else if (
-        currentStatus ===
-          "call later" ||
-        currentStatus ===
-          "Call Later"
-      ) {
-        callBack++;
-      }
-    }
-
-    // =====================================================
-    // 20. Actual Onboard Count
-    // =====================================================
-
-    const onboard =
-      onboardClientIds.size;
+      // Existing frontend compatibility
+      managerKpis.abandoned =
+        managerKpis.onboard;
     
 
-    const pendingCount =  managerCalls-interacted;  
-    // =====================================================
-    // 21. Final Response
-    // =====================================================
+
 
     return NextResponse.json({
-      success: true,
+      leads:
+        formattedLeads,
 
-      managerId: user.id,
-
-      filter: {
-        fromDate:
-          fromDate || null,
-        toDate:
-          toDate || null,
-      },
-
-      team: {
-        leadgenCount:
-          leadgenIds.length,
-        leadgenIds,
-      },
-
-      managerKpis: {
-        // Team Flow Tree
-        onboardTeam,
-        sendToCRM,
-        managerCalls,
-
-        // Pending
-        dpm: pendingCount,
-
-        // Existing frontend compatibility
-        interested: interacted,
-
-        // Interaction Status
-        interaction: interested,
-        notInterested,
-        notPicked,
-        callBack,
-
-        // Actual Onboard
-        onboard,
-
-        // Frontend compatibility
-        abandoned: onboard,
-      },
-
-      summary: {
-        totalLeadgenLeads:
-          onboardTeam,
-
-        totalManagerLeads:
-          managerCalls,
-
-        totalInteracted:
-          interacted,
-
-        totalPending:
-          pending,
-
-        totalOnboard:
-          onboard,
-      },
+      fseTeam:
+        fseTeam || [],
+      managerKpis  
     });
+
+
+
   } catch (error) {
-    console.error(
-      "===================================="
-    );
 
     console.error(
-      "MANAGER KPI API ERROR"
-    );
-
-    console.error(
-      "Message:",
-      error?.message
-    );
-
-    console.error(
-      "Full Error:",
+      'Server error:',
       error
-    );
-
-    console.error(
-      "===================================="
     );
 
     return NextResponse.json(
       {
-        success: false,
         error:
-          "Internal server error",
+          'Internal server error',
+
         details:
-          error?.message ||
-          "Unknown error",
+          error.message
       },
       { status: 500 }
     );
+
   }
+
 }
