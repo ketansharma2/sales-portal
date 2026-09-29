@@ -1654,6 +1654,9 @@ const managerPaginatedLeads = managerFilteredLeads.slice(
       <thead>
         <tr className="border-b border-slate-200">
           <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
+           Date
+          </th>
+          <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
             Company
           </th>
 
@@ -1672,6 +1675,9 @@ const managerPaginatedLeads = managerFilteredLeads.slice(
           <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
             Sub Status
           </th>
+          <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
+            Latest Remark
+          </th>
 
           <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
             Follow Up
@@ -1685,7 +1691,14 @@ const managerPaginatedLeads = managerFilteredLeads.slice(
             key={lead.client_id || lead.id}
             className="border-b border-slate-100 hover:bg-slate-50 transition"
           >
-
+            <td className="px-3 py-3">
+  <span className="text-[10px] text-slate-600 whitespace-nowrap">
+    {lead.interactions?.length
+      ? [...lead.interactions]
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.date
+      : lead.latestFollowupRaw || '-'}
+  </span>
+</td>
             <td className="px-3 py-3">
               <div className="text-xs font-bold text-slate-800">
                 {lead.company ||
@@ -1718,6 +1731,16 @@ const managerPaginatedLeads = managerFilteredLeads.slice(
                 {lead.subStatus || '-'}
               </span>
             </td>
+
+            <td className="px-3 py-3 max-w-[300px]">
+  <div
+    className="text-[10px] text-slate-600 whitespace-pre-line line-clamp-3"
+    title={lead.latestRemark || lead.remarks || ''}
+  >
+    {lead.latestRemark || lead.remarks || '-'}
+  </div>
+</td>
+
 
             <td className="px-3 py-3">
               <span className="text-[10px] text-slate-600">
