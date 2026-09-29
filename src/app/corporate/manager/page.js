@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect} from "react";
 import { useRouter } from "next/navigation";
 import {
   Users, CheckCircle, MapPin, Target,
@@ -109,7 +109,8 @@ export default function SalesManagerDashboard() {
   notPicked: '-',
   callBack: '-',
   abandoned: '-',
-}
+},
+managerInteractions: [],
   });
 
   const fetchProjectionsCount = async (useLatestFromApi = false, latestDateFromApi = null) => {
@@ -364,11 +365,18 @@ const fetchManagerKpis = async () => {
       params.append("toDate", toDate);
     }
 
+    console.log("Fetching Manager KPI...");
+
     const response = await fetch(
-      `/api/corporate/manager/manager-kpis?${params.toString()}`
+      `/api/corporate/manager/manager-kpis?${params.toString()}`,
+      {
+        cache: "no-store",
+      }
     );
 
     const data = await response.json();
+
+    console.log("Manager KPI Response:", data);
 
     if (!response.ok) {
       throw new Error(
@@ -378,10 +386,17 @@ const fetchManagerKpis = async () => {
 
     setStats((prev) => ({
       ...prev,
-      managerKpis: data.managerKpis,
+      managerKpis: data.managerKpis || prev.managerKpis,
       leads: data.leads || [],
+      managerInteractions: data.managerInteractions || [],
     }));
+
   } catch (error) {
+    if (error?.name === "AbortError") {
+      console.log("Manager KPI request was aborted.");
+      return;
+    }
+
     console.error("Manager KPI error:", error);
   }
 };
@@ -1121,16 +1136,31 @@ const getManagerKpiLeads = () => {
   });
 };
 
-const managerFilteredLeads = getManagerKpiLeads();
+const managerFilteredInteractions =
+  stats?.managerInteractions || [];
 
 const managerTotalPages = Math.ceil(
-  managerFilteredLeads.length / managerPageSize
+  managerFilteredInteractions.length / managerPageSize
 );
 
-const managerPaginatedLeads = managerFilteredLeads.slice(
-  (managerCurrentPage - 1) * managerPageSize,
-  managerCurrentPage * managerPageSize
-);
+const managerPaginatedInteractions =
+  managerFilteredInteractions.slice(
+    (managerCurrentPage - 1) * managerPageSize,
+    managerCurrentPage * managerPageSize
+  );
+
+const managerCompanyMap = {};
+
+(stats?.leads || []).forEach((lead) => {
+  const clientId = lead.client_id || lead.id;
+
+  if (clientId) {
+    managerCompanyMap[clientId] = lead.company || "N/A";
+  }
+});
+  console.log("MANAGER INTERACTIONS:", stats?.managerInteractions);
+console.log("FILTERED:", managerFilteredInteractions);
+console.log("PAGINATED:", managerPaginatedInteractions);
   return (
     <div className="p-2 md:p-4 bg-[#f8fafc] font-['Calibri'] min-h-screen text-slate-800 flex flex-col">
       <div className="max-w-8xl mx-auto w-full space-y-4">
@@ -1652,109 +1682,90 @@ const managerPaginatedLeads = managerFilteredLeads.slice(
   <div className="overflow-x-auto">
     <table className="w-full text-left">
       <thead>
-        <tr className="border-b border-slate-200">
-          <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
-           Date
-          </th>
-          <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
-            Company
-          </th>
+  <tr className="border-b border-slate-200">
 
-          <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
-            Contact
-          </th>
+    <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
+      Date
+    </th>
 
-          <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
-            Phone
-          </th>
+    <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
+      Company
+    </th>
 
-          <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
-            Status
-          </th>
+    <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
+      Conversation
+    </th>
 
-          <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
-            Sub Status
-          </th>
-          <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
-            Latest Remark
-          </th>
+    <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
+      Status
+    </th>
 
-          <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
-            Follow Up
-          </th>
-        </tr>
-      </thead>
+    <th className="px-3 py-3 text-[10px] font-black uppercase text-slate-500">
+      Sub Status
+    </th>
+
+  </tr>
+</thead>
 
       <tbody>
-        {managerPaginatedLeads.map((lead) => (
-          <tr
-            key={lead.client_id || lead.id}
-            className="border-b border-slate-100 hover:bg-slate-50 transition"
-          >
-            <td className="px-3 py-3">
-  <span className="text-[10px] text-slate-600 whitespace-nowrap">
-    {lead.interactions?.length
-      ? [...lead.interactions]
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.date
-      : lead.latestFollowupRaw || '-'}
-  </span>
-</td>
-            <td className="px-3 py-3">
-              <div className="text-xs font-bold text-slate-800">
-                {lead.company ||
-                  lead.companyName ||
-                  lead.clientName ||
-                  'N/A'}
-              </div>
-            </td>
+  {managerPaginatedInteractions.map((interaction) => (
+    <tr
+      key={interaction.id}
+      className="border-b border-slate-100 hover:bg-slate-50 transition"
+    >
 
-            <td className="px-3 py-3">
-              <div className="text-xs text-slate-700">
-                {lead.contactPerson || 'N/A'}
-              </div>
-            </td>
+      {/* Date */}
+      <td className="px-3 py-3">
+        <span className="text-[10px] text-slate-600 whitespace-nowrap">
+          {interaction.date
+            ? new Date(interaction.date).toLocaleDateString('en-IN')
+            : '-'}
+        </span>
+      </td>
 
-            <td className="px-3 py-3">
-              <div className="text-xs text-slate-700">
-                {lead.contactNo || 'N/A'}
-              </div>
-            </td>
-
-            <td className="px-3 py-3">
-              <span className="inline-flex px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold">
-                {lead.status || 'N/A'}
-              </span>
-            </td>
-
-            <td className="px-3 py-3">
-              <span className="text-[10px] font-semibold text-slate-600">
-                {lead.subStatus || '-'}
-              </span>
-            </td>
-
-            <td className="px-3 py-3 max-w-[300px]">
-  <div
-    className="text-[10px] text-slate-600 whitespace-pre-line line-clamp-3"
-    title={lead.latestRemark || lead.remarks || ''}
-  >
-    {lead.latestRemark || lead.remarks || '-'}
+      {/* Company Name */}
+      <td className="px-3 py-3">
+  <div className="text-xs font-bold text-slate-800">
+    {(
+      stats?.leads || []
+    ).find(
+      (lead) =>
+        (lead.client_id || lead.id) === interaction.client_id
+    )?.company || "N/A"}
   </div>
 </td>
 
+      {/* Remark */}
+      <td className="px-3 py-3 max-w-[300px]">
+        <div
+          className="text-[10px] text-slate-600 whitespace-pre-line line-clamp-3"
+          title={interaction.remarks || ''}
+        >
+          {interaction.remarks || '-'}
+        </div>
+      </td>
 
-            <td className="px-3 py-3">
-              <span className="text-[10px] text-slate-600">
-                {lead.nextFollowup ||
-                  lead.latestFollowup ||
-                  '-'}
-              </span>
-            </td>
+      {/* Status */}
+      <td className="px-3 py-3">
+        <span className="inline-flex px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold">
+          {interaction.status || '-'}
+        </span>
+      </td>
 
-          </tr>
-        ))}
-      </tbody>
+      {/* Sub Status */}
+      <td className="px-3 py-3">
+        <span className="text-[10px] font-semibold text-slate-600">
+          {interaction.sub_status ||
+            interaction.subStatus ||
+            '-'}
+        </span>
+      </td>
+
+    </tr>
+  ))}
+</tbody>
     </table>
-    {managerTotalPages > 1 && (
+   {managerTotalPages > 1 && (
   <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200">
 
     <div className="text-xs text-slate-500">
@@ -1763,10 +1774,10 @@ const managerPaginatedLeads = managerFilteredLeads.slice(
       {" - "}
       {Math.min(
         managerCurrentPage * managerPageSize,
-        managerFilteredLeads.length
+        managerFilteredInteractions.length
       )}
       {" of "}
-      {managerFilteredLeads.length}
+      {managerFilteredInteractions.length}
     </div>
 
     <div className="flex items-center gap-2">
