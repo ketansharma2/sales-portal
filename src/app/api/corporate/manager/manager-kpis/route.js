@@ -899,12 +899,12 @@ console.log(
         managerKpis.onboard;
     
 
-
+   
 
     return NextResponse.json({
       leads:
         formattedLeads,
-
+      managerInteractions: managerInteractionsData || [],
       fseTeam:
         fseTeam || [],
       managerKpis  
