@@ -1135,30 +1135,133 @@ const getManagerKpiLeads = () => {
     }
   });
 };
-
-const managerFilteredInteractions =
+const managerInteractions =
   stats?.managerInteractions || [];
 
-const managerTotalPages = Math.ceil(
-  managerFilteredInteractions.length / managerPageSize
-);
-
-const managerPaginatedInteractions =
-  managerFilteredInteractions.slice(
-    (managerCurrentPage - 1) * managerPageSize,
-    managerCurrentPage * managerPageSize
-  );
-
+// ============================================
+// CLIENT ID -> COMPANY NAME
+// ============================================
 const managerCompanyMap = {};
 
 (stats?.leads || []).forEach((lead) => {
   const clientId = lead.client_id || lead.id;
 
   if (clientId) {
-    managerCompanyMap[clientId] = lead.company || "N/A";
+    managerCompanyMap[clientId] =
+      lead.company ||
+      lead.companyName ||
+      lead.clientName ||
+      "N/A";
   }
 });
-  console.log("MANAGER INTERACTIONS:", stats?.managerInteractions);
+
+// ============================================
+// GROUP BY COMPANY / CLIENT
+// ============================================
+const companyGroups = {};
+
+managerInteractions.forEach((interaction) => {
+  const companyKey = interaction.client_id;
+
+  if (!companyGroups[companyKey]) {
+    companyGroups[companyKey] = [];
+  }
+
+  companyGroups[companyKey].push(interaction);
+});
+
+// ============================================
+// FIND LATEST INTERACTION OF EACH COMPANY
+// ============================================
+const latestCompanyInteractions = [];
+const remainingInteractions = [];
+
+Object.values(companyGroups).forEach((interactions) => {
+
+  interactions.sort((a, b) => {
+    const dateA = new Date(
+      a.date || a.created_at || 0
+    ).getTime();
+
+    const dateB = new Date(
+      b.date || b.created_at || 0
+    ).getTime();
+
+    return dateB - dateA;
+  });
+
+  // First record = latest interaction
+  if (interactions.length > 0) {
+    latestCompanyInteractions.push(interactions[0]);
+  }
+
+  // Remaining old interactions
+  if (interactions.length > 1) {
+    remainingInteractions.push(
+      ...interactions.slice(1)
+    );
+  }
+});
+
+// ============================================
+// SORT ALL LATEST COMPANY INTERACTIONS
+// LATEST DATE FIRST
+// ============================================
+latestCompanyInteractions.sort((a, b) => {
+  const dateA = new Date(
+    a.date || a.created_at || 0
+  ).getTime();
+
+  const dateB = new Date(
+    b.date || b.created_at || 0
+  ).getTime();
+
+  return dateB - dateA;
+});
+
+// ============================================
+// SORT ALL REMAINING OLD INTERACTIONS
+// LATEST DATE FIRST
+// ============================================
+remainingInteractions.sort((a, b) => {
+  const dateA = new Date(
+    a.date || a.created_at || 0
+  ).getTime();
+
+  const dateB = new Date(
+    b.date || b.created_at || 0
+  ).getTime();
+
+  return dateB - dateA;
+});
+
+// ============================================
+// FINAL ORDER
+// 1. EVERY COMPANY'S LATEST
+// 2. THEN ALL OLD INTERACTIONS
+// ============================================
+const managerFilteredInteractions = [
+  ...latestCompanyInteractions,
+  ...remainingInteractions
+];
+
+// ============================================
+// PAGINATION
+// ============================================
+const managerTotalPages = Math.ceil(
+  managerFilteredInteractions.length /
+    managerPageSize
+);
+
+const managerPaginatedInteractions =
+  managerFilteredInteractions.slice(
+    (managerCurrentPage - 1) *
+      managerPageSize,
+
+    managerCurrentPage *
+      managerPageSize
+  );
+    console.log("MANAGER INTERACTIONS:", stats?.managerInteractions);
 console.log("FILTERED:", managerFilteredInteractions);
 console.log("PAGINATED:", managerPaginatedInteractions);
   return (
