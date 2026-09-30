@@ -29,7 +29,7 @@ export async function POST(request) {
     // Fetch user profile from users table
     const { data: profileData, error: profileError } = await supabaseServer
       .from('users')
-      .select('user_id, name, email, role, manager_id, hod_id, sector')
+      .select('user_id, name, email, role, manager_id, hod_id, sector, is_active')
       .eq('user_id', authData.user.id)
       .single()
 
@@ -39,6 +39,16 @@ export async function POST(request) {
         error: 'User profile not found'
       }, { status: 404 })
     }
+
+    // Check if user account is active
+if (profileData.is_active === false) {
+  return NextResponse.json(
+    {
+      error: 'Your account is inactive. Please contact the administrator.'
+    },
+    { status: 403 }
+  )
+}
 
     // Check roles
     if (!profileData.role || profileData.role.length === 0) {
