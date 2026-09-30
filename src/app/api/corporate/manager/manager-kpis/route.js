@@ -242,22 +242,34 @@ const { data, error } = await leadsQuery
         // Fetch from corporate_manager_interaction
         // (manager's interactions)
 
-       const {
-  data: managerInteractions,
-  error: managerInteractionsError
-} = await supabaseServer
+       let managerInteractionsQuery = supabaseServer
   .from('corporate_manager_interaction')
   .select('*')
-  .in(
-    'client_id',
-    clientIds
-  )
-  .order(
-    'created_at',
-    {
-      ascending: false
-    }
+  .in('client_id', clientIds);
+
+if (fromDate) {
+  managerInteractionsQuery = managerInteractionsQuery.gte(
+    'date',
+    `${fromDate}T00:00:00`
   );
+}
+
+if (toDate) {
+  managerInteractionsQuery = managerInteractionsQuery.lte(
+    'date',
+    `${toDate}T23:59:59`
+  );
+}
+
+const {
+  data: managerInteractions,
+  error: managerInteractionsError
+} = await managerInteractionsQuery.order(
+  'created_at',
+  {
+    ascending: false
+  }
+);
 
 managerInteractionsData = managerInteractions || [];
 

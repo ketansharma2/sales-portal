@@ -13,7 +13,7 @@ export async function GET(request) {
     }
     const { data: users, error } = await supabaseServer
       .from('users')
-      .select('user_id, name, email, role, sector, manager_id, tl_id')
+      .select('user_id, name, email, role, sector, manager_id, tl_id, is_active')
       .order('name', { ascending: true })
 
     if (error) {
@@ -51,7 +51,8 @@ export async function GET(request) {
       manager_id: u.manager_id,
       manager_name: managerTlNames[u.manager_id] || null,
       tl_id: u.tl_id,
-      tl_name: managerTlNames[u.tl_id] || null
+      tl_name: managerTlNames[u.tl_id] || null,
+      is_active: u.is_active
     }))
 
     return NextResponse.json({
@@ -79,7 +80,7 @@ export async function POST(request) {
 
     // Get request body
     const body = await request.json()
-    const { name, email, password, roles: roleArr, sector, manager: managerId, tl: tlId } = body
+    const { name, email, password, roles: roleArr, sector, manager: managerId, tl: tlId ,is_active} = body
 
     // Validate required fields
     if (!name || !email || !password || !roleArr || roleArr.length === 0) {
@@ -117,7 +118,8 @@ export async function POST(request) {
         role: roleArr,
         sector: sector || null,
         manager_id: managerId || null,
-        tl_id: tlId || null
+        tl_id: tlId || null,
+        is_active: is_active !== false
       })
       .select()
       .single()
@@ -165,7 +167,7 @@ export async function PUT(request) {
     }
 
     const body = await request.json()
-    const { user_id, name, email, sector, role, manager_id, tl_id } = body
+    const { user_id, name, email, sector, role, manager_id, tl_id, is_active } = body
 
     if (!user_id) {
       return NextResponse.json({ error: 'user_id is required' }, { status: 400 })
@@ -180,7 +182,7 @@ export async function PUT(request) {
     if (role) updateData.role = role
     if (manager_id !== undefined) updateData.manager_id = manager_id
     if (tl_id !== undefined) updateData.tl_id = tl_id
-
+    if (is_active !== undefined) updateData.is_active = is_active
     const { error: updateError } = await supabaseServer
       .from('users')
       .update(updateData)

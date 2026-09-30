@@ -75,6 +75,7 @@ export default function UserManagementDemo() {
     manager: "",
     tl: "",
     region: "",
+    is_active: true,
   });
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -133,6 +134,7 @@ export default function UserManagementDemo() {
       manager: "",
       tl: "",
       region: "",
+      is_active: true,
     });
   };
 
@@ -152,6 +154,7 @@ export default function UserManagementDemo() {
       manager: user.manager_id || "",
       tl: user.tl_id || "",
       region: user.region || "",
+      is_active: user.is_active !== false,
     });
   };
 
@@ -200,7 +203,8 @@ export default function UserManagementDemo() {
         sector: form.sector, 
         role: form.roles,
         manager_id: form.manager || null,
-        tl_id: form.tl || null
+        tl_id: form.tl || null,
+        is_active: form.is_active
       }
       try {
         const response = await API.apiPut("/api/admin/users", putData);
@@ -294,6 +298,7 @@ export default function UserManagementDemo() {
         <th className="p-2 w-[120px]">Sector</th>
         <th className="p-2 w-[140px]">Manager</th>
         <th className="p-2 w-[120px]">TL</th>
+        <th className="p-2 w-[110px]">Status</th>
         <th className="p-2 w-[100px]">Action</th>
       </tr>
     </thead>
@@ -337,6 +342,17 @@ export default function UserManagementDemo() {
           <td className="p-2 text-center">{u.sector || "-"}</td>
           <td className="p-2 text-center">{u.manager_name || "-"}</td>
           <td className="p-2 text-center">{u.tl_name || "-"}</td>
+          <td className="p-2 text-center">
+  <span
+    className={`text-[10px] font-bold px-2 py-1 rounded-full ${
+      u.is_active
+        ? "bg-green-100 text-green-700"
+        : "bg-red-100 text-red-700"
+    }`}
+  >
+    {u.is_active ? "Active" : "Inactive"}
+  </span>
+</td>
           <td className="p-2">
             <div className="flex justify-center items-center gap-2">
               <button
@@ -473,7 +489,25 @@ export default function UserManagementDemo() {
                 />
 
               </div>
+              <div>
+  <label className="text-xs font-bold text-gray-500">
+    Account Status
+  </label>
 
+  <select
+    value={form.is_active ? "active" : "inactive"}
+    onChange={(e) =>
+      handleChange(
+        "is_active",
+        e.target.value === "active"
+      )
+    }
+    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"
+  >
+    <option value="active">Active</option>
+    <option value="inactive">Inactive</option>
+  </select>
+</div>
             </div>
 
             {/* FOOTER */}
