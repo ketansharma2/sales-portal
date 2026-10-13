@@ -19,6 +19,7 @@ function DetailsContent() {
   const toDateFilter = searchParams.get('toDate') || '';
   const startupFilter = searchParams.get('startup') || 'All';
   const isSubmittedFilter = searchParams.get('isSubmitted') || '';
+  const flagStatus = searchParams.get('flagStatus') || 'All';
   const cardType = searchParams.get('cardType') || '';
   const isAllData = searchParams.get('isAllData') === 'true';
   const [searchTerm, setSearchTerm] = useState('');
@@ -141,7 +142,19 @@ useEffect(() => {
       (item.franchise_status || '').toLowerCase() === franchiseStatusFilter.toLowerCase()
     );
   }
-  
+if (flagStatus !== 'All') {
+  filtered = filtered.filter((item) => {
+    if (flagStatus === 'true' || flagStatus === 'Dropped') {
+      return item.currently_flag === true;
+    }
+
+    if (flagStatus === 'false' || flagStatus === 'Undropped') {
+      return item.currently_flag === false;
+    }
+
+    return true;
+  });
+}
   // 4. Filter by Global Search (if search term exists)
   if (searchTerm && searchTerm.trim()) {
     const searchLower = searchTerm.toLowerCase();
@@ -165,7 +178,7 @@ useEffect(() => {
   
   // Set the final filtered results
   setFilteredInteractions(filtered);
-}, [interactions, statusFilter, subStatusFilter, franchiseStatusFilter, searchTerm]);
+}, [interactions, statusFilter, subStatusFilter, franchiseStatusFilter, searchTerm,flagStatus]);
   const [editingInteractionId, setEditingInteractionId] = useState(null);
   const [suggestions, setSuggestions] = useState({ persons: [], nos: [], emails: [] });
 
@@ -405,6 +418,7 @@ useEffect(() => {
             category: lead.category || '',
             state: lead.state || '',
             district_city: lead.district_city || '',
+            currently_flag: lead.currently_flag,
             startup: lead.startup || '',
             isSubmitted: true
           }));
@@ -964,6 +978,7 @@ useEffect(() => {
             contact_no: lead.phone || '',
             email: lead.email || '',
             franchise_status: lead.franchiseStatus || '',
+            currently_flag: lead.currently_flag,
             company: lead.company || '',
             category: lead.category || '',
             state: lead.state || '',
@@ -1044,6 +1059,7 @@ useEffect(() => {
             state: lead.state || '',
             district_city: lead.district_city || '',
             startup: lead.startup || '',
+            currently_flag: lead.currently_flag || false,
             isSubmitted: lead.isSubmitted || false
           }));
           // Sort by date descending (newest first)
@@ -1220,6 +1236,19 @@ useEffect(() => {
       franchiseStatusFilter.toLowerCase()
     );
   }
+  if (flagStatus !== "All") {
+  filtered = filtered.filter((item) => {
+    if (flagStatus === "true" || flagStatus === "Dropped") {
+      return item.currently_flag === true;
+    }
+
+    if (flagStatus === "false" || flagStatus === "Undropped") {
+      return item.currently_flag === false;
+    }
+
+    return true;
+  });
+}
 
   setFilteredInteractions(filtered);
 }, [
@@ -1345,7 +1374,7 @@ if (method === 'PUT') {
                 <span className="ml-2 text-green-600">All Time</span>
               )}
               <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200">
-                {interactions.length} rows
+                {filteredInteractions.length} rows
               </span>
             </p>
           </div>
